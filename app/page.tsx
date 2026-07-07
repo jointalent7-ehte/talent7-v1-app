@@ -943,6 +943,7 @@ export default function Home() {
             <a href="#my-talent7" className="secondary">My Talent7</a>
             <a href="#safety" className="secondary">Safety</a>
             <a href="#plans" className="secondary">Plans</a>
+            <a href="#roadmap" className="secondary">Roadmap</a>
             <a href="#create" className="primary">Create challenge</a>
             <a href="#rooms" className="secondary">View rooms</a>
           </div>
@@ -1110,6 +1111,31 @@ export default function Home() {
               <button key={amount} type="button">{amount}</button>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="section roadmapSection" id="roadmap">
+        <div className="sectionHeader">
+          <p className="eyebrow">Founder roadmap</p>
+          <h2>What Talent7 is building toward</h2>
+          <p>This is an early version. The first goal is to prove that people want fair, proof-based challenge rooms before adding heavier live features.</p>
+        </div>
+        <div className="roadmapGrid">
+          <article>
+            <span>Now</span>
+            <strong>Proof-based challenge rooms</strong>
+            <p>Create challenges, join as challenger or audience, vote, rate, upload proof, report issues, and lock winners.</p>
+          </article>
+          <article>
+            <span>Next</span>
+            <strong>Profiles, coaching, and sports links</strong>
+            <p>Improve public profiles, add coaching flows, and connect sports challenges to booking links by city or region.</p>
+          </article>
+          <article>
+            <span>Later</span>
+            <strong>Live battles and expert help</strong>
+            <p>Add two-screen live challenge battles, real payments, instructor tools, and carefully designed emergency/expert video help.</p>
+          </article>
         </div>
       </section>
 

@@ -459,6 +459,47 @@ textarea {
   border-color: var(--ink);
 }
 
+.roadmapSection {
+  background: #f4f8f7;
+}
+
+.roadmapGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.roadmapGrid article {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.roadmapGrid span {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.roadmapGrid strong {
+  font-size: 1.3rem;
+}
+
+.roadmapGrid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .roomSearch {
   max-width: 760px;
   margin-bottom: 18px;
@@ -968,7 +1009,8 @@ textarea {
 
   .safetyGrid,
   .plansGrid,
-  .contributionBox {
+  .contributionBox,
+  .roadmapGrid {
     grid-template-columns: 1fr;
   }
 
