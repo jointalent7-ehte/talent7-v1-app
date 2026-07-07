@@ -26,6 +26,7 @@ type JoinRole = "Challenger" | "Audience";
 type ChallengeJoin = {
   id: string;
   challenge_id: string;
+  user_id?: string | null;
   participant_name: string;
   role: JoinRole;
   side: string;
@@ -35,6 +36,7 @@ type ChallengeJoin = {
 type ChallengeRating = {
   id: string;
   challenge_id: string;
+  user_id?: string | null;
   rating: number;
   created_at: string;
 };
@@ -42,6 +44,7 @@ type ChallengeRating = {
 type ChallengeVote = {
   id: string;
   challenge_id: string;
+  user_id?: string | null;
   winner: string;
   created_at: string;
 };
@@ -49,6 +52,7 @@ type ChallengeVote = {
 type ChallengeProof = {
   id: string;
   challenge_id: string;
+  user_id?: string | null;
   proof_url: string;
   notes: string | null;
   created_at: string;
@@ -338,8 +342,18 @@ export default function Home() {
     setMessage("Logged out.");
   }
 
+  function requireLogin(action: string) {
+    if (session) return true;
+
+    setMessage(`Please log in before you ${action}.`);
+    setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+    return false;
+  }
+
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!requireLogin("create a challenge")) return;
+
     const formElement = event.currentTarget;
     setIsSaving(true);
     setMessage("");
@@ -351,7 +365,8 @@ export default function Home() {
       team_a: String(form.get("team_a") || "Open challenger"),
       team_b: String(form.get("team_b") || "Open invite"),
       rules: String(form.get("rules") || "Upload proof after the challenge."),
-      status: "Open"
+      status: "Open",
+      created_by: session?.user.id
     };
 
     if (!supabase) {
@@ -397,17 +412,15 @@ export default function Home() {
 
   async function joinChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
+    if (!requireLogin("join a challenge")) return;
+
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const participantName = String(form.get("participant_name") || "").trim();
-
-    if (!participantName) {
-      setMessage("Please enter a name before joining.");
-      return;
-    }
+    const participantName = session?.user.email || "Talent7 member";
 
     const join = {
       challenge_id: challenge.id,
+      user_id: session?.user.id,
       participant_name: participantName,
       role: String(form.get("role") || "Challenger") as JoinRole,
       side: String(form.get("side") || "Open invite")
@@ -448,11 +461,14 @@ export default function Home() {
   }
 
   async function rateChallenge(challengeId: string, rating: number) {
+    if (!requireLogin("rate a challenge")) return;
+
     if (!supabase || challengeId.startsWith("sample-")) {
       setRatings((items) => [
         {
           id: crypto.randomUUID(),
           challenge_id: challengeId,
+          user_id: session?.user.id,
           rating,
           created_at: new Date().toISOString()
         },
@@ -466,6 +482,7 @@ export default function Home() {
       .from("ratings")
       .insert({
         challenge_id: challengeId,
+        user_id: session?.user.id,
         rating
       })
       .select("*")
@@ -480,11 +497,14 @@ export default function Home() {
   }
 
   async function voteForWinner(challengeId: string, winner: string) {
+    if (!requireLogin("vote")) return;
+
     if (!supabase || challengeId.startsWith("sample-")) {
       setVotes((items) => [
         {
           id: crypto.randomUUID(),
           challenge_id: challengeId,
+          user_id: session?.user.id,
           winner,
           created_at: new Date().toISOString()
         },
@@ -498,6 +518,7 @@ export default function Home() {
       .from("votes")
       .insert({
         challenge_id: challengeId,
+        user_id: session?.user.id,
         winner
       })
       .select("*")
@@ -513,6 +534,8 @@ export default function Home() {
 
   async function submitProof(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
+    if (!requireLogin("submit proof")) return;
+
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const proofUrl = String(form.get("proof_url") || "").trim();
@@ -525,6 +548,7 @@ export default function Home() {
 
     const proof = {
       challenge_id: challenge.id,
+      user_id: session?.user.id,
       proof_url: proofUrl,
       notes: notes || null
     };
@@ -565,6 +589,8 @@ export default function Home() {
 
   async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
+    if (!requireLogin("complete a challenge")) return;
+
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const winner = String(form.get("winner") || "").trim();
@@ -579,7 +605,8 @@ export default function Home() {
       status: "Completed",
       winner,
       final_score: finalScore || null,
-      completed_at: new Date().toISOString()
+      completed_at: new Date().toISOString(),
+      completed_by: session?.user.id
     };
 
     setCompletingChallengeId(challenge.id);
@@ -790,7 +817,11 @@ export default function Home() {
               </div>
               <p>{challenge.rules}</p>
               <form className="joinForm" onSubmit={(event) => joinChallenge(event, challenge)}>
-                <input name="participant_name" placeholder="Your name" />
+                <input
+                  name="participant_name"
+                  readOnly
+                  value={session?.user.email || "Log in to join"}
+                />
                 <select name="role" defaultValue="Challenger">
                   <option>Challenger</option>
                   <option>Audience</option>
