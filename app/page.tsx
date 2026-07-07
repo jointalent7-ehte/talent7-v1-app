@@ -92,6 +92,14 @@ type ShowcaseRating = {
   created_at: string;
 };
 
+type ShowcaseComment = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+};
+
 type ProfileFollow = {
   id: string;
   follower_id: string;
@@ -226,7 +234,10 @@ export default function Home() {
   const [followActionId, setFollowActionId] = useState<string | null>(null);
   const [showcasePosts, setShowcasePosts] = useState<ShowcasePost[]>([]);
   const [showcaseRatings, setShowcaseRatings] = useState<ShowcaseRating[]>([]);
+  const [showcaseComments, setShowcaseComments] = useState<ShowcaseComment[]>([]);
   const [savingShowcasePost, setSavingShowcasePost] = useState(false);
+  const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
+  const [reportingShowcaseTarget, setReportingShowcaseTarget] = useState<string | null>(null);
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -280,6 +291,14 @@ export default function Home() {
       return results;
     }, {});
   }, [showcaseRatings]);
+
+  const showcaseCommentsByPost = useMemo(() => {
+    return showcaseComments.reduce<Record<string, ShowcaseComment[]>>((groups, comment) => {
+      groups[comment.post_id] = groups[comment.post_id] || [];
+      groups[comment.post_id].push(comment);
+      return groups;
+    }, {});
+  }, [showcaseComments]);
 
   const activityScores = useMemo(() => {
     return challenges.reduce<Record<string, number>>((scores, challenge) => {
@@ -764,6 +783,23 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    async function loadShowcaseComments() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("showcase_comments")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(120);
+
+      if (error) return;
+      if (data) setShowcaseComments(data as ShowcaseComment[]);
+    }
+
+    loadShowcaseComments();
+  }, []);
+
+  useEffect(() => {
     async function loadInvites() {
       if (!supabase || !session?.user.id) {
         setInvites([]);
@@ -1243,6 +1279,108 @@ export default function Home() {
       setShowcaseRatings((items) => [data as ShowcaseRating, ...items]);
       setMessage(`Saved ${rating}/7 showcase rating.`);
     }
+  }
+
+  async function submitShowcaseComment(event: FormEvent<HTMLFormElement>, post: ShowcasePost) {
+    event.preventDefault();
+    if (!requireLogin("comment on a showcase post")) return;
+    if (!requireProfile("comment on a showcase post")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const body = String(form.get("body") || "").trim();
+
+    if (!body) {
+      setMessage("Write a short comment first.");
+      return;
+    }
+
+    const comment = {
+      post_id: post.id,
+      user_id: session?.user.id || "",
+      body
+    };
+
+    setCommentingPostId(post.id);
+    setMessage("");
+
+    if (!supabase) {
+      setShowcaseComments((items) => [
+        {
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          ...comment
+        },
+        ...items
+      ]);
+      setMessage("Demo mode: comment added on this page.");
+      formElement.reset();
+      setCommentingPostId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("showcase_comments")
+      .insert(comment)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not add comment: ${error.message}`);
+    } else if (data) {
+      setShowcaseComments((items) => [data as ShowcaseComment, ...items]);
+      setMessage("Comment added.");
+      formElement.reset();
+    }
+
+    setCommentingPostId(null);
+  }
+
+  async function submitShowcaseReport(
+    event: FormEvent<HTMLFormElement>,
+    post: ShowcasePost,
+    comment?: ShowcaseComment
+  ) {
+    event.preventDefault();
+    if (!requireLogin("report showcase content")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const reason = String(form.get("reason") || "Other") as ReportReason;
+    const notes = String(form.get("notes") || "").trim();
+    const targetType = comment ? "Comment" : "Post";
+    const targetId = comment?.id || post.id;
+
+    const report = {
+      post_id: post.id,
+      comment_id: comment?.id || null,
+      reporter_id: session?.user.id,
+      target_type: targetType,
+      reason,
+      notes: notes || null,
+      status: "Open"
+    };
+
+    setReportingShowcaseTarget(`${targetType}-${targetId}`);
+    setMessage("");
+
+    if (!supabase) {
+      setMessage("Demo mode: showcase report saved on this page.");
+      formElement.reset();
+      setReportingShowcaseTarget(null);
+      return;
+    }
+
+    const { error } = await supabase.from("showcase_reports").insert(report);
+
+    if (error) {
+      setMessage(`Could not submit showcase report: ${error.message}`);
+    } else {
+      setMessage("Showcase report submitted. Thank you for helping keep Talent7 safe.");
+      formElement.reset();
+    }
+
+    setReportingShowcaseTarget(null);
   }
 
   async function respondToInvite(invite: ChallengeInvite, status: "Accepted" | "Declined") {
@@ -1763,7 +1901,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Showcase</p>
           <h2>Post talent photos, videos, and links</h2>
-          <p>Share talent outside a challenge room first. Later we can add public 7-star ratings to these posts too.</p>
+          <p>Share talent outside a challenge room, collect public 7-star ratings, and keep feedback respectful.</p>
         </div>
         {session ? (
           <form className="showcaseForm" onSubmit={createShowcasePost}>
@@ -1833,6 +1971,53 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                <form className="showcaseCommentForm" onSubmit={(event) => submitShowcaseComment(event, post)}>
+                  <input name="body" placeholder="Add a supportive comment" />
+                  <button disabled={commentingPostId === post.id} type="submit">
+                    {commentingPostId === post.id ? "Adding..." : "Comment"}
+                  </button>
+                </form>
+                <div className="showcaseComments">
+                  <strong>Comments</strong>
+                  {(showcaseCommentsByPost[post.id] || []).length > 0 ? (
+                    (showcaseCommentsByPost[post.id] || []).slice(0, 3).map((comment) => (
+                      <div className="showcaseComment" key={comment.id}>
+                        <span>{profileDisplayName(comment.user_id)}</span>
+                        <p>{comment.body}</p>
+                        <details className="showcaseCommentReport">
+                          <summary>Report comment</summary>
+                          <form onSubmit={(event) => submitShowcaseReport(event, post, comment)}>
+                            <select name="reason" defaultValue="Abuse">
+                              {(["Spam", "Fake proof", "Abuse", "Wrong category", "Other"] as ReportReason[]).map((reason) => (
+                                <option key={reason}>{reason}</option>
+                              ))}
+                            </select>
+                            <input name="notes" placeholder="Short report note" />
+                            <button disabled={reportingShowcaseTarget === `Comment-${comment.id}`} type="submit">
+                              Submit report
+                            </button>
+                          </form>
+                        </details>
+                      </div>
+                    ))
+                  ) : (
+                    <small>No comments yet.</small>
+                  )}
+                </div>
+                <details className="showcaseReportBox">
+                  <summary>Report post</summary>
+                  <form className="showcaseReportForm" onSubmit={(event) => submitShowcaseReport(event, post)}>
+                    <select name="reason" defaultValue="Spam">
+                      {(["Spam", "Fake proof", "Abuse", "Wrong category", "Other"] as ReportReason[]).map((reason) => (
+                        <option key={reason}>{reason}</option>
+                      ))}
+                    </select>
+                    <input name="notes" placeholder="Short report note" />
+                    <button disabled={reportingShowcaseTarget === `Post-${post.id}`} type="submit">
+                      Submit report
+                    </button>
+                  </form>
+                </details>
               </article>
             ))
           ) : (

@@ -586,6 +586,97 @@ textarea {
   cursor: not-allowed;
 }
 
+.showcaseCommentForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 10px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.showcaseCommentForm button,
+.showcaseReportForm button,
+.showcaseCommentReport button {
+  min-height: 42px;
+  padding: 0 14px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.showcaseCommentForm button:disabled,
+.showcaseReportForm button:disabled,
+.showcaseCommentReport button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  cursor: not-allowed;
+}
+
+.showcaseComments {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.showcaseComments > strong {
+  font-size: 1rem;
+}
+
+.showcaseComments small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.showcaseComment {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.showcaseComment span {
+  color: var(--teal);
+  font-weight: 850;
+}
+
+.showcaseComment p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.showcaseCommentReport summary,
+.showcaseReportBox summary {
+  width: fit-content;
+  color: var(--muted);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.showcaseCommentReport form,
+.showcaseReportForm {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.showcaseReportBox {
+  padding: 10px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
 .invitesSection {
   background: #fff;
 }
@@ -1482,6 +1573,7 @@ textarea {
 
   .createForm,
   .showcaseForm,
+  .showcaseCommentForm,
   .profileForm,
   .myTalentGrid,
   .inviteGrid,
