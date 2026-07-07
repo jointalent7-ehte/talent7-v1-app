@@ -18,6 +18,8 @@ type Challenge = {
   winner: string | null;
   final_score: string | null;
   completed_at: string | null;
+  created_by?: string | null;
+  completed_by?: string | null;
   created_at: string;
 };
 
@@ -227,6 +229,34 @@ export default function Home() {
       .sort((first, second) => second.score - first.score || first.challenge.title.localeCompare(second.challenge.title))
       .slice(0, 3);
   }, [activityScores, challenges, joinCounts, roomProofs, roomResults]);
+
+  const myActivity = useMemo(() => {
+    if (!session?.user.id) {
+      return {
+        joined: [] as ChallengeJoin[],
+        votes: [] as ChallengeVote[],
+        ratings: [] as ChallengeRating[],
+        proofs: [] as ChallengeProof[],
+        created: [] as Challenge[],
+        completed: [] as Challenge[]
+      };
+    }
+
+    const userId = session.user.id;
+
+    return {
+      joined: joins.filter((join) => join.user_id === userId),
+      votes: votes.filter((vote) => vote.user_id === userId),
+      ratings: ratings.filter((rating) => rating.user_id === userId),
+      proofs: proofs.filter((proof) => proof.user_id === userId),
+      created: challenges.filter((challenge) => challenge.created_by === userId),
+      completed: challenges.filter((challenge) => challenge.completed_by === userId)
+    };
+  }, [challenges, joins, proofs, ratings, session, votes]);
+
+  function challengeTitle(challengeId: string) {
+    return challenges.find((challenge) => challenge.id === challengeId)?.title || "Challenge room";
+  }
 
   useEffect(() => {
     if (!supabase) return;
@@ -752,7 +782,7 @@ export default function Home() {
         <nav>
           <strong>Talent7</strong>
           <div className="navActions">
-            <span>{session ? session.user.email : "Guest mode"}</span>
+            <span>{session ? profileName() : "Guest mode"}</span>
             <a href="https://www.jointalent7.com">Public site</a>
           </div>
         </nav>
@@ -765,6 +795,7 @@ export default function Home() {
           </p>
           <div className="heroActions">
             <a href="#account" className="secondary">Account</a>
+            <a href="#my-talent7" className="secondary">My Talent7</a>
             <a href="#create" className="primary">Create challenge</a>
             <a href="#rooms" className="secondary">View rooms</a>
           </div>
@@ -861,6 +892,73 @@ export default function Home() {
               {authLoading ? "Please wait..." : authMode}
             </button>
           </form>
+        )}
+      </section>
+
+      <section className="section myTalent" id="my-talent7">
+        <div className="sectionHeader">
+          <p className="eyebrow">My Talent7</p>
+          <h2>Your challenge activity</h2>
+          <p>Track the rooms you joined, voted on, rated, proved, created, and completed.</p>
+        </div>
+        {session ? (
+          <div className="myTalentGrid">
+            <article>
+              <span>Joined</span>
+              <strong>{myActivity.joined.length}</strong>
+              <small>
+                {myActivity.joined[0]
+                  ? `${challengeTitle(myActivity.joined[0].challenge_id)} as ${myActivity.joined[0].role}`
+                  : "No joined rooms yet"}
+              </small>
+            </article>
+            <article>
+              <span>Votes</span>
+              <strong>{myActivity.votes.length}</strong>
+              <small>
+                {myActivity.votes[0]
+                  ? `${myActivity.votes[0].winner} in ${challengeTitle(myActivity.votes[0].challenge_id)}`
+                  : "No votes yet"}
+              </small>
+            </article>
+            <article>
+              <span>Ratings</span>
+              <strong>{myActivity.ratings.length}</strong>
+              <small>
+                {myActivity.ratings[0]
+                  ? `${myActivity.ratings[0].rating}/7 for ${challengeTitle(myActivity.ratings[0].challenge_id)}`
+                  : "No ratings yet"}
+              </small>
+            </article>
+            <article>
+              <span>Proofs</span>
+              <strong>{myActivity.proofs.length}</strong>
+              <small>
+                {myActivity.proofs[0]
+                  ? challengeTitle(myActivity.proofs[0].challenge_id)
+                  : "No proof uploads yet"}
+              </small>
+            </article>
+            <article>
+              <span>Created</span>
+              <strong>{myActivity.created.length}</strong>
+              <small>{myActivity.created[0]?.title || "No created challenges yet"}</small>
+            </article>
+            <article>
+              <span>Completed</span>
+              <strong>{myActivity.completed.length}</strong>
+              <small>
+                {myActivity.completed[0]
+                  ? `${myActivity.completed[0].winner || "Winner"} won ${myActivity.completed[0].title}`
+                  : "No completed challenges yet"}
+              </small>
+            </article>
+          </div>
+        ) : (
+          <div className="emptyState">
+            <strong>Log in to see your Talent7 activity.</strong>
+            <a href="#account">Go to account</a>
+          </div>
         )}
       </section>
 
