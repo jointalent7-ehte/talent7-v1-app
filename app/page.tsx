@@ -28,6 +28,20 @@ type ChallengeJoin = {
   created_at: string;
 };
 
+type ChallengeRating = {
+  id: string;
+  challenge_id: string;
+  rating: number;
+  created_at: string;
+};
+
+type ChallengeVote = {
+  id: string;
+  challenge_id: string;
+  winner: string;
+  created_at: string;
+};
+
 const sampleChallenges: Challenge[] = [
   {
     id: "sample-1",
@@ -72,6 +86,8 @@ export default function Home() {
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const [joins, setJoins] = useState<ChallengeJoin[]>([]);
+  const [ratings, setRatings] = useState<ChallengeRating[]>([]);
+  const [votes, setVotes] = useState<ChallengeVote[]>([]);
 
   const visibleChallenges = useMemo(() => {
     if (selectedLane === "All") return challenges;
@@ -89,6 +105,25 @@ export default function Home() {
       return counts;
     }, {});
   }, [joins]);
+
+  const roomResults = useMemo(() => {
+    return challenges.reduce<
+      Record<string, { teamAVotes: number; teamBVotes: number; ratingAverage: string; ratingCount: number }>
+    >((results, challenge) => {
+      const roomVotes = votes.filter((vote) => vote.challenge_id === challenge.id);
+      const roomRatings = ratings.filter((rating) => rating.challenge_id === challenge.id);
+      const ratingTotal = roomRatings.reduce((total, rating) => total + rating.rating, 0);
+
+      results[challenge.id] = {
+        teamAVotes: roomVotes.filter((vote) => vote.winner === challenge.team_a).length,
+        teamBVotes: roomVotes.filter((vote) => vote.winner === challenge.team_b).length,
+        ratingAverage: roomRatings.length ? (ratingTotal / roomRatings.length).toFixed(1) : "0.0",
+        ratingCount: roomRatings.length
+      };
+
+      return results;
+    }, {});
+  }, [challenges, ratings, votes]);
 
   useEffect(() => {
     async function loadChallenges() {
@@ -124,6 +159,22 @@ export default function Home() {
     }
 
     loadJoins();
+  }, []);
+
+  useEffect(() => {
+    async function loadResults() {
+      if (!supabase) return;
+
+      const [{ data: ratingData }, { data: voteData }] = await Promise.all([
+        supabase.from("ratings").select("*").order("created_at", { ascending: false }),
+        supabase.from("votes").select("*").order("created_at", { ascending: false })
+      ]);
+
+      if (ratingData) setRatings(ratingData as ChallengeRating[]);
+      if (voteData) setVotes(voteData as ChallengeVote[]);
+    }
+
+    loadResults();
   }, []);
 
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
@@ -234,30 +285,66 @@ export default function Home() {
 
   async function rateChallenge(challengeId: string, rating: number) {
     if (!supabase || challengeId.startsWith("sample-")) {
-      setMessage(`Demo mode: saved a ${rating}/7 rating locally for this preview.`);
+      setRatings((items) => [
+        {
+          id: crypto.randomUUID(),
+          challenge_id: challengeId,
+          rating,
+          created_at: new Date().toISOString()
+        },
+        ...items
+      ]);
+      setMessage(`Saved a ${rating}/7 rating for this preview.`);
       return;
     }
 
-    const { error } = await supabase.from("ratings").insert({
-      challenge_id: challengeId,
-      rating
-    });
+    const { data, error } = await supabase
+      .from("ratings")
+      .insert({
+        challenge_id: challengeId,
+        rating
+      })
+      .select("*")
+      .single();
 
-    setMessage(error ? `Could not save rating: ${error.message}` : `Saved ${rating}/7 rating.`);
+    if (error) {
+      setMessage(`Could not save rating: ${error.message}`);
+    } else if (data) {
+      setRatings((items) => [data as ChallengeRating, ...items]);
+      setMessage(`Saved ${rating}/7 rating.`);
+    }
   }
 
   async function voteForWinner(challengeId: string, winner: string) {
     if (!supabase || challengeId.startsWith("sample-")) {
-      setMessage(`Demo mode: vote recorded locally for ${winner}.`);
+      setVotes((items) => [
+        {
+          id: crypto.randomUUID(),
+          challenge_id: challengeId,
+          winner,
+          created_at: new Date().toISOString()
+        },
+        ...items
+      ]);
+      setMessage(`Vote recorded for ${winner}.`);
       return;
     }
 
-    const { error } = await supabase.from("votes").insert({
-      challenge_id: challengeId,
-      winner
-    });
+    const { data, error } = await supabase
+      .from("votes")
+      .insert({
+        challenge_id: challengeId,
+        winner
+      })
+      .select("*")
+      .single();
 
-    setMessage(error ? `Could not save vote: ${error.message}` : `Vote saved for ${winner}.`);
+    if (error) {
+      setMessage(`Could not save vote: ${error.message}`);
+    } else if (data) {
+      setVotes((items) => [data as ChallengeVote, ...items]);
+      setMessage(`Vote saved for ${winner}.`);
+    }
   }
 
   return (
@@ -364,6 +451,22 @@ export default function Home() {
               <div className="roomStats">
                 <strong>Challengers: {joinCounts[challenge.id]?.challengers || 0}</strong>
                 <strong>Audience: {joinCounts[challenge.id]?.audience || 0}</strong>
+              </div>
+              <div className="scoreBoard">
+                <div>
+                  <span>Votes</span>
+                  <strong>
+                    A {roomResults[challenge.id]?.teamAVotes || 0} / B{" "}
+                    {roomResults[challenge.id]?.teamBVotes || 0}
+                  </strong>
+                </div>
+                <div>
+                  <span>Rating</span>
+                  <strong>
+                    {roomResults[challenge.id]?.ratingAverage || "0.0"} / 7
+                    <small> ({roomResults[challenge.id]?.ratingCount || 0})</small>
+                  </strong>
+                </div>
               </div>
               <p>{challenge.rules}</p>
               <form className="joinForm" onSubmit={(event) => joinChallenge(event, challenge)}>

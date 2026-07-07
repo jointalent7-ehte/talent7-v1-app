@@ -287,6 +287,37 @@ textarea {
   color: var(--coral);
 }
 
+.scoreBoard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scoreBoard div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.scoreBoard span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.scoreBoard strong {
+  font-size: 1.12rem;
+}
+
+.scoreBoard small {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
 .roomStats strong {
   padding: 8px 10px;
   background: #eef4f4;
@@ -327,6 +358,7 @@ textarea {
 @media (max-width: 900px) {
   .createForm,
   .joinForm,
+  .scoreBoard,
   .roomsGrid,
   .leaderGrid {
     grid-template-columns: 1fr;
