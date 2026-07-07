@@ -760,6 +760,30 @@ textarea {
   line-height: 1.35;
 }
 
+.reportForm {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  background: #fff4d8;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.reportForm select,
+.reportForm input {
+  background: #fff;
+}
+
+.reportForm button {
+  min-height: 42px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
 .resultForm {
   display: grid;
   grid-template-columns: 1fr 1fr auto;

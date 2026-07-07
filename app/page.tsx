@@ -63,6 +63,8 @@ type ChallengeProof = {
   created_at: string;
 };
 
+type ReportReason = "Spam" | "Fake proof" | "Abuse" | "Wrong category" | "Other";
+
 type TalentProfile = {
   user_id: string;
   display_name: string;
@@ -134,6 +136,7 @@ export default function Home() {
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
+  const [reportingChallengeId, setReportingChallengeId] = useState<string | null>(null);
   const [joinChoices, setJoinChoices] = useState<Record<string, { role: JoinRole; side: string }>>({});
   const [proofTypes, setProofTypes] = useState<Record<string, string>>({});
   const [joins, setJoins] = useState<ChallengeJoin[]>([]);
@@ -817,6 +820,49 @@ export default function Home() {
     setSavingProofChallengeId(null);
   }
 
+  async function submitReport(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    if (!requireLogin("submit a report")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const target = String(form.get("target") || "challenge");
+    const reason = String(form.get("reason") || "Other") as ReportReason;
+    const notes = String(form.get("notes") || "").trim();
+    const proofId = target.startsWith("proof:") ? target.replace("proof:", "") : null;
+
+    const report = {
+      challenge_id: challenge.id,
+      proof_id: proofId,
+      reporter_id: session?.user.id,
+      target_type: proofId ? "Proof" : "Challenge",
+      reason,
+      notes: notes || null,
+      status: "Open"
+    };
+
+    setReportingChallengeId(challenge.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setMessage("Report saved for this preview.");
+      formElement.reset();
+      setReportingChallengeId(null);
+      return;
+    }
+
+    const { error } = await supabase.from("reports").insert(report);
+
+    if (error) {
+      setMessage(`Could not submit report: ${error.message}`);
+    } else {
+      setMessage("Report submitted. Thank you for helping keep Talent7 safe.");
+      formElement.reset();
+    }
+
+    setReportingChallengeId(null);
+  }
+
   async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("complete a challenge")) return;
@@ -1337,6 +1383,26 @@ export default function Home() {
                     <small>No votes yet.</small>
                   )}
                 </div>
+                <form className="reportForm" onSubmit={(event) => submitReport(event, challenge)}>
+                  <strong>Report issue</strong>
+                  <select name="target" defaultValue="challenge">
+                    <option value="challenge">Report this challenge</option>
+                    {(roomProofs[challenge.id] || []).slice(0, 5).map((proof) => (
+                      <option key={proof.id} value={`proof:${proof.id}`}>
+                        Report proof: {proof.proof_type || "Proof"}
+                      </option>
+                    ))}
+                  </select>
+                  <select name="reason" defaultValue="Fake proof">
+                    {(["Spam", "Fake proof", "Abuse", "Wrong category", "Other"] as ReportReason[]).map((reason) => (
+                      <option key={reason}>{reason}</option>
+                    ))}
+                  </select>
+                  <input name="notes" placeholder="Optional short note" />
+                  <button disabled={reportingChallengeId === challenge.id} type="submit">
+                    {reportingChallengeId === challenge.id ? "Submitting..." : "Submit report"}
+                  </button>
+                </form>
               </details>
               {!isChallengeCompleted(challenge) && (
                 <div className="roomButtons">
