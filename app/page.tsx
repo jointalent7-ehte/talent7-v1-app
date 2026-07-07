@@ -99,11 +99,6 @@ export default function Home() {
   const [votes, setVotes] = useState<ChallengeVote[]>([]);
   const [proofs, setProofs] = useState<ChallengeProof[]>([]);
 
-  const visibleChallenges = useMemo(() => {
-    if (selectedLane === "All") return challenges;
-    return challenges.filter((challenge) => challenge.lane === selectedLane);
-  }, [challenges, selectedLane]);
-
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
       const current = counts[join.challenge_id] || { challengers: 0, audience: 0 };
@@ -143,6 +138,35 @@ export default function Home() {
     }, {});
   }, [proofs]);
 
+  const activityScores = useMemo(() => {
+    return challenges.reduce<Record<string, number>>((scores, challenge) => {
+      const joinsTotal =
+        (joinCounts[challenge.id]?.challengers || 0) + (joinCounts[challenge.id]?.audience || 0);
+      const results = roomResults[challenge.id] || {
+        teamAVotes: 0,
+        teamBVotes: 0,
+        ratingAverage: "0.0",
+        ratingCount: 0
+      };
+      const votesTotal = results.teamAVotes + results.teamBVotes;
+      const proofsTotal = roomProofs[challenge.id]?.length || 0;
+
+      scores[challenge.id] = joinsTotal * 3 + votesTotal * 2 + results.ratingCount + proofsTotal * 4;
+      return scores;
+    }, {});
+  }, [challenges, joinCounts, roomProofs, roomResults]);
+
+  const visibleChallenges = useMemo(() => {
+    const filteredChallenges =
+      selectedLane === "All" ? challenges : challenges.filter((challenge) => challenge.lane === selectedLane);
+
+    return [...filteredChallenges].sort((first, second) => {
+      const scoreDifference = (activityScores[second.id] || 0) - (activityScores[first.id] || 0);
+      if (scoreDifference !== 0) return scoreDifference;
+      return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
+    });
+  }, [activityScores, challenges, selectedLane]);
+
   const leaderboard = useMemo(() => {
     return challenges
       .map((challenge) => {
@@ -164,12 +188,12 @@ export default function Home() {
           votesTotal,
           proofsTotal,
           ratingAverage: results.ratingAverage,
-          score
+          score: activityScores[challenge.id] || score
         };
       })
       .sort((first, second) => second.score - first.score || first.challenge.title.localeCompare(second.challenge.title))
       .slice(0, 3);
-  }, [challenges, joinCounts, roomProofs, roomResults]);
+  }, [activityScores, challenges, joinCounts, roomProofs, roomResults]);
 
   useEffect(() => {
     async function loadChallenges() {
