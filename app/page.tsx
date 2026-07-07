@@ -74,6 +74,16 @@ type ChallengeInvite = {
   updated_at?: string | null;
 };
 
+type ShowcasePost = {
+  id: string;
+  user_id: string;
+  media_type: "Photo" | "Video" | "Link";
+  media_url: string;
+  caption: string;
+  category: string;
+  created_at: string;
+};
+
 type ProfileFollow = {
   id: string;
   follower_id: string;
@@ -206,6 +216,8 @@ export default function Home() {
   const [invites, setInvites] = useState<ChallengeInvite[]>([]);
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
+  const [showcasePosts, setShowcasePosts] = useState<ShowcasePost[]>([]);
+  const [savingShowcasePost, setSavingShowcasePost] = useState(false);
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -434,6 +446,22 @@ export default function Home() {
         };
       });
 
+    const showcaseItems = showcasePosts
+      .filter((post) => followedSet.has(post.user_id))
+      .map((post) => {
+        const actor = profileById[post.user_id];
+
+        return {
+          id: `showcase-${post.id}`,
+          actor: actor?.display_name || "Followed profile",
+          action: `posted ${post.media_type.toLowerCase()}`,
+          title: post.caption || post.category,
+          detail: post.category,
+          createdAt: post.created_at,
+          challengeId: ""
+        };
+      });
+
     const completedItems = challenges
       .filter((challenge) => challenge.completed_by && followedSet.has(challenge.completed_by))
       .map((challenge) => {
@@ -450,10 +478,10 @@ export default function Home() {
         };
       });
 
-    return [...createdItems, ...joinedItems, ...proofItems, ...completedItems]
+    return [...createdItems, ...joinedItems, ...proofItems, ...showcaseItems, ...completedItems]
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
       .slice(0, 12);
-  }, [challenges, follows, joins, proofs, publicProfiles, session]);
+  }, [challenges, follows, joins, proofs, publicProfiles, session, showcasePosts]);
 
   const myActivity = useMemo(() => {
     if (!session?.user.id) {
@@ -514,6 +542,10 @@ export default function Home() {
 
   function challengeTitle(challengeId: string) {
     return challenges.find((challenge) => challenge.id === challengeId)?.title || "Challenge room";
+  }
+
+  function profileDisplayName(userId: string) {
+    return publicProfiles.find((item) => item.user_id === userId)?.display_name || "Talent7 creator";
   }
 
   function challengeMatchesProfileActivity(challenge: Challenge, item: TalentProfile) {
@@ -673,6 +705,23 @@ export default function Home() {
     }
 
     loadProofs();
+  }, []);
+
+  useEffect(() => {
+    async function loadShowcasePosts() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("showcase_posts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(24);
+
+      if (error) return;
+      if (data) setShowcasePosts(data as ShowcasePost[]);
+    }
+
+    loadShowcasePosts();
   }, []);
 
   useEffect(() => {
@@ -1047,6 +1096,66 @@ export default function Home() {
     }
 
     setFollowActionId(null);
+  }
+
+  async function createShowcasePost(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!requireLogin("post talent")) return;
+    if (!requireProfile("post talent")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const mediaUrl = String(form.get("media_url") || "").trim();
+    const caption = String(form.get("caption") || "").trim();
+    const category = String(form.get("category") || "Talent");
+    const mediaType = String(form.get("media_type") || "Video") as ShowcasePost["media_type"];
+
+    if (!mediaUrl || !caption) {
+      setMessage("Add both a media link and a caption before posting.");
+      return;
+    }
+
+    const post = {
+      user_id: session?.user.id || "",
+      media_type: mediaType,
+      media_url: mediaUrl,
+      caption,
+      category
+    };
+
+    setSavingShowcasePost(true);
+    setMessage("");
+
+    if (!supabase) {
+      const localPost: ShowcasePost = {
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        ...post
+      };
+
+      setShowcasePosts((items) => [localPost, ...items]);
+      setMessage("Demo mode: showcase post added on this page.");
+      formElement.reset();
+      setSavingShowcasePost(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("showcase_posts")
+      .insert(post)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not create showcase post: ${error.message}`);
+    } else if (data) {
+      setShowcasePosts((items) => [data as ShowcasePost, ...items]);
+      setMessage("Showcase post published.");
+      formElement.reset();
+      setTimeout(() => document.getElementById("showcase")?.scrollIntoView({ behavior: "smooth" }), 80);
+    }
+
+    setSavingShowcasePost(false);
   }
 
   async function respondToInvite(invite: ChallengeInvite, status: "Accepted" | "Declined") {
@@ -1446,6 +1555,7 @@ export default function Home() {
           </p>
           <div className="heroActions">
             <a href="#account" className="secondary">Account</a>
+            <a href="#showcase" className="secondary">Showcase</a>
             <a href="#profiles" className="secondary">Profiles</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
             <a href="#following-feed" className="secondary">Feed</a>
@@ -1560,6 +1670,75 @@ export default function Home() {
             </button>
           </form>
         )}
+      </section>
+
+      <section className="section showcaseSection" id="showcase">
+        <div className="sectionHeader">
+          <p className="eyebrow">Showcase</p>
+          <h2>Post talent photos, videos, and links</h2>
+          <p>Share talent outside a challenge room first. Later we can add public 7-star ratings to these posts too.</p>
+        </div>
+        {session ? (
+          <form className="showcaseForm" onSubmit={createShowcasePost}>
+            <label>
+              Media type
+              <select name="media_type" defaultValue="Video">
+                <option>Video</option>
+                <option>Photo</option>
+                <option>Link</option>
+              </select>
+            </label>
+            <label>
+              Category
+              <select name="category" defaultValue={profile?.main_interest || "Talent"}>
+                <option>Talent</option>
+                <option>Dance</option>
+                <option>Sports</option>
+                <option>Gaming</option>
+                <option>Coaching</option>
+                <option>Fitness</option>
+              </select>
+            </label>
+            <label className="wide">
+              Photo, video, or post link
+              <input name="media_url" placeholder="Paste YouTube, Instagram, Drive, image, or video link" />
+            </label>
+            <label className="wide">
+              Caption
+              <textarea name="caption" placeholder="What are you showcasing?" rows={3} />
+            </label>
+            <button disabled={savingShowcasePost} type="submit">
+              {savingShowcasePost ? "Posting..." : "Post to showcase"}
+            </button>
+          </form>
+        ) : (
+          <div className="emptyState">
+            <strong>Log in to post your talent.</strong>
+            <a href="#account">Go to account</a>
+          </div>
+        )}
+        <div className="showcaseGrid">
+          {showcasePosts.length > 0 ? (
+            showcasePosts.map((post) => (
+              <article key={post.id}>
+                <span>{post.category}</span>
+                <strong>{profileDisplayName(post.user_id)}</strong>
+                <p>{post.caption}</p>
+                <div className="showcaseMeta">
+                  <small>{post.media_type}</small>
+                  <a href={post.media_url} rel="noreferrer" target="_blank">
+                    Open post
+                  </a>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="emptyShowcase">
+              <strong>No showcase posts yet.</strong>
+              <small>Post a first video, photo, or link to start the global talent showcase.</small>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="section safetySection" id="safety">
@@ -1814,7 +1993,12 @@ export default function Home() {
                 <article key={item.id}>
                   <span>{item.action}</span>
                   <strong>{item.actor}</strong>
-                  <a href="#rooms" onClick={() => setRoomSearch(item.title)}>
+                  <a
+                    href={item.challengeId ? "#rooms" : "#showcase"}
+                    onClick={() => {
+                      if (item.challengeId) setRoomSearch(item.title);
+                    }}
+                  >
                     {item.title}
                   </a>
                   <small>{item.detail}</small>
