@@ -279,6 +279,19 @@ export default function Home() {
     return challenges.find((challenge) => challenge.id === challengeId)?.title || "Challenge room";
   }
 
+  function roomJoins(challengeId: string) {
+    return joins.filter((join) => join.challenge_id === challengeId);
+  }
+
+  function participantGroup(challengeId: string, side: string, role?: JoinRole) {
+    return roomJoins(challengeId).filter((join) => {
+      const sideMatches = join.side === side;
+      const roleMatches = !role || join.role === role;
+
+      return sideMatches && roleMatches;
+    });
+  }
+
   useEffect(() => {
     if (!supabase) return;
 
@@ -1231,20 +1244,27 @@ export default function Home() {
                     <strong>{activityScores[challenge.id] || 0}</strong>
                   </div>
                 </div>
-                <div className="detailList">
-                  <strong>Recent joins</strong>
-                  {joins.filter((join) => join.challenge_id === challenge.id).slice(0, 4).length > 0 ? (
-                    joins
-                      .filter((join) => join.challenge_id === challenge.id)
-                      .slice(0, 4)
-                      .map((join) => (
-                        <small key={join.id}>
-                          {join.participant_name} joined as {join.role} on {join.side}
-                        </small>
-                      ))
-                  ) : (
-                    <small>No joins yet.</small>
-                  )}
+                <div className="participantGrid">
+                  {[
+                    { title: "Team A", people: participantGroup(challenge.id, "Team A", "Challenger") },
+                    { title: "Team B", people: participantGroup(challenge.id, "Team B", "Challenger") },
+                    { title: "Open invite", people: participantGroup(challenge.id, "Open invite", "Challenger") },
+                    {
+                      title: "Audience",
+                      people: roomJoins(challenge.id).filter((join) => join.role === "Audience")
+                    }
+                  ].map((group) => (
+                    <div className="participantList" key={group.title}>
+                      <strong>{group.title}</strong>
+                      {group.people.length > 0 ? (
+                        group.people.slice(0, 5).map((join) => (
+                          <small key={join.id}>{join.participant_name}</small>
+                        ))
+                      ) : (
+                        <small>No one yet.</small>
+                      )}
+                    </div>
+                  ))}
                 </div>
                 <div className="detailList">
                   <strong>Recent votes</strong>

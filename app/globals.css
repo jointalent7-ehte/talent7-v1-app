@@ -685,6 +685,27 @@ textarea {
   line-height: 1.45;
 }
 
+.participantGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.participantList {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  background: #eef4f4;
+  border-radius: 8px;
+}
+
+.participantList small {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
 .lockedResult {
   display: grid;
   gap: 5px;
@@ -781,6 +802,7 @@ textarea {
   .resultForm,
   .scoreBoard,
   .detailGrid,
+  .participantGrid,
   .roomsGrid,
   .leaderGrid {
     grid-template-columns: 1fr;
