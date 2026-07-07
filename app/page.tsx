@@ -120,6 +120,7 @@ export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("All");
+  const [roomSearch, setRoomSearch] = useState("");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
@@ -194,11 +195,25 @@ export default function Home() {
   }, [challenges, joinCounts, roomProofs, roomResults]);
 
   const visibleChallenges = useMemo(() => {
+    const search = roomSearch.trim().toLowerCase();
+
     const filteredChallenges = challenges.filter((challenge) => {
       const laneMatches = selectedLane === "All" || challenge.lane === selectedLane;
       const statusMatches = selectedStatus === "All" || challenge.status === selectedStatus;
+      const searchableText = [
+        challenge.title,
+        challenge.lane,
+        challenge.status,
+        challenge.team_a,
+        challenge.team_b,
+        challenge.rules,
+        challenge.winner || ""
+      ]
+        .join(" ")
+        .toLowerCase();
+      const searchMatches = !search || searchableText.includes(search);
 
-      return laneMatches && statusMatches;
+      return laneMatches && statusMatches && searchMatches;
     });
 
     return [...filteredChallenges].sort((first, second) => {
@@ -206,7 +221,7 @@ export default function Home() {
       if (scoreDifference !== 0) return scoreDifference;
       return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
     });
-  }, [activityScores, challenges, selectedLane, selectedStatus]);
+  }, [activityScores, challenges, roomSearch, selectedLane, selectedStatus]);
 
   const leaderboard = useMemo(() => {
     return challenges
@@ -1046,6 +1061,15 @@ export default function Home() {
           <h2>Challenge rooms</h2>
           <p>Filter by lane and status, then open rooms to view proof, votes, and results.</p>
         </div>
+        <label className="roomSearch">
+          Search rooms
+          <input
+            onChange={(event) => setRoomSearch(event.target.value)}
+            placeholder="Search badminton, PUBG, Rahul, breakdance..."
+            type="search"
+            value={roomSearch}
+          />
+        </label>
         <strong className="filterLabel">Lane</strong>
         <div className="filters">
           {(["All", "Talent battle", "Sports challenge", "Mobile gaming challenge"] as const).map((lane) => (
@@ -1073,6 +1097,12 @@ export default function Home() {
           ))}
         </div>
         <div className="roomsGrid">
+          {visibleChallenges.length === 0 && (
+            <div className="emptyRooms">
+              <strong>No rooms found</strong>
+              <small>Try changing the search, lane, or status filters.</small>
+            </div>
+          )}
           {visibleChallenges.map((challenge) => (
             <article
               className={`roomCard ${challenge.id === createdChallengeId ? "newRoom" : ""}`}
