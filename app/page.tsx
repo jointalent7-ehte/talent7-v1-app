@@ -42,6 +42,14 @@ type ChallengeVote = {
   created_at: string;
 };
 
+type ChallengeProof = {
+  id: string;
+  challenge_id: string;
+  proof_url: string;
+  notes: string | null;
+  created_at: string;
+};
+
 const sampleChallenges: Challenge[] = [
   {
     id: "sample-1",
@@ -85,9 +93,11 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
+  const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
   const [joins, setJoins] = useState<ChallengeJoin[]>([]);
   const [ratings, setRatings] = useState<ChallengeRating[]>([]);
   const [votes, setVotes] = useState<ChallengeVote[]>([]);
+  const [proofs, setProofs] = useState<ChallengeProof[]>([]);
 
   const visibleChallenges = useMemo(() => {
     if (selectedLane === "All") return challenges;
@@ -124,6 +134,14 @@ export default function Home() {
       return results;
     }, {});
   }, [challenges, ratings, votes]);
+
+  const roomProofs = useMemo(() => {
+    return proofs.reduce<Record<string, ChallengeProof[]>>((groups, proof) => {
+      groups[proof.challenge_id] = groups[proof.challenge_id] || [];
+      groups[proof.challenge_id].push(proof);
+      return groups;
+    }, {});
+  }, [proofs]);
 
   useEffect(() => {
     async function loadChallenges() {
@@ -175,6 +193,22 @@ export default function Home() {
     }
 
     loadResults();
+  }, []);
+
+  useEffect(() => {
+    async function loadProofs() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("proofs")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setProofs(data as ChallengeProof[]);
+    }
+
+    loadProofs();
   }, []);
 
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
@@ -347,6 +381,58 @@ export default function Home() {
     }
   }
 
+  async function submitProof(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const proofUrl = String(form.get("proof_url") || "").trim();
+    const notes = String(form.get("notes") || "").trim();
+
+    if (!proofUrl) {
+      setMessage("Please paste a proof link first.");
+      return;
+    }
+
+    const proof = {
+      challenge_id: challenge.id,
+      proof_url: proofUrl,
+      notes: notes || null
+    };
+
+    setSavingProofChallengeId(challenge.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      const localProof: ChallengeProof = {
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        ...proof
+      };
+
+      setProofs((items) => [localProof, ...items]);
+      setMessage(`Proof added for ${challenge.title}.`);
+      formElement.reset();
+      setSavingProofChallengeId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("proofs")
+      .insert(proof)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not save proof: ${error.message}`);
+    } else if (data) {
+      setProofs((items) => [data as ChallengeProof, ...items]);
+      setMessage(`Proof added for ${challenge.title}.`);
+      formElement.reset();
+    }
+
+    setSavingProofChallengeId(null);
+  }
+
   return (
     <main>
       <header className="hero">
@@ -484,6 +570,25 @@ export default function Home() {
                   {joiningChallengeId === challenge.id ? "Joining..." : "Join"}
                 </button>
               </form>
+              <form className="proofForm" onSubmit={(event) => submitProof(event, challenge)}>
+                <strong>Victory proof</strong>
+                <input name="proof_url" placeholder="Paste photo, video, screenshot, or match link" />
+                <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
+                <button disabled={savingProofChallengeId === challenge.id} type="submit">
+                  {savingProofChallengeId === challenge.id ? "Saving proof..." : "Submit proof"}
+                </button>
+              </form>
+              {(roomProofs[challenge.id] || []).length > 0 && (
+                <div className="proofList">
+                  <strong>Proofs submitted</strong>
+                  {(roomProofs[challenge.id] || []).slice(0, 3).map((proof) => (
+                    <a href={proof.proof_url} key={proof.id} rel="noreferrer" target="_blank">
+                      <span>{proof.notes || "Open proof"}</span>
+                      <small>View proof</small>
+                    </a>
+                  ))}
+                </div>
+              )}
               <div className="roomButtons">
                 <button type="button" onClick={() => voteForWinner(challenge.id, challenge.team_a)}>
                   Vote A

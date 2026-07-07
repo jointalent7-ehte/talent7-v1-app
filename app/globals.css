@@ -351,6 +351,58 @@ textarea {
   font-weight: 850;
 }
 
+.proofForm {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.proofForm > strong {
+  font-size: 0.95rem;
+}
+
+.proofForm input,
+.proofForm textarea {
+  background: #fff;
+}
+
+.proofForm button {
+  min-height: 42px;
+  color: #fff;
+  background: var(--teal);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.proofList {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: #eef4f4;
+  border-radius: 8px;
+}
+
+.proofList a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.proofList small {
+  color: var(--teal);
+  white-space: nowrap;
+}
+
 .leaderboard {
   background: #f4f8f7;
 }
