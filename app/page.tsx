@@ -75,6 +75,40 @@ type TalentProfile = {
   updated_at: string;
 };
 
+type ChallengeDraft = {
+  title: string;
+  lane: ChallengeLane;
+  team_a: string;
+  team_b: string;
+  rules: string;
+  invitedProfile: string;
+  version: number;
+};
+
+const defaultChallengeDraft: ChallengeDraft = {
+  title: "Badminton doubles",
+  lane: "Sports challenge",
+  team_a: "Rohan + Dev",
+  team_b: "Open invite",
+  rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
+  invitedProfile: "",
+  version: 0
+};
+
+function laneForInterest(interest: string): ChallengeLane {
+  const normalized = interest.toLowerCase();
+
+  if (normalized.includes("pubg") || normalized.includes("gaming") || normalized.includes("game")) {
+    return "Mobile gaming challenge";
+  }
+
+  if (normalized.includes("dance") || normalized.includes("break") || normalized.includes("calisthenics")) {
+    return "Talent battle";
+  }
+
+  return "Sports challenge";
+}
+
 const sampleChallenges: Challenge[] = [
   {
     id: "sample-1",
@@ -126,6 +160,7 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("All");
   const [roomSearch, setRoomSearch] = useState("");
   const [profileSearch, setProfileSearch] = useState("");
+  const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
@@ -640,6 +675,25 @@ export default function Home() {
     }
 
     setIsSaving(false);
+  }
+
+  function inviteProfileToChallenge(item: TalentProfile) {
+    const invitedName = item.display_name || `@${item.username}`;
+    const interest = item.main_interest || "New challenge";
+    const creatorName = profile?.display_name || (profile?.username ? `@${profile.username}` : "Open challenger");
+
+    setChallengeDraft((currentDraft) => ({
+      title: interest,
+      lane: laneForInterest(interest),
+      team_a: creatorName,
+      team_b: invitedName,
+      rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
+      invitedProfile: invitedName,
+      version: currentDraft.version + 1
+    }));
+
+    setMessage(`Invite draft ready for ${invitedName}. Review it, then create the challenge.`);
+    setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
   async function joinChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -1210,8 +1264,19 @@ export default function Home() {
                   <small>{item.region}</small>
                 </div>
                 <div className="profileActions">
-                  <a href="#create">Invite to challenge</a>
-                  <a href="#rooms">View rooms</a>
+                  <button onClick={() => inviteProfileToChallenge(item)} type="button">
+                    Invite to challenge
+                  </button>
+                  <a
+                    href="#rooms"
+                    onClick={() =>
+                      setMessage(
+                        `${item.display_name}'s public activity is visible in challenge rooms, room details, proofs, votes, and leaderboards for now.`
+                      )
+                    }
+                  >
+                    View rooms activity
+                  </a>
                 </div>
               </article>
             ))}
@@ -1297,14 +1362,19 @@ export default function Home() {
           <h2>Start a challenge</h2>
           <p>Use this for badminton doubles, breakdance battles, mobile gaming matches, and more.</p>
         </div>
-        <form className="createForm" onSubmit={createChallenge}>
+        {challengeDraft.invitedProfile && (
+          <div className="inviteNotice">
+            Invite draft prepared for {challengeDraft.invitedProfile}. You can edit anything before creating it.
+          </div>
+        )}
+        <form className="createForm" key={challengeDraft.version} onSubmit={createChallenge}>
           <label>
             Challenge title
-            <input name="title" defaultValue="Badminton doubles" />
+            <input name="title" defaultValue={challengeDraft.title} />
           </label>
           <label>
             Lane
-            <select name="lane" defaultValue="Sports challenge">
+            <select name="lane" defaultValue={challengeDraft.lane}>
               <option>Talent battle</option>
               <option>Sports challenge</option>
               <option>Mobile gaming challenge</option>
@@ -1312,18 +1382,18 @@ export default function Home() {
           </label>
           <label>
             Team or challenger A
-            <input name="team_a" defaultValue="Rohan + Dev" />
+            <input name="team_a" defaultValue={challengeDraft.team_a} />
           </label>
           <label>
             Team or challenger B
-            <input name="team_b" defaultValue="Open invite" />
+            <input name="team_b" defaultValue={challengeDraft.team_b} />
           </label>
           <label className="wide">
             Rules
             <textarea
               name="rules"
               rows={4}
-              defaultValue="Best of 3 games, 21 points each. Upload victory proof after the match."
+              defaultValue={challengeDraft.rules}
             />
           </label>
           <button disabled={isSaving}>{isSaving ? "Saving..." : "Create challenge"}</button>
