@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
@@ -103,6 +104,9 @@ export default function Home() {
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
@@ -209,6 +213,22 @@ export default function Home() {
   }, [activityScores, challenges, joinCounts, roomProofs, roomResults]);
 
   useEffect(() => {
+    if (!supabase) return;
+
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     async function loadChallenges() {
       if (!supabase) return;
 
@@ -275,6 +295,48 @@ export default function Home() {
 
     loadProofs();
   }, []);
+
+  async function handleAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setMessage("Connect Supabase before using accounts.");
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") || "").trim();
+    const password = String(form.get("password") || "");
+
+    if (!email || password.length < 6) {
+      setMessage("Enter an email and a password with at least 6 characters.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setMessage("");
+
+    const result =
+      authMode === "Sign up"
+        ? await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signInWithPassword({ email, password });
+
+    if (result.error) {
+      setMessage(result.error.message);
+    } else if (authMode === "Sign up" && !result.data.session) {
+      setMessage("Account created. Check your email to confirm it, then log in.");
+    } else {
+      setMessage(authMode === "Sign up" ? "Account created and logged in." : "Logged in.");
+    }
+
+    setAuthLoading(false);
+  }
+
+  async function logOut() {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setMessage("Logged out.");
+  }
 
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -556,7 +618,10 @@ export default function Home() {
       <header className="hero">
         <nav>
           <strong>Talent7</strong>
-          <a href="https://www.jointalent7.com">Public site</a>
+          <div className="navActions">
+            <span>{session ? session.user.email : "Guest mode"}</span>
+            <a href="https://www.jointalent7.com">Public site</a>
+          </div>
         </nav>
         <section>
           <p className="eyebrow">Challenge MVP</p>
@@ -566,6 +631,7 @@ export default function Home() {
             collect ratings, vote winners, and build leaderboards before live video.
           </p>
           <div className="heroActions">
+            <a href="#account" className="secondary">Account</a>
             <a href="#create" className="primary">Create challenge</a>
             <a href="#rooms" className="secondary">View rooms</a>
           </div>
@@ -580,6 +646,49 @@ export default function Home() {
       )}
 
       {message && <aside className="message">{message}</aside>}
+
+      <section className="section authSection" id="account">
+        <div className="sectionHeader">
+          <p className="eyebrow">Account</p>
+          <h2>Sign up or log in</h2>
+          <p>Use this first account layer before we lock joins, votes, proof, and results to real users.</p>
+        </div>
+        {session ? (
+          <div className="accountCard">
+            <div>
+              <span>Logged in as</span>
+              <strong>{session.user.email}</strong>
+            </div>
+            <button type="button" onClick={logOut}>Log out</button>
+          </div>
+        ) : (
+          <form className="authForm" onSubmit={handleAuth}>
+            <div className="authTabs">
+              {(["Sign up", "Log in"] as const).map((mode) => (
+                <button
+                  className={authMode === mode ? "active" : ""}
+                  key={mode}
+                  onClick={() => setAuthMode(mode)}
+                  type="button"
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <label>
+              Email
+              <input name="email" placeholder="you@example.com" type="email" />
+            </label>
+            <label>
+              Password
+              <input name="password" placeholder="At least 6 characters" type="password" />
+            </label>
+            <button disabled={authLoading} type="submit">
+              {authLoading ? "Please wait..." : authMode}
+            </button>
+          </form>
+        )}
+      </section>
 
       <section className="section" id="create">
         <div className="sectionHeader">

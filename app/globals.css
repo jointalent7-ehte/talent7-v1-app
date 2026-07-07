@@ -68,6 +68,22 @@ button {
   font-weight: 800;
 }
 
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navActions span {
+  max-width: 240px;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .hero section {
   max-width: 850px;
 }
@@ -202,6 +218,70 @@ textarea {
 
 .wide {
   grid-column: 1 / -1;
+}
+
+.authSection {
+  padding-bottom: clamp(24px, 5vw, 48px);
+}
+
+.authForm,
+.accountCard {
+  max-width: 760px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.07);
+}
+
+.authForm {
+  display: grid;
+  gap: 14px;
+}
+
+.authTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.authTabs button,
+.accountCard button {
+  min-height: 44px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.authTabs button {
+  background: #eef4f4;
+}
+
+.authTabs button.active,
+.authForm > button,
+.accountCard button {
+  color: #fff;
+  background: var(--ink);
+}
+
+.accountCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.accountCard div {
+  display: grid;
+  gap: 4px;
+}
+
+.accountCard span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-transform: uppercase;
 }
 
 .filters {
@@ -486,6 +566,12 @@ textarea {
 }
 
 @media (max-width: 900px) {
+  .accountCard,
+  .navActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .createForm,
   .joinForm,
   .resultForm,
