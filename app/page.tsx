@@ -941,6 +941,7 @@ export default function Home() {
           <div className="heroActions">
             <a href="#account" className="secondary">Account</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
+            <a href="#safety" className="secondary">Safety</a>
             <a href="#create" className="primary">Create challenge</a>
             <a href="#rooms" className="secondary">View rooms</a>
           </div>
@@ -1038,6 +1039,40 @@ export default function Home() {
             </button>
           </form>
         )}
+      </section>
+
+      <section className="section safetySection" id="safety">
+        <div className="sectionHeader">
+          <p className="eyebrow">Community safety</p>
+          <h2>Play fair, prove honestly, stay safe</h2>
+          <p>Talent7 works only if challenges, proof, and community help are handled with trust.</p>
+        </div>
+        <div className="safetyGrid">
+          <article>
+            <strong>No fake proof</strong>
+            <p>Upload real proof from the actual challenge. Edited, misleading, or unrelated proof can be reported.</p>
+          </article>
+          <article>
+            <strong>No harassment</strong>
+            <p>Challenge people respectfully. Do not use abuse, threats, hate, or pressure to force participation.</p>
+          </article>
+          <article>
+            <strong>Use your own content</strong>
+            <p>Only upload photos, videos, screenshots, or links you own or have permission to share.</p>
+          </article>
+          <article>
+            <strong>Respect venues</strong>
+            <p>For sports meetups, follow local court, pool, gym, and event rules before recording or playing.</p>
+          </article>
+          <article>
+            <strong>Report problems</strong>
+            <p>Use Report issue in Room details if a challenge, vote, or proof looks abusive, spammy, or fake.</p>
+          </article>
+          <article>
+            <strong>Emergency help caution</strong>
+            <p>Future live help is guidance only. For medical or urgent danger, call local emergency services first.</p>
+          </article>
+        </div>
       </section>
 
       <section className="section myTalent" id="my-talent7">
