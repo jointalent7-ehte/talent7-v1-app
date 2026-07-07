@@ -370,6 +370,91 @@ export default function Home() {
     return publicProfiles.filter((item) => followedIds.includes(item.user_id));
   }, [follows, publicProfiles, session]);
 
+  const followingFeed = useMemo(() => {
+    if (!session?.user.id) return [];
+
+    const followedIds = follows
+      .filter((follow) => follow.follower_id === session.user.id)
+      .map((follow) => follow.following_id);
+    const followedSet = new Set(followedIds);
+    const profileById = publicProfiles.reduce<Record<string, TalentProfile>>((profiles, item) => {
+      profiles[item.user_id] = item;
+      return profiles;
+    }, {});
+    const roomById = challenges.reduce<Record<string, Challenge>>((rooms, challenge) => {
+      rooms[challenge.id] = challenge;
+      return rooms;
+    }, {});
+
+    const createdItems = challenges
+      .filter((challenge) => challenge.created_by && followedSet.has(challenge.created_by))
+      .map((challenge) => {
+        const actor = challenge.created_by ? profileById[challenge.created_by] : null;
+
+        return {
+          id: `created-${challenge.id}`,
+          actor: actor?.display_name || "Followed profile",
+          action: "created a challenge",
+          title: challenge.title,
+          detail: challenge.lane,
+          createdAt: challenge.created_at,
+          challengeId: challenge.id
+        };
+      });
+
+    const joinedItems = joins
+      .filter((join) => join.user_id && followedSet.has(join.user_id))
+      .map((join) => {
+        const actor = join.user_id ? profileById[join.user_id] : null;
+
+        return {
+          id: `joined-${join.id}`,
+          actor: actor?.display_name || join.participant_name,
+          action: `joined as ${join.role.toLowerCase()}`,
+          title: roomById[join.challenge_id]?.title || "Challenge room",
+          detail: join.side,
+          createdAt: join.created_at,
+          challengeId: join.challenge_id
+        };
+      });
+
+    const proofItems = proofs
+      .filter((proof) => proof.user_id && followedSet.has(proof.user_id))
+      .map((proof) => {
+        const actor = proof.user_id ? profileById[proof.user_id] : null;
+
+        return {
+          id: `proof-${proof.id}`,
+          actor: actor?.display_name || "Followed profile",
+          action: `submitted ${proof.proof_type || "proof"}`,
+          title: roomById[proof.challenge_id]?.title || "Challenge room",
+          detail: proof.review_status || "Pending review",
+          createdAt: proof.created_at,
+          challengeId: proof.challenge_id
+        };
+      });
+
+    const completedItems = challenges
+      .filter((challenge) => challenge.completed_by && followedSet.has(challenge.completed_by))
+      .map((challenge) => {
+        const actor = challenge.completed_by ? profileById[challenge.completed_by] : null;
+
+        return {
+          id: `completed-${challenge.id}`,
+          actor: actor?.display_name || "Followed profile",
+          action: "completed a challenge",
+          title: challenge.title,
+          detail: challenge.winner ? `Winner: ${challenge.winner}` : "Winner declared",
+          createdAt: challenge.completed_at || challenge.created_at,
+          challengeId: challenge.id
+        };
+      });
+
+    return [...createdItems, ...joinedItems, ...proofItems, ...completedItems]
+      .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
+      .slice(0, 12);
+  }, [challenges, follows, joins, proofs, publicProfiles, session]);
+
   const myActivity = useMemo(() => {
     if (!session?.user.id) {
       return {
@@ -1363,6 +1448,7 @@ export default function Home() {
             <a href="#account" className="secondary">Account</a>
             <a href="#profiles" className="secondary">Profiles</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
+            <a href="#following-feed" className="secondary">Feed</a>
             <a href="#invites" className="secondary">Invites</a>
             <a href="#safety" className="secondary">Safety</a>
             <a href="#plans" className="secondary">Plans</a>
@@ -1710,6 +1796,41 @@ export default function Home() {
         ) : (
           <div className="emptyState">
             <strong>Log in to see your Talent7 activity.</strong>
+            <a href="#account">Go to account</a>
+          </div>
+        )}
+      </section>
+
+      <section className="section followingFeedSection" id="following-feed">
+        <div className="sectionHeader">
+          <p className="eyebrow">Following feed</p>
+          <h2>Activity from people you follow</h2>
+          <p>See new challenge rooms, joins, proof uploads, and completed results from followed profiles.</p>
+        </div>
+        {session ? (
+          followingFeed.length > 0 ? (
+            <div className="feedList">
+              {followingFeed.map((item) => (
+                <article key={item.id}>
+                  <span>{item.action}</span>
+                  <strong>{item.actor}</strong>
+                  <a href="#rooms" onClick={() => setRoomSearch(item.title)}>
+                    {item.title}
+                  </a>
+                  <small>{item.detail}</small>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState">
+              <strong>No following activity yet.</strong>
+              <small>Follow profiles first, then their challenge activity will appear here.</small>
+              <a href="#profiles">Find profiles</a>
+            </div>
+          )
+        ) : (
+          <div className="emptyState">
+            <strong>Log in to see your following feed.</strong>
             <a href="#account">Go to account</a>
           </div>
         )}

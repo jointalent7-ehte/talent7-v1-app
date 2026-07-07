@@ -405,6 +405,52 @@ textarea {
   font-weight: 850;
 }
 
+.followingFeedSection {
+  background: #fff;
+}
+
+.feedList {
+  display: grid;
+  gap: 12px;
+  max-width: 900px;
+}
+
+.feedList article {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.feedList span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.feedList strong {
+  font-size: 1.05rem;
+}
+
+.feedList a {
+  color: var(--teal);
+  font-weight: 850;
+}
+
+.feedList small {
+  padding: 7px 9px;
+  color: var(--ink);
+  background: #eef4f4;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
 .emptyState {
   max-width: 760px;
 }
@@ -1324,6 +1370,7 @@ textarea {
   .proofTypePicker,
   .profileActivityPanel,
   .profileActivityStats,
+  .feedList article,
   .roomsGrid,
   .leaderGrid {
     grid-template-columns: 1fr;
