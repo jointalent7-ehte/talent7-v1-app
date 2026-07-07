@@ -942,6 +942,7 @@ export default function Home() {
             <a href="#account" className="secondary">Account</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
             <a href="#safety" className="secondary">Safety</a>
+            <a href="#plans" className="secondary">Plans</a>
             <a href="#create" className="primary">Create challenge</a>
             <a href="#rooms" className="secondary">View rooms</a>
           </div>
@@ -1072,6 +1073,43 @@ export default function Home() {
             <strong>Emergency help caution</strong>
             <p>Future live help is guidance only. For medical or urgent danger, call local emergency services first.</p>
           </article>
+        </div>
+      </section>
+
+      <section className="section plansSection" id="plans">
+        <div className="sectionHeader">
+          <p className="eyebrow">Plans & contributions</p>
+          <h2>Keep watching free, grow Talent7 together</h2>
+          <p>These are early placeholders for how Talent7 can stay free for audiences while supporting challenge tools, coaching, and the founder.</p>
+        </div>
+        <div className="plansGrid">
+          <article>
+            <span>Audience</span>
+            <strong>Free</strong>
+            <p>Watch rooms, vote, rate, follow results, and discover talent without a platform fee.</p>
+          </article>
+          <article>
+            <span>Challenger</span>
+            <strong>Subscription later</strong>
+            <p>For people creating frequent challenges, joining competitive rooms, and building challenge history.</p>
+          </article>
+          <article>
+            <span>Coach / instructor</span>
+            <strong>Platform fee later</strong>
+            <p>For coaches who upload training, run live sessions, and grow paid coaching inside Talent7.</p>
+          </article>
+        </div>
+        <div className="contributionBox">
+          <div>
+            <p className="eyebrow">Founder support</p>
+            <h3>Contribute as a kind gesture</h3>
+            <p>Talent7 is being built by a standalone founder. If you like the idea and want to help it grow, these future contribution ranges will be in US dollars.</p>
+          </div>
+          <div className="contributionButtons">
+            {["$0-50", "$50-200", "$200-1000", "$1000+"].map((amount) => (
+              <button key={amount} type="button">{amount}</button>
+            ))}
+          </div>
         </div>
       </section>
 
