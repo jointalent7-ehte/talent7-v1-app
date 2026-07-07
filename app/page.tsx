@@ -179,6 +179,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<TalentProfile | null>(null);
   const [publicProfiles, setPublicProfiles] = useState<TalentProfile[]>([]);
@@ -605,8 +606,10 @@ export default function Home() {
     if (result.error) {
       setMessage(result.error.message);
     } else if (authMode === "Sign up" && !result.data.session) {
+      setConfirmationEmail(email);
       setMessage("Account created. Check your email to confirm it, then log in.");
     } else {
+      setConfirmationEmail("");
       setMessage(authMode === "Sign up" ? "Account created and logged in." : "Logged in.");
     }
 
@@ -1340,13 +1343,23 @@ export default function Home() {
                 <button
                   className={authMode === mode ? "active" : ""}
                   key={mode}
-                  onClick={() => setAuthMode(mode)}
+                  onClick={() => {
+                    setAuthMode(mode);
+                    if (mode === "Log in") setConfirmationEmail("");
+                  }}
                   type="button"
                 >
                   {mode}
                 </button>
               ))}
             </div>
+            {confirmationEmail && (
+              <div className="confirmEmailNotice">
+                <strong>Check your email to finish signup</strong>
+                <span>We sent a confirmation link to {confirmationEmail}.</span>
+                <small>Open that email, confirm your account, then come back and log in.</small>
+              </div>
+            )}
             <label>
               Email
               <input name="email" placeholder="you@example.com" type="email" />

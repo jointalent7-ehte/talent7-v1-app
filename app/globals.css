@@ -311,6 +311,27 @@ textarea {
   background: var(--ink);
 }
 
+.confirmEmailNotice {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  color: #344045;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.confirmEmailNotice strong {
+  font-size: 1rem;
+}
+
+.confirmEmailNotice span,
+.confirmEmailNotice small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .accountCard {
   display: flex;
   align-items: center;
