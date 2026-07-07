@@ -109,6 +109,42 @@ type ProfileFollow = {
 
 type ReportReason = "Spam" | "Fake proof" | "Abuse" | "Wrong category" | "Other";
 
+type ChallengeReport = {
+  id: string;
+  challenge_id: string;
+  proof_id?: string | null;
+  reporter_id: string;
+  target_type: "Challenge" | "Proof";
+  reason: ReportReason;
+  notes: string | null;
+  status: "Open" | "Reviewed" | "Dismissed";
+  created_at: string;
+};
+
+type ShowcaseReport = {
+  id: string;
+  post_id: string;
+  comment_id?: string | null;
+  reporter_id: string;
+  target_type: "Post" | "Comment";
+  reason: ReportReason;
+  notes: string | null;
+  status: "Open" | "Reviewed" | "Dismissed";
+  created_at: string;
+};
+
+type SafetyReportItem = {
+  id: string;
+  source: "Challenge" | "Showcase";
+  reportId: string;
+  area: "Challenge" | "Proof" | "Post" | "Comment";
+  title: string;
+  reason: ReportReason;
+  notes: string | null;
+  status: "Open" | "Reviewed" | "Dismissed";
+  createdAt: string;
+};
+
 type TalentProfile = {
   user_id: string;
   display_name: string;
@@ -231,6 +267,10 @@ export default function Home() {
   const [proofs, setProofs] = useState<ChallengeProof[]>([]);
   const [invites, setInvites] = useState<ChallengeInvite[]>([]);
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
+  const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
+  const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
+  const [isOwnerReviewer, setIsOwnerReviewer] = useState(false);
+  const [safetyReportActionId, setSafetyReportActionId] = useState<string | null>(null);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
   const [showcasePosts, setShowcasePosts] = useState<ShowcasePost[]>([]);
   const [showcaseRatings, setShowcaseRatings] = useState<ShowcaseRating[]>([]);
@@ -549,6 +589,47 @@ export default function Home() {
     };
   }, [challenges, joins, proofs, ratings, session, votes]);
 
+  const mySafetyReports = useMemo<SafetyReportItem[]>(() => {
+    const challengeItems = challengeReports.map((report) => {
+      const challenge = challenges.find((item) => item.id === report.challenge_id);
+
+      return {
+        id: `challenge-report-${report.id}`,
+        source: "Challenge" as const,
+        reportId: report.id,
+        area: report.target_type,
+        title: challenge?.title || "Challenge room",
+        reason: report.reason,
+        notes: report.notes,
+        status: report.status,
+        createdAt: report.created_at
+      };
+    });
+
+    const showcaseItems = showcaseReports.map((report) => {
+      const post = showcasePosts.find((item) => item.id === report.post_id);
+      const comment = report.comment_id
+        ? showcaseComments.find((item) => item.id === report.comment_id)
+        : null;
+
+      return {
+        id: `showcase-report-${report.id}`,
+        source: "Showcase" as const,
+        reportId: report.id,
+        area: report.target_type,
+        title: report.target_type === "Comment" ? comment?.body || "Showcase comment" : post?.caption || "Showcase post",
+        reason: report.reason,
+        notes: report.notes,
+        status: report.status,
+        createdAt: report.created_at
+      };
+    });
+
+    return [...challengeItems, ...showcaseItems].sort(
+      (first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime()
+    );
+  }, [challengeReports, challenges, showcaseComments, showcasePosts, showcaseReports]);
+
   const inviteInbox = useMemo(() => {
     if (!session?.user.id) {
       return {
@@ -836,6 +917,45 @@ export default function Home() {
     }
 
     loadFollows();
+  }, [session]);
+
+  useEffect(() => {
+    async function loadMyReports() {
+      if (!supabase || !session?.user.id) {
+        setChallengeReports([]);
+        setShowcaseReports([]);
+        setIsOwnerReviewer(false);
+        return;
+      }
+
+      const { data: ownerData } = await supabase
+        .from("app_admins")
+        .select("user_id")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      const ownerMode = Boolean(ownerData);
+      setIsOwnerReviewer(ownerMode);
+
+      const challengeQuery = supabase
+        .from("reports")
+        .select("*")
+        .order("created_at", { ascending: false });
+      const showcaseQuery = supabase
+        .from("showcase_reports")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const [challengeResult, showcaseResult] = await Promise.all([
+        ownerMode ? challengeQuery : challengeQuery.eq("reporter_id", session.user.id),
+        ownerMode ? showcaseQuery : showcaseQuery.eq("reporter_id", session.user.id)
+      ]);
+
+      if (challengeResult.data) setChallengeReports(challengeResult.data as ChallengeReport[]);
+      if (showcaseResult.data) setShowcaseReports(showcaseResult.data as ShowcaseReport[]);
+    }
+
+    loadMyReports();
   }, [session]);
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -1371,11 +1491,16 @@ export default function Home() {
       return;
     }
 
-    const { error } = await supabase.from("showcase_reports").insert(report);
+    const { data, error } = await supabase
+      .from("showcase_reports")
+      .insert(report)
+      .select("*")
+      .single();
 
     if (error) {
       setMessage(`Could not submit showcase report: ${error.message}`);
-    } else {
+    } else if (data) {
+      setShowcaseReports((items) => [data as ShowcaseReport, ...items]);
       setMessage("Showcase report submitted. Thank you for helping keep Talent7 safe.");
       formElement.reset();
     }
@@ -1691,16 +1816,63 @@ export default function Home() {
       return;
     }
 
-    const { error } = await supabase.from("reports").insert(report);
+    const { data, error } = await supabase
+      .from("reports")
+      .insert(report)
+      .select("*")
+      .single();
 
     if (error) {
       setMessage(`Could not submit report: ${error.message}`);
-    } else {
+    } else if (data) {
+      setChallengeReports((items) => [data as ChallengeReport, ...items]);
       setMessage("Report submitted. Thank you for helping keep Talent7 safe.");
       formElement.reset();
     }
 
     setReportingChallengeId(null);
+  }
+
+  async function updateSafetyReportStatus(
+    report: SafetyReportItem,
+    status: "Reviewed" | "Dismissed"
+  ) {
+    if (!requireLogin("review safety reports")) return;
+
+    if (!isOwnerReviewer) {
+      setMessage("Only the Talent7 owner account can review reports.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    setSafetyReportActionId(report.id);
+    setMessage("");
+
+    const tableName = report.source === "Challenge" ? "reports" : "showcase_reports";
+    const { data, error } = await supabase
+      .from(tableName)
+      .update({ status })
+      .eq("id", report.reportId)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update report: ${error.message}`);
+    } else if (data) {
+      if (report.source === "Challenge") {
+        setChallengeReports((items) =>
+          items.map((item) => (item.id === report.reportId ? (data as ChallengeReport) : item))
+        );
+      } else {
+        setShowcaseReports((items) =>
+          items.map((item) => (item.id === report.reportId ? (data as ShowcaseReport) : item))
+        );
+      }
+      setMessage(`Report marked ${status.toLowerCase()}.`);
+    }
+
+    setSafetyReportActionId(null);
   }
 
   async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -2060,6 +2232,70 @@ export default function Home() {
             <strong>Emergency help caution</strong>
             <p>Future live help is guidance only. For medical or urgent danger, call local emergency services first.</p>
           </article>
+        </div>
+        <div className="safetyInbox">
+          <div className="safetyInboxHeader">
+            <div>
+              <p className="eyebrow">Safety inbox</p>
+              <h3>{isOwnerReviewer ? "All safety reports" : "My submitted reports"}</h3>
+            </div>
+            <small>
+              {session
+                ? `${mySafetyReports.length} ${isOwnerReviewer ? "total" : "submitted"} reports`
+                : "Login required"}
+            </small>
+          </div>
+          {isOwnerReviewer && (
+            <div className="ownerReviewNotice">
+              <strong>Owner review mode</strong>
+              <small>You can see all reports and mark each one reviewed or dismissed.</small>
+            </div>
+          )}
+          {session ? (
+            mySafetyReports.length > 0 ? (
+              <div className="safetyReportList">
+                {mySafetyReports.slice(0, 8).map((report) => (
+                  <article key={report.id}>
+                    <span>{report.area}</span>
+                    <strong>{report.title}</strong>
+                    <p>{report.notes || report.reason}</p>
+                    <div>
+                      <small>{report.reason}</small>
+                      <small>{report.status}</small>
+                    </div>
+                    {isOwnerReviewer && (
+                      <div className="ownerReportActions">
+                        <button
+                          disabled={safetyReportActionId === report.id || report.status === "Reviewed"}
+                          onClick={() => updateSafetyReportStatus(report, "Reviewed")}
+                          type="button"
+                        >
+                          Mark reviewed
+                        </button>
+                        <button
+                          disabled={safetyReportActionId === report.id || report.status === "Dismissed"}
+                          onClick={() => updateSafetyReportStatus(report, "Dismissed")}
+                          type="button"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="emptySafetyInbox">
+                <strong>No reports submitted yet.</strong>
+                <small>When you report a challenge, proof, showcase post, or comment, it will appear here.</small>
+              </div>
+            )
+          ) : (
+            <div className="emptySafetyInbox">
+              <strong>Log in to view your safety reports.</strong>
+              <a href="#account">Go to account</a>
+            </div>
+          )}
         </div>
       </section>
 

@@ -788,6 +788,139 @@ textarea {
   line-height: 1.55;
 }
 
+.safetyInbox {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.safetyInboxHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.safetyInboxHeader h3 {
+  margin-bottom: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.safetyInboxHeader small {
+  padding: 8px 10px;
+  color: var(--ink);
+  background: #eef4f4;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.safetyReportList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.safetyReportList article,
+.emptySafetyInbox {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.safetyReportList span {
+  width: fit-content;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.safetyReportList p,
+.emptySafetyInbox small {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.safetyReportList div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.safetyReportList small {
+  padding: 7px 9px;
+  color: var(--ink);
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.ownerReviewNotice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+}
+
+.ownerReviewNotice small {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 800;
+}
+
+.ownerReportActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ownerReportActions button {
+  min-height: 40px;
+  color: #fff;
+  background: var(--teal);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.ownerReportActions button:last-child {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.ownerReportActions button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  cursor: not-allowed;
+}
+
+.emptySafetyInbox a {
+  width: fit-content;
+  padding: 10px 12px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
 .plansSection {
   background: #fff;
 }
@@ -1593,6 +1726,7 @@ textarea {
   }
 
   .safetyGrid,
+  .safetyReportList,
   .plansGrid,
   .contributionBox,
   .roadmapGrid,
