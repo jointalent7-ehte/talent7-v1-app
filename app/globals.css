@@ -367,6 +367,87 @@ textarea {
   font-weight: 850;
 }
 
+.invitesSection {
+  background: #fff;
+}
+
+.inviteGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.inviteGrid > article {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 18px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.inviteListHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inviteListHeader strong {
+  font-size: 1.2rem;
+}
+
+.inviteListHeader small,
+.inviteItem small,
+.emptyInvite small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.inviteItem,
+.emptyInvite {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.inviteItem > span {
+  width: fit-content;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.inviteActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.inviteActions button {
+  min-height: 42px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.inviteActions button:last-child {
+  color: var(--ink);
+  background: #eef4f4;
+  border: 1px solid var(--line);
+}
+
 .safetySection {
   background: #fff8e7;
 }
@@ -1172,6 +1253,7 @@ textarea {
   .createForm,
   .profileForm,
   .myTalentGrid,
+  .inviteGrid,
   .joinForm,
   .resultForm,
   .scoreBoard,

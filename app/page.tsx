@@ -63,6 +63,17 @@ type ChallengeProof = {
   created_at: string;
 };
 
+type ChallengeInvite = {
+  id: string;
+  challenge_id: string;
+  from_user_id: string;
+  invited_user_id: string;
+  invited_name: string;
+  status: "Pending" | "Accepted" | "Declined";
+  created_at: string;
+  updated_at?: string | null;
+};
+
 type ReportReason = "Spam" | "Fake proof" | "Abuse" | "Wrong category" | "Other";
 
 type TalentProfile = {
@@ -82,6 +93,7 @@ type ChallengeDraft = {
   team_b: string;
   rules: string;
   invitedProfile: string;
+  invitedUserId: string;
   version: number;
 };
 
@@ -92,6 +104,7 @@ const defaultChallengeDraft: ChallengeDraft = {
   team_b: "Open invite",
   rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
   invitedProfile: "",
+  invitedUserId: "",
   version: 0
 };
 
@@ -175,12 +188,14 @@ export default function Home() {
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
   const [reportingChallengeId, setReportingChallengeId] = useState<string | null>(null);
+  const [inviteActionId, setInviteActionId] = useState<string | null>(null);
   const [joinChoices, setJoinChoices] = useState<Record<string, { role: JoinRole; side: string }>>({});
   const [proofTypes, setProofTypes] = useState<Record<string, string>>({});
   const [joins, setJoins] = useState<ChallengeJoin[]>([]);
   const [ratings, setRatings] = useState<ChallengeRating[]>([]);
   const [votes, setVotes] = useState<ChallengeVote[]>([]);
   const [proofs, setProofs] = useState<ChallengeProof[]>([]);
+  const [invites, setInvites] = useState<ChallengeInvite[]>([]);
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -345,6 +360,20 @@ export default function Home() {
       completed: challenges.filter((challenge) => challenge.completed_by === userId)
     };
   }, [challenges, joins, proofs, ratings, session, votes]);
+
+  const inviteInbox = useMemo(() => {
+    if (!session?.user.id) {
+      return {
+        received: [] as ChallengeInvite[],
+        sent: [] as ChallengeInvite[]
+      };
+    }
+
+    return {
+      received: invites.filter((invite) => invite.invited_user_id === session.user.id),
+      sent: invites.filter((invite) => invite.from_user_id === session.user.id)
+    };
+  }, [invites, session]);
 
   const selectedProfileActivity = useMemo(() => {
     if (!selectedActivityProfile) return null;
@@ -527,6 +556,26 @@ export default function Home() {
 
     loadProofs();
   }, []);
+
+  useEffect(() => {
+    async function loadInvites() {
+      if (!supabase || !session?.user.id) {
+        setInvites([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("challenge_invites")
+        .select("*")
+        .or(`from_user_id.eq.${session.user.id},invited_user_id.eq.${session.user.id}`)
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setInvites(data as ChallengeInvite[]);
+    }
+
+    loadInvites();
+  }, [session]);
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -736,15 +785,50 @@ export default function Home() {
       setMessage(`Could not create challenge: ${error.message}`);
     } else if (data) {
       const savedChallenge = data as Challenge;
+      const inviteMessage = await sendInviteForChallenge(savedChallenge);
+
       setChallenges((items) => [savedChallenge, ...items]);
       setCreatedChallengeId(savedChallenge.id);
       setSelectedLane(savedChallenge.lane);
-      setMessage("Challenge created. It is now shown at the top of Challenge rooms.");
+      setMessage(
+        inviteMessage
+          ? `Challenge created. ${inviteMessage}`
+          : "Challenge created. It is now shown at the top of Challenge rooms."
+      );
       formElement.reset();
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
     }
 
     setIsSaving(false);
+  }
+
+  async function sendInviteForChallenge(challenge: Challenge) {
+    if (!supabase || !session?.user.id || !challengeDraft.invitedUserId) return "";
+
+    if (challengeDraft.invitedUserId === session.user.id) {
+      return "Invite skipped because this profile is yours.";
+    }
+
+    const invite = {
+      challenge_id: challenge.id,
+      from_user_id: session.user.id,
+      invited_user_id: challengeDraft.invitedUserId,
+      invited_name: challengeDraft.invitedProfile || challenge.team_b,
+      status: "Pending"
+    };
+
+    const { data, error } = await supabase
+      .from("challenge_invites")
+      .insert(invite)
+      .select("*")
+      .single();
+
+    if (error) {
+      return `Challenge invite could not be saved yet: ${error.message}`;
+    }
+
+    if (data) setInvites((items) => [data as ChallengeInvite, ...items]);
+    return `Invite sent to ${invite.invited_name}.`;
   }
 
   function inviteProfileToChallenge(item: TalentProfile) {
@@ -759,6 +843,7 @@ export default function Home() {
       team_b: invitedName,
       rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
       invitedProfile: invitedName,
+      invitedUserId: item.user_id,
       version: currentDraft.version + 1
     }));
 
@@ -773,6 +858,68 @@ export default function Home() {
     setSelectedStatus("All");
     setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
+  async function respondToInvite(invite: ChallengeInvite, status: "Accepted" | "Declined") {
+    if (!requireLogin("respond to an invite")) return;
+    if (status === "Accepted" && !requireProfile("accept an invite")) return;
+    if (!supabase || !session?.user.id) return;
+
+    setInviteActionId(invite.id);
+    setMessage("");
+
+    let joinedRoom: ChallengeJoin | null = null;
+
+    if (status === "Accepted") {
+      const alreadyJoined = joins.some(
+        (join) => join.challenge_id === invite.challenge_id && join.user_id === session.user.id
+      );
+
+      if (!alreadyJoined) {
+        const { data: joinData, error: joinError } = await supabase
+          .from("challenge_joins")
+          .insert({
+            challenge_id: invite.challenge_id,
+            user_id: session.user.id,
+            participant_name: profileName(),
+            role: "Challenger",
+            side: "Team B"
+          })
+          .select("*")
+          .single();
+
+        if (joinError) {
+          setMessage(`Could not accept invite yet: ${joinError.message}`);
+          setInviteActionId(null);
+          return;
+        }
+
+        joinedRoom = joinData as ChallengeJoin;
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("challenge_invites")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", invite.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update invite: ${error.message}`);
+    } else if (data) {
+      setInvites((items) => items.map((item) => (item.id === invite.id ? (data as ChallengeInvite) : item)));
+      if (joinedRoom) setJoins((items) => [joinedRoom as ChallengeJoin, ...items]);
+      setMessage(status === "Accepted" ? "Invite accepted. You joined the challenge." : "Invite declined.");
+      if (status === "Accepted") {
+        setSelectedLane("All");
+        setSelectedStatus("All");
+        setRoomSearch("");
+        setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
+      }
+    }
+
+    setInviteActionId(null);
   }
 
   async function joinChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -1112,6 +1259,7 @@ export default function Home() {
             <a href="#account" className="secondary">Account</a>
             <a href="#profiles" className="secondary">Profiles</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
+            <a href="#invites" className="secondary">Invites</a>
             <a href="#safety" className="secondary">Safety</a>
             <a href="#plans" className="secondary">Plans</a>
             <a href="#roadmap" className="secondary">Roadmap</a>
@@ -1423,6 +1571,83 @@ export default function Home() {
         ) : (
           <div className="emptyState">
             <strong>Log in to see your Talent7 activity.</strong>
+            <a href="#account">Go to account</a>
+          </div>
+        )}
+      </section>
+
+      <section className="section invitesSection" id="invites">
+        <div className="sectionHeader">
+          <p className="eyebrow">Invites</p>
+          <h2>Challenge invite inbox</h2>
+          <p>Accept or decline challenge invitations sent by other Talent7 users.</p>
+        </div>
+        {session ? (
+          <div className="inviteGrid">
+            <article>
+              <div className="inviteListHeader">
+                <strong>Received invites</strong>
+                <small>{inviteInbox.received.filter((invite) => invite.status === "Pending").length} pending</small>
+              </div>
+              {inviteInbox.received.length > 0 ? (
+                inviteInbox.received.map((invite) => (
+                  <div className="inviteItem" key={invite.id}>
+                    <span>{invite.status}</span>
+                    <strong>{challengeTitle(invite.challenge_id)}</strong>
+                    <small>Sent to {invite.invited_name}</small>
+                    {invite.status === "Pending" ? (
+                      <div className="inviteActions">
+                        <button
+                          disabled={inviteActionId === invite.id}
+                          onClick={() => respondToInvite(invite, "Accepted")}
+                          type="button"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          disabled={inviteActionId === invite.id}
+                          onClick={() => respondToInvite(invite, "Declined")}
+                          type="button"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    ) : (
+                      <small>Invite {invite.status.toLowerCase()}.</small>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="emptyInvite">
+                  <strong>No received invites yet.</strong>
+                  <small>When someone challenges you, it will appear here.</small>
+                </div>
+              )}
+            </article>
+            <article>
+              <div className="inviteListHeader">
+                <strong>Sent invites</strong>
+                <small>{inviteInbox.sent.length} total</small>
+              </div>
+              {inviteInbox.sent.length > 0 ? (
+                inviteInbox.sent.map((invite) => (
+                  <div className="inviteItem" key={invite.id}>
+                    <span>{invite.status}</span>
+                    <strong>{challengeTitle(invite.challenge_id)}</strong>
+                    <small>To {invite.invited_name}</small>
+                  </div>
+                ))
+              ) : (
+                <div className="emptyInvite">
+                  <strong>No sent invites yet.</strong>
+                  <small>Use Invite to challenge from a public profile, then create the challenge.</small>
+                </div>
+              )}
+            </article>
+          </div>
+        ) : (
+          <div className="emptyState">
+            <strong>Log in to see challenge invites.</strong>
             <a href="#account">Go to account</a>
           </div>
         )}
