@@ -58,6 +58,16 @@ type ChallengeProof = {
   created_at: string;
 };
 
+type TalentProfile = {
+  user_id: string;
+  display_name: string;
+  username: string;
+  role: string;
+  main_interest: string;
+  region: string;
+  updated_at: string;
+};
+
 const sampleChallenges: Challenge[] = [
   {
     id: "sample-1",
@@ -111,6 +121,8 @@ export default function Home() {
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<TalentProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
@@ -358,6 +370,73 @@ export default function Home() {
     return Boolean(session?.user.id && votes.some((vote) => vote.challenge_id === challengeId && vote.user_id === session.user.id));
   }
 
+  function profileName() {
+    return profile?.display_name || profile?.username || session?.user.email || "Talent7 member";
+  }
+
+  useEffect(() => {
+    async function loadProfile() {
+      if (!supabase || !session?.user.id) {
+        setProfile(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      setProfile((data as TalentProfile | null) || null);
+    }
+
+    loadProfile();
+  }, [session]);
+
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!requireLogin("save your profile")) return;
+    if (!supabase || !session?.user.id) return;
+
+    const form = new FormData(event.currentTarget);
+    const displayName = String(form.get("display_name") || "").trim();
+    const username = String(form.get("username") || "").trim().replace(/^@/, "").toLowerCase();
+
+    if (!displayName || !username) {
+      setMessage("Add both display name and username.");
+      return;
+    }
+
+    setProfileLoading(true);
+    setMessage("");
+
+    const profileData = {
+      user_id: session.user.id,
+      display_name: displayName,
+      username,
+      role: String(form.get("role") || "Challenger"),
+      main_interest: String(form.get("main_interest") || "Badminton doubles"),
+      region: String(form.get("region") || "").trim() || "Global",
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert(profileData, { onConflict: "user_id" })
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(error.code === "23505" ? "That username is already taken." : `Could not save profile: ${error.message}`);
+    } else if (data) {
+      setProfile(data as TalentProfile);
+      setMessage("Profile saved.");
+    }
+
+    setProfileLoading(false);
+  }
+
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireLogin("create a challenge")) return;
@@ -424,7 +503,7 @@ export default function Home() {
 
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const participantName = session?.user.email || "Talent7 member";
+    const participantName = profileName();
 
     const join = {
       challenge_id: challenge.id,
@@ -699,12 +778,53 @@ export default function Home() {
           <p>Use this first account layer before we lock joins, votes, proof, and results to real users.</p>
         </div>
         {session ? (
-          <div className="accountCard">
-            <div>
-              <span>Logged in as</span>
-              <strong>{session.user.email}</strong>
+          <div className="profileStack">
+            <div className="accountCard">
+              <div>
+                <span>Logged in as</span>
+                <strong>{profileName()}</strong>
+                <small>{session.user.email}</small>
+              </div>
+              <button type="button" onClick={logOut}>Log out</button>
             </div>
-            <button type="button" onClick={logOut}>Log out</button>
+            <form className="profileForm" key={profile?.updated_at || session.user.id} onSubmit={saveProfile}>
+              <label>
+                Display name
+                <input name="display_name" defaultValue={profile?.display_name || ""} placeholder="Rahul Sharma" />
+              </label>
+              <label>
+                Username
+                <input name="username" defaultValue={profile?.username || ""} placeholder="rahulbadminton" />
+              </label>
+              <label>
+                Role
+                <select name="role" defaultValue={profile?.role || "Challenger"}>
+                  <option>Challenger</option>
+                  <option>Audience / voter</option>
+                  <option>Coach / instructor</option>
+                  <option>Sports organizer</option>
+                  <option>Gaming squad / clan</option>
+                </select>
+              </label>
+              <label>
+                Main interest
+                <select name="main_interest" defaultValue={profile?.main_interest || "Badminton doubles"}>
+                  <option>Badminton doubles</option>
+                  <option>Breakdance battle</option>
+                  <option>PUBG squad battle</option>
+                  <option>Swimming</option>
+                  <option>Calisthenics</option>
+                  <option>Mobile gaming</option>
+                </select>
+              </label>
+              <label className="wide">
+                Region
+                <input name="region" defaultValue={profile?.region || ""} placeholder="India, UAE, USA, Global..." />
+              </label>
+              <button disabled={profileLoading} type="submit">
+                {profileLoading ? "Saving profile..." : "Save profile"}
+              </button>
+            </form>
           </div>
         ) : (
           <form className="authForm" onSubmit={handleAuth}>
