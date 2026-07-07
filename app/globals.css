@@ -545,7 +545,7 @@ textarea {
 
 .joinForm {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr auto;
+  grid-template-columns: 1fr;
   gap: 8px;
   padding: 12px;
   background: #f7fafa;
@@ -553,13 +553,12 @@ textarea {
   border-radius: 8px;
 }
 
-.joinForm input,
-.joinForm select {
+.joinForm > input {
   min-height: 42px;
   background: #fff;
 }
 
-.joinForm button {
+.joinForm > button {
   min-height: 42px;
   padding: 10px 14px;
   color: #fff;
@@ -567,6 +566,37 @@ textarea {
   border: 0;
   border-radius: 8px;
   font-weight: 850;
+}
+
+.joinPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.joinPicker span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.joinPicker button {
+  flex: 1 1 120px;
+  min-height: 38px;
+  padding: 8px 10px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.joinPicker button.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
 }
 
 .proofForm {

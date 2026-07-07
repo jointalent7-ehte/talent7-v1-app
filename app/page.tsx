@@ -132,6 +132,7 @@ export default function Home() {
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
+  const [joinChoices, setJoinChoices] = useState<Record<string, { role: JoinRole; side: string }>>({});
   const [joins, setJoins] = useState<ChallengeJoin[]>([]);
   const [ratings, setRatings] = useState<ChallengeRating[]>([]);
   const [votes, setVotes] = useState<ChallengeVote[]>([]);
@@ -290,6 +291,20 @@ export default function Home() {
 
       return sideMatches && roleMatches;
     });
+  }
+
+  function joinChoice(challengeId: string) {
+    return joinChoices[challengeId] || { role: "Challenger" as JoinRole, side: "Open invite" };
+  }
+
+  function updateJoinChoice(challengeId: string, choice: Partial<{ role: JoinRole; side: string }>) {
+    setJoinChoices((current) => ({
+      ...current,
+      [challengeId]: {
+        ...(current[challengeId] || { role: "Challenger" as JoinRole, side: "Open invite" }),
+        ...choice
+      }
+    }));
   }
 
   useEffect(() => {
@@ -1170,15 +1185,34 @@ export default function Home() {
                       readOnly
                       value={session ? profileName() : "Log in to join"}
                     />
-                    <select name="role" defaultValue="Challenger">
-                      <option>Challenger</option>
-                      <option>Audience</option>
-                    </select>
-                    <select name="side" defaultValue="Open invite">
-                      <option>Open invite</option>
-                      <option>Team A</option>
-                      <option>Team B</option>
-                    </select>
+                    <input name="role" type="hidden" value={joinChoice(challenge.id).role} />
+                    <input name="side" type="hidden" value={joinChoice(challenge.id).side} />
+                    <div className="joinPicker">
+                      <span>Join as</span>
+                      {(["Challenger", "Audience"] as JoinRole[]).map((role) => (
+                        <button
+                          className={joinChoice(challenge.id).role === role ? "active" : ""}
+                          key={role}
+                          onClick={() => updateJoinChoice(challenge.id, { role })}
+                          type="button"
+                        >
+                          {role}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="joinPicker">
+                      <span>Side</span>
+                      {["Open invite", "Team A", "Team B"].map((side) => (
+                        <button
+                          className={joinChoice(challenge.id).side === side ? "active" : ""}
+                          key={side}
+                          onClick={() => updateJoinChoice(challenge.id, { side })}
+                          type="button"
+                        >
+                          {side}
+                        </button>
+                      ))}
+                    </div>
                     <button disabled={joiningChallengeId === challenge.id} type="submit">
                       {joiningChallengeId === challenge.id ? "Joining..." : "Join"}
                     </button>
