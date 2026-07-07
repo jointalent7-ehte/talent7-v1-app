@@ -1193,13 +1193,7 @@ export default function Home() {
                   </form>
                 </>
               )}
-              {challenge.status === "Completed" ? (
-                <div className="lockedResult">
-                  <strong>Result locked</strong>
-                  <span>{challenge.winner || "Winner declared"}</span>
-                  {challenge.final_score && <small>Final score: {challenge.final_score}</small>}
-                </div>
-              ) : (
+              {!isChallengeCompleted(challenge) && (
                 <form className="resultForm" onSubmit={(event) => completeChallenge(event, challenge)}>
                   <strong>Finish challenge</strong>
                   <select name="winner" defaultValue="">

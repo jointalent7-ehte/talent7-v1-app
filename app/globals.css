@@ -706,30 +706,6 @@ textarea {
   line-height: 1.35;
 }
 
-.lockedResult {
-  display: grid;
-  gap: 5px;
-  padding: 12px;
-  color: #fff;
-  background: var(--ink);
-  border-radius: 8px;
-}
-
-.lockedResult strong {
-  font-size: 0.78rem;
-  text-transform: uppercase;
-}
-
-.lockedResult span {
-  font-size: 1.12rem;
-  font-weight: 850;
-}
-
-.lockedResult small {
-  color: rgba(255, 255, 255, 0.78);
-  font-weight: 800;
-}
-
 .resultForm {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
