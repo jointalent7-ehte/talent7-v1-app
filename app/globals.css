@@ -543,6 +543,31 @@ textarea {
   font-weight: 800;
 }
 
+.profileGrid .profileActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.profileActions a {
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 9px 10px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.profileActions a:last-child {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
 .profileSearch {
   max-width: 760px;
   margin-bottom: 18px;

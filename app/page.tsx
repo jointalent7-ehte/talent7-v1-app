@@ -1209,6 +1209,10 @@ export default function Home() {
                   <small>{item.main_interest}</small>
                   <small>{item.region}</small>
                 </div>
+                <div className="profileActions">
+                  <a href="#create">Invite to challenge</a>
+                  <a href="#rooms">View rooms</a>
+                </div>
               </article>
             ))}
           </div>
