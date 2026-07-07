@@ -1088,18 +1088,26 @@ export default function Home() {
                   {savingProofChallengeId === challenge.id ? "Saving proof..." : "Submit proof"}
                 </button>
               </form>
-              <form className="resultForm" onSubmit={(event) => completeChallenge(event, challenge)}>
-                <strong>Finish challenge</strong>
-                <select name="winner" defaultValue="">
-                  <option value="">Choose winner</option>
-                  <option value={challenge.team_a}>{challenge.team_a}</option>
-                  <option value={challenge.team_b}>{challenge.team_b}</option>
-                </select>
-                <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
-                <button disabled={completingChallengeId === challenge.id} type="submit">
-                  {completingChallengeId === challenge.id ? "Saving result..." : "Mark completed"}
-                </button>
-              </form>
+              {challenge.status === "Completed" ? (
+                <div className="lockedResult">
+                  <strong>Result locked</strong>
+                  <span>{challenge.winner || "Winner declared"}</span>
+                  {challenge.final_score && <small>Final score: {challenge.final_score}</small>}
+                </div>
+              ) : (
+                <form className="resultForm" onSubmit={(event) => completeChallenge(event, challenge)}>
+                  <strong>Finish challenge</strong>
+                  <select name="winner" defaultValue="">
+                    <option value="">Choose winner</option>
+                    <option value={challenge.team_a}>{challenge.team_a}</option>
+                    <option value={challenge.team_b}>{challenge.team_b}</option>
+                  </select>
+                  <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
+                  <button disabled={completingChallengeId === challenge.id} type="submit">
+                    {completingChallengeId === challenge.id ? "Saving result..." : "Mark completed"}
+                  </button>
+                </form>
+              )}
               {(roomProofs[challenge.id] || []).length > 0 && (
                 <div className="proofList">
                   <strong>Proofs submitted</strong>
