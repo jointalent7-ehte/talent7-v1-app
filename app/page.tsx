@@ -57,6 +57,7 @@ type ChallengeProof = {
   challenge_id: string;
   user_id?: string | null;
   proof_type?: string | null;
+  review_status?: string | null;
   proof_url: string;
   notes: string | null;
   created_at: string;
@@ -777,6 +778,7 @@ export default function Home() {
       challenge_id: challenge.id,
       user_id: session?.user.id,
       proof_type: proofType,
+      review_status: "Pending review",
       proof_url: proofUrl,
       notes: notes || null
     };
@@ -1275,7 +1277,9 @@ export default function Home() {
                   {(roomProofs[challenge.id] || []).slice(0, 3).map((proof) => (
                     <a href={proof.proof_url} key={proof.id} rel="noreferrer" target="_blank">
                       <span>{proof.proof_type ? `${proof.proof_type}: ${proof.notes || "Open proof"}` : proof.notes || "Open proof"}</span>
-                      <small>View proof</small>
+                      <small>
+                        {proof.review_status || "Pending review"} | View proof
+                      </small>
                     </a>
                   ))}
                 </div>

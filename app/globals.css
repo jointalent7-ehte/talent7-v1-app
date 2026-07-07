@@ -689,6 +689,8 @@ textarea {
 
 .proofList small {
   color: var(--teal);
+  font-size: 0.82rem;
+  font-weight: 850;
   white-space: nowrap;
 }
 
