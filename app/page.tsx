@@ -161,6 +161,7 @@ export default function Home() {
   const [roomSearch, setRoomSearch] = useState("");
   const [profileSearch, setProfileSearch] = useState("");
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
+  const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
@@ -244,6 +245,8 @@ export default function Home() {
     const filteredChallenges = challenges.filter((challenge) => {
       const laneMatches = selectedLane === "All" || challenge.lane === selectedLane;
       const statusMatches = selectedStatus === "All" || challenge.status === selectedStatus;
+      const profileActivityMatches =
+        !selectedActivityProfile || challengeMatchesProfileActivity(challenge, selectedActivityProfile);
       const searchableText = [
         challenge.title,
         challenge.lane,
@@ -257,7 +260,7 @@ export default function Home() {
         .toLowerCase();
       const searchMatches = !search || searchableText.includes(search);
 
-      return laneMatches && statusMatches && searchMatches;
+      return laneMatches && statusMatches && profileActivityMatches && searchMatches;
     });
 
     return [...filteredChallenges].sort((first, second) => {
@@ -265,7 +268,18 @@ export default function Home() {
       if (scoreDifference !== 0) return scoreDifference;
       return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
     });
-  }, [activityScores, challenges, roomSearch, selectedLane, selectedStatus]);
+  }, [
+    activityScores,
+    challenges,
+    joins,
+    proofs,
+    ratings,
+    roomSearch,
+    selectedActivityProfile,
+    selectedLane,
+    selectedStatus,
+    votes
+  ]);
 
   const leaderboard = useMemo(() => {
     return challenges
@@ -332,8 +346,64 @@ export default function Home() {
     };
   }, [challenges, joins, proofs, ratings, session, votes]);
 
+  const selectedProfileActivity = useMemo(() => {
+    if (!selectedActivityProfile) return null;
+
+    const userId = selectedActivityProfile.user_id;
+    const relatedChallenges = challenges.filter((challenge) =>
+      challengeMatchesProfileActivity(challenge, selectedActivityProfile)
+    );
+
+    return {
+      joined: joins.filter((join) => join.user_id === userId),
+      votes: votes.filter((vote) => vote.user_id === userId),
+      ratings: ratings.filter((rating) => rating.user_id === userId),
+      proofs: proofs.filter((proof) => proof.user_id === userId),
+      created: challenges.filter((challenge) => challenge.created_by === userId),
+      completed: challenges.filter((challenge) => challenge.completed_by === userId),
+      relatedChallenges
+    };
+  }, [challenges, joins, proofs, ratings, selectedActivityProfile, votes]);
+
   function challengeTitle(challengeId: string) {
     return challenges.find((challenge) => challenge.id === challengeId)?.title || "Challenge room";
+  }
+
+  function challengeMatchesProfileActivity(challenge: Challenge, item: TalentProfile) {
+    const terms = [item.display_name, item.username, item.main_interest]
+      .filter(Boolean)
+      .map((term) => term.toLowerCase());
+    const directRoomText = [
+      challenge.title,
+      challenge.lane,
+      challenge.team_a,
+      challenge.team_b,
+      challenge.rules,
+      challenge.winner || ""
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    const textMatches = terms.some((term) => directRoomText.includes(term));
+    const userIdMatches = challenge.created_by === item.user_id || challenge.completed_by === item.user_id;
+    const joinMatches = joins.some(
+      (join) =>
+        join.challenge_id === challenge.id &&
+        (join.user_id === item.user_id ||
+          terms.some((term) => join.participant_name.toLowerCase().includes(term)))
+    );
+    const voteMatches = votes.some((vote) => vote.challenge_id === challenge.id && vote.user_id === item.user_id);
+    const ratingMatches = ratings.some(
+      (rating) => rating.challenge_id === challenge.id && rating.user_id === item.user_id
+    );
+    const proofMatches = proofs.some(
+      (proof) =>
+        proof.challenge_id === challenge.id &&
+        (proof.user_id === item.user_id ||
+          terms.some((term) => `${proof.notes || ""} ${proof.proof_url}`.toLowerCase().includes(term)))
+    );
+
+    return textMatches || userIdMatches || joinMatches || voteMatches || ratingMatches || proofMatches;
   }
 
   function roomJoins(challengeId: string) {
@@ -694,6 +764,15 @@ export default function Home() {
 
     setMessage(`Invite draft ready for ${invitedName}. Review it, then create the challenge.`);
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
+  function viewProfileActivity(item: TalentProfile) {
+    setSelectedActivityProfile(item);
+    setRoomSearch("");
+    setSelectedLane("All");
+    setSelectedStatus("All");
+    setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
+    setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
   async function joinChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -1267,16 +1346,9 @@ export default function Home() {
                   <button onClick={() => inviteProfileToChallenge(item)} type="button">
                     Invite to challenge
                   </button>
-                  <a
-                    href="#rooms"
-                    onClick={() =>
-                      setMessage(
-                        `${item.display_name}'s public activity is visible in challenge rooms, room details, proofs, votes, and leaderboards for now.`
-                      )
-                    }
-                  >
+                  <button onClick={() => viewProfileActivity(item)} type="button">
                     View rooms activity
-                  </a>
+                  </button>
                 </div>
               </article>
             ))}
@@ -1406,6 +1478,27 @@ export default function Home() {
           <h2>Challenge rooms</h2>
           <p>Filter by lane and status, then open rooms to view proof, votes, and results.</p>
         </div>
+        {selectedActivityProfile && selectedProfileActivity && (
+          <div className="profileActivityPanel">
+            <div>
+              <span>Viewing public activity for</span>
+              <strong>{selectedActivityProfile.display_name}</strong>
+              <small>
+                @{selectedActivityProfile.username} · {selectedActivityProfile.main_interest || "No interest yet"}
+              </small>
+            </div>
+            <div className="profileActivityStats">
+              <small>{selectedProfileActivity.joined.length} joins</small>
+              <small>{selectedProfileActivity.votes.length} votes</small>
+              <small>{selectedProfileActivity.ratings.length} ratings</small>
+              <small>{selectedProfileActivity.proofs.length} proofs</small>
+              <small>{selectedProfileActivity.relatedChallenges.length} rooms</small>
+            </div>
+            <button onClick={() => setSelectedActivityProfile(null)} type="button">
+              Clear profile view
+            </button>
+          </div>
+        )}
         <label className="roomSearch">
           Search rooms
           <input

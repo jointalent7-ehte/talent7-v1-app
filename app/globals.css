@@ -613,6 +613,59 @@ textarea {
   margin-bottom: 18px;
 }
 
+.profileActivityPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.07);
+}
+
+.profileActivityPanel div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.profileActivityPanel span,
+.profileActivityPanel small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.profileActivityPanel strong {
+  font-size: 1.35rem;
+}
+
+.profileActivityStats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.profileActivityStats small {
+  padding: 9px 10px;
+  color: var(--ink);
+  background: #eef4f4;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.profileActivityPanel button {
+  min-height: 44px;
+  padding: 10px 12px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
 .roomSearch input {
   min-height: 50px;
   background: #fff;
@@ -1110,6 +1163,8 @@ textarea {
   .detailGrid,
   .participantGrid,
   .proofTypePicker,
+  .profileActivityPanel,
+  .profileActivityStats,
   .roomsGrid,
   .leaderGrid {
     grid-template-columns: 1fr;
