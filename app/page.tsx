@@ -125,6 +125,7 @@ export default function Home() {
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("All");
   const [roomSearch, setRoomSearch] = useState("");
+  const [profileSearch, setProfileSearch] = useState("");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
@@ -258,6 +259,19 @@ export default function Home() {
       .sort((first, second) => second.score - first.score || first.challenge.title.localeCompare(second.challenge.title))
       .slice(0, 3);
   }, [activityScores, challenges, joinCounts, roomProofs, roomResults]);
+
+  const visibleProfiles = useMemo(() => {
+    const search = profileSearch.trim().toLowerCase();
+
+    if (!search) return publicProfiles;
+
+    return publicProfiles.filter((item) =>
+      [item.display_name, item.username, item.role, item.main_interest, item.region]
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
+    );
+  }, [profileSearch, publicProfiles]);
 
   const myActivity = useMemo(() => {
     if (!session?.user.id) {
@@ -1169,9 +1183,24 @@ export default function Home() {
           <h2>Talent7 people</h2>
           <p>Discover challengers, audience voters, coaches, organizers, and gaming squads building early Talent7 history.</p>
         </div>
+        <label className="profileSearch">
+          Search profiles
+          <input
+            onChange={(event) => setProfileSearch(event.target.value)}
+            placeholder="Search coach, badminton, India, gaming..."
+            type="search"
+            value={profileSearch}
+          />
+        </label>
         {publicProfiles.length > 0 ? (
           <div className="profileGrid">
-            {publicProfiles.map((item) => (
+            {visibleProfiles.length === 0 && (
+              <div className="emptyProfiles">
+                <strong>No profiles found</strong>
+                <small>Try a different name, role, interest, or region.</small>
+              </div>
+            )}
+            {visibleProfiles.map((item) => (
               <article key={item.user_id}>
                 <strong>{item.display_name}</strong>
                 <span>@{item.username}</span>

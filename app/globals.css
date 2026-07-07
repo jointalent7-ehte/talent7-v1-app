@@ -543,6 +543,31 @@ textarea {
   font-weight: 800;
 }
 
+.profileSearch {
+  max-width: 760px;
+  margin-bottom: 18px;
+}
+
+.profileSearch input {
+  min-height: 50px;
+  background: #fff;
+}
+
+.emptyProfiles {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.emptyProfiles small {
+  color: var(--muted);
+  font-weight: 750;
+}
+
 .roomSearch {
   max-width: 760px;
   margin-bottom: 18px;
