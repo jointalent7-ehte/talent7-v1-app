@@ -407,6 +407,32 @@ textarea {
   background: #f4f8f7;
 }
 
+.leaderGrid article > b {
+  width: fit-content;
+  padding: 8px 11px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+}
+
+.leaderGrid article strong {
+  font-size: 1.35rem;
+}
+
+.leaderStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.leaderStats small {
+  padding: 8px 10px;
+  background: #eef4f4;
+  border-radius: 8px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
 @media (max-width: 900px) {
   .createForm,
   .joinForm,

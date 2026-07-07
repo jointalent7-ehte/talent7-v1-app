@@ -143,6 +143,34 @@ export default function Home() {
     }, {});
   }, [proofs]);
 
+  const leaderboard = useMemo(() => {
+    return challenges
+      .map((challenge) => {
+        const joinsTotal =
+          (joinCounts[challenge.id]?.challengers || 0) + (joinCounts[challenge.id]?.audience || 0);
+        const results = roomResults[challenge.id] || {
+          teamAVotes: 0,
+          teamBVotes: 0,
+          ratingAverage: "0.0",
+          ratingCount: 0
+        };
+        const votesTotal = results.teamAVotes + results.teamBVotes;
+        const proofsTotal = roomProofs[challenge.id]?.length || 0;
+        const score = joinsTotal * 3 + votesTotal * 2 + results.ratingCount + proofsTotal * 4;
+
+        return {
+          challenge,
+          joinsTotal,
+          votesTotal,
+          proofsTotal,
+          ratingAverage: results.ratingAverage,
+          score
+        };
+      })
+      .sort((first, second) => second.score - first.score || first.challenge.title.localeCompare(second.challenge.title))
+      .slice(0, 3);
+  }, [challenges, joinCounts, roomProofs, roomResults]);
+
   useEffect(() => {
     async function loadChallenges() {
       if (!supabase) return;
@@ -608,13 +636,23 @@ export default function Home() {
       <section className="section leaderboard">
         <div className="sectionHeader">
           <p className="eyebrow">Leaderboard</p>
-          <h2>First leaderboard shape</h2>
-          <p>These rankings become real once ratings and votes are connected to Supabase.</p>
+          <h2>Top challenge rooms</h2>
+          <p>Ranked by joins, votes, ratings, and proof activity.</p>
         </div>
         <div className="leaderGrid">
-          <article><strong>#1 Badminton doubles</strong><span>Most requested first challenge</span></article>
-          <article><strong>#2 Breakdance battle</strong><span>Best talent battle candidate</span></article>
-          <article><strong>#3 Mobile gaming match</strong><span>Best gaming lane candidate</span></article>
+          {leaderboard.map((item, index) => (
+            <article key={item.challenge.id}>
+              <b>#{index + 1}</b>
+              <strong>{item.challenge.title}</strong>
+              <span>{item.challenge.lane}</span>
+              <div className="leaderStats">
+                <small>{item.joinsTotal} joins</small>
+                <small>{item.votesTotal} votes</small>
+                <small>{item.ratingAverage}/7</small>
+                <small>{item.proofsTotal} proofs</small>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
     </main>
