@@ -793,7 +793,7 @@ export default function Home() {
       setMessage(
         inviteMessage
           ? `Challenge created. ${inviteMessage}`
-          : "Challenge created. It is now shown at the top of Challenge rooms."
+          : "Challenge created. No invite was sent because no profile invite target was selected."
       );
       formElement.reset();
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
@@ -1661,7 +1661,25 @@ export default function Home() {
         </div>
         {challengeDraft.invitedProfile && (
           <div className="inviteNotice">
-            Invite draft prepared for {challengeDraft.invitedProfile}. You can edit anything before creating it.
+            <span>Invite will be sent to {challengeDraft.invitedProfile} when you create this challenge.</span>
+            <button
+              onClick={() =>
+                setChallengeDraft((currentDraft) => ({
+                  ...currentDraft,
+                  invitedProfile: "",
+                  invitedUserId: "",
+                  version: currentDraft.version + 1
+                }))
+              }
+              type="button"
+            >
+              Remove invite target
+            </button>
+          </div>
+        )}
+        {!challengeDraft.invitedProfile && (
+          <div className="inviteNotice mutedInviteNotice">
+            No invite selected. To send an invite, go to Profiles, click Invite to challenge, then create the challenge.
           </div>
         )}
         <form className="createForm" key={challengeDraft.version} onSubmit={createChallenge}>
