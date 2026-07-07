@@ -17,6 +17,17 @@ type Challenge = {
   created_at: string;
 };
 
+type JoinRole = "Challenger" | "Audience";
+
+type ChallengeJoin = {
+  id: string;
+  challenge_id: string;
+  participant_name: string;
+  role: JoinRole;
+  side: string;
+  created_at: string;
+};
+
 const sampleChallenges: Challenge[] = [
   {
     id: "sample-1",
@@ -58,12 +69,26 @@ export default function Home() {
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
+  const [joins, setJoins] = useState<ChallengeJoin[]>([]);
 
   const visibleChallenges = useMemo(() => {
     if (selectedLane === "All") return challenges;
     return challenges.filter((challenge) => challenge.lane === selectedLane);
   }, [challenges, selectedLane]);
+
+  const joinCounts = useMemo(() => {
+    return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
+      const current = counts[join.challenge_id] || { challengers: 0, audience: 0 };
+
+      if (join.role === "Challenger") current.challengers += 1;
+      if (join.role === "Audience") current.audience += 1;
+
+      counts[join.challenge_id] = current;
+      return counts;
+    }, {});
+  }, [joins]);
 
   useEffect(() => {
     async function loadChallenges() {
@@ -83,6 +108,22 @@ export default function Home() {
     }
 
     loadChallenges();
+  }, []);
+
+  useEffect(() => {
+    async function loadJoins() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("challenge_joins")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setJoins(data as ChallengeJoin[]);
+    }
+
+    loadJoins();
   }, []);
 
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
@@ -137,6 +178,58 @@ export default function Home() {
     }
 
     setIsSaving(false);
+  }
+
+  async function joinChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const participantName = String(form.get("participant_name") || "").trim();
+
+    if (!participantName) {
+      setMessage("Please enter a name before joining.");
+      return;
+    }
+
+    const join = {
+      challenge_id: challenge.id,
+      participant_name: participantName,
+      role: String(form.get("role") || "Challenger") as JoinRole,
+      side: String(form.get("side") || "Open invite")
+    };
+
+    setJoiningChallengeId(challenge.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      const localJoin: ChallengeJoin = {
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        ...join
+      };
+
+      setJoins((items) => [localJoin, ...items]);
+      setMessage(`${participantName} joined ${challenge.title} as ${join.role.toLowerCase()}.`);
+      formElement.reset();
+      setJoiningChallengeId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("challenge_joins")
+      .insert(join)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not join yet: ${error.message}`);
+    } else if (data) {
+      setJoins((items) => [data as ChallengeJoin, ...items]);
+      setMessage(`${participantName} joined ${challenge.title} as ${join.role.toLowerCase()}.`);
+      formElement.reset();
+    }
+
+    setJoiningChallengeId(null);
   }
 
   async function rateChallenge(challengeId: string, rating: number) {
@@ -268,7 +361,26 @@ export default function Home() {
                 <b>vs</b>
                 <strong>{challenge.team_b}</strong>
               </div>
+              <div className="roomStats">
+                <strong>Challengers: {joinCounts[challenge.id]?.challengers || 0}</strong>
+                <strong>Audience: {joinCounts[challenge.id]?.audience || 0}</strong>
+              </div>
               <p>{challenge.rules}</p>
+              <form className="joinForm" onSubmit={(event) => joinChallenge(event, challenge)}>
+                <input name="participant_name" placeholder="Your name" />
+                <select name="role" defaultValue="Challenger">
+                  <option>Challenger</option>
+                  <option>Audience</option>
+                </select>
+                <select name="side" defaultValue="Open invite">
+                  <option>Open invite</option>
+                  <option>Team A</option>
+                  <option>Team B</option>
+                </select>
+                <button disabled={joiningChallengeId === challenge.id} type="submit">
+                  {joiningChallengeId === challenge.id ? "Joining..." : "Join"}
+                </button>
+              </form>
               <div className="roomButtons">
                 <button type="button" onClick={() => voteForWinner(challenge.id, challenge.team_a)}>
                   Vote A
