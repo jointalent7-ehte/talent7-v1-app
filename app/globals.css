@@ -522,6 +522,26 @@ textarea {
   line-height: 1.55;
 }
 
+.showcaseRatingSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.showcaseRatingSummary strong {
+  font-size: 1.2rem;
+}
+
+.showcaseRatingSummary small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .showcaseMeta {
   display: flex;
   flex-wrap: wrap;
@@ -542,6 +562,28 @@ textarea {
   background: var(--ink);
   border-radius: 8px;
   font-weight: 850;
+}
+
+.showcaseRatingButtons {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.showcaseRatingButtons button {
+  min-height: 34px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.showcaseRatingButtons button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  cursor: not-allowed;
 }
 
 .invitesSection {

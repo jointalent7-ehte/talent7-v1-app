@@ -84,6 +84,14 @@ type ShowcasePost = {
   created_at: string;
 };
 
+type ShowcaseRating = {
+  id: string;
+  post_id: string;
+  user_id?: string | null;
+  rating: number;
+  created_at: string;
+};
+
 type ProfileFollow = {
   id: string;
   follower_id: string;
@@ -217,6 +225,7 @@ export default function Home() {
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
   const [showcasePosts, setShowcasePosts] = useState<ShowcasePost[]>([]);
+  const [showcaseRatings, setShowcaseRatings] = useState<ShowcaseRating[]>([]);
   const [savingShowcasePost, setSavingShowcasePost] = useState(false);
 
   const joinCounts = useMemo(() => {
@@ -257,6 +266,20 @@ export default function Home() {
       return groups;
     }, {});
   }, [proofs]);
+
+  const showcaseResults = useMemo(() => {
+    return showcaseRatings.reduce<Record<string, { ratingAverage: string; ratingCount: number }>>((results, rating) => {
+      const postRatings = showcaseRatings.filter((item) => item.post_id === rating.post_id);
+      const ratingTotal = postRatings.reduce((total, item) => total + item.rating, 0);
+
+      results[rating.post_id] = {
+        ratingAverage: postRatings.length ? (ratingTotal / postRatings.length).toFixed(1) : "0.0",
+        ratingCount: postRatings.length
+      };
+
+      return results;
+    }, {});
+  }, [showcaseRatings]);
 
   const activityScores = useMemo(() => {
     return challenges.reduce<Record<string, number>>((scores, challenge) => {
@@ -725,6 +748,22 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    async function loadShowcaseRatings() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("showcase_ratings")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setShowcaseRatings(data as ShowcaseRating[]);
+    }
+
+    loadShowcaseRatings();
+  }, []);
+
+  useEffect(() => {
     async function loadInvites() {
       if (!supabase || !session?.user.id) {
         setInvites([]);
@@ -821,6 +860,13 @@ export default function Home() {
 
   function hasUserVoted(challengeId: string) {
     return Boolean(session?.user.id && votes.some((vote) => vote.challenge_id === challengeId && vote.user_id === session.user.id));
+  }
+
+  function hasUserRatedShowcase(postId: string) {
+    return Boolean(
+      session?.user.id &&
+        showcaseRatings.some((rating) => rating.post_id === postId && rating.user_id === session.user.id)
+    );
   }
 
   function profileName() {
@@ -1156,6 +1202,47 @@ export default function Home() {
     }
 
     setSavingShowcasePost(false);
+  }
+
+  async function rateShowcasePost(post: ShowcasePost, rating: number) {
+    if (!requireLogin("rate a showcase post")) return;
+
+    if (hasUserRatedShowcase(post.id)) {
+      setMessage("You already rated this showcase post.");
+      return;
+    }
+
+    const showcaseRating = {
+      post_id: post.id,
+      user_id: session?.user.id,
+      rating
+    };
+
+    if (!supabase) {
+      setShowcaseRatings((items) => [
+        {
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          ...showcaseRating
+        },
+        ...items
+      ]);
+      setMessage(`Saved a ${rating}/7 showcase rating for this preview.`);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("showcase_ratings")
+      .insert(showcaseRating)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(error.code === "23505" ? "You already rated this showcase post." : `Could not save showcase rating: ${error.message}`);
+    } else if (data) {
+      setShowcaseRatings((items) => [data as ShowcaseRating, ...items]);
+      setMessage(`Saved ${rating}/7 showcase rating.`);
+    }
   }
 
   async function respondToInvite(invite: ChallengeInvite, status: "Accepted" | "Declined") {
@@ -1724,11 +1811,27 @@ export default function Home() {
                 <span>{post.category}</span>
                 <strong>{profileDisplayName(post.user_id)}</strong>
                 <p>{post.caption}</p>
+                <div className="showcaseRatingSummary">
+                  <strong>{showcaseResults[post.id]?.ratingAverage || "0.0"} / 7</strong>
+                  <small>{showcaseResults[post.id]?.ratingCount || 0} ratings</small>
+                </div>
                 <div className="showcaseMeta">
                   <small>{post.media_type}</small>
                   <a href={post.media_url} rel="noreferrer" target="_blank">
                     Open post
                   </a>
+                </div>
+                <div className="showcaseRatingButtons">
+                  {([1, 2, 3, 4, 5, 6, 7] as const).map((rating) => (
+                    <button
+                      disabled={hasUserRatedShowcase(post.id)}
+                      key={rating}
+                      onClick={() => rateShowcasePost(post, rating)}
+                      type="button"
+                    >
+                      {rating}
+                    </button>
+                  ))}
                 </div>
               </article>
             ))
