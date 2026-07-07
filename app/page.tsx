@@ -74,6 +74,13 @@ type ChallengeInvite = {
   updated_at?: string | null;
 };
 
+type ProfileFollow = {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+};
+
 type ReportReason = "Spam" | "Fake proof" | "Abuse" | "Wrong category" | "Other";
 
 type TalentProfile = {
@@ -197,6 +204,8 @@ export default function Home() {
   const [votes, setVotes] = useState<ChallengeVote[]>([]);
   const [proofs, setProofs] = useState<ChallengeProof[]>([]);
   const [invites, setInvites] = useState<ChallengeInvite[]>([]);
+  const [follows, setFollows] = useState<ProfileFollow[]>([]);
+  const [followActionId, setFollowActionId] = useState<string | null>(null);
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -337,6 +346,29 @@ export default function Home() {
         .includes(search)
     );
   }, [profileSearch, publicProfiles]);
+
+  const followCounts = useMemo(() => {
+    return follows.reduce<Record<string, { followers: number; following: number }>>((counts, follow) => {
+      const followedCounts = counts[follow.following_id] || { followers: 0, following: 0 };
+      const followerCounts = counts[follow.follower_id] || { followers: 0, following: 0 };
+
+      followedCounts.followers += 1;
+      followerCounts.following += 1;
+      counts[follow.following_id] = followedCounts;
+      counts[follow.follower_id] = followerCounts;
+      return counts;
+    }, {});
+  }, [follows]);
+
+  const myFollowingProfiles = useMemo(() => {
+    if (!session?.user.id) return [];
+
+    const followedIds = follows
+      .filter((follow) => follow.follower_id === session.user.id)
+      .map((follow) => follow.following_id);
+
+    return publicProfiles.filter((item) => followedIds.includes(item.user_id));
+  }, [follows, publicProfiles, session]);
 
   const myActivity = useMemo(() => {
     if (!session?.user.id) {
@@ -576,6 +608,25 @@ export default function Home() {
     }
 
     loadInvites();
+  }, [session]);
+
+  useEffect(() => {
+    async function loadFollows() {
+      if (!supabase || !session?.user.id) {
+        setFollows([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profile_follows")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setFollows(data as ProfileFollow[]);
+    }
+
+    loadFollows();
   }, [session]);
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -861,6 +912,56 @@ export default function Home() {
     setSelectedStatus("All");
     setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
+  async function toggleFollow(item: TalentProfile) {
+    if (!requireLogin("follow profiles")) return;
+    if (!requireProfile("follow profiles")) return;
+    if (!supabase || !session?.user.id) return;
+
+    if (item.user_id === session.user.id) {
+      setMessage("You cannot follow your own profile.");
+      return;
+    }
+
+    const existingFollow = follows.find(
+      (follow) => follow.follower_id === session.user.id && follow.following_id === item.user_id
+    );
+
+    setFollowActionId(item.user_id);
+    setMessage("");
+
+    if (existingFollow) {
+      const { error } = await supabase.from("profile_follows").delete().eq("id", existingFollow.id);
+
+      if (error) {
+        setMessage(`Could not unfollow yet: ${error.message}`);
+      } else {
+        setFollows((items) => items.filter((follow) => follow.id !== existingFollow.id));
+        setMessage(`Unfollowed ${item.display_name}.`);
+      }
+
+      setFollowActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profile_follows")
+      .insert({
+        follower_id: session.user.id,
+        following_id: item.user_id
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(error.code === "23505" ? `You already follow ${item.display_name}.` : `Could not follow yet: ${error.message}`);
+    } else if (data) {
+      setFollows((items) => [data as ProfileFollow, ...items]);
+      setMessage(`Following ${item.display_name}.`);
+    }
+
+    setFollowActionId(null);
   }
 
   async function respondToInvite(invite: ChallengeInvite, status: "Accepted" | "Declined") {
@@ -1498,12 +1599,27 @@ export default function Home() {
               <article key={item.user_id}>
                 <strong>{item.display_name}</strong>
                 <span>@{item.username}</span>
+                <div className="followStats">
+                  <small>{followCounts[item.user_id]?.followers || 0} followers</small>
+                  <small>{followCounts[item.user_id]?.following || 0} following</small>
+                </div>
                 <div>
                   <small>{item.role}</small>
                   <small>{item.main_interest}</small>
                   <small>{item.region}</small>
                 </div>
                 <div className="profileActions">
+                  <button
+                    disabled={followActionId === item.user_id || item.user_id === session?.user.id}
+                    onClick={() => toggleFollow(item)}
+                    type="button"
+                  >
+                    {follows.some((follow) => follow.follower_id === session?.user.id && follow.following_id === item.user_id)
+                      ? "Following"
+                      : item.user_id === session?.user.id
+                        ? "Your profile"
+                        : "Follow"}
+                  </button>
                   <button onClick={() => inviteProfileToChallenge(item)} type="button">
                     Invite to challenge
                   </button>
@@ -1579,6 +1695,16 @@ export default function Home() {
                   ? `${myActivity.completed[0].winner || "Winner"} won ${myActivity.completed[0].title}`
                   : "No completed challenges yet"}
               </small>
+            </article>
+            <article className="followingCard">
+              <span>Following</span>
+              <strong>{myFollowingProfiles.length}</strong>
+              <small>
+                {myFollowingProfiles[0]
+                  ? myFollowingProfiles.map((item) => item.display_name).slice(0, 3).join(", ")
+                  : "No followed profiles yet"}
+              </small>
+              <a href="#profiles">Find profiles</a>
             </article>
           </div>
         ) : (

@@ -396,6 +396,15 @@ textarea {
   line-height: 1.45;
 }
 
+.followingCard a {
+  width: fit-content;
+  padding: 10px 12px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
 .emptyState {
   max-width: 760px;
 }
@@ -669,6 +678,11 @@ textarea {
   gap: 8px;
 }
 
+.profileGrid .followStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .profileGrid small {
   padding: 7px 9px;
   color: var(--ink);
@@ -679,7 +693,7 @@ textarea {
 
 .profileGrid .profileActions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 4px;
 }
@@ -704,6 +718,11 @@ textarea {
   color: var(--ink);
   background: #fff;
   border: 1px solid var(--line);
+}
+
+.profileActions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .profileSearch {
@@ -1314,7 +1333,8 @@ textarea {
   .plansGrid,
   .contributionBox,
   .roadmapGrid,
-  .profileGrid {
+  .profileGrid,
+  .profileGrid .profileActions {
     grid-template-columns: 1fr;
   }
 
