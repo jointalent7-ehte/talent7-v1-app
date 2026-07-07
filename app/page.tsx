@@ -371,7 +371,15 @@ export default function Home() {
   }
 
   function profileName() {
-    return profile?.display_name || profile?.username || session?.user.email || "Talent7 member";
+    return profile?.display_name || (profile?.username ? `@${profile.username}` : "Save profile first");
+  }
+
+  function requireProfile(action: string) {
+    if (profile?.display_name && profile?.username) return true;
+
+    setMessage(`Please save your profile before you ${action}.`);
+    setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+    return false;
   }
 
   useEffect(() => {
@@ -500,6 +508,7 @@ export default function Home() {
   async function joinChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("join a challenge")) return;
+    if (!requireProfile("join a challenge")) return;
 
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
@@ -958,7 +967,7 @@ export default function Home() {
                 <input
                   name="participant_name"
                   readOnly
-                  value={session?.user.email || "Log in to join"}
+                  value={session ? profileName() : "Log in to join"}
                 />
                 <select name="role" defaultValue="Challenger">
                   <option>Challenger</option>
