@@ -612,6 +612,28 @@ textarea {
   font-size: 0.95rem;
 }
 
+.proofTypePicker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.proofTypePicker button {
+  min-height: 38px;
+  padding: 8px 10px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.proofTypePicker button.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
 .proofForm input,
 .proofForm textarea {
   background: #fff;
@@ -809,6 +831,7 @@ textarea {
   .scoreBoard,
   .detailGrid,
   .participantGrid,
+  .proofTypePicker,
   .roomsGrid,
   .leaderGrid {
     grid-template-columns: 1fr;

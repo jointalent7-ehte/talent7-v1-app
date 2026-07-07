@@ -56,6 +56,7 @@ type ChallengeProof = {
   id: string;
   challenge_id: string;
   user_id?: string | null;
+  proof_type?: string | null;
   proof_url: string;
   notes: string | null;
   created_at: string;
@@ -133,6 +134,7 @@ export default function Home() {
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
   const [joinChoices, setJoinChoices] = useState<Record<string, { role: JoinRole; side: string }>>({});
+  const [proofTypes, setProofTypes] = useState<Record<string, string>>({});
   const [joins, setJoins] = useState<ChallengeJoin[]>([]);
   const [ratings, setRatings] = useState<ChallengeRating[]>([]);
   const [votes, setVotes] = useState<ChallengeVote[]>([]);
@@ -304,6 +306,17 @@ export default function Home() {
         ...(current[challengeId] || { role: "Challenger" as JoinRole, side: "Open invite" }),
         ...choice
       }
+    }));
+  }
+
+  function selectedProofType(challengeId: string) {
+    return proofTypes[challengeId] || "Video";
+  }
+
+  function updateProofType(challengeId: string, proofType: string) {
+    setProofTypes((current) => ({
+      ...current,
+      [challengeId]: proofType
     }));
   }
 
@@ -752,6 +765,7 @@ export default function Home() {
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const proofUrl = String(form.get("proof_url") || "").trim();
+    const proofType = String(form.get("proof_type") || "Video");
     const notes = String(form.get("notes") || "").trim();
 
     if (!proofUrl) {
@@ -762,6 +776,7 @@ export default function Home() {
     const proof = {
       challenge_id: challenge.id,
       user_id: session?.user.id,
+      proof_type: proofType,
       proof_url: proofUrl,
       notes: notes || null
     };
@@ -1219,6 +1234,19 @@ export default function Home() {
                   </form>
                   <form className="proofForm" onSubmit={(event) => submitProof(event, challenge)}>
                     <strong>Victory proof</strong>
+                    <input name="proof_type" type="hidden" value={selectedProofType(challenge.id)} />
+                    <div className="proofTypePicker">
+                      {["Photo", "Video", "Screenshot", "Match link"].map((proofType) => (
+                        <button
+                          className={selectedProofType(challenge.id) === proofType ? "active" : ""}
+                          key={proofType}
+                          onClick={() => updateProofType(challenge.id, proofType)}
+                          type="button"
+                        >
+                          {proofType}
+                        </button>
+                      ))}
+                    </div>
                     <input name="proof_url" placeholder="Paste photo, video, screenshot, or match link" />
                     <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
                     <button disabled={savingProofChallengeId === challenge.id} type="submit">
@@ -1246,7 +1274,7 @@ export default function Home() {
                   <strong>Proofs submitted</strong>
                   {(roomProofs[challenge.id] || []).slice(0, 3).map((proof) => (
                     <a href={proof.proof_url} key={proof.id} rel="noreferrer" target="_blank">
-                      <span>{proof.notes || "Open proof"}</span>
+                      <span>{proof.proof_type ? `${proof.proof_type}: ${proof.notes || "Open proof"}` : proof.notes || "Open proof"}</span>
                       <small>View proof</small>
                     </a>
                   ))}
