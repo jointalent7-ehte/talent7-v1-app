@@ -1111,6 +1111,53 @@ export default function Home() {
                   ))}
                 </div>
               )}
+              <details className="roomDetails">
+                <summary>Room details</summary>
+                <div className="detailGrid">
+                  <div>
+                    <span>Status</span>
+                    <strong>{challenge.status}</strong>
+                  </div>
+                  <div>
+                    <span>Winner</span>
+                    <strong>{challenge.winner || "Not decided"}</strong>
+                  </div>
+                  <div>
+                    <span>Proofs</span>
+                    <strong>{(roomProofs[challenge.id] || []).length}</strong>
+                  </div>
+                  <div>
+                    <span>Activity score</span>
+                    <strong>{activityScores[challenge.id] || 0}</strong>
+                  </div>
+                </div>
+                <div className="detailList">
+                  <strong>Recent joins</strong>
+                  {joins.filter((join) => join.challenge_id === challenge.id).slice(0, 4).length > 0 ? (
+                    joins
+                      .filter((join) => join.challenge_id === challenge.id)
+                      .slice(0, 4)
+                      .map((join) => (
+                        <small key={join.id}>
+                          {join.participant_name} joined as {join.role} on {join.side}
+                        </small>
+                      ))
+                  ) : (
+                    <small>No joins yet.</small>
+                  )}
+                </div>
+                <div className="detailList">
+                  <strong>Recent votes</strong>
+                  {votes.filter((vote) => vote.challenge_id === challenge.id).slice(0, 4).length > 0 ? (
+                    votes
+                      .filter((vote) => vote.challenge_id === challenge.id)
+                      .slice(0, 4)
+                      .map((vote) => <small key={vote.id}>Vote for {vote.winner}</small>)
+                  ) : (
+                    <small>No votes yet.</small>
+                  )}
+                </div>
+              </details>
               <div className="roomButtons">
                 <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge.id, challenge.team_a)}>
                   {hasUserVoted(challenge.id) ? "Voted" : "Vote A"}
