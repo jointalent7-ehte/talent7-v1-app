@@ -357,7 +357,7 @@ textarea {
 }
 
 .filters {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .filters button {
@@ -367,6 +367,23 @@ textarea {
 .filters button.active {
   color: #fff;
   background: var(--teal);
+}
+
+.filterLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.statusFilters {
+  margin-bottom: 22px;
+}
+
+.statusFilters button.active {
+  background: var(--ink);
 }
 
 .roomsGrid,

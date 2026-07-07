@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
+type ChallengeStatusFilter = "All" | "Open" | "Completed";
 
 type Challenge = {
   id: string;
@@ -118,6 +119,7 @@ const sampleChallenges: Challenge[] = [
 export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
+  const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("All");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
@@ -192,15 +194,19 @@ export default function Home() {
   }, [challenges, joinCounts, roomProofs, roomResults]);
 
   const visibleChallenges = useMemo(() => {
-    const filteredChallenges =
-      selectedLane === "All" ? challenges : challenges.filter((challenge) => challenge.lane === selectedLane);
+    const filteredChallenges = challenges.filter((challenge) => {
+      const laneMatches = selectedLane === "All" || challenge.lane === selectedLane;
+      const statusMatches = selectedStatus === "All" || challenge.status === selectedStatus;
+
+      return laneMatches && statusMatches;
+    });
 
     return [...filteredChallenges].sort((first, second) => {
       const scoreDifference = (activityScores[second.id] || 0) - (activityScores[first.id] || 0);
       if (scoreDifference !== 0) return scoreDifference;
       return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
     });
-  }, [activityScores, challenges, selectedLane]);
+  }, [activityScores, challenges, selectedLane, selectedStatus]);
 
   const leaderboard = useMemo(() => {
     return challenges
@@ -1038,8 +1044,9 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Rooms</p>
           <h2>Challenge rooms</h2>
-          <p>Filter by challenge lane, rate rooms out of 7, and vote for winners.</p>
+          <p>Filter by lane and status, then open rooms to view proof, votes, and results.</p>
         </div>
+        <strong className="filterLabel">Lane</strong>
         <div className="filters">
           {(["All", "Talent battle", "Sports challenge", "Mobile gaming challenge"] as const).map((lane) => (
             <button
@@ -1049,6 +1056,19 @@ export default function Home() {
               type="button"
             >
               {lane}
+            </button>
+          ))}
+        </div>
+        <strong className="filterLabel">Status</strong>
+        <div className="filters statusFilters">
+          {(["All", "Open", "Completed"] as const).map((status) => (
+            <button
+              className={selectedStatus === status ? "active" : ""}
+              key={status}
+              onClick={() => setSelectedStatus(status)}
+              type="button"
+            >
+              {status}
             </button>
           ))}
         </div>
