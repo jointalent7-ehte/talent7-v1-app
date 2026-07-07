@@ -350,6 +350,14 @@ export default function Home() {
     return false;
   }
 
+  function hasUserRated(challengeId: string) {
+    return Boolean(session?.user.id && ratings.some((rating) => rating.challenge_id === challengeId && rating.user_id === session.user.id));
+  }
+
+  function hasUserVoted(challengeId: string) {
+    return Boolean(session?.user.id && votes.some((vote) => vote.challenge_id === challengeId && vote.user_id === session.user.id));
+  }
+
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireLogin("create a challenge")) return;
@@ -463,6 +471,11 @@ export default function Home() {
   async function rateChallenge(challengeId: string, rating: number) {
     if (!requireLogin("rate a challenge")) return;
 
+    if (hasUserRated(challengeId)) {
+      setMessage("You already rated this challenge.");
+      return;
+    }
+
     if (!supabase || challengeId.startsWith("sample-")) {
       setRatings((items) => [
         {
@@ -489,7 +502,7 @@ export default function Home() {
       .single();
 
     if (error) {
-      setMessage(`Could not save rating: ${error.message}`);
+      setMessage(error.code === "23505" ? "You already rated this challenge." : `Could not save rating: ${error.message}`);
     } else if (data) {
       setRatings((items) => [data as ChallengeRating, ...items]);
       setMessage(`Saved ${rating}/7 rating.`);
@@ -498,6 +511,11 @@ export default function Home() {
 
   async function voteForWinner(challengeId: string, winner: string) {
     if (!requireLogin("vote")) return;
+
+    if (hasUserVoted(challengeId)) {
+      setMessage("You already voted on this challenge.");
+      return;
+    }
 
     if (!supabase || challengeId.startsWith("sample-")) {
       setVotes((items) => [
@@ -525,7 +543,7 @@ export default function Home() {
       .single();
 
     if (error) {
-      setMessage(`Could not save vote: ${error.message}`);
+      setMessage(error.code === "23505" ? "You already voted on this challenge." : `Could not save vote: ${error.message}`);
     } else if (data) {
       setVotes((items) => [data as ChallengeVote, ...items]);
       setMessage(`Vote saved for ${winner}.`);
@@ -867,14 +885,14 @@ export default function Home() {
                 </div>
               )}
               <div className="roomButtons">
-                <button type="button" onClick={() => voteForWinner(challenge.id, challenge.team_a)}>
-                  Vote A
+                <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge.id, challenge.team_a)}>
+                  {hasUserVoted(challenge.id) ? "Voted" : "Vote A"}
                 </button>
-                <button type="button" onClick={() => voteForWinner(challenge.id, challenge.team_b)}>
-                  Vote B
+                <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge.id, challenge.team_b)}>
+                  {hasUserVoted(challenge.id) ? "Voted" : "Vote B"}
                 </button>
-                <button type="button" onClick={() => rateChallenge(challenge.id, 7)}>
-                  Rate 7/7
+                <button disabled={hasUserRated(challenge.id)} type="button" onClick={() => rateChallenge(challenge.id, 7)}>
+                  {hasUserRated(challenge.id) ? "Rated" : "Rate 7/7"}
                 </button>
               </div>
             </article>
