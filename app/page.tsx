@@ -1494,9 +1494,12 @@ export default function Home() {
               <small>{selectedProfileActivity.proofs.length} proofs</small>
               <small>{selectedProfileActivity.relatedChallenges.length} rooms</small>
             </div>
-            <button onClick={() => setSelectedActivityProfile(null)} type="button">
-              Clear profile view
-            </button>
+            <div className="profileActivityActions">
+              <button onClick={() => setSelectedActivityProfile(null)} type="button">
+                Clear profile view
+              </button>
+              <a href="#profiles">Back to profiles</a>
+            </div>
           </div>
         )}
         <label className="roomSearch">

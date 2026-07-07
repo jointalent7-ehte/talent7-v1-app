@@ -655,15 +655,30 @@ textarea {
   text-align: center;
 }
 
-.profileActivityPanel button {
+.profileActivityActions {
+  display: grid;
+  gap: 8px;
+}
+
+.profileActivityActions button,
+.profileActivityActions a {
   min-height: 44px;
+  display: grid;
+  place-items: center;
   padding: 10px 12px;
   color: #fff;
   background: var(--ink);
   border: 0;
   border-radius: 8px;
   font-weight: 850;
+  text-align: center;
   cursor: pointer;
+}
+
+.profileActivityActions a {
+  color: var(--ink);
+  background: #eef4f4;
+  border: 1px solid var(--line);
 }
 
 .roomSearch input {
