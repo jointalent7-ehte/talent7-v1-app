@@ -677,6 +677,152 @@ textarea {
   border-radius: 8px;
 }
 
+.coachingSection {
+  background: #f7fafa;
+}
+
+.coachOfferForm,
+.coachingNotice {
+  display: grid;
+  gap: 14px;
+  max-width: 900px;
+  margin-bottom: 18px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.coachOfferForm {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.coachOfferForm button,
+.coachingNotice a,
+.coachingInterestForm button {
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 12px 16px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.coachOfferForm button:disabled,
+.coachingInterestForm button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  cursor: not-allowed;
+}
+
+.coachingNotice p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.coachingNotice a {
+  width: fit-content;
+}
+
+.coachStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.coachStats article {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.coachStats span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.coachStats strong {
+  font-size: 1.35rem;
+}
+
+.coachOfferGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.coachOfferGrid article,
+.emptyCoachOffers {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.coachOfferGrid article > span {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.coachOfferGrid article > strong {
+  font-size: 1.25rem;
+}
+
+.coachOfferGrid p,
+.coachOfferGrid small,
+.emptyCoachOffers small {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.coachOfferMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.coachOfferMeta small,
+.ownCoachOffer {
+  padding: 8px 10px;
+  background: #eef4f4;
+  border-radius: 8px;
+}
+
+.ownCoachOffer {
+  display: grid;
+  gap: 4px;
+}
+
+.coachingInterestForm {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 .invitesSection {
   background: #fff;
 }
@@ -1081,6 +1227,20 @@ textarea {
   background: #eef4f4;
   border-radius: 8px;
   font-weight: 800;
+}
+
+.profileGrid .coachProfileBadge {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 10px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.coachProfileBadge strong {
+  font-size: 0.95rem;
 }
 
 .profileGrid .profileActions {
@@ -1707,6 +1867,9 @@ textarea {
   .createForm,
   .showcaseForm,
   .showcaseCommentForm,
+  .coachOfferForm,
+  .coachStats,
+  .coachOfferGrid,
   .profileForm,
   .myTalentGrid,
   .inviteGrid,

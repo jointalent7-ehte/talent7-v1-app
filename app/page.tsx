@@ -133,6 +133,28 @@ type ShowcaseReport = {
   created_at: string;
 };
 
+type CoachOffer = {
+  id: string;
+  user_id: string;
+  title: string;
+  category: string;
+  session_type: "Live video" | "Uploaded lessons" | "Both";
+  price_range: string;
+  availability: string;
+  description: string;
+  created_at: string;
+};
+
+type CoachingInterest = {
+  id: string;
+  offer_id: string;
+  student_user_id: string;
+  student_name: string;
+  message: string | null;
+  status: "Interested" | "Contacted" | "Closed";
+  created_at: string;
+};
+
 type SafetyReportItem = {
   id: string;
   source: "Challenge" | "Showcase";
@@ -269,8 +291,12 @@ export default function Home() {
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
   const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
+  const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
+  const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
   const [isOwnerReviewer, setIsOwnerReviewer] = useState(false);
   const [safetyReportActionId, setSafetyReportActionId] = useState<string | null>(null);
+  const [savingCoachOffer, setSavingCoachOffer] = useState(false);
+  const [coachingInterestId, setCoachingInterestId] = useState<string | null>(null);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
   const [showcasePosts, setShowcasePosts] = useState<ShowcasePost[]>([]);
   const [showcaseRatings, setShowcaseRatings] = useState<ShowcaseRating[]>([]);
@@ -464,6 +490,25 @@ export default function Home() {
     return publicProfiles.filter((item) => followedIds.includes(item.user_id));
   }, [follows, publicProfiles, session]);
 
+  const coachProfiles = useMemo(() => {
+    return publicProfiles.filter((item) => item.role.toLowerCase().includes("coach"));
+  }, [publicProfiles]);
+
+  const visibleCoachOffers = useMemo(() => {
+    const search = profileSearch.trim().toLowerCase();
+
+    return coachOffers.filter((offer) => {
+      const coach = publicProfiles.find((item) => item.user_id === offer.user_id);
+      if (!search) return true;
+
+      return [offer.title, offer.category, offer.session_type, offer.price_range, offer.description, coach?.display_name]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    });
+  }, [coachOffers, profileSearch, publicProfiles]);
+
   const followingFeed = useMemo(() => {
     if (!session?.user.id) return [];
 
@@ -629,6 +674,13 @@ export default function Home() {
       (first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime()
     );
   }, [challengeReports, challenges, showcaseComments, showcasePosts, showcaseReports]);
+
+  const coachingInterestCounts = useMemo(() => {
+    return coachingInterests.reduce<Record<string, number>>((counts, interest) => {
+      counts[interest.offer_id] = (counts[interest.offer_id] || 0) + 1;
+      return counts;
+    }, {});
+  }, [coachingInterests]);
 
   const inviteInbox = useMemo(() => {
     if (!session?.user.id) {
@@ -881,6 +933,23 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    async function loadCoachOffers() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("coach_offers")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(24);
+
+      if (error) return;
+      if (data) setCoachOffers(data as CoachOffer[]);
+    }
+
+    loadCoachOffers();
+  }, []);
+
+  useEffect(() => {
     async function loadInvites() {
       if (!supabase || !session?.user.id) {
         setInvites([]);
@@ -917,6 +986,25 @@ export default function Home() {
     }
 
     loadFollows();
+  }, [session]);
+
+  useEffect(() => {
+    async function loadCoachingInterests() {
+      if (!supabase || !session?.user.id) {
+        setCoachingInterests([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("coaching_interests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setCoachingInterests(data as CoachingInterest[]);
+    }
+
+    loadCoachingInterests();
   }, [session]);
 
   useEffect(() => {
@@ -1358,6 +1446,130 @@ export default function Home() {
     }
 
     setSavingShowcasePost(false);
+  }
+
+  async function createCoachOffer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!requireLogin("create a coaching offer")) return;
+    if (!requireProfile("create a coaching offer")) return;
+
+    if (!profile?.role.toLowerCase().includes("coach")) {
+      setMessage("Set your profile role to Coach / instructor before creating a coaching offer.");
+      setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const title = String(form.get("title") || "").trim();
+    const description = String(form.get("description") || "").trim();
+
+    if (!title || !description) {
+      setMessage("Add a coaching title and description first.");
+      return;
+    }
+
+    const offer = {
+      user_id: session?.user.id || "",
+      title,
+      category: String(form.get("category") || profile.main_interest || "Coaching"),
+      session_type: String(form.get("session_type") || "Live video") as CoachOffer["session_type"],
+      price_range: String(form.get("price_range") || "$20-50"),
+      availability: String(form.get("availability") || "Flexible").trim(),
+      description
+    };
+
+    setSavingCoachOffer(true);
+    setMessage("");
+
+    if (!supabase) {
+      setCoachOffers((items) => [
+        {
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          ...offer
+        },
+        ...items
+      ]);
+      setMessage("Demo mode: coaching offer added on this page.");
+      formElement.reset();
+      setSavingCoachOffer(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("coach_offers")
+      .insert(offer)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not create coaching offer: ${error.message}`);
+    } else if (data) {
+      setCoachOffers((items) => [data as CoachOffer, ...items]);
+      setMessage("Coaching offer published.");
+      formElement.reset();
+      setTimeout(() => document.getElementById("coaching")?.scrollIntoView({ behavior: "smooth" }), 80);
+    }
+
+    setSavingCoachOffer(false);
+  }
+
+  async function requestCoachingInterest(event: FormEvent<HTMLFormElement>, offer: CoachOffer) {
+    event.preventDefault();
+    if (!requireLogin("request coaching")) return;
+    if (!requireProfile("request coaching")) return;
+
+    if (offer.user_id === session?.user.id) {
+      setMessage("This is your own coaching offer.");
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const messageText = String(form.get("message") || "").trim();
+
+    const interest = {
+      offer_id: offer.id,
+      student_user_id: session?.user.id || "",
+      student_name: profileName(),
+      message: messageText || null,
+      status: "Interested" as const
+    };
+
+    setCoachingInterestId(offer.id);
+    setMessage("");
+
+    if (!supabase) {
+      setCoachingInterests((items) => [
+        {
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          ...interest
+        },
+        ...items
+      ]);
+      setMessage("Demo mode: coaching interest sent on this page.");
+      formElement.reset();
+      setCoachingInterestId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("coaching_interests")
+      .insert(interest)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(error.code === "23505" ? "You already requested this coaching offer." : `Could not request coaching: ${error.message}`);
+    } else if (data) {
+      setCoachingInterests((items) => [data as CoachingInterest, ...items]);
+      setMessage("Coaching interest sent. Payment and scheduling will be added later.");
+      formElement.reset();
+    }
+
+    setCoachingInterestId(null);
   }
 
   async function rateShowcasePost(post: ShowcasePost, rating: number) {
@@ -1953,6 +2165,7 @@ export default function Home() {
           <div className="heroActions">
             <a href="#account" className="secondary">Account</a>
             <a href="#showcase" className="secondary">Showcase</a>
+            <a href="#coaching" className="secondary">Coaching</a>
             <a href="#profiles" className="secondary">Profiles</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
             <a href="#following-feed" className="secondary">Feed</a>
@@ -2201,6 +2414,122 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section coachingSection" id="coaching">
+        <div className="sectionHeader">
+          <p className="eyebrow">Coaching</p>
+          <h2>Find coaches or offer training</h2>
+          <p>Start with coaching interest and public offers. Real payment, calendar booking, and live sessions can come after this first marketplace layer.</p>
+        </div>
+        {session && profile?.role.toLowerCase().includes("coach") ? (
+          <form className="coachOfferForm" onSubmit={createCoachOffer}>
+            <label>
+              Coaching title
+              <input name="title" placeholder="Badminton doubles footwork session" />
+            </label>
+            <label>
+              Category
+              <select name="category" defaultValue={profile?.main_interest || "Badminton"}>
+                <option>Badminton</option>
+                <option>Breakdance</option>
+                <option>Calisthenics</option>
+                <option>Swimming</option>
+                <option>Mobile gaming</option>
+                <option>Fitness</option>
+              </select>
+            </label>
+            <label>
+              Session type
+              <select name="session_type" defaultValue="Live video">
+                <option>Live video</option>
+                <option>Uploaded lessons</option>
+                <option>Both</option>
+              </select>
+            </label>
+            <label>
+              Future price range
+              <select name="price_range" defaultValue="$20-50">
+                <option>Free trial</option>
+                <option>$0-20</option>
+                <option>$20-50</option>
+                <option>$50-100</option>
+                <option>$100+</option>
+              </select>
+            </label>
+            <label className="wide">
+              Availability
+              <input name="availability" placeholder="Weekends, evenings, India time, global..." />
+            </label>
+            <label className="wide">
+              What learners get
+              <textarea name="description" placeholder="Explain the lesson, skill level, and how you help." rows={3} />
+            </label>
+            <button disabled={savingCoachOffer} type="submit">
+              {savingCoachOffer ? "Publishing..." : "Publish coaching offer"}
+            </button>
+          </form>
+        ) : (
+          <div className="coachingNotice">
+            <strong>{session ? "Want to teach?" : "Log in to request coaching."}</strong>
+            <p>
+              {session
+                ? "Set your profile role to Coach / instructor, then publish your first coaching offer."
+                : "Create an account first, then send interest to a coach from this section."}
+            </p>
+            <a href="#account">Go to account</a>
+          </div>
+        )}
+        <div className="coachStats">
+          <article>
+            <span>Coach profiles</span>
+            <strong>{coachProfiles.length}</strong>
+          </article>
+          <article>
+            <span>Coaching offers</span>
+            <strong>{coachOffers.length}</strong>
+          </article>
+          <article>
+            <span>Payment status</span>
+            <strong>Placeholder</strong>
+          </article>
+        </div>
+        <div className="coachOfferGrid">
+          {visibleCoachOffers.length > 0 ? (
+            visibleCoachOffers.map((offer) => (
+              <article key={offer.id}>
+                <span>{offer.category}</span>
+                <strong>{offer.title}</strong>
+                <small>Coach: {profileDisplayName(offer.user_id)}</small>
+                <p>{offer.description}</p>
+                <div className="coachOfferMeta">
+                  <small>{offer.session_type}</small>
+                  <small>{offer.price_range}</small>
+                  <small>{offer.availability || "Flexible"}</small>
+                  <small>{coachingInterestCounts[offer.id] || 0} interests</small>
+                </div>
+                {offer.user_id === session?.user.id ? (
+                  <div className="ownCoachOffer">
+                    <strong>Your offer</strong>
+                    <small>People who request this will appear in your coaching interest count.</small>
+                  </div>
+                ) : (
+                  <form className="coachingInterestForm" onSubmit={(event) => requestCoachingInterest(event, offer)}>
+                    <input name="message" placeholder="Short note: goal, level, location, or timing" />
+                    <button disabled={coachingInterestId === offer.id} type="submit">
+                      {coachingInterestId === offer.id ? "Sending..." : "Request coaching"}
+                    </button>
+                  </form>
+                )}
+              </article>
+            ))
+          ) : (
+            <div className="emptyCoachOffers">
+              <strong>No coaching offers yet.</strong>
+              <small>Coach profiles can publish the first training offer here.</small>
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="section safetySection" id="safety">
         <div className="sectionHeader">
           <p className="eyebrow">Community safety</p>
@@ -2397,6 +2726,12 @@ export default function Home() {
                   <small>{item.main_interest}</small>
                   <small>{item.region}</small>
                 </div>
+                {item.role.toLowerCase().includes("coach") && (
+                  <div className="coachProfileBadge">
+                    <strong>Coach profile</strong>
+                    <small>{coachOffers.filter((offer) => offer.user_id === item.user_id).length} offers</small>
+                  </div>
+                )}
                 <div className="profileActions">
                   <button
                     disabled={followActionId === item.user_id || item.user_id === session?.user.id}
@@ -2415,6 +2750,9 @@ export default function Home() {
                   <button onClick={() => viewProfileActivity(item)} type="button">
                     View rooms activity
                   </button>
+                  {item.role.toLowerCase().includes("coach") && (
+                    <a href="#coaching">View coaching</a>
+                  )}
                 </div>
               </article>
             ))}
