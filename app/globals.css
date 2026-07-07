@@ -554,6 +554,25 @@ textarea {
   font-weight: 850;
 }
 
+.closedRoom {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: #eef4f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.closedRoom strong {
+  font-size: 0.95rem;
+}
+
+.closedRoom small {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
 .proofList {
   display: grid;
   gap: 8px;

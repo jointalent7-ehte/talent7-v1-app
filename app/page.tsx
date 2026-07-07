@@ -412,6 +412,10 @@ export default function Home() {
     return false;
   }
 
+  function isChallengeCompleted(challenge: Challenge) {
+    return challenge.status === "Completed";
+  }
+
   useEffect(() => {
     async function loadProfile() {
       if (!supabase || !session?.user.id) {
@@ -540,6 +544,11 @@ export default function Home() {
     if (!requireLogin("join a challenge")) return;
     if (!requireProfile("join a challenge")) return;
 
+    if (isChallengeCompleted(challenge)) {
+      setMessage("This challenge is completed, so new joins are closed.");
+      return;
+    }
+
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const participantName = profileName();
@@ -586,8 +595,15 @@ export default function Home() {
     setJoiningChallengeId(null);
   }
 
-  async function rateChallenge(challengeId: string, rating: number) {
+  async function rateChallenge(challenge: Challenge, rating: number) {
     if (!requireLogin("rate a challenge")) return;
+
+    if (isChallengeCompleted(challenge)) {
+      setMessage("This challenge is completed, so ratings are closed.");
+      return;
+    }
+
+    const challengeId = challenge.id;
 
     if (hasUserRated(challengeId)) {
       setMessage("You already rated this challenge.");
@@ -627,8 +643,15 @@ export default function Home() {
     }
   }
 
-  async function voteForWinner(challengeId: string, winner: string) {
+  async function voteForWinner(challenge: Challenge, winner: string) {
     if (!requireLogin("vote")) return;
+
+    if (isChallengeCompleted(challenge)) {
+      setMessage("This challenge is completed, so voting is closed.");
+      return;
+    }
+
+    const challengeId = challenge.id;
 
     if (hasUserVoted(challengeId)) {
       setMessage("You already voted on this challenge.");
@@ -671,6 +694,11 @@ export default function Home() {
   async function submitProof(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("submit proof")) return;
+
+    if (isChallengeCompleted(challenge)) {
+      setMessage("This challenge is completed, so proof uploads are closed.");
+      return;
+    }
 
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
@@ -726,6 +754,11 @@ export default function Home() {
   async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("complete a challenge")) return;
+
+    if (isChallengeCompleted(challenge)) {
+      setMessage("This challenge is already completed.");
+      return;
+    }
 
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
@@ -1061,33 +1094,42 @@ export default function Home() {
                 </div>
               </div>
               <p>{challenge.rules}</p>
-              <form className="joinForm" onSubmit={(event) => joinChallenge(event, challenge)}>
-                <input
-                  name="participant_name"
-                  readOnly
-                  value={session ? profileName() : "Log in to join"}
-                />
-                <select name="role" defaultValue="Challenger">
-                  <option>Challenger</option>
-                  <option>Audience</option>
-                </select>
-                <select name="side" defaultValue="Open invite">
-                  <option>Open invite</option>
-                  <option>Team A</option>
-                  <option>Team B</option>
-                </select>
-                <button disabled={joiningChallengeId === challenge.id} type="submit">
-                  {joiningChallengeId === challenge.id ? "Joining..." : "Join"}
-                </button>
-              </form>
-              <form className="proofForm" onSubmit={(event) => submitProof(event, challenge)}>
-                <strong>Victory proof</strong>
-                <input name="proof_url" placeholder="Paste photo, video, screenshot, or match link" />
-                <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
-                <button disabled={savingProofChallengeId === challenge.id} type="submit">
-                  {savingProofChallengeId === challenge.id ? "Saving proof..." : "Submit proof"}
-                </button>
-              </form>
+              {isChallengeCompleted(challenge) ? (
+                <div className="closedRoom">
+                  <strong>Challenge closed</strong>
+                  <small>Joins, votes, ratings, and proof uploads are locked after completion.</small>
+                </div>
+              ) : (
+                <>
+                  <form className="joinForm" onSubmit={(event) => joinChallenge(event, challenge)}>
+                    <input
+                      name="participant_name"
+                      readOnly
+                      value={session ? profileName() : "Log in to join"}
+                    />
+                    <select name="role" defaultValue="Challenger">
+                      <option>Challenger</option>
+                      <option>Audience</option>
+                    </select>
+                    <select name="side" defaultValue="Open invite">
+                      <option>Open invite</option>
+                      <option>Team A</option>
+                      <option>Team B</option>
+                    </select>
+                    <button disabled={joiningChallengeId === challenge.id} type="submit">
+                      {joiningChallengeId === challenge.id ? "Joining..." : "Join"}
+                    </button>
+                  </form>
+                  <form className="proofForm" onSubmit={(event) => submitProof(event, challenge)}>
+                    <strong>Victory proof</strong>
+                    <input name="proof_url" placeholder="Paste photo, video, screenshot, or match link" />
+                    <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
+                    <button disabled={savingProofChallengeId === challenge.id} type="submit">
+                      {savingProofChallengeId === challenge.id ? "Saving proof..." : "Submit proof"}
+                    </button>
+                  </form>
+                </>
+              )}
               {challenge.status === "Completed" ? (
                 <div className="lockedResult">
                   <strong>Result locked</strong>
@@ -1166,17 +1208,19 @@ export default function Home() {
                   )}
                 </div>
               </details>
-              <div className="roomButtons">
-                <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge.id, challenge.team_a)}>
-                  {hasUserVoted(challenge.id) ? "Voted" : "Vote A"}
-                </button>
-                <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge.id, challenge.team_b)}>
-                  {hasUserVoted(challenge.id) ? "Voted" : "Vote B"}
-                </button>
-                <button disabled={hasUserRated(challenge.id)} type="button" onClick={() => rateChallenge(challenge.id, 7)}>
-                  {hasUserRated(challenge.id) ? "Rated" : "Rate 7/7"}
-                </button>
-              </div>
+              {!isChallengeCompleted(challenge) && (
+                <div className="roomButtons">
+                  <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge, challenge.team_a)}>
+                    {hasUserVoted(challenge.id) ? "Voted" : "Vote A"}
+                  </button>
+                  <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge, challenge.team_b)}>
+                    {hasUserVoted(challenge.id) ? "Voted" : "Vote B"}
+                  </button>
+                  <button disabled={hasUserRated(challenge.id)} type="button" onClick={() => rateChallenge(challenge, 7)}>
+                    {hasUserRated(challenge.id) ? "Rated" : "Rate 7/7"}
+                  </button>
+                </div>
+              )}
             </article>
           ))}
         </div>
