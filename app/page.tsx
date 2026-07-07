@@ -58,6 +58,7 @@ export default function Home() {
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
 
   const visibleChallenges = useMemo(() => {
     if (selectedLane === "All") return challenges;
@@ -108,9 +109,12 @@ export default function Home() {
         ...challenge
       };
       setChallenges((items) => [localChallenge, ...items]);
-      setMessage("Demo mode: challenge added on this device only. Connect Supabase to save it for everyone.");
+      setCreatedChallengeId(localChallenge.id);
+      setSelectedLane(challenge.lane);
+      setMessage("Demo mode: challenge added below. Connect Supabase to save it for everyone.");
       setIsSaving(false);
       formElement.reset();
+      setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
     }
 
@@ -123,9 +127,13 @@ export default function Home() {
     if (error) {
       setMessage(`Could not create challenge: ${error.message}`);
     } else if (data) {
-      setChallenges((items) => [data as Challenge, ...items]);
-      setMessage("Challenge created.");
+      const savedChallenge = data as Challenge;
+      setChallenges((items) => [savedChallenge, ...items]);
+      setCreatedChallengeId(savedChallenge.id);
+      setSelectedLane(savedChallenge.lane);
+      setMessage("Challenge created. It is now shown at the top of Challenge rooms.");
       formElement.reset();
+      setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
     }
 
     setIsSaving(false);
@@ -248,8 +256,12 @@ export default function Home() {
         </div>
         <div className="roomsGrid">
           {visibleChallenges.map((challenge) => (
-            <article className="roomCard" key={challenge.id}>
+            <article
+              className={`roomCard ${challenge.id === createdChallengeId ? "newRoom" : ""}`}
+              key={challenge.id}
+            >
               <span>{challenge.lane}</span>
+              {challenge.id === createdChallengeId && <em>New challenge</em>}
               <h3>{challenge.title}</h3>
               <div className="versus">
                 <strong>{challenge.team_a}</strong>
