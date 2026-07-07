@@ -131,6 +131,7 @@ export default function Home() {
   const [authLoading, setAuthLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<TalentProfile | null>(null);
+  const [publicProfiles, setPublicProfiles] = useState<TalentProfile[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
@@ -483,6 +484,22 @@ export default function Home() {
   }
 
   useEffect(() => {
+    async function loadPublicProfiles() {
+      if (!supabase) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(12);
+
+      if (data) setPublicProfiles(data as TalentProfile[]);
+    }
+
+    loadPublicProfiles();
+  }, []);
+
+  useEffect(() => {
     async function loadProfile() {
       if (!supabase || !session?.user.id) {
         setProfile(null);
@@ -539,6 +556,12 @@ export default function Home() {
       setMessage(error.code === "23505" ? "That username is already taken." : `Could not save profile: ${error.message}`);
     } else if (data) {
       setProfile(data as TalentProfile);
+      setPublicProfiles((items) => {
+        const savedProfile = data as TalentProfile;
+        const others = items.filter((item) => item.user_id !== savedProfile.user_id);
+
+        return [savedProfile, ...others].slice(0, 12);
+      });
       setMessage("Profile saved.");
     }
 
@@ -940,6 +963,7 @@ export default function Home() {
           </p>
           <div className="heroActions">
             <a href="#account" className="secondary">Account</a>
+            <a href="#profiles" className="secondary">Profiles</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
             <a href="#safety" className="secondary">Safety</a>
             <a href="#plans" className="secondary">Plans</a>
@@ -1137,6 +1161,34 @@ export default function Home() {
             <p>Add two-screen live challenge battles, real payments, instructor tools, and carefully designed emergency/expert video help.</p>
           </article>
         </div>
+      </section>
+
+      <section className="section profilesSection" id="profiles">
+        <div className="sectionHeader">
+          <p className="eyebrow">Profiles</p>
+          <h2>Talent7 people</h2>
+          <p>Discover challengers, audience voters, coaches, organizers, and gaming squads building early Talent7 history.</p>
+        </div>
+        {publicProfiles.length > 0 ? (
+          <div className="profileGrid">
+            {publicProfiles.map((item) => (
+              <article key={item.user_id}>
+                <strong>{item.display_name}</strong>
+                <span>@{item.username}</span>
+                <div>
+                  <small>{item.role}</small>
+                  <small>{item.main_interest}</small>
+                  <small>{item.region}</small>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState">
+            <strong>No public profiles yet.</strong>
+            <a href="#account">Create your profile</a>
+          </div>
+        )}
       </section>
 
       <section className="section myTalent" id="my-talent7">

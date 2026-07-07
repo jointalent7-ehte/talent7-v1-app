@@ -500,6 +500,49 @@ textarea {
   line-height: 1.55;
 }
 
+.profilesSection {
+  background: #fff;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profileGrid article {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.profileGrid article > strong {
+  font-size: 1.25rem;
+}
+
+.profileGrid article > span {
+  color: var(--teal);
+  font-weight: 850;
+}
+
+.profileGrid div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profileGrid small {
+  padding: 7px 9px;
+  color: var(--ink);
+  background: #eef4f4;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
 .roomSearch {
   max-width: 760px;
   margin-bottom: 18px;
@@ -1010,7 +1053,8 @@ textarea {
   .safetyGrid,
   .plansGrid,
   .contributionBox,
-  .roadmapGrid {
+  .roadmapGrid,
+  .profileGrid {
     grid-template-columns: 1fr;
   }
 
