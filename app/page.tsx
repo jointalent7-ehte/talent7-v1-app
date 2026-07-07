@@ -14,6 +14,9 @@ type Challenge = {
   team_a: string;
   team_b: string;
   proof_url: string | null;
+  winner: string | null;
+  final_score: string | null;
+  completed_at: string | null;
   created_at: string;
 };
 
@@ -60,6 +63,9 @@ const sampleChallenges: Challenge[] = [
     team_a: "Rohan + Dev",
     team_b: "Aryan + Kabir",
     proof_url: null,
+    winner: null,
+    final_score: null,
+    completed_at: null,
     created_at: new Date().toISOString()
   },
   {
@@ -71,6 +77,9 @@ const sampleChallenges: Challenge[] = [
     team_a: "Arya",
     team_b: "Mateo",
     proof_url: null,
+    winner: null,
+    final_score: null,
+    completed_at: null,
     created_at: new Date().toISOString()
   },
   {
@@ -82,6 +91,9 @@ const sampleChallenges: Challenge[] = [
     team_a: "Nova Squad",
     team_b: "Open invite",
     proof_url: null,
+    winner: null,
+    final_score: null,
+    completed_at: null,
     created_at: new Date().toISOString()
   }
 ];
@@ -93,6 +105,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
+  const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
   const [joins, setJoins] = useState<ChallengeJoin[]>([]);
   const [ratings, setRatings] = useState<ChallengeRating[]>([]);
@@ -283,6 +296,9 @@ export default function Home() {
       const localChallenge: Challenge = {
         id: crypto.randomUUID(),
         proof_url: null,
+        winner: null,
+        final_score: null,
+        completed_at: null,
         created_at: new Date().toISOString(),
         ...challenge
       };
@@ -485,6 +501,56 @@ export default function Home() {
     setSavingProofChallengeId(null);
   }
 
+  async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const winner = String(form.get("winner") || "").trim();
+    const finalScore = String(form.get("final_score") || "").trim();
+
+    if (!winner) {
+      setMessage("Please choose a winner first.");
+      return;
+    }
+
+    const challengeResult = {
+      status: "Completed",
+      winner,
+      final_score: finalScore || null,
+      completed_at: new Date().toISOString()
+    };
+
+    setCompletingChallengeId(challenge.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setChallenges((items) =>
+        items.map((item) => (item.id === challenge.id ? { ...item, ...challengeResult } : item))
+      );
+      setMessage(`${challenge.title} completed. Winner: ${winner}.`);
+      formElement.reset();
+      setCompletingChallengeId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("challenges")
+      .update(challengeResult)
+      .eq("id", challenge.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not complete challenge: ${error.message}`);
+    } else if (data) {
+      setChallenges((items) => items.map((item) => (item.id === challenge.id ? (data as Challenge) : item)));
+      setMessage(`${challenge.title} completed. Winner: ${winner}.`);
+      formElement.reset();
+    }
+
+    setCompletingChallengeId(null);
+  }
+
   return (
     <main>
       <header className="hero">
@@ -581,6 +647,13 @@ export default function Home() {
               <span>{challenge.lane}</span>
               {challenge.id === createdChallengeId && <em>New challenge</em>}
               <h3>{challenge.title}</h3>
+              {challenge.status === "Completed" && (
+                <div className="winnerBanner">
+                  <span>Winner</span>
+                  <strong>{challenge.winner || "Winner declared"}</strong>
+                  {challenge.final_score && <small>Final score: {challenge.final_score}</small>}
+                </div>
+              )}
               <div className="versus">
                 <strong>{challenge.team_a}</strong>
                 <b>vs</b>
@@ -628,6 +701,18 @@ export default function Home() {
                 <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
                 <button disabled={savingProofChallengeId === challenge.id} type="submit">
                   {savingProofChallengeId === challenge.id ? "Saving proof..." : "Submit proof"}
+                </button>
+              </form>
+              <form className="resultForm" onSubmit={(event) => completeChallenge(event, challenge)}>
+                <strong>Finish challenge</strong>
+                <select name="winner" defaultValue="">
+                  <option value="">Choose winner</option>
+                  <option value={challenge.team_a}>{challenge.team_a}</option>
+                  <option value={challenge.team_b}>{challenge.team_b}</option>
+                </select>
+                <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
+                <button disabled={completingChallengeId === challenge.id} type="submit">
+                  {completingChallengeId === challenge.id ? "Saving result..." : "Mark completed"}
                 </button>
               </form>
               {(roomProofs[challenge.id] || []).length > 0 && (

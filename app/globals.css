@@ -267,6 +267,30 @@ textarea {
   font-size: 1.5rem;
 }
 
+.winnerBanner {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+  border-radius: 8px;
+}
+
+.winnerBanner span {
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.winnerBanner strong {
+  font-size: 1.3rem;
+}
+
+.winnerBanner small {
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 800;
+}
+
 .roomCard p,
 .leaderGrid span {
   color: var(--muted);
@@ -403,6 +427,34 @@ textarea {
   white-space: nowrap;
 }
 
+.resultForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  padding: 12px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.resultForm > strong {
+  grid-column: 1 / -1;
+}
+
+.resultForm select,
+.resultForm input {
+  background: #fff;
+}
+
+.resultForm button {
+  min-height: 42px;
+  color: #fff;
+  background: var(--blue);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
 .leaderboard {
   background: #f4f8f7;
 }
@@ -436,6 +488,7 @@ textarea {
 @media (max-width: 900px) {
   .createForm,
   .joinForm,
+  .resultForm,
   .scoreBoard,
   .roomsGrid,
   .leaderGrid {
