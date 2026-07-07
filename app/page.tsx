@@ -297,6 +297,7 @@ export default function Home() {
   const [safetyReportActionId, setSafetyReportActionId] = useState<string | null>(null);
   const [savingCoachOffer, setSavingCoachOffer] = useState(false);
   const [coachingInterestId, setCoachingInterestId] = useState<string | null>(null);
+  const [coachingInterestActionId, setCoachingInterestActionId] = useState<string | null>(null);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
   const [showcasePosts, setShowcasePosts] = useState<ShowcasePost[]>([]);
   const [showcaseRatings, setShowcaseRatings] = useState<ShowcaseRating[]>([]);
@@ -681,6 +682,22 @@ export default function Home() {
       return counts;
     }, {});
   }, [coachingInterests]);
+
+  const coachInbox = useMemo(() => {
+    if (!session?.user.id) return [];
+
+    const myOfferIds = new Set(
+      coachOffers.filter((offer) => offer.user_id === session.user.id).map((offer) => offer.id)
+    );
+
+    return coachingInterests
+      .filter((interest) => myOfferIds.has(interest.offer_id))
+      .map((interest) => ({
+        ...interest,
+        offerTitle: coachOffers.find((offer) => offer.id === interest.offer_id)?.title || "Coaching offer"
+      }))
+      .sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime());
+  }, [coachOffers, coachingInterests, session]);
 
   const inviteInbox = useMemo(() => {
     if (!session?.user.id) {
@@ -1570,6 +1587,42 @@ export default function Home() {
     }
 
     setCoachingInterestId(null);
+  }
+
+  async function updateCoachingInterestStatus(
+    interest: CoachingInterest,
+    status: CoachingInterest["status"]
+  ) {
+    if (!requireLogin("manage coaching requests")) return;
+
+    const offer = coachOffers.find((item) => item.id === interest.offer_id);
+    if (!offer || offer.user_id !== session?.user.id) {
+      setMessage("Only the coach who owns this offer can update the request.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    setCoachingInterestActionId(interest.id);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("coaching_interests")
+      .update({ status })
+      .eq("id", interest.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update coaching request: ${error.message}`);
+    } else if (data) {
+      setCoachingInterests((items) =>
+        items.map((item) => (item.id === interest.id ? (data as CoachingInterest) : item))
+      );
+      setMessage(`Coaching request marked ${status.toLowerCase()}.`);
+    }
+
+    setCoachingInterestActionId(null);
   }
 
   async function rateShowcasePost(post: ShowcasePost, rating: number) {
@@ -2528,6 +2581,50 @@ export default function Home() {
             </div>
           )}
         </div>
+        {session && profile?.role.toLowerCase().includes("coach") && (
+          <div className="coachInbox">
+            <div className="coachInboxHeader">
+              <div>
+                <p className="eyebrow">Coach inbox</p>
+                <h3>Training requests</h3>
+              </div>
+              <small>{coachInbox.length} requests</small>
+            </div>
+            {coachInbox.length > 0 ? (
+              <div className="coachRequestList">
+                {coachInbox.slice(0, 10).map((interest) => (
+                  <article key={interest.id}>
+                    <span>{interest.status}</span>
+                    <strong>{interest.student_name}</strong>
+                    <small>{interest.offerTitle}</small>
+                    <p>{interest.message || "No note added yet."}</p>
+                    <div className="coachRequestActions">
+                      <button
+                        disabled={coachingInterestActionId === interest.id || interest.status === "Contacted"}
+                        onClick={() => updateCoachingInterestStatus(interest, "Contacted")}
+                        type="button"
+                      >
+                        Mark contacted
+                      </button>
+                      <button
+                        disabled={coachingInterestActionId === interest.id || interest.status === "Closed"}
+                        onClick={() => updateCoachingInterestStatus(interest, "Closed")}
+                        type="button"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="emptyCoachInbox">
+                <strong>No coaching requests yet.</strong>
+                <small>When learners request one of your offers, they will appear here.</small>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="section safetySection" id="safety">

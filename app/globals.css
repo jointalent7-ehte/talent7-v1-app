@@ -823,6 +823,100 @@ textarea {
   border-radius: 8px;
 }
 
+.coachInbox {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.coachInboxHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coachInboxHeader h3 {
+  margin-bottom: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.coachInboxHeader small {
+  padding: 8px 10px;
+  color: var(--ink);
+  background: #eef4f4;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.coachRequestList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coachRequestList article,
+.emptyCoachInbox {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.coachRequestList span {
+  width: fit-content;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.coachRequestList small,
+.coachRequestList p,
+.emptyCoachInbox small {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.coachRequestActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.coachRequestActions button {
+  min-height: 40px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.coachRequestActions button:last-child {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.coachRequestActions button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  cursor: not-allowed;
+}
+
 .invitesSection {
   background: #fff;
 }
@@ -1870,6 +1964,7 @@ textarea {
   .coachOfferForm,
   .coachStats,
   .coachOfferGrid,
+  .coachRequestList,
   .profileForm,
   .myTalentGrid,
   .inviteGrid,
