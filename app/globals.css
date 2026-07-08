@@ -1660,6 +1660,11 @@ textarea {
   gap: 4px;
 }
 
+.bookingPanel small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .bookingPanel span {
   color: var(--muted);
   font-size: 0.78rem;
@@ -1671,7 +1676,13 @@ textarea {
   font-size: 1rem;
 }
 
-.bookingPanel a {
+.bookingActions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.bookingActions a {
   min-height: 40px;
   display: grid;
   place-items: center;
@@ -1681,6 +1692,12 @@ textarea {
   border-radius: 8px;
   font-weight: 850;
   text-align: center;
+}
+
+.bookingActions a:not(:first-child) {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
 }
 
 .roomStats strong {

@@ -23,6 +23,8 @@ type Challenge = {
   completed_by?: string | null;
   venue_name?: string | null;
   booking_url?: string | null;
+  sport_type?: string | null;
+  booking_region?: string | null;
   created_at: string;
 };
 
@@ -187,6 +189,8 @@ type ChallengeDraft = {
   rules: string;
   venue_name: string;
   booking_url: string;
+  sport_type: string;
+  booking_region: string;
   invitedProfile: string;
   invitedUserId: string;
   version: number;
@@ -200,6 +204,8 @@ const defaultChallengeDraft: ChallengeDraft = {
   rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
   venue_name: "Local badminton court or sports venue",
   booking_url: "",
+  sport_type: "Badminton",
+  booking_region: "India",
   invitedProfile: "",
   invitedUserId: "",
   version: 0
@@ -234,6 +240,8 @@ const sampleChallenges: Challenge[] = [
     completed_at: null,
     venue_name: "Badminton court",
     booking_url: "",
+    sport_type: "Badminton",
+    booking_region: "India",
     created_at: new Date().toISOString()
   },
   {
@@ -250,6 +258,8 @@ const sampleChallenges: Challenge[] = [
     completed_at: null,
     venue_name: "Dance studio or open stage",
     booking_url: "",
+    sport_type: "Dance studio",
+    booking_region: "Global",
     created_at: new Date().toISOString()
   },
   {
@@ -266,9 +276,30 @@ const sampleChallenges: Challenge[] = [
     completed_at: null,
     venue_name: "Mobile lobby / room code",
     booking_url: "",
+    sport_type: "Mobile gaming",
+    booking_region: "Online",
     created_at: new Date().toISOString()
   }
 ];
+
+function suggestedBookingLinks(challenge: Challenge) {
+  const sport = challenge.sport_type || challenge.title || "sports venue";
+  const region = challenge.booking_region || "near me";
+  const query = encodeURIComponent(`${sport} booking ${region}`);
+  const mapQuery = encodeURIComponent(`${sport} venue ${region}`);
+
+  if (challenge.lane === "Mobile gaming challenge" || sport.toLowerCase().includes("gaming")) {
+    return [
+      { label: "Find match rooms", url: `https://www.google.com/search?q=${query}` },
+      { label: "Search tournament apps", url: `https://www.google.com/search?q=${encodeURIComponent(`${sport} tournament app ${region}`)}` }
+    ];
+  }
+
+  return [
+    { label: "Search booking apps", url: `https://www.google.com/search?q=${query}` },
+    { label: "Find nearby venues", url: `https://www.google.com/maps/search/${mapQuery}` }
+  ];
+}
 
 export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
@@ -1261,6 +1292,8 @@ export default function Home() {
       rules: String(form.get("rules") || "Upload proof after the challenge."),
       venue_name: String(form.get("venue_name") || "").trim() || null,
       booking_url: bookingUrl || null,
+      sport_type: String(form.get("sport_type") || "").trim() || null,
+      booking_region: String(form.get("booking_region") || "").trim() || null,
       status: "Open",
       created_by: session?.user.id
     };
@@ -1354,6 +1387,8 @@ export default function Home() {
       rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
       venue_name: currentDraft.venue_name || "Venue or online lobby to be decided",
       booking_url: currentDraft.booking_url || "",
+      sport_type: currentDraft.sport_type || interest,
+      booking_region: currentDraft.booking_region || profile?.region || "Global",
       invitedProfile: invitedName,
       invitedUserId: item.user_id,
       version: currentDraft.version + 1
@@ -3139,6 +3174,22 @@ export default function Home() {
             Booking link
             <input name="booking_url" defaultValue={challengeDraft.booking_url} placeholder="Paste court, pool, venue, or event booking link" />
           </label>
+          <label>
+            Sport / venue type
+            <select name="sport_type" defaultValue={challengeDraft.sport_type}>
+              <option>Badminton</option>
+              <option>Swimming</option>
+              <option>Gym / fitness</option>
+              <option>Dance studio</option>
+              <option>Calisthenics park</option>
+              <option>Mobile gaming</option>
+              <option>General sports venue</option>
+            </select>
+          </label>
+          <label>
+            Booking region
+            <input name="booking_region" defaultValue={challengeDraft.booking_region} placeholder="India, Dubai, London, Online..." />
+          </label>
           <button disabled={isSaving}>{isSaving ? "Saving..." : "Create challenge"}</button>
         </form>
       </section>
@@ -3256,17 +3307,28 @@ export default function Home() {
                 </div>
               </div>
               <p>{challenge.rules}</p>
-              {(challenge.venue_name || challenge.booking_url) && (
+              {(challenge.venue_name || challenge.booking_url || challenge.sport_type || challenge.booking_region) && (
                 <div className="bookingPanel">
                   <div>
                     <span>Venue / booking</span>
                     <strong>{challenge.venue_name || "Booking link available"}</strong>
+                    <small>
+                      {[challenge.sport_type, challenge.booking_region].filter(Boolean).join(" / ") ||
+                        "Add sport and region for better suggestions"}
+                    </small>
                   </div>
-                  {challenge.booking_url && (
-                    <a href={challenge.booking_url} rel="noreferrer" target="_blank">
-                      Book venue
-                    </a>
-                  )}
+                  <div className="bookingActions">
+                    {challenge.booking_url && (
+                      <a href={challenge.booking_url} rel="noreferrer" target="_blank">
+                        Book venue
+                      </a>
+                    )}
+                    {suggestedBookingLinks(challenge).map((link) => (
+                      <a href={link.url} key={link.label} rel="noreferrer" target="_blank">
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
               {isChallengeCompleted(challenge) ? (
