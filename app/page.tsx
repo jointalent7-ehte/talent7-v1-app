@@ -806,6 +806,41 @@ export default function Home() {
       .sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime());
   }, [session, teamRequests, teams]);
 
+  const myTeamDashboard = useMemo(() => {
+    if (!session?.user.id) {
+      return {
+        owned: [] as TalentTeam[],
+        accepted: [] as Array<TeamRequest & { team?: TalentTeam }>,
+        pending: [] as Array<TeamRequest & { team?: TalentTeam }>,
+        challenges: [] as Challenge[]
+      };
+    }
+
+    const owned = teams.filter((team) => team.owner_user_id === session.user.id);
+    const joinedRequests = teamRequests
+      .filter((request) => request.requester_user_id === session.user.id)
+      .map((request) => ({
+        ...request,
+        team: teams.find((team) => team.id === request.team_id)
+      }));
+    const accepted = joinedRequests.filter((request) => request.status === "Accepted");
+    const pending = joinedRequests.filter((request) => request.status === "Pending");
+    const connectedTeamIds = new Set([
+      ...owned.map((team) => team.id),
+      ...accepted.map((request) => request.team_id)
+    ]);
+
+    const teamChallenges = challenges
+      .filter((challenge) => {
+        const teamAId = challenge.team_a_id || "";
+        const teamBId = challenge.team_b_id || "";
+        return connectedTeamIds.has(teamAId) || connectedTeamIds.has(teamBId);
+      })
+      .sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime());
+
+    return { owned, accepted, pending, challenges: teamChallenges };
+  }, [challenges, session, teamRequests, teams]);
+
   const inviteInbox = useMemo(() => {
     if (!session?.user.id) {
       return {
@@ -1513,6 +1548,13 @@ export default function Home() {
 
     setMessage(`Invite draft ready for ${invitedName}. Review it, then create the challenge.`);
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
+  function viewTeamChallenge(challenge: Challenge) {
+    setSelectedLane(challenge.lane);
+    setRoomSearch(challenge.title);
+    setMessage(`${challenge.title} is now shown in Challenge rooms.`);
+    setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
   function challengeTeam(team: TalentTeam) {
@@ -3022,6 +3064,101 @@ export default function Home() {
             <strong>Log in to create or join teams.</strong>
             <p>Teams help Talent7 users build stable groups for sports, talent battles, and gaming challenges.</p>
             <a href="#account">Go to account</a>
+          </div>
+        )}
+        {session && (
+          <div className="myTeamsPanel">
+            <div className="teamInboxHeader">
+              <div>
+                <p className="eyebrow">My teams</p>
+                <h3>Team activity</h3>
+              </div>
+              <small>
+                {myTeamDashboard.owned.length} owned / {myTeamDashboard.accepted.length} joined
+              </small>
+            </div>
+            <div className="myTeamsGrid">
+              <article>
+                <span>Owned teams</span>
+                {myTeamDashboard.owned.length > 0 ? (
+                  <div className="miniList">
+                    {myTeamDashboard.owned.map((team) => {
+                      const acceptedMembers = teamRequests.filter(
+                        (request) => request.team_id === team.id && request.status === "Accepted"
+                      );
+
+                      return (
+                        <div key={team.id}>
+                          <strong>{team.name}</strong>
+                          <small>
+                            {team.main_activity} / {team.region}
+                          </small>
+                          <small>{acceptedMembers.length} accepted members</small>
+                          {acceptedMembers.length > 0 && (
+                            <p>{acceptedMembers.map((request) => request.requester_name).join(", ")}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p>Create a team above to manage requests and start team challenges.</p>
+                )}
+              </article>
+              <article>
+                <span>Joined teams</span>
+                {myTeamDashboard.accepted.length > 0 ? (
+                  <div className="miniList">
+                    {myTeamDashboard.accepted.map((request) => (
+                      <div key={request.id}>
+                        <strong>{request.team?.name || "Team"}</strong>
+                        <small>{request.team?.main_activity || "Team activity"}</small>
+                        <small>Accepted</small>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>Accepted team memberships will appear here.</p>
+                )}
+              </article>
+              <article>
+                <span>Pending requests</span>
+                {myTeamDashboard.pending.length > 0 ? (
+                  <div className="miniList">
+                    {myTeamDashboard.pending.map((request) => (
+                      <div key={request.id}>
+                        <strong>{request.team?.name || "Team"}</strong>
+                        <small>{request.message || "No note added."}</small>
+                        <small>Waiting for team owner</small>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No pending join requests right now.</p>
+                )}
+              </article>
+              <article>
+                <span>Team challenges</span>
+                {myTeamDashboard.challenges.length > 0 ? (
+                  <div className="miniList">
+                    {myTeamDashboard.challenges.slice(0, 5).map((challenge) => (
+                      <div key={challenge.id}>
+                        <strong>{challenge.title}</strong>
+                        <small>
+                          {challenge.status}
+                          {challenge.winner ? ` / Winner: ${challenge.winner}` : ""}
+                        </small>
+                        <button type="button" onClick={() => viewTeamChallenge(challenge)}>
+                          View room
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>Team-linked challenges will appear after you create or join one.</p>
+                )}
+              </article>
+            </div>
           </div>
         )}
         <div className="teamGrid">
