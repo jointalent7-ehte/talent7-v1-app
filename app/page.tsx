@@ -1515,6 +1515,41 @@ export default function Home() {
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
+  function challengeTeam(team: TalentTeam) {
+    if (!requireLogin("challenge teams")) return;
+    if (!requireProfile("challenge teams")) return;
+
+    const isOwnTeam = team.owner_user_id === session?.user.id;
+    const ownedTeam = isOwnTeam ? team : teams.find((item) => item.owner_user_id === session?.user.id);
+    const activity = team.main_activity || "Team challenge";
+    const region = team.region || profile?.region || "Global";
+    const opponentName = isOwnTeam ? "Open invite" : team.name;
+
+    setChallengeDraft((currentDraft) => ({
+      title: `${activity} challenge`,
+      lane: laneForInterest(activity),
+      team_a: ownedTeam?.name || profileName(),
+      team_b: opponentName,
+      team_a_id: ownedTeam?.id || "",
+      team_b_id: isOwnTeam ? "" : team.id,
+      rules: `${activity} team challenge. Upload proof after the match.`,
+      venue_name: currentDraft.venue_name || `${activity} venue or online lobby`,
+      booking_url: currentDraft.booking_url || "",
+      sport_type: activity,
+      booking_region: region,
+      invitedProfile: "",
+      invitedUserId: "",
+      version: currentDraft.version + 1
+    }));
+
+    setMessage(
+      isOwnTeam
+        ? `Team challenge draft ready for ${team.name}. Review it, then create the challenge.`
+        : `Challenge draft ready against ${team.name}. Review it, then create the challenge.`
+    );
+    setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
   function viewProfileActivity(item: TalentProfile) {
     setSelectedActivityProfile(item);
     setRoomSearch("");
@@ -3007,14 +3042,22 @@ export default function Home() {
                   <div className="ownTeamNotice">
                     <strong>Your team</strong>
                     <small>Join requests will appear in your team inbox.</small>
+                    <button type="button" onClick={() => challengeTeam(team)}>
+                      Start team challenge
+                    </button>
                   </div>
                 ) : (
-                  <form className="teamRequestForm" onSubmit={(event) => requestTeamJoin(event, team)}>
-                    <input name="message" placeholder="Short note: role, skill level, city, timing..." />
-                    <button disabled={teamRequestId === team.id} type="submit">
-                      {teamRequestId === team.id ? "Sending..." : "Request to join"}
+                  <>
+                    <button className="teamChallengeButton" type="button" onClick={() => challengeTeam(team)}>
+                      Challenge this team
                     </button>
-                  </form>
+                    <form className="teamRequestForm" onSubmit={(event) => requestTeamJoin(event, team)}>
+                      <input name="message" placeholder="Short note: role, skill level, city, timing..." />
+                      <button disabled={teamRequestId === team.id} type="submit">
+                        {teamRequestId === team.id ? "Sending..." : "Request to join"}
+                      </button>
+                    </form>
+                  </>
                 )}
               </article>
             ))

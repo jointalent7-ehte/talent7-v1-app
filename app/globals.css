@@ -940,6 +940,8 @@ textarea {
 
 .teamForm button,
 .teamNotice a,
+.teamChallengeButton,
+.ownTeamNotice button,
 .teamRequestForm button,
 .teamRequestActions button {
   min-height: 44px;
@@ -1026,7 +1028,12 @@ textarea {
 
 .ownTeamNotice {
   display: grid;
-  gap: 4px;
+  gap: 8px;
+}
+
+.teamChallengeButton,
+.ownTeamNotice button {
+  width: 100%;
 }
 
 .teamRequestForm {
