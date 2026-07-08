@@ -1812,6 +1812,34 @@ textarea {
   color: var(--coral);
 }
 
+.linkedTeams {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.linkedTeams div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  background: #eef4f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.linkedTeams span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.linkedTeams small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 .scoreBoard {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2230,6 +2258,7 @@ textarea {
   .joinForm,
   .resultForm,
   .scoreBoard,
+  .linkedTeams,
   .bookingPanel,
   .detailGrid,
   .participantGrid,

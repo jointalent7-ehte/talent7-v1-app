@@ -15,6 +15,8 @@ type Challenge = {
   rules: string;
   team_a: string;
   team_b: string;
+  team_a_id?: string | null;
+  team_b_id?: string | null;
   proof_url: string | null;
   winner: string | null;
   final_score: string | null;
@@ -208,6 +210,8 @@ type ChallengeDraft = {
   lane: ChallengeLane;
   team_a: string;
   team_b: string;
+  team_a_id: string;
+  team_b_id: string;
   rules: string;
   venue_name: string;
   booking_url: string;
@@ -223,6 +227,8 @@ const defaultChallengeDraft: ChallengeDraft = {
   lane: "Sports challenge",
   team_a: "Rohan + Dev",
   team_b: "Open invite",
+  team_a_id: "",
+  team_b_id: "",
   rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
   venue_name: "Local badminton court or sports venue",
   booking_url: "",
@@ -256,6 +262,8 @@ const sampleChallenges: Challenge[] = [
     rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
     team_a: "Rohan + Dev",
     team_b: "Aryan + Kabir",
+    team_a_id: null,
+    team_b_id: null,
     proof_url: null,
     winner: null,
     final_score: null,
@@ -274,6 +282,8 @@ const sampleChallenges: Challenge[] = [
     rules: "60-second round. Audience rates flow, originality, and energy.",
     team_a: "Arya",
     team_b: "Mateo",
+    team_a_id: null,
+    team_b_id: null,
     proof_url: null,
     winner: null,
     final_score: null,
@@ -292,6 +302,8 @@ const sampleChallenges: Challenge[] = [
     rules: "Share room code, play match, upload proof clip or screenshot.",
     team_a: "Nova Squad",
     team_b: "Open invite",
+    team_a_id: null,
+    team_b_id: null,
     proof_url: null,
     winner: null,
     final_score: null,
@@ -1277,6 +1289,15 @@ export default function Home() {
     return challenge.status === "Completed";
   }
 
+  function linkedTeam(teamId?: string | null) {
+    if (!teamId) return null;
+    return teams.find((team) => team.id === teamId) || null;
+  }
+
+  function linkedTeamLabel(teamId?: string | null, fallback = "Open invite") {
+    return linkedTeam(teamId)?.name || fallback;
+  }
+
   useEffect(() => {
     async function loadPublicProfiles() {
       if (!supabase) return;
@@ -1372,11 +1393,17 @@ export default function Home() {
 
     const form = new FormData(formElement);
     const bookingUrl = String(form.get("booking_url") || "").trim();
+    const teamAId = String(form.get("team_a_id") || "");
+    const teamBId = String(form.get("team_b_id") || "");
+    const teamA = linkedTeam(teamAId);
+    const teamB = linkedTeam(teamBId);
     const challenge = {
       title: String(form.get("title") || "Untitled challenge"),
       lane: String(form.get("lane") || "Sports challenge") as ChallengeLane,
-      team_a: String(form.get("team_a") || "Open challenger"),
-      team_b: String(form.get("team_b") || "Open invite"),
+      team_a: String(form.get("team_a") || teamA?.name || "Open challenger"),
+      team_b: String(form.get("team_b") || teamB?.name || "Open invite"),
+      team_a_id: teamAId || null,
+      team_b_id: teamBId || null,
       rules: String(form.get("rules") || "Upload proof after the challenge."),
       venue_name: String(form.get("venue_name") || "").trim() || null,
       booking_url: bookingUrl || null,
@@ -1472,6 +1499,8 @@ export default function Home() {
       lane: laneForInterest(interest),
       team_a: creatorName,
       team_b: invitedName,
+      team_a_id: currentDraft.team_a_id || "",
+      team_b_id: currentDraft.team_b_id || "",
       rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
       venue_name: currentDraft.venue_name || "Venue or online lobby to be decided",
       booking_url: currentDraft.booking_url || "",
@@ -3521,6 +3550,28 @@ export default function Home() {
             Team or challenger B
             <input name="team_b" defaultValue={challengeDraft.team_b} />
           </label>
+          <label>
+            Link Team A
+            <select name="team_a_id" defaultValue={challengeDraft.team_a_id}>
+              <option value="">No linked team</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name} / {team.main_activity}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Link Team B
+            <select name="team_b_id" defaultValue={challengeDraft.team_b_id}>
+              <option value="">No linked team</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name} / {team.main_activity}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="wide">
             Rules
             <textarea
@@ -3649,6 +3700,22 @@ export default function Home() {
                 <b>vs</b>
                 <strong>{challenge.team_b}</strong>
               </div>
+              {(challenge.team_a_id || challenge.team_b_id) && (
+                <div className="linkedTeams">
+                  {(["A", "B"] as const).map((side) => {
+                    const team = linkedTeam(side === "A" ? challenge.team_a_id : challenge.team_b_id);
+                    const fallbackName = side === "A" ? challenge.team_a : challenge.team_b;
+
+                    return (
+                      <div key={side}>
+                        <span>Team {side}</span>
+                        <strong>{team?.name || fallbackName}</strong>
+                        <small>{team ? `${team.team_type} / ${team.main_activity} / ${team.region}` : "No linked team"}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div className="roomStats">
                 <strong>Challengers: {joinCounts[challenge.id]?.challengers || 0}</strong>
                 <strong>Audience: {joinCounts[challenge.id]?.audience || 0}</strong>
