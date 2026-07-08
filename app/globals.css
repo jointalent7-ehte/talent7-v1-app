@@ -409,6 +409,49 @@ textarea {
   background: #fff;
 }
 
+.notificationsSection {
+  background: #f7fafa;
+}
+
+.notificationList {
+  display: grid;
+  gap: 12px;
+  max-width: 980px;
+}
+
+.notificationList a {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.notificationList span {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.notificationList strong {
+  font-size: 1.05rem;
+}
+
+.notificationList small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .feedList {
   display: grid;
   gap: 12px;
@@ -2399,6 +2442,7 @@ textarea {
   .proofTypePicker,
   .profileActivityPanel,
   .profileActivityStats,
+  .notificationList a,
   .feedList article,
   .showcaseGrid,
   .roomsGrid,

@@ -200,6 +200,16 @@ type SafetyReportItem = {
   createdAt: string;
 };
 
+type AppNotification = {
+  id: string;
+  label: string;
+  title: string;
+  detail: string;
+  createdAt: string;
+  href: string;
+  challengeTitle?: string;
+};
+
 type TalentProfile = {
   user_id: string;
   display_name: string;
@@ -860,6 +870,136 @@ export default function Home() {
       sent: invites.filter((invite) => invite.from_user_id === session.user.id)
     };
   }, [invites, session]);
+
+  const notifications = useMemo<AppNotification[]>(() => {
+    if (!session?.user.id) return [];
+
+    const userId = session.user.id;
+    const createdChallengeIds = new Set(
+      challenges.filter((challenge) => challenge.created_by === userId).map((challenge) => challenge.id)
+    );
+    const joinedChallengeIds = new Set(
+      joins.filter((join) => join.user_id === userId).map((join) => join.challenge_id)
+    );
+    const myPostIds = new Set(showcasePosts.filter((post) => post.user_id === userId).map((post) => post.id));
+
+    const receivedInviteAlerts = inviteInbox.received.map((invite) => ({
+      id: `notification-invite-${invite.id}`,
+      label: invite.status === "Pending" ? "New invite" : "Invite updated",
+      title: challengeTitle(invite.challenge_id),
+      detail: invite.status === "Pending" ? "Someone invited you to a challenge." : `Invite ${invite.status.toLowerCase()}.`,
+      createdAt: invite.updated_at || invite.created_at,
+      href: "#invites"
+    }));
+
+    const sentInviteAlerts = inviteInbox.sent
+      .filter((invite) => invite.status !== "Pending")
+      .map((invite) => ({
+        id: `notification-sent-invite-${invite.id}`,
+        label: "Invite response",
+        title: challengeTitle(invite.challenge_id),
+        detail: `${invite.invited_name} ${invite.status.toLowerCase()} your invite.`,
+        createdAt: invite.updated_at || invite.created_at,
+        href: "#invites"
+      }));
+
+    const teamOwnerAlerts = teamInbox.map((request) => ({
+      id: `notification-team-owner-${request.id}`,
+      label: request.status === "Pending" ? "Team request" : "Team request updated",
+      title: request.teamName,
+      detail:
+        request.status === "Pending"
+          ? `${request.requester_name} wants to join as ${request.member_role || "Player"}.`
+          : `${request.requester_name} is ${request.status.toLowerCase()} as ${request.member_role || "Player"}.`,
+      createdAt: request.updated_at || request.created_at,
+      href: "#teams"
+    }));
+
+    const teamMemberAlerts = teamRequests
+      .filter((request) => request.requester_user_id === userId && request.status !== "Pending")
+      .map((request) => ({
+        id: `notification-team-member-${request.id}`,
+        label: "Team request response",
+        title: teams.find((team) => team.id === request.team_id)?.name || "Team",
+        detail: `Your request was ${request.status.toLowerCase()} as ${request.member_role || "Player"}.`,
+        createdAt: request.updated_at || request.created_at,
+        href: "#teams"
+      }));
+
+    const proofAlerts = proofs
+      .filter((proof) => createdChallengeIds.has(proof.challenge_id) && proof.user_id !== userId)
+      .map((proof) => ({
+        id: `notification-proof-${proof.id}`,
+        label: "Proof submitted",
+        title: challengeTitle(proof.challenge_id),
+        detail: `${proof.proof_type || "Proof"} is waiting for review.`,
+        createdAt: proof.created_at,
+        href: "#rooms",
+        challengeTitle: challengeTitle(proof.challenge_id)
+      }));
+
+    const completedAlerts = challenges
+      .filter(
+        (challenge) =>
+          challenge.status === "Completed" &&
+          challenge.completed_by !== userId &&
+          (challenge.created_by === userId || joinedChallengeIds.has(challenge.id))
+      )
+      .map((challenge) => ({
+        id: `notification-completed-${challenge.id}`,
+        label: "Challenge completed",
+        title: challenge.title,
+        detail: challenge.winner ? `Winner: ${challenge.winner}` : "Winner declared.",
+        createdAt: challenge.completed_at || challenge.created_at,
+        href: "#rooms",
+        challengeTitle: challenge.title
+      }));
+
+    const reportAlerts = mySafetyReports.map((report) => ({
+      id: `notification-report-${report.id}`,
+      label: "Report status",
+      title: report.title,
+      detail: `${report.reason} report is ${report.status.toLowerCase()}.`,
+      createdAt: report.createdAt,
+      href: "#safety"
+    }));
+
+    const commentAlerts = showcaseComments
+      .filter((comment) => myPostIds.has(comment.post_id) && comment.user_id !== userId)
+      .map((comment) => ({
+        id: `notification-comment-${comment.id}`,
+        label: "Showcase comment",
+        title: showcasePosts.find((post) => post.id === comment.post_id)?.caption || "Showcase post",
+        detail: comment.body,
+        createdAt: comment.created_at,
+        href: "#showcase"
+      }));
+
+    return [
+      ...receivedInviteAlerts,
+      ...sentInviteAlerts,
+      ...teamOwnerAlerts,
+      ...teamMemberAlerts,
+      ...proofAlerts,
+      ...completedAlerts,
+      ...reportAlerts,
+      ...commentAlerts
+    ]
+      .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
+      .slice(0, 12);
+  }, [
+    challenges,
+    inviteInbox,
+    joins,
+    mySafetyReports,
+    proofs,
+    session,
+    showcaseComments,
+    showcasePosts,
+    teamInbox,
+    teamRequests,
+    teams
+  ]);
 
   const selectedProfileActivity = useMemo(() => {
     if (!selectedActivityProfile) return null;
@@ -2691,6 +2831,7 @@ export default function Home() {
             <a href="#teams" className="secondary">Teams</a>
             <a href="#profiles" className="secondary">Profiles</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
+            <a href="#notifications" className="secondary">Notifications</a>
             <a href="#following-feed" className="secondary">Feed</a>
             <a href="#invites" className="secondary">Invites</a>
             <a href="#safety" className="secondary">Safety</a>
@@ -2710,6 +2851,46 @@ export default function Home() {
       )}
 
       {message && <aside className="message">{message}</aside>}
+
+      <section className="section notificationsSection" id="notifications">
+        <div className="sectionHeader">
+          <p className="eyebrow">Notifications</p>
+          <h2>What needs your attention</h2>
+          <p>See invites, team requests, proof uploads, completed challenges, report updates, and showcase comments in one place.</p>
+        </div>
+        {session ? (
+          notifications.length > 0 ? (
+            <div className="notificationList">
+              {notifications.map((notification) => (
+                <a
+                  href={notification.href}
+                  key={notification.id}
+                  onClick={() => {
+                    if ("challengeTitle" in notification && notification.challengeTitle) {
+                      setRoomSearch(notification.challengeTitle);
+                      setSelectedLane("All");
+                    }
+                  }}
+                >
+                  <span>{notification.label}</span>
+                  <strong>{notification.title}</strong>
+                  <small>{notification.detail}</small>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState">
+              <strong>No notifications yet.</strong>
+              <small>Invites, team updates, proof uploads, reports, and comments will appear here.</small>
+            </div>
+          )
+        ) : (
+          <div className="emptyState">
+            <strong>Log in to see notifications.</strong>
+            <a href="#account">Go to account</a>
+          </div>
+        )}
+      </section>
 
       <section className="section authSection" id="account">
         <div className="sectionHeader">
