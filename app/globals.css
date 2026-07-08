@@ -917,6 +917,205 @@ textarea {
   cursor: not-allowed;
 }
 
+.teamsSection {
+  background: #fff;
+}
+
+.teamForm,
+.teamNotice {
+  display: grid;
+  gap: 14px;
+  max-width: 900px;
+  margin-bottom: 18px;
+  padding: 18px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.teamForm {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.teamForm button,
+.teamNotice a,
+.teamRequestForm button,
+.teamRequestActions button {
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 12px 16px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.teamForm button:disabled,
+.teamRequestForm button:disabled,
+.teamRequestActions button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  cursor: not-allowed;
+}
+
+.teamNotice p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.teamNotice a {
+  width: fit-content;
+}
+
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.teamGrid article,
+.emptyTeams {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.teamGrid article > span {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.teamGrid article > strong {
+  font-size: 1.25rem;
+}
+
+.teamGrid p,
+.teamGrid small,
+.emptyTeams small {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.teamMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.teamMeta small,
+.ownTeamNotice {
+  padding: 8px 10px;
+  background: #eef4f4;
+  border-radius: 8px;
+}
+
+.ownTeamNotice {
+  display: grid;
+  gap: 4px;
+}
+
+.teamRequestForm {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.teamInbox {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 18px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.teamInboxHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teamInboxHeader h3 {
+  margin-bottom: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.teamInboxHeader small {
+  padding: 8px 10px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.teamRequestList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.teamRequestList article,
+.emptyTeamInbox {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.teamRequestList span {
+  width: fit-content;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.teamRequestList small,
+.teamRequestList p,
+.emptyTeamInbox small {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.teamRequestActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.teamRequestActions button:last-child {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
 .invitesSection {
   background: #fff;
 }
@@ -2021,6 +2220,10 @@ textarea {
   .coachStats,
   .coachOfferGrid,
   .coachRequestList,
+  .teamForm,
+  .teamGrid,
+  .teamMeta,
+  .teamRequestList,
   .profileForm,
   .myTalentGrid,
   .inviteGrid,

@@ -159,6 +159,28 @@ type CoachingInterest = {
   created_at: string;
 };
 
+type TalentTeam = {
+  id: string;
+  owner_user_id: string;
+  name: string;
+  team_type: "Sports team" | "Dance crew" | "Gaming clan" | "Fitness group";
+  main_activity: string;
+  region: string;
+  description: string;
+  created_at: string;
+};
+
+type TeamRequest = {
+  id: string;
+  team_id: string;
+  requester_user_id: string;
+  requester_name: string;
+  message: string | null;
+  status: "Pending" | "Accepted" | "Declined";
+  created_at: string;
+  updated_at?: string | null;
+};
+
 type SafetyReportItem = {
   id: string;
   source: "Challenge" | "Showcase";
@@ -336,11 +358,16 @@ export default function Home() {
   const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
+  const [teams, setTeams] = useState<TalentTeam[]>([]);
+  const [teamRequests, setTeamRequests] = useState<TeamRequest[]>([]);
   const [isOwnerReviewer, setIsOwnerReviewer] = useState(false);
   const [safetyReportActionId, setSafetyReportActionId] = useState<string | null>(null);
   const [savingCoachOffer, setSavingCoachOffer] = useState(false);
   const [coachingInterestId, setCoachingInterestId] = useState<string | null>(null);
   const [coachingInterestActionId, setCoachingInterestActionId] = useState<string | null>(null);
+  const [savingTeam, setSavingTeam] = useState(false);
+  const [teamRequestId, setTeamRequestId] = useState<string | null>(null);
+  const [teamRequestActionId, setTeamRequestActionId] = useState<string | null>(null);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
   const [showcasePosts, setShowcasePosts] = useState<ShowcasePost[]>([]);
   const [showcaseRatings, setShowcaseRatings] = useState<ShowcaseRating[]>([]);
@@ -742,6 +769,31 @@ export default function Home() {
       .sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime());
   }, [coachOffers, coachingInterests, session]);
 
+  const teamRequestCounts = useMemo(() => {
+    return teamRequests.reduce<Record<string, { pending: number; accepted: number }>>((counts, request) => {
+      const current = counts[request.team_id] || { pending: 0, accepted: 0 };
+      if (request.status === "Pending") current.pending += 1;
+      if (request.status === "Accepted") current.accepted += 1;
+      counts[request.team_id] = current;
+      return counts;
+    }, {});
+  }, [teamRequests]);
+
+  const teamInbox = useMemo(() => {
+    if (!session?.user.id) return [];
+
+    const ownedTeams = teams.filter((team) => team.owner_user_id === session.user.id);
+    const ownedTeamIds = new Set(ownedTeams.map((team) => team.id));
+
+    return teamRequests
+      .filter((request) => ownedTeamIds.has(request.team_id))
+      .map((request) => ({
+        ...request,
+        teamName: teams.find((team) => team.id === request.team_id)?.name || "Team"
+      }))
+      .sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime());
+  }, [session, teamRequests, teams]);
+
   const inviteInbox = useMemo(() => {
     if (!session?.user.id) {
       return {
@@ -1010,6 +1062,23 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    async function loadTeams() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("talent_teams")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      if (error) return;
+      if (data) setTeams(data as TalentTeam[]);
+    }
+
+    loadTeams();
+  }, []);
+
+  useEffect(() => {
     async function loadInvites() {
       if (!supabase || !session?.user.id) {
         setInvites([]);
@@ -1065,6 +1134,25 @@ export default function Home() {
     }
 
     loadCoachingInterests();
+  }, [session]);
+
+  useEffect(() => {
+    async function loadTeamRequests() {
+      if (!supabase || !session?.user.id) {
+        setTeamRequests([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("team_join_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setTeamRequests(data as TeamRequest[]);
+    }
+
+    loadTeamRequests();
   }, [session]);
 
   useEffect(() => {
@@ -1677,6 +1765,154 @@ export default function Home() {
     setCoachingInterestActionId(null);
   }
 
+  async function createTeam(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!requireLogin("create a team")) return;
+    if (!requireProfile("create a team")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const name = String(form.get("name") || "").trim();
+    const description = String(form.get("description") || "").trim();
+
+    if (!name || !description) {
+      setMessage("Add a team name and short description first.");
+      return;
+    }
+
+    const team = {
+      owner_user_id: session?.user.id || "",
+      name,
+      team_type: String(form.get("team_type") || "Sports team") as TalentTeam["team_type"],
+      main_activity: String(form.get("main_activity") || profile?.main_interest || "Badminton").trim(),
+      region: String(form.get("region") || profile?.region || "Global").trim(),
+      description
+    };
+
+    setSavingTeam(true);
+    setMessage("");
+
+    if (!supabase) {
+      setTeams((items) => [
+        {
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          ...team
+        },
+        ...items
+      ]);
+      setMessage("Demo mode: team created on this page.");
+      formElement.reset();
+      setSavingTeam(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("talent_teams")
+      .insert(team)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not create team: ${error.message}`);
+    } else if (data) {
+      setTeams((items) => [data as TalentTeam, ...items]);
+      setMessage("Team created.");
+      formElement.reset();
+      setTimeout(() => document.getElementById("teams")?.scrollIntoView({ behavior: "smooth" }), 80);
+    }
+
+    setSavingTeam(false);
+  }
+
+  async function requestTeamJoin(event: FormEvent<HTMLFormElement>, team: TalentTeam) {
+    event.preventDefault();
+    if (!requireLogin("request to join a team")) return;
+    if (!requireProfile("request to join a team")) return;
+
+    if (team.owner_user_id === session?.user.id) {
+      setMessage("This is your own team.");
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const messageText = String(form.get("message") || "").trim();
+
+    const request = {
+      team_id: team.id,
+      requester_user_id: session?.user.id || "",
+      requester_name: profileName(),
+      message: messageText || null,
+      status: "Pending" as const
+    };
+
+    setTeamRequestId(team.id);
+    setMessage("");
+
+    if (!supabase) {
+      setTeamRequests((items) => [
+        {
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          ...request
+        },
+        ...items
+      ]);
+      setMessage("Demo mode: team join request sent on this page.");
+      formElement.reset();
+      setTeamRequestId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("team_join_requests")
+      .insert(request)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(error.code === "23505" ? "You already requested to join this team." : `Could not request team join: ${error.message}`);
+    } else if (data) {
+      setTeamRequests((items) => [data as TeamRequest, ...items]);
+      setMessage("Team join request sent.");
+      formElement.reset();
+    }
+
+    setTeamRequestId(null);
+  }
+
+  async function updateTeamRequestStatus(request: TeamRequest, status: TeamRequest["status"]) {
+    if (!requireLogin("manage team requests")) return;
+
+    const team = teams.find((item) => item.id === request.team_id);
+    if (!team || team.owner_user_id !== session?.user.id) {
+      setMessage("Only the team owner can update this request.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    setTeamRequestActionId(request.id);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("team_join_requests")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update team request: ${error.message}`);
+    } else if (data) {
+      setTeamRequests((items) => items.map((item) => (item.id === request.id ? (data as TeamRequest) : item)));
+      setMessage(`Team request ${status.toLowerCase()}.`);
+    }
+
+    setTeamRequestActionId(null);
+  }
+
   async function rateShowcasePost(post: ShowcasePost, rating: number) {
     if (!requireLogin("rate a showcase post")) return;
 
@@ -2271,6 +2507,7 @@ export default function Home() {
             <a href="#account" className="secondary">Account</a>
             <a href="#showcase" className="secondary">Showcase</a>
             <a href="#coaching" className="secondary">Coaching</a>
+            <a href="#teams" className="secondary">Teams</a>
             <a href="#profiles" className="secondary">Profiles</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
             <a href="#following-feed" className="secondary">Feed</a>
@@ -2673,6 +2910,132 @@ export default function Home() {
               <div className="emptyCoachInbox">
                 <strong>No coaching requests yet.</strong>
                 <small>When learners request one of your offers, they will appear here.</small>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="section teamsSection" id="teams">
+        <div className="sectionHeader">
+          <p className="eyebrow">Teams & squads</p>
+          <h2>Form sports teams, crews, and gaming clans</h2>
+          <p>Create reusable team identities for doubles partners, dance crews, calisthenics groups, and mobile gaming squads.</p>
+        </div>
+        {session ? (
+          <form className="teamForm" onSubmit={createTeam}>
+            <label>
+              Team name
+              <input name="name" placeholder="Nova Smashers, Street Flow Crew, Mech Arena Squad..." />
+            </label>
+            <label>
+              Team type
+              <select name="team_type" defaultValue="Sports team">
+                <option>Sports team</option>
+                <option>Dance crew</option>
+                <option>Gaming clan</option>
+                <option>Fitness group</option>
+              </select>
+            </label>
+            <label>
+              Main activity
+              <input name="main_activity" defaultValue={profile?.main_interest || ""} placeholder="Badminton doubles, PUBG, breakdance..." />
+            </label>
+            <label>
+              Region
+              <input name="region" defaultValue={profile?.region || ""} placeholder="India, Dubai, Online, Global..." />
+            </label>
+            <label className="wide">
+              Team description
+              <textarea name="description" placeholder="Who should join, what level, and what challenges you want." rows={3} />
+            </label>
+            <button disabled={savingTeam} type="submit">
+              {savingTeam ? "Creating..." : "Create team"}
+            </button>
+          </form>
+        ) : (
+          <div className="teamNotice">
+            <strong>Log in to create or join teams.</strong>
+            <p>Teams help Talent7 users build stable groups for sports, talent battles, and gaming challenges.</p>
+            <a href="#account">Go to account</a>
+          </div>
+        )}
+        <div className="teamGrid">
+          {teams.length > 0 ? (
+            teams.map((team) => (
+              <article key={team.id}>
+                <span>{team.team_type}</span>
+                <strong>{team.name}</strong>
+                <small>Owner: {profileDisplayName(team.owner_user_id)}</small>
+                <p>{team.description}</p>
+                <div className="teamMeta">
+                  <small>{team.main_activity}</small>
+                  <small>{team.region}</small>
+                  <small>{teamRequestCounts[team.id]?.accepted || 0} accepted</small>
+                  <small>{teamRequestCounts[team.id]?.pending || 0} pending</small>
+                </div>
+                {team.owner_user_id === session?.user.id ? (
+                  <div className="ownTeamNotice">
+                    <strong>Your team</strong>
+                    <small>Join requests will appear in your team inbox.</small>
+                  </div>
+                ) : (
+                  <form className="teamRequestForm" onSubmit={(event) => requestTeamJoin(event, team)}>
+                    <input name="message" placeholder="Short note: role, skill level, city, timing..." />
+                    <button disabled={teamRequestId === team.id} type="submit">
+                      {teamRequestId === team.id ? "Sending..." : "Request to join"}
+                    </button>
+                  </form>
+                )}
+              </article>
+            ))
+          ) : (
+            <div className="emptyTeams">
+              <strong>No teams yet.</strong>
+              <small>Create the first Talent7 team, crew, clan, or fitness group.</small>
+            </div>
+          )}
+        </div>
+        {session && (
+          <div className="teamInbox">
+            <div className="teamInboxHeader">
+              <div>
+                <p className="eyebrow">Team inbox</p>
+                <h3>Join requests</h3>
+              </div>
+              <small>{teamInbox.length} requests</small>
+            </div>
+            {teamInbox.length > 0 ? (
+              <div className="teamRequestList">
+                {teamInbox.slice(0, 10).map((request) => (
+                  <article key={request.id}>
+                    <span>{request.status}</span>
+                    <strong>{request.requester_name}</strong>
+                    <small>{request.teamName}</small>
+                    <p>{request.message || "No note added yet."}</p>
+                    <div className="teamRequestActions">
+                      <button
+                        disabled={teamRequestActionId === request.id || request.status === "Accepted"}
+                        onClick={() => updateTeamRequestStatus(request, "Accepted")}
+                        type="button"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        disabled={teamRequestActionId === request.id || request.status === "Declined"}
+                        onClick={() => updateTeamRequestStatus(request, "Declined")}
+                        type="button"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="emptyTeamInbox">
+                <strong>No join requests yet.</strong>
+                <small>If you own a team, requests from other users will appear here.</small>
               </div>
             )}
           </div>
