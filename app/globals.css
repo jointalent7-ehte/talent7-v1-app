@@ -419,17 +419,69 @@ textarea {
   max-width: 980px;
 }
 
-.notificationList a {
+.notificationToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 980px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.notificationToolbar strong {
+  font-size: 1.05rem;
+}
+
+.notificationToolbar button,
+.notificationItem button {
+  min-height: 40px;
+  padding: 10px 12px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.notificationToolbar button:disabled,
+.notificationItem button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  cursor: not-allowed;
+}
+
+.notificationItem {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.5fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   padding: 14px;
-  color: var(--ink);
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.notificationItem.unread {
+  border-color: #9bd5ce;
+  box-shadow: 0 0 0 3px rgba(15, 143, 140, 0.1), 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.notificationItem.read {
+  opacity: 0.72;
+}
+
+.notificationItem a {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 12px;
+  align-items: center;
+  color: var(--ink);
 }
 
 .notificationList span {
@@ -2442,7 +2494,8 @@ textarea {
   .proofTypePicker,
   .profileActivityPanel,
   .profileActivityStats,
-  .notificationList a,
+  .notificationItem,
+  .notificationItem a,
   .feedList article,
   .showcaseGrid,
   .roomsGrid,
@@ -2458,6 +2511,11 @@ textarea {
   .profileGrid,
   .profileGrid .profileActions {
     grid-template-columns: 1fr;
+  }
+
+  .notificationToolbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .versus {

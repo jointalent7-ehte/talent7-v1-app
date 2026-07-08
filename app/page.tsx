@@ -403,6 +403,7 @@ export default function Home() {
   const [savingShowcasePost, setSavingShowcasePost] = useState(false);
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
   const [reportingShowcaseTarget, setReportingShowcaseTarget] = useState<string | null>(null);
+  const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -997,9 +998,16 @@ export default function Home() {
     showcaseComments,
     showcasePosts,
     teamInbox,
-    teamRequests,
-    teams
+      teamRequests,
+      teams
   ]);
+
+  const notificationReadStorageKey = session?.user.id ? `talent7-read-notifications-${session.user.id}` : "";
+
+  const unreadNotifications = useMemo(() => {
+    const readSet = new Set(readNotificationKeys);
+    return notifications.filter((notification) => !readSet.has(notificationKey(notification)));
+  }, [notifications, readNotificationKeys]);
 
   const selectedProfileActivity = useMemo(() => {
     if (!selectedActivityProfile) return null;
@@ -1026,6 +1034,23 @@ export default function Home() {
 
   function profileDisplayName(userId: string) {
     return publicProfiles.find((item) => item.user_id === userId)?.display_name || "Talent7 creator";
+  }
+
+  function notificationKey(notification: AppNotification) {
+    return `${notification.id}-${notification.createdAt}`;
+  }
+
+  function markNotificationRead(notification: AppNotification) {
+    const key = notificationKey(notification);
+    setReadNotificationKeys((items) => (items.includes(key) ? items : [...items, key]));
+  }
+
+  function markAllNotificationsRead() {
+    setReadNotificationKeys((items) => {
+      const merged = new Set(items);
+      notifications.forEach((notification) => merged.add(notificationKey(notification)));
+      return Array.from(merged);
+    });
   }
 
   function challengeMatchesProfileActivity(challenge: Challenge, item: TalentProfile) {
@@ -1158,6 +1183,25 @@ export default function Home() {
 
     return `Your team role: ${roles.map((item) => `${item.teamName} ${item.role}`).join(", ")}.`;
   }
+
+  useEffect(() => {
+    if (!notificationReadStorageKey) {
+      setReadNotificationKeys([]);
+      return;
+    }
+
+    try {
+      const saved = window.localStorage.getItem(notificationReadStorageKey);
+      setReadNotificationKeys(saved ? (JSON.parse(saved) as string[]) : []);
+    } catch {
+      setReadNotificationKeys([]);
+    }
+  }, [notificationReadStorageKey]);
+
+  useEffect(() => {
+    if (!notificationReadStorageKey) return;
+    window.localStorage.setItem(notificationReadStorageKey, JSON.stringify(readNotificationKeys));
+  }, [notificationReadStorageKey, readNotificationKeys]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -2831,7 +2875,9 @@ export default function Home() {
             <a href="#teams" className="secondary">Teams</a>
             <a href="#profiles" className="secondary">Profiles</a>
             <a href="#my-talent7" className="secondary">My Talent7</a>
-            <a href="#notifications" className="secondary">Notifications</a>
+            <a href="#notifications" className="secondary">
+              Notifications{unreadNotifications.length > 0 ? ` (${unreadNotifications.length})` : ""}
+            </a>
             <a href="#following-feed" className="secondary">Feed</a>
             <a href="#invites" className="secondary">Invites</a>
             <a href="#safety" className="secondary">Safety</a>
@@ -2860,24 +2906,41 @@ export default function Home() {
         </div>
         {session ? (
           notifications.length > 0 ? (
-            <div className="notificationList">
-              {notifications.map((notification) => (
-                <a
-                  href={notification.href}
-                  key={notification.id}
-                  onClick={() => {
-                    if ("challengeTitle" in notification && notification.challengeTitle) {
-                      setRoomSearch(notification.challengeTitle);
-                      setSelectedLane("All");
-                    }
-                  }}
-                >
-                  <span>{notification.label}</span>
-                  <strong>{notification.title}</strong>
-                  <small>{notification.detail}</small>
-                </a>
-              ))}
-            </div>
+            <>
+              <div className="notificationToolbar">
+                <strong>{unreadNotifications.length} unread</strong>
+                <button disabled={unreadNotifications.length === 0} onClick={markAllNotificationsRead} type="button">
+                  Mark all read
+                </button>
+              </div>
+              <div className="notificationList">
+                {notifications.map((notification) => {
+                  const isRead = readNotificationKeys.includes(notificationKey(notification));
+
+                  return (
+                    <article className={`notificationItem ${isRead ? "read" : "unread"}`} key={notification.id}>
+                      <a
+                        href={notification.href}
+                        onClick={() => {
+                          markNotificationRead(notification);
+                          if (notification.challengeTitle) {
+                            setRoomSearch(notification.challengeTitle);
+                            setSelectedLane("All");
+                          }
+                        }}
+                      >
+                        <span>{notification.label}</span>
+                        <strong>{notification.title}</strong>
+                        <small>{notification.detail}</small>
+                      </a>
+                      <button disabled={isRead} onClick={() => markNotificationRead(notification)} type="button">
+                        {isRead ? "Read" : "Mark read"}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
           ) : (
             <div className="emptyState">
               <strong>No notifications yet.</strong>
