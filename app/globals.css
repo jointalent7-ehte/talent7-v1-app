@@ -980,6 +980,88 @@ textarea {
   gap: 14px;
 }
 
+.myTeamsPanel {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 18px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.myTeamsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.myTeamsGrid article {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 210px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.myTeamsGrid article > span {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.myTeamsGrid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.miniList {
+  display: grid;
+  gap: 8px;
+}
+
+.miniList div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  background: #eef4f4;
+  border-radius: 8px;
+}
+
+.miniList strong,
+.miniList small,
+.miniList p {
+  margin: 0;
+}
+
+.miniList small,
+.miniList p {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.miniList button {
+  min-height: 38px;
+  width: fit-content;
+  padding: 9px 12px;
+  color: #fff;
+  background: var(--teal);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
 .teamGrid article,
 .emptyTeams {
   display: grid;
@@ -2256,6 +2338,7 @@ textarea {
   .coachOfferGrid,
   .coachRequestList,
   .teamForm,
+  .myTeamsGrid,
   .teamGrid,
   .teamMeta,
   .teamRequestList,
