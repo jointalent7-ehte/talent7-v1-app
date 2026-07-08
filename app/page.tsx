@@ -7,6 +7,8 @@ import { hasSupabaseConfig, supabase } from "../lib/supabase";
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
 type ChallengeStatusFilter = "All" | "Open" | "Completed";
 
+const teamMemberRoles = ["Player", "Captain", "Dancer", "Coach", "Substitute", "Proof uploader", "Organizer"];
+
 type Challenge = {
   id: string;
   title: string;
@@ -177,6 +179,7 @@ type TeamRequest = {
   team_id: string;
   requester_user_id: string;
   requester_name: string;
+  member_role?: string | null;
   message: string | null;
   status: "Pending" | "Accepted" | "Declined";
   created_at: string;
@@ -380,6 +383,7 @@ export default function Home() {
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamRequestId, setTeamRequestId] = useState<string | null>(null);
   const [teamRequestActionId, setTeamRequestActionId] = useState<string | null>(null);
+  const [teamRoleDrafts, setTeamRoleDrafts] = useState<Record<string, string>>({});
   const [followActionId, setFollowActionId] = useState<string | null>(null);
   const [showcasePosts, setShowcasePosts] = useState<ShowcasePost[]>([]);
   const [showcaseRatings, setShowcaseRatings] = useState<ShowcaseRating[]>([]);
@@ -1944,11 +1948,13 @@ export default function Home() {
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const messageText = String(form.get("message") || "").trim();
+    const memberRole = String(form.get("member_role") || "Player");
 
     const request = {
       team_id: team.id,
       requester_user_id: session?.user.id || "",
       requester_name: profileName(),
+      member_role: memberRole,
       message: messageText || null,
       status: "Pending" as const
     };
@@ -2001,10 +2007,11 @@ export default function Home() {
 
     setTeamRequestActionId(request.id);
     setMessage("");
+    const nextRole = teamRoleDrafts[request.id] || request.member_role || "Player";
 
     const { data, error } = await supabase
       .from("team_join_requests")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ status, member_role: status === "Accepted" ? nextRole : request.member_role || nextRole, updated_at: new Date().toISOString() })
       .eq("id", request.id)
       .select("*")
       .single();
@@ -3095,7 +3102,11 @@ export default function Home() {
                           </small>
                           <small>{acceptedMembers.length} accepted members</small>
                           {acceptedMembers.length > 0 && (
-                            <p>{acceptedMembers.map((request) => request.requester_name).join(", ")}</p>
+                            <p>
+                              {acceptedMembers
+                                .map((request) => `${request.requester_name} (${request.member_role || "Player"})`)
+                                .join(", ")}
+                            </p>
                           )}
                         </div>
                       );
@@ -3113,7 +3124,7 @@ export default function Home() {
                       <div key={request.id}>
                         <strong>{request.team?.name || "Team"}</strong>
                         <small>{request.team?.main_activity || "Team activity"}</small>
-                        <small>Accepted</small>
+                        <small>{request.member_role || "Player"}</small>
                       </div>
                     ))}
                   </div>
@@ -3129,7 +3140,7 @@ export default function Home() {
                       <div key={request.id}>
                         <strong>{request.team?.name || "Team"}</strong>
                         <small>{request.message || "No note added."}</small>
-                        <small>Waiting for team owner</small>
+                        <small>Requested role: {request.member_role || "Player"}</small>
                       </div>
                     ))}
                   </div>
@@ -3189,6 +3200,11 @@ export default function Home() {
                       Challenge this team
                     </button>
                     <form className="teamRequestForm" onSubmit={(event) => requestTeamJoin(event, team)}>
+                      <select name="member_role" defaultValue="Player">
+                        {teamMemberRoles.map((role) => (
+                          <option key={role}>{role}</option>
+                        ))}
+                      </select>
                       <input name="message" placeholder="Short note: role, skill level, city, timing..." />
                       <button disabled={teamRequestId === team.id} type="submit">
                         {teamRequestId === team.id ? "Sending..." : "Request to join"}
@@ -3221,6 +3237,22 @@ export default function Home() {
                     <span>{request.status}</span>
                     <strong>{request.requester_name}</strong>
                     <small>{request.teamName}</small>
+                    <label className="teamRolePicker">
+                      Member role
+                      <select
+                        value={teamRoleDrafts[request.id] || request.member_role || "Player"}
+                        onChange={(event) =>
+                          setTeamRoleDrafts((items) => ({
+                            ...items,
+                            [request.id]: event.target.value
+                          }))
+                        }
+                      >
+                        {teamMemberRoles.map((role) => (
+                          <option key={role}>{role}</option>
+                        ))}
+                      </select>
+                    </label>
                     <p>{request.message || "No note added yet."}</p>
                     <div className="teamRequestActions">
                       <button
