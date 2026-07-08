@@ -203,12 +203,15 @@ type SafetyReportItem = {
 type AppNotification = {
   id: string;
   label: string;
+  category: "Invites" | "Teams" | "Proof" | "Results" | "Reports" | "Showcase";
   title: string;
   detail: string;
   createdAt: string;
   href: string;
   challengeTitle?: string;
 };
+
+type NotificationFilter = "All" | "Unread" | AppNotification["category"];
 
 type TalentProfile = {
   user_id: string;
@@ -404,6 +407,8 @@ export default function Home() {
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
   const [reportingShowcaseTarget, setReportingShowcaseTarget] = useState<string | null>(null);
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
+  const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
+  const [notificationSearch, setNotificationSearch] = useState("");
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -887,6 +892,7 @@ export default function Home() {
     const receivedInviteAlerts = inviteInbox.received.map((invite) => ({
       id: `notification-invite-${invite.id}`,
       label: invite.status === "Pending" ? "New invite" : "Invite updated",
+      category: "Invites" as const,
       title: challengeTitle(invite.challenge_id),
       detail: invite.status === "Pending" ? "Someone invited you to a challenge." : `Invite ${invite.status.toLowerCase()}.`,
       createdAt: invite.updated_at || invite.created_at,
@@ -898,6 +904,7 @@ export default function Home() {
       .map((invite) => ({
         id: `notification-sent-invite-${invite.id}`,
         label: "Invite response",
+        category: "Invites" as const,
         title: challengeTitle(invite.challenge_id),
         detail: `${invite.invited_name} ${invite.status.toLowerCase()} your invite.`,
         createdAt: invite.updated_at || invite.created_at,
@@ -907,6 +914,7 @@ export default function Home() {
     const teamOwnerAlerts = teamInbox.map((request) => ({
       id: `notification-team-owner-${request.id}`,
       label: request.status === "Pending" ? "Team request" : "Team request updated",
+      category: "Teams" as const,
       title: request.teamName,
       detail:
         request.status === "Pending"
@@ -921,6 +929,7 @@ export default function Home() {
       .map((request) => ({
         id: `notification-team-member-${request.id}`,
         label: "Team request response",
+        category: "Teams" as const,
         title: teams.find((team) => team.id === request.team_id)?.name || "Team",
         detail: `Your request was ${request.status.toLowerCase()} as ${request.member_role || "Player"}.`,
         createdAt: request.updated_at || request.created_at,
@@ -932,6 +941,7 @@ export default function Home() {
       .map((proof) => ({
         id: `notification-proof-${proof.id}`,
         label: "Proof submitted",
+        category: "Proof" as const,
         title: challengeTitle(proof.challenge_id),
         detail: `${proof.proof_type || "Proof"} is waiting for review.`,
         createdAt: proof.created_at,
@@ -949,6 +959,7 @@ export default function Home() {
       .map((challenge) => ({
         id: `notification-completed-${challenge.id}`,
         label: "Challenge completed",
+        category: "Results" as const,
         title: challenge.title,
         detail: challenge.winner ? `Winner: ${challenge.winner}` : "Winner declared.",
         createdAt: challenge.completed_at || challenge.created_at,
@@ -959,6 +970,7 @@ export default function Home() {
     const reportAlerts = mySafetyReports.map((report) => ({
       id: `notification-report-${report.id}`,
       label: "Report status",
+      category: "Reports" as const,
       title: report.title,
       detail: `${report.reason} report is ${report.status.toLowerCase()}.`,
       createdAt: report.createdAt,
@@ -970,6 +982,7 @@ export default function Home() {
       .map((comment) => ({
         id: `notification-comment-${comment.id}`,
         label: "Showcase comment",
+        category: "Showcase" as const,
         title: showcasePosts.find((post) => post.id === comment.post_id)?.caption || "Showcase post",
         detail: comment.body,
         createdAt: comment.created_at,
@@ -1008,6 +1021,27 @@ export default function Home() {
     const readSet = new Set(readNotificationKeys);
     return notifications.filter((notification) => !readSet.has(notificationKey(notification)));
   }, [notifications, readNotificationKeys]);
+
+  const visibleNotifications = useMemo(() => {
+    const readSet = new Set(readNotificationKeys);
+    const search = notificationSearch.trim().toLowerCase();
+
+    return notifications.filter((notification) => {
+      const isUnread = !readSet.has(notificationKey(notification));
+      const filterMatches =
+        selectedNotificationFilter === "All" ||
+        (selectedNotificationFilter === "Unread" && isUnread) ||
+        notification.category === selectedNotificationFilter;
+      const searchMatches =
+        !search ||
+        [notification.label, notification.category, notification.title, notification.detail]
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+
+      return filterMatches && searchMatches;
+    });
+  }, [notificationSearch, notifications, readNotificationKeys, selectedNotificationFilter]);
 
   const selectedProfileActivity = useMemo(() => {
     if (!selectedActivityProfile) return null;
@@ -2908,13 +2942,44 @@ export default function Home() {
           notifications.length > 0 ? (
             <>
               <div className="notificationToolbar">
-                <strong>{unreadNotifications.length} unread</strong>
+                <strong>
+                  {unreadNotifications.length} unread / {visibleNotifications.length} shown
+                </strong>
                 <button disabled={unreadNotifications.length === 0} onClick={markAllNotificationsRead} type="button">
                   Mark all read
                 </button>
               </div>
+              <label className="notificationSearch">
+                Search notifications
+                <input
+                  onChange={(event) => setNotificationSearch(event.target.value)}
+                  placeholder="Search invites, proof, teams, reports..."
+                  type="search"
+                  value={notificationSearch}
+                />
+              </label>
+              <div className="notificationFilters">
+                {(["All", "Unread", "Invites", "Teams", "Proof", "Results", "Reports", "Showcase"] as NotificationFilter[]).map(
+                  (filter) => (
+                    <button
+                      className={selectedNotificationFilter === filter ? "active" : ""}
+                      key={filter}
+                      onClick={() => setSelectedNotificationFilter(filter)}
+                      type="button"
+                    >
+                      {filter}
+                    </button>
+                  )
+                )}
+              </div>
               <div className="notificationList">
-                {notifications.map((notification) => {
+                {visibleNotifications.length === 0 && (
+                  <div className="emptyState">
+                    <strong>No matching notifications.</strong>
+                    <small>Try another filter or clear the search box.</small>
+                  </div>
+                )}
+                {visibleNotifications.map((notification) => {
                   const isRead = readNotificationKeys.includes(notificationKey(notification));
 
                   return (

@@ -455,6 +455,44 @@ textarea {
   cursor: not-allowed;
 }
 
+.notificationSearch {
+  display: grid;
+  gap: 8px;
+  max-width: 980px;
+  margin-bottom: 12px;
+  font-weight: 850;
+}
+
+.notificationSearch input {
+  width: 100%;
+  background: #fff;
+}
+
+.notificationFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 980px;
+  margin-bottom: 12px;
+}
+
+.notificationFilters button {
+  min-height: 40px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.notificationFilters button.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
 .notificationItem {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
