@@ -1849,6 +1849,31 @@ textarea {
   box-shadow: 0 0 0 3px rgba(15, 143, 140, 0.14), 0 16px 42px rgba(20, 23, 25, 0.1);
 }
 
+.teamPermissionNotice {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: #fff4d8;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.teamPermissionNotice.allowed {
+  background: #e9f7f5;
+  border-color: #9bd5ce;
+}
+
+.teamPermissionNotice strong,
+.teamPermissionNotice small {
+  margin: 0;
+}
+
+.teamPermissionNotice small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 .roomCard > span {
   width: fit-content;
   padding: 7px 10px;

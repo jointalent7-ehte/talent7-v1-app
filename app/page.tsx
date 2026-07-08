@@ -8,6 +8,8 @@ type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming chall
 type ChallengeStatusFilter = "All" | "Open" | "Completed";
 
 const teamMemberRoles = ["Player", "Captain", "Dancer", "Coach", "Substitute", "Proof uploader", "Organizer"];
+const proofManagerRoles = ["Captain", "Organizer", "Proof uploader"];
+const resultManagerRoles = ["Captain", "Organizer"];
 
 type Challenge = {
   id: string;
@@ -959,6 +961,62 @@ export default function Home() {
       ...current,
       [challengeId]: proofType
     }));
+  }
+
+  function challengeTeamIds(challenge: Challenge) {
+    return [challenge.team_a_id, challenge.team_b_id].filter(Boolean) as string[];
+  }
+
+  function userTeamRoles(challenge: Challenge) {
+    if (!session?.user.id) return [];
+
+    const ids = new Set(challengeTeamIds(challenge));
+    if (ids.size === 0) return [];
+
+    const ownerRoles = teams
+      .filter((team) => ids.has(team.id) && team.owner_user_id === session.user.id)
+      .map((team) => ({ teamName: team.name, role: "Captain" }));
+    const memberRoles = teamRequests
+      .filter(
+        (request) =>
+          ids.has(request.team_id) &&
+          request.requester_user_id === session.user.id &&
+          request.status === "Accepted"
+      )
+      .map((request) => ({
+        teamName: teams.find((team) => team.id === request.team_id)?.name || "Team",
+        role: request.member_role || "Player"
+      }));
+
+    return [...ownerRoles, ...memberRoles];
+  }
+
+  function canManageTeamProof(challenge: Challenge) {
+    const ids = challengeTeamIds(challenge);
+    if (ids.length === 0) return true;
+    if (challenge.created_by === session?.user.id) return true;
+
+    return userTeamRoles(challenge).some((item) => proofManagerRoles.includes(item.role));
+  }
+
+  function canManageTeamResult(challenge: Challenge) {
+    const ids = challengeTeamIds(challenge);
+    if (ids.length === 0) return true;
+    if (challenge.created_by === session?.user.id) return true;
+
+    return userTeamRoles(challenge).some((item) => resultManagerRoles.includes(item.role));
+  }
+
+  function teamPermissionLabel(challenge: Challenge) {
+    const ids = challengeTeamIds(challenge);
+    if (ids.length === 0) return "";
+
+    const roles = userTeamRoles(challenge);
+    if (roles.length === 0) {
+      return "Team role required: captains, organizers, and proof uploaders can manage team challenge proof.";
+    }
+
+    return `Your team role: ${roles.map((item) => `${item.teamName} ${item.role}`).join(", ")}.`;
   }
 
   useEffect(() => {
@@ -2397,6 +2455,11 @@ export default function Home() {
       return;
     }
 
+    if (!canManageTeamProof(challenge)) {
+      setMessage("Only a team captain, organizer, proof uploader, or challenge creator can submit proof for this team challenge.");
+      return;
+    }
+
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const proofUrl = String(form.get("proof_url") || "").trim();
@@ -2547,6 +2610,11 @@ export default function Home() {
 
     if (isChallengeCompleted(challenge)) {
       setMessage("This challenge is already completed.");
+      return;
+    }
+
+    if (!canManageTeamResult(challenge)) {
+      setMessage("Only a team captain, organizer, or challenge creator can mark this team challenge completed.");
       return;
     }
 
@@ -3892,7 +3960,12 @@ export default function Home() {
               <small>Try changing the search, lane, or status filters.</small>
             </div>
           )}
-          {visibleChallenges.map((challenge) => (
+          {visibleChallenges.map((challenge) => {
+            const proofAllowed = canManageTeamProof(challenge);
+            const resultAllowed = canManageTeamResult(challenge);
+            const roleNotice = teamPermissionLabel(challenge);
+
+            return (
             <article
               className={`roomCard ${challenge.id === createdChallengeId ? "newRoom" : ""}`}
               key={challenge.id}
@@ -3926,6 +3999,13 @@ export default function Home() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+              {roleNotice && (
+                <div className={`teamPermissionNotice ${proofAllowed || resultAllowed ? "allowed" : ""}`}>
+                  <strong>Team role access</strong>
+                  <small>{roleNotice}</small>
+                  <small>Captains and organizers can finish results. Proof uploaders can submit victory proof.</small>
                 </div>
               )}
               <div className="roomStats">
@@ -4035,8 +4115,12 @@ export default function Home() {
                     </div>
                     <input name="proof_url" placeholder="Paste photo, video, screenshot, or match link" />
                     <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
-                    <button disabled={savingProofChallengeId === challenge.id} type="submit">
-                      {savingProofChallengeId === challenge.id ? "Saving proof..." : "Submit proof"}
+                    <button disabled={savingProofChallengeId === challenge.id || !proofAllowed} type="submit">
+                      {!proofAllowed
+                        ? "Team role required"
+                        : savingProofChallengeId === challenge.id
+                          ? "Saving proof..."
+                          : "Submit proof"}
                     </button>
                   </form>
                 </>
@@ -4050,8 +4134,12 @@ export default function Home() {
                     <option value={challenge.team_b}>{challenge.team_b}</option>
                   </select>
                   <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
-                  <button disabled={completingChallengeId === challenge.id} type="submit">
-                    {completingChallengeId === challenge.id ? "Saving result..." : "Mark completed"}
+                  <button disabled={completingChallengeId === challenge.id || !resultAllowed} type="submit">
+                    {!resultAllowed
+                      ? "Captain/organizer required"
+                      : completingChallengeId === challenge.id
+                        ? "Saving result..."
+                        : "Mark completed"}
                   </button>
                 </form>
               )}
@@ -4156,7 +4244,8 @@ export default function Home() {
                 </div>
               )}
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 
