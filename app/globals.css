@@ -1644,6 +1644,45 @@ textarea {
   font-size: 0.86rem;
 }
 
+.bookingPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: #eef4f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.bookingPanel div {
+  display: grid;
+  gap: 4px;
+}
+
+.bookingPanel span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.bookingPanel strong {
+  font-size: 1rem;
+}
+
+.bookingPanel a {
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 10px 12px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-weight: 850;
+  text-align: center;
+}
+
 .roomStats strong {
   padding: 8px 10px;
   background: #eef4f4;
@@ -1971,6 +2010,7 @@ textarea {
   .joinForm,
   .resultForm,
   .scoreBoard,
+  .bookingPanel,
   .detailGrid,
   .participantGrid,
   .proofTypePicker,

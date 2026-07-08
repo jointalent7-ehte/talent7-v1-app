@@ -21,6 +21,8 @@ type Challenge = {
   completed_at: string | null;
   created_by?: string | null;
   completed_by?: string | null;
+  venue_name?: string | null;
+  booking_url?: string | null;
   created_at: string;
 };
 
@@ -183,6 +185,8 @@ type ChallengeDraft = {
   team_a: string;
   team_b: string;
   rules: string;
+  venue_name: string;
+  booking_url: string;
   invitedProfile: string;
   invitedUserId: string;
   version: number;
@@ -194,6 +198,8 @@ const defaultChallengeDraft: ChallengeDraft = {
   team_a: "Rohan + Dev",
   team_b: "Open invite",
   rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
+  venue_name: "Local badminton court or sports venue",
+  booking_url: "",
   invitedProfile: "",
   invitedUserId: "",
   version: 0
@@ -226,6 +232,8 @@ const sampleChallenges: Challenge[] = [
     winner: null,
     final_score: null,
     completed_at: null,
+    venue_name: "Badminton court",
+    booking_url: "",
     created_at: new Date().toISOString()
   },
   {
@@ -240,6 +248,8 @@ const sampleChallenges: Challenge[] = [
     winner: null,
     final_score: null,
     completed_at: null,
+    venue_name: "Dance studio or open stage",
+    booking_url: "",
     created_at: new Date().toISOString()
   },
   {
@@ -254,6 +264,8 @@ const sampleChallenges: Challenge[] = [
     winner: null,
     final_score: null,
     completed_at: null,
+    venue_name: "Mobile lobby / room code",
+    booking_url: "",
     created_at: new Date().toISOString()
   }
 ];
@@ -1240,12 +1252,15 @@ export default function Home() {
     setMessage("");
 
     const form = new FormData(formElement);
+    const bookingUrl = String(form.get("booking_url") || "").trim();
     const challenge = {
       title: String(form.get("title") || "Untitled challenge"),
       lane: String(form.get("lane") || "Sports challenge") as ChallengeLane,
       team_a: String(form.get("team_a") || "Open challenger"),
       team_b: String(form.get("team_b") || "Open invite"),
       rules: String(form.get("rules") || "Upload proof after the challenge."),
+      venue_name: String(form.get("venue_name") || "").trim() || null,
+      booking_url: bookingUrl || null,
       status: "Open",
       created_by: session?.user.id
     };
@@ -1337,6 +1352,8 @@ export default function Home() {
       team_a: creatorName,
       team_b: invitedName,
       rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
+      venue_name: currentDraft.venue_name || "Venue or online lobby to be decided",
+      booking_url: currentDraft.booking_url || "",
       invitedProfile: invitedName,
       invitedUserId: item.user_id,
       version: currentDraft.version + 1
@@ -3114,6 +3131,14 @@ export default function Home() {
               defaultValue={challengeDraft.rules}
             />
           </label>
+          <label>
+            Venue or booking note
+            <input name="venue_name" defaultValue={challengeDraft.venue_name} placeholder="Badminton court, pool, gym, online lobby..." />
+          </label>
+          <label>
+            Booking link
+            <input name="booking_url" defaultValue={challengeDraft.booking_url} placeholder="Paste court, pool, venue, or event booking link" />
+          </label>
           <button disabled={isSaving}>{isSaving ? "Saving..." : "Create challenge"}</button>
         </form>
       </section>
@@ -3231,6 +3256,19 @@ export default function Home() {
                 </div>
               </div>
               <p>{challenge.rules}</p>
+              {(challenge.venue_name || challenge.booking_url) && (
+                <div className="bookingPanel">
+                  <div>
+                    <span>Venue / booking</span>
+                    <strong>{challenge.venue_name || "Booking link available"}</strong>
+                  </div>
+                  {challenge.booking_url && (
+                    <a href={challenge.booking_url} rel="noreferrer" target="_blank">
+                      Book venue
+                    </a>
+                  )}
+                </div>
+              )}
               {isChallengeCompleted(challenge) ? (
                 <div className="closedRoom">
                   <strong>Challenge closed</strong>
