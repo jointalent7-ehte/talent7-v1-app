@@ -362,6 +362,57 @@ function cleanFileName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "") || "upload";
 }
 
+function mediaPreviewKind(url: string, mediaType?: string | null) {
+  const cleanUrl = url.split("?")[0].toLowerCase();
+  const isLocalPreview = url.startsWith("blob:");
+  const imageTypes = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+  const videoTypes = [".mp4", ".webm", ".mov", ".m4v", ".quicktime"];
+
+  if (imageTypes.some((extension) => cleanUrl.endsWith(extension))) return "image";
+  if (videoTypes.some((extension) => cleanUrl.endsWith(extension))) return "video";
+  if (isLocalPreview && ["Photo", "Screenshot"].includes(mediaType || "")) return "image";
+  if (isLocalPreview && mediaType === "Video") return "video";
+
+  return "link";
+}
+
+function MediaPreview({
+  url,
+  mediaType,
+  label = "Open media"
+}: {
+  url: string;
+  mediaType?: string | null;
+  label?: string;
+}) {
+  const kind = mediaPreviewKind(url, mediaType);
+
+  if (kind === "image") {
+    return (
+      <a className="mediaPreview imagePreview" href={url} rel="noreferrer" target="_blank">
+        <img alt={label} src={url} />
+      </a>
+    );
+  }
+
+  if (kind === "video") {
+    return (
+      <div className="mediaPreview videoPreview">
+        <video controls preload="metadata" src={url} />
+        <a href={url} rel="noreferrer" target="_blank">
+          Open video
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <a className="mediaLink" href={url} rel="noreferrer" target="_blank">
+      {label}
+    </a>
+  );
+}
+
 export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
@@ -3224,15 +3275,14 @@ export default function Home() {
                 <span>{post.category}</span>
                 <strong>{profileDisplayName(post.user_id)}</strong>
                 <p>{post.caption}</p>
+                <MediaPreview label="Open post" mediaType={post.media_type} url={post.media_url} />
                 <div className="showcaseRatingSummary">
                   <strong>{showcaseResults[post.id]?.ratingAverage || "0.0"} / 7</strong>
                   <small>{showcaseResults[post.id]?.ratingCount || 0} ratings</small>
                 </div>
                 <div className="showcaseMeta">
                   <small>{post.media_type}</small>
-                  <a href={post.media_url} rel="noreferrer" target="_blank">
-                    Open post
-                  </a>
+                  <a href={post.media_url} rel="noreferrer" target="_blank">Open post</a>
                 </div>
                 <div className="showcaseRatingButtons">
                   {([1, 2, 3, 4, 5, 6, 7] as const).map((rating) => (
@@ -4519,12 +4569,15 @@ export default function Home() {
                 <div className="proofList">
                   <strong>Proofs submitted</strong>
                   {(roomProofs[challenge.id] || []).slice(0, 3).map((proof) => (
-                    <a href={proof.proof_url} key={proof.id} rel="noreferrer" target="_blank">
-                      <span>{proof.proof_type ? `${proof.proof_type}: ${proof.notes || "Open proof"}` : proof.notes || "Open proof"}</span>
-                      <small>
-                        {proof.review_status || "Pending review"} | View proof
-                      </small>
-                    </a>
+                    <div className="proofItem" key={proof.id}>
+                      <MediaPreview label="View proof" mediaType={proof.proof_type} url={proof.proof_url} />
+                      <div>
+                        <span>{proof.proof_type ? `${proof.proof_type}: ${proof.notes || "Open proof"}` : proof.notes || "Open proof"}</span>
+                        <small>
+                          {proof.review_status || "Pending review"} | <a href={proof.proof_url} rel="noreferrer" target="_blank">Open proof</a>
+                        </small>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
