@@ -362,6 +362,10 @@ function cleanFileName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "") || "upload";
 }
 
+function profileHash(username: string) {
+  return `profile-${username.toLowerCase().replace(/[^a-z0-9_]+/g, "-")}`;
+}
+
 function mediaPreviewKind(url: string, mediaType?: string | null) {
   const cleanUrl = url.split("?")[0].toLowerCase();
   const isLocalPreview = url.startsWith("blob:");
@@ -1377,6 +1381,25 @@ export default function Home() {
   }, [notificationReadStorageKey, readNotificationKeys]);
 
   useEffect(() => {
+    if (publicProfiles.length === 0) return;
+
+    const openProfileFromHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (!hash.startsWith("profile-")) return;
+
+      const match = publicProfiles.find((item) => profileHash(item.username) === hash);
+      if (!match) return;
+
+      setSelectedProfile(match);
+      setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
+    };
+
+    openProfileFromHash();
+    window.addEventListener("hashchange", openProfileFromHash);
+    return () => window.removeEventListener("hashchange", openProfileFromHash);
+  }, [publicProfiles]);
+
+  useEffect(() => {
     if (!supabase) return;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -2022,8 +2045,26 @@ export default function Home() {
 
   function openProfileDetail(item: TalentProfile) {
     setSelectedProfile(item);
+    window.history.replaceState(null, "", `#${profileHash(item.username)}`);
     setMessage(`Opened ${item.display_name}'s Talent7 profile.`);
     setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
+  async function copyProfileLink(item: TalentProfile) {
+    const link = `${window.location.origin}${window.location.pathname}#${profileHash(item.username)}`;
+
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = link;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+
+    setMessage(`Profile link copied for ${item.display_name}.`);
   }
 
   async function toggleFollow(item: TalentProfile) {
@@ -4018,7 +4059,15 @@ export default function Home() {
                 <h3>{selectedProfile.display_name}</h3>
                 <span>@{selectedProfile.username}</span>
               </div>
-              <button onClick={() => setSelectedProfile(null)} type="button">
+              <button
+                onClick={() => {
+                  setSelectedProfile(null);
+                  if (window.location.hash.startsWith("#profile-")) {
+                    window.history.replaceState(null, "", window.location.pathname);
+                  }
+                }}
+                type="button"
+              >
                 Close profile
               </button>
             </div>
@@ -4056,6 +4105,9 @@ export default function Home() {
               </button>
               <button onClick={() => viewProfileActivity(selectedProfile)} type="button">
                 View activity
+              </button>
+              <button onClick={() => copyProfileLink(selectedProfile)} type="button">
+                Copy profile link
               </button>
             </div>
             <div className="profileDetailGrid">
@@ -4177,6 +4229,9 @@ export default function Home() {
                   </button>
                   <button onClick={() => viewProfileActivity(item)} type="button">
                     View rooms activity
+                  </button>
+                  <button onClick={() => copyProfileLink(item)} type="button">
+                    Copy link
                   </button>
                   {item.role.toLowerCase().includes("coach") && (
                     <a href="#coaching">View coaching</a>
