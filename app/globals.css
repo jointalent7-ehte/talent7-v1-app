@@ -623,6 +623,32 @@ textarea {
   font-weight: 850;
 }
 
+.fileUpload {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: #eef4f4;
+  border: 1px dashed #9eb8b6;
+  border-radius: 8px;
+}
+
+.fileUpload.compact {
+  padding: 10px;
+}
+
+.fileUpload input[type="file"] {
+  min-height: auto;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.fileUpload small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 .showcaseGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

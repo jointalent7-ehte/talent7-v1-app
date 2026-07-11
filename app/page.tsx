@@ -353,6 +353,15 @@ function suggestedBookingLinks(challenge: Challenge) {
   ];
 }
 
+function selectedFile(form: FormData, fieldName: string) {
+  const file = form.get(fieldName);
+  return file instanceof File && file.size > 0 ? file : null;
+}
+
+function cleanFileName(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "") || "upload";
+}
+
 export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
@@ -1085,6 +1094,24 @@ export default function Home() {
       notifications.forEach((notification) => merged.add(notificationKey(notification)));
       return Array.from(merged);
     });
+  }
+
+  async function uploadMediaFile(bucket: "challenge-proofs" | "showcase-media", file: File, folder: string) {
+    if (!supabase || !session?.user.id) {
+      throw new Error("Supabase Storage is not connected yet.");
+    }
+
+    const path = `${session.user.id}/${folder}/${crypto.randomUUID()}-${cleanFileName(file.name)}`;
+    const { error } = await supabase.storage.from(bucket).upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type || undefined,
+      upsert: false
+    });
+
+    if (error) throw error;
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
   }
 
   function challengeMatchesProfileActivity(challenge: Challenge, item: TalentProfile) {
@@ -1938,14 +1965,30 @@ export default function Home() {
 
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const mediaUrl = String(form.get("media_url") || "").trim();
+    let mediaUrl = String(form.get("media_url") || "").trim();
+    const mediaFile = selectedFile(form, "media_file");
     const caption = String(form.get("caption") || "").trim();
     const category = String(form.get("category") || "Talent");
     const mediaType = String(form.get("media_type") || "Video") as ShowcasePost["media_type"];
 
-    if (!mediaUrl || !caption) {
-      setMessage("Add both a media link and a caption before posting.");
+    if ((!mediaUrl && !mediaFile) || !caption) {
+      setMessage("Add a media link or upload a file, plus a caption before posting.");
       return;
+    }
+
+    setSavingShowcasePost(true);
+    setMessage("");
+
+    if (mediaFile && supabase) {
+      try {
+        mediaUrl = await uploadMediaFile("showcase-media", mediaFile, "showcase");
+      } catch (error) {
+        setMessage(error instanceof Error ? `Could not upload showcase file: ${error.message}` : "Could not upload showcase file.");
+        setSavingShowcasePost(false);
+        return;
+      }
+    } else if (mediaFile && !supabase) {
+      mediaUrl = URL.createObjectURL(mediaFile);
     }
 
     const post = {
@@ -1955,9 +1998,6 @@ export default function Home() {
       caption,
       category
     };
-
-    setSavingShowcasePost(true);
-    setMessage("");
 
     if (!supabase) {
       const localPost: ShowcasePost = {
@@ -2680,13 +2720,29 @@ export default function Home() {
 
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const proofUrl = String(form.get("proof_url") || "").trim();
+    let proofUrl = String(form.get("proof_url") || "").trim();
+    const proofFile = selectedFile(form, "proof_file");
     const proofType = String(form.get("proof_type") || "Video");
     const notes = String(form.get("notes") || "").trim();
 
-    if (!proofUrl) {
-      setMessage("Please paste a proof link first.");
+    if (!proofUrl && !proofFile) {
+      setMessage("Please paste a proof link or upload a proof file first.");
       return;
+    }
+
+    setSavingProofChallengeId(challenge.id);
+    setMessage("");
+
+    if (proofFile && supabase && !challenge.id.startsWith("sample-")) {
+      try {
+        proofUrl = await uploadMediaFile("challenge-proofs", proofFile, `challenge-${challenge.id}`);
+      } catch (error) {
+        setMessage(error instanceof Error ? `Could not upload proof file: ${error.message}` : "Could not upload proof file.");
+        setSavingProofChallengeId(null);
+        return;
+      }
+    } else if (proofFile) {
+      proofUrl = URL.createObjectURL(proofFile);
     }
 
     const proof = {
@@ -2697,9 +2753,6 @@ export default function Home() {
       proof_url: proofUrl,
       notes: notes || null
     };
-
-    setSavingProofChallengeId(challenge.id);
-    setMessage("");
 
     if (!supabase || challenge.id.startsWith("sample-")) {
       const localProof: ChallengeProof = {
@@ -3144,6 +3197,11 @@ export default function Home() {
             <label className="wide">
               Photo, video, or post link
               <input name="media_url" placeholder="Paste YouTube, Instagram, Drive, image, or video link" />
+            </label>
+            <label className="wide fileUpload">
+              Upload photo or video
+              <input accept="image/*,video/*" name="media_file" type="file" />
+              <small>Optional: choose a local file instead of pasting a link.</small>
             </label>
             <label className="wide">
               Caption
@@ -4423,6 +4481,11 @@ export default function Home() {
                       ))}
                     </div>
                     <input name="proof_url" placeholder="Paste photo, video, screenshot, or match link" />
+                    <label className="fileUpload compact">
+                      Upload proof file
+                      <input accept="image/*,video/*" name="proof_file" type="file" />
+                      <small>Optional: upload a photo, video, or screenshot instead of pasting a link.</small>
+                    </label>
                     <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
                     <button disabled={savingProofChallengeId === challenge.id || !proofAllowed} type="submit">
                       {!proofAllowed
