@@ -2179,6 +2179,28 @@ textarea {
   box-shadow: 0 0 0 3px rgba(15, 143, 140, 0.14), 0 16px 42px rgba(20, 23, 25, 0.1);
 }
 
+.roomCard.highlightRoom {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 4px rgba(55, 104, 214, 0.18), 0 18px 48px rgba(20, 23, 25, 0.12);
+}
+
+.roomLinkButton,
+.leaderGrid a {
+  width: fit-content;
+  min-height: 40px;
+  padding: 10px 13px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.roomLinkButton {
+  cursor: pointer;
+}
+
 .teamPermissionNotice {
   display: grid;
   gap: 5px;

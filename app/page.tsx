@@ -366,6 +366,10 @@ function profileHash(username: string) {
   return `profile-${username.toLowerCase().replace(/[^a-z0-9_]+/g, "-")}`;
 }
 
+function roomHash(challengeId: string) {
+  return `room-${challengeId.toLowerCase().replace(/[^a-z0-9_-]+/g, "-")}`;
+}
+
 function mediaPreviewKind(url: string, mediaType?: string | null) {
   const cleanUrl = url.split("?")[0].toLowerCase();
   const isLocalPreview = url.startsWith("blob:");
@@ -437,6 +441,7 @@ export default function Home() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
+  const [highlightedChallengeId, setHighlightedChallengeId] = useState<string | null>(null);
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
   const [reportingChallengeId, setReportingChallengeId] = useState<string | null>(null);
@@ -1400,6 +1405,29 @@ export default function Home() {
   }, [publicProfiles]);
 
   useEffect(() => {
+    if (challenges.length === 0) return;
+
+    const openRoomFromHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (!hash.startsWith("room-")) return;
+
+      const match = challenges.find((challenge) => roomHash(challenge.id) === hash);
+      if (!match) return;
+
+      setSelectedLane("All");
+      setSelectedStatus("All");
+      setRoomSearch("");
+      setHighlightedChallengeId(match.id);
+      setTimeout(() => document.getElementById(roomHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+      window.setTimeout(() => setHighlightedChallengeId(null), 2600);
+    };
+
+    openRoomFromHash();
+    window.addEventListener("hashchange", openRoomFromHash);
+    return () => window.removeEventListener("hashchange", openRoomFromHash);
+  }, [challenges]);
+
+  useEffect(() => {
     if (!supabase) return;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -2065,6 +2093,25 @@ export default function Home() {
     }
 
     setMessage(`Profile link copied for ${item.display_name}.`);
+  }
+
+  async function copyRoomLink(challenge: Challenge) {
+    const link = `${window.location.origin}${window.location.pathname}#${roomHash(challenge.id)}`;
+
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = link;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+
+    setHighlightedChallengeId(challenge.id);
+    setMessage(`Room link copied for ${challenge.title}.`);
+    window.setTimeout(() => setHighlightedChallengeId(null), 2600);
   }
 
   async function toggleFollow(item: TalentProfile) {
@@ -4629,12 +4676,18 @@ export default function Home() {
 
             return (
             <article
-              className={`roomCard ${challenge.id === createdChallengeId ? "newRoom" : ""}`}
+              className={`roomCard ${challenge.id === createdChallengeId ? "newRoom" : ""} ${
+                challenge.id === highlightedChallengeId ? "highlightRoom" : ""
+              }`}
+              id={roomHash(challenge.id)}
               key={challenge.id}
             >
               <span>{challenge.lane}</span>
               {challenge.id === createdChallengeId && <em>New challenge</em>}
               <h3>{challenge.title}</h3>
+              <button className="roomLinkButton" onClick={() => copyRoomLink(challenge)} type="button">
+                Copy room link
+              </button>
               {challenge.status === "Completed" && (
                 <div className="winnerBanner">
                   <span>Winner</span>
@@ -4937,6 +4990,18 @@ export default function Home() {
                 <small>{item.ratingAverage}/7</small>
                 <small>{item.proofsTotal} proofs</small>
               </div>
+              <a
+                href={`#${roomHash(item.challenge.id)}`}
+                onClick={() => {
+                  setSelectedLane("All");
+                  setSelectedStatus("All");
+                  setRoomSearch("");
+                  setHighlightedChallengeId(item.challenge.id);
+                  window.setTimeout(() => setHighlightedChallengeId(null), 2600);
+                }}
+              >
+                Open room
+              </a>
             </article>
           ))}
         </div>
