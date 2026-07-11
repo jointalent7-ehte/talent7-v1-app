@@ -850,6 +850,23 @@ export default function Home() {
     );
   }, [challengeReports, challenges, showcaseComments, showcasePosts, showcaseReports]);
 
+  const adminModeration = useMemo(() => {
+    const reports = mySafetyReports;
+    const openReports = reports.filter((report) => report.status === "Open");
+    const reviewedReports = reports.filter((report) => report.status === "Reviewed");
+    const dismissedReports = reports.filter((report) => report.status === "Dismissed");
+
+    return {
+      openReports,
+      reviewedReports,
+      dismissedReports,
+      challenges: reports.filter((report) => report.area === "Challenge"),
+      proofs: reports.filter((report) => report.area === "Proof"),
+      posts: reports.filter((report) => report.area === "Post"),
+      comments: reports.filter((report) => report.area === "Comment")
+    };
+  }, [mySafetyReports]);
+
   const coachingInterestCounts = useMemo(() => {
     return coachingInterests.reduce<Record<string, number>>((counts, interest) => {
       counts[interest.offer_id] = (counts[interest.offer_id] || 0) + 1;
@@ -4030,6 +4047,78 @@ export default function Home() {
             <p>Future live help is guidance only. For medical or urgent danger, call local emergency services first.</p>
           </article>
         </div>
+        {isOwnerReviewer && (
+          <div className="adminModerationPanel">
+            <div className="adminModerationHeader">
+              <div>
+                <p className="eyebrow">Owner admin</p>
+                <h3>Moderation panel</h3>
+                <small>Review reports from challenge rooms, proofs, showcase posts, and comments.</small>
+              </div>
+              <a href="#notifications">View alerts</a>
+            </div>
+            <div className="adminStats">
+              <article>
+                <span>Open</span>
+                <strong>{adminModeration.openReports.length}</strong>
+              </article>
+              <article>
+                <span>Reviewed</span>
+                <strong>{adminModeration.reviewedReports.length}</strong>
+              </article>
+              <article>
+                <span>Dismissed</span>
+                <strong>{adminModeration.dismissedReports.length}</strong>
+              </article>
+              <article>
+                <span>Proof reports</span>
+                <strong>{adminModeration.proofs.length}</strong>
+              </article>
+            </div>
+            <div className="adminQueues">
+              {[
+                { title: "Challenge rooms", items: adminModeration.challenges },
+                { title: "Proofs", items: adminModeration.proofs },
+                { title: "Showcase posts", items: adminModeration.posts },
+                { title: "Comments", items: adminModeration.comments }
+              ].map((queue) => (
+                <article key={queue.title}>
+                  <div>
+                    <span>{queue.title}</span>
+                    <strong>{queue.items.filter((report) => report.status === "Open").length} open</strong>
+                  </div>
+                  {queue.items.length > 0 ? (
+                    queue.items.slice(0, 3).map((report) => (
+                      <div className="adminQueueItem" key={report.id}>
+                        <strong>{report.title}</strong>
+                        <small>{report.reason} / {report.status}</small>
+                        <p>{report.notes || "No extra note."}</p>
+                        <div className="ownerReportActions">
+                          <button
+                            disabled={safetyReportActionId === report.id || report.status === "Reviewed"}
+                            onClick={() => updateSafetyReportStatus(report, "Reviewed")}
+                            type="button"
+                          >
+                            Mark reviewed
+                          </button>
+                          <button
+                            disabled={safetyReportActionId === report.id || report.status === "Dismissed"}
+                            onClick={() => updateSafetyReportStatus(report, "Dismissed")}
+                            type="button"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <small>No reports in this queue.</small>
+                  )}
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="safetyInbox">
           <div className="safetyInboxHeader">
             <div>
