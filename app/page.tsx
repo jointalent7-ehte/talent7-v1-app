@@ -1167,6 +1167,30 @@ export default function Home() {
     return publicProfiles.find((item) => item.user_id === userId)?.display_name || "Talent7 creator";
   }
 
+  function profileTrustBadges(item: TalentProfile) {
+    const userId = item.user_id;
+    const badges: string[] = [];
+    const ownsTeam = teams.some((team) => team.owner_user_id === userId);
+    const hasCoachOffer = coachOffers.some((offer) => offer.user_id === userId);
+    const hasProof = proofs.some((proof) => proof.user_id === userId);
+    const createdCount = challenges.filter((challenge) => challenge.created_by === userId).length;
+    const hasWin = challenges.some(
+      (challenge) => challenge.status === "Completed" && challenge.winner && challengeMatchesProfileActivity(challenge, item)
+    );
+    const hasShowcase = showcasePosts.some((post) => post.user_id === userId);
+    const hasVotes = votes.some((vote) => vote.user_id === userId);
+
+    if (ownsTeam) badges.push("Team captain");
+    if (item.role.toLowerCase().includes("coach") || hasCoachOffer) badges.push("Coach");
+    if (hasProof) badges.push("Proof creator");
+    if (createdCount > 0) badges.push("Challenge maker");
+    if (hasWin) badges.push("Winner");
+    if (hasShowcase) badges.push("Rising talent");
+    if (hasVotes) badges.push("Trusted voter");
+
+    return badges.slice(0, 6);
+  }
+
   function notificationKey(notification: AppNotification) {
     return `${notification.id}-${notification.createdAt}`;
   }
@@ -4008,6 +4032,13 @@ export default function Home() {
               <small>{selectedProfileSummary.wins.length} wins</small>
               <small>{selectedProfileSummary.proofs.length} proofs</small>
             </div>
+            <div className="trustBadgeRow">
+              {profileTrustBadges(selectedProfile).length > 0 ? (
+                profileTrustBadges(selectedProfile).map((badge) => <span key={badge}>{badge}</span>)
+              ) : (
+                <span>New Talent7 profile</span>
+              )}
+            </div>
             <div className="profileDetailActions">
               <button
                 disabled={followActionId === selectedProfile.user_id || selectedProfile.user_id === session?.user.id}
@@ -4112,6 +4143,13 @@ export default function Home() {
                   <small>{item.role}</small>
                   <small>{item.main_interest}</small>
                   <small>{item.region}</small>
+                </div>
+                <div className="trustBadgeRow compact">
+                  {profileTrustBadges(item).length > 0 ? (
+                    profileTrustBadges(item).slice(0, 3).map((badge) => <span key={badge}>{badge}</span>)
+                  ) : (
+                    <span>New profile</span>
+                  )}
                 </div>
                 {item.role.toLowerCase().includes("coach") && (
                   <div className="coachProfileBadge">

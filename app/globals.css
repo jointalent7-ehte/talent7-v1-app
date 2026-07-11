@@ -1834,6 +1834,27 @@ textarea {
   font-weight: 800;
 }
 
+.trustBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trustBadgeRow span {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.trustBadgeRow.compact span {
+  padding: 6px 8px;
+  font-size: 0.76rem;
+}
+
 .profileGrid .coachProfileBadge {
   display: grid;
   grid-template-columns: 1fr auto;
