@@ -360,6 +360,17 @@ textarea {
   background: #f4f8f7;
 }
 
+.dashboardShell {
+  display: grid;
+  gap: 16px;
+}
+
+.dashboardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .myTalentGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -396,6 +407,9 @@ textarea {
   line-height: 1.45;
 }
 
+.dashboardActions a,
+.dashboardPanels article > div a,
+.dashboardRow,
 .followingCard a {
   width: fit-content;
   padding: 10px 12px;
@@ -403,6 +417,59 @@ textarea {
   background: var(--ink);
   border-radius: 8px;
   font-weight: 850;
+}
+
+.dashboardPanels {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dashboardPanels article {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.07);
+}
+
+.dashboardPanels article > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dashboardPanels span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.dashboardPanels article > div a {
+  min-height: 34px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
+.dashboardRow {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  color: var(--ink);
+  background: #f7fafa;
+  text-decoration: none;
+}
+
+.dashboardRow small,
+.dashboardPanels article > small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .followingFeedSection {
@@ -2767,6 +2834,7 @@ textarea {
   .teamRequestList,
   .profileForm,
   .myTalentGrid,
+  .dashboardPanels,
   .inviteGrid,
   .joinForm,
   .resultForm,

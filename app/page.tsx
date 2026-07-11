@@ -947,6 +947,81 @@ export default function Home() {
     };
   }, [invites, session]);
 
+  const myDashboard = useMemo(() => {
+    if (!session?.user.id) {
+      return {
+        rooms: [] as Array<{ challenge: Challenge; label: string; detail: string }>,
+        posts: [] as ShowcasePost[],
+        reports: [] as SafetyReportItem[],
+        pendingInvites: [] as ChallengeInvite[],
+        teamCount: 0,
+        pendingTeamRequests: 0
+      };
+    }
+
+    const roomMap = new Map<string, { challenge: Challenge; label: string; detail: string }>();
+
+    myActivity.created.forEach((challenge) => {
+      roomMap.set(challenge.id, {
+        challenge,
+        label: "Created",
+        detail: challenge.status === "Completed" ? `Completed: ${challenge.winner || "Winner declared"}` : "Open room"
+      });
+    });
+
+    myActivity.joined.forEach((join) => {
+      const challenge = challenges.find((item) => item.id === join.challenge_id);
+      if (!challenge || roomMap.has(challenge.id)) return;
+
+      roomMap.set(challenge.id, {
+        challenge,
+        label: join.role,
+        detail: `${join.side} / ${challenge.status}`
+      });
+    });
+
+    myActivity.completed.forEach((challenge) => {
+      roomMap.set(challenge.id, {
+        challenge,
+        label: "Completed",
+        detail: `${challenge.winner || "Winner"} won${challenge.final_score ? ` ${challenge.final_score}` : ""}`
+      });
+    });
+
+    const reports = mySafetyReports.filter((report) => {
+      if (report.source === "Challenge") {
+        const reportId = report.reportId;
+        return challengeReports.some((item) => item.id === reportId && item.reporter_id === session.user.id);
+      }
+
+      return showcaseReports.some((item) => item.id === report.reportId && item.reporter_id === session.user.id);
+    });
+
+    return {
+      rooms: Array.from(roomMap.values())
+        .sort((first, second) => new Date(second.challenge.created_at).getTime() - new Date(first.challenge.created_at).getTime())
+        .slice(0, 6),
+      posts: showcasePosts.filter((post) => post.user_id === session.user.id).slice(0, 4),
+      reports: reports.slice(0, 4),
+      pendingInvites: inviteInbox.received.filter((invite) => invite.status === "Pending").slice(0, 4),
+      teamCount: myTeamDashboard.owned.length + myTeamDashboard.accepted.length,
+      pendingTeamRequests: myTeamDashboard.pending.length + teamInbox.filter((request) => request.status === "Pending").length
+    };
+  }, [
+    challengeReports,
+    challenges,
+    inviteInbox.received,
+    myActivity,
+    mySafetyReports,
+    myTeamDashboard.accepted.length,
+    myTeamDashboard.owned.length,
+    myTeamDashboard.pending.length,
+    session,
+    showcasePosts,
+    showcaseReports,
+    teamInbox
+  ]);
+
   const notifications = useMemo<AppNotification[]>(() => {
     if (!session?.user.id) return [];
 
@@ -4298,71 +4373,151 @@ export default function Home() {
       <section className="section myTalent" id="my-talent7">
         <div className="sectionHeader">
           <p className="eyebrow">My Talent7</p>
-          <h2>Your challenge activity</h2>
-          <p>Track the rooms you joined, voted on, rated, proved, created, and completed.</p>
+          <h2>Your dashboard</h2>
+          <p>One place for your challenge rooms, teams, posts, reports, invites, and next actions.</p>
         </div>
         {session ? (
-          <div className="myTalentGrid">
-            <article>
-              <span>Joined</span>
-              <strong>{myActivity.joined.length}</strong>
-              <small>
-                {myActivity.joined[0]
-                  ? `${challengeTitle(myActivity.joined[0].challenge_id)} as ${myActivity.joined[0].role}`
-                  : "No joined rooms yet"}
-              </small>
-            </article>
-            <article>
-              <span>Votes</span>
-              <strong>{myActivity.votes.length}</strong>
-              <small>
-                {myActivity.votes[0]
-                  ? `${myActivity.votes[0].winner} in ${challengeTitle(myActivity.votes[0].challenge_id)}`
-                  : "No votes yet"}
-              </small>
-            </article>
-            <article>
-              <span>Ratings</span>
-              <strong>{myActivity.ratings.length}</strong>
-              <small>
-                {myActivity.ratings[0]
-                  ? `${myActivity.ratings[0].rating}/7 for ${challengeTitle(myActivity.ratings[0].challenge_id)}`
-                  : "No ratings yet"}
-              </small>
-            </article>
-            <article>
-              <span>Proofs</span>
-              <strong>{myActivity.proofs.length}</strong>
-              <small>
-                {myActivity.proofs[0]
-                  ? challengeTitle(myActivity.proofs[0].challenge_id)
-                  : "No proof uploads yet"}
-              </small>
-            </article>
-            <article>
-              <span>Created</span>
-              <strong>{myActivity.created.length}</strong>
-              <small>{myActivity.created[0]?.title || "No created challenges yet"}</small>
-            </article>
-            <article>
-              <span>Completed</span>
-              <strong>{myActivity.completed.length}</strong>
-              <small>
-                {myActivity.completed[0]
-                  ? `${myActivity.completed[0].winner || "Winner"} won ${myActivity.completed[0].title}`
-                  : "No completed challenges yet"}
-              </small>
-            </article>
-            <article className="followingCard">
-              <span>Following</span>
-              <strong>{myFollowingProfiles.length}</strong>
-              <small>
-                {myFollowingProfiles[0]
-                  ? myFollowingProfiles.map((item) => item.display_name).slice(0, 3).join(", ")
-                  : "No followed profiles yet"}
-              </small>
-              <a href="#profiles">Find profiles</a>
-            </article>
+          <div className="dashboardShell">
+            <div className="dashboardActions">
+              <a href="#create">Create challenge</a>
+              <a href="#showcase">Post showcase</a>
+              <a href="#teams">Teams</a>
+              <a href="#notifications">Notifications</a>
+              <a href="#safety">Safety reports</a>
+            </div>
+            <div className="myTalentGrid">
+              <article>
+                <span>Rooms</span>
+                <strong>{myDashboard.rooms.length}</strong>
+                <small>{myDashboard.rooms[0]?.challenge.title || "No rooms yet"}</small>
+              </article>
+              <article>
+                <span>Teams</span>
+                <strong>{myDashboard.teamCount}</strong>
+                <small>{myDashboard.pendingTeamRequests} pending team action{myDashboard.pendingTeamRequests === 1 ? "" : "s"}</small>
+              </article>
+              <article>
+                <span>Showcase posts</span>
+                <strong>{myDashboard.posts.length}</strong>
+                <small>{myDashboard.posts[0]?.caption || "No posts yet"}</small>
+              </article>
+              <article>
+                <span>Reports</span>
+                <strong>{myDashboard.reports.length}</strong>
+                <small>{myDashboard.reports[0]?.status || "No submitted reports"}</small>
+              </article>
+              <article>
+                <span>Invites</span>
+                <strong>{myDashboard.pendingInvites.length}</strong>
+                <small>{myDashboard.pendingInvites[0] ? challengeTitle(myDashboard.pendingInvites[0].challenge_id) : "No pending invites"}</small>
+              </article>
+              <article className="followingCard">
+                <span>Following</span>
+                <strong>{myFollowingProfiles.length}</strong>
+                <small>
+                  {myFollowingProfiles[0]
+                    ? myFollowingProfiles.map((item) => item.display_name).slice(0, 3).join(", ")
+                    : "No followed profiles yet"}
+                </small>
+                <a href="#profiles">Find profiles</a>
+              </article>
+            </div>
+            <div className="dashboardPanels">
+              <article>
+                <div>
+                  <span>My rooms</span>
+                  <a href="#rooms">View all rooms</a>
+                </div>
+                {myDashboard.rooms.length > 0 ? (
+                  myDashboard.rooms.map((item) => (
+                    <a
+                      className="dashboardRow"
+                      href={`#${roomHash(item.challenge.id)}`}
+                      key={item.challenge.id}
+                      onClick={() => {
+                        setSelectedLane("All");
+                        setSelectedStatus("All");
+                        setRoomSearch("");
+                        setHighlightedChallengeId(item.challenge.id);
+                        window.setTimeout(() => setHighlightedChallengeId(null), 2600);
+                      }}
+                    >
+                      <strong>{item.challenge.title}</strong>
+                      <small>{item.label} / {item.detail}</small>
+                    </a>
+                  ))
+                ) : (
+                  <small>No challenge rooms yet.</small>
+                )}
+              </article>
+              <article>
+                <div>
+                  <span>My teams</span>
+                  <a href="#teams">Open teams</a>
+                </div>
+                {myTeamDashboard.owned.slice(0, 3).map((team) => (
+                  <a className="dashboardRow" href="#teams" key={team.id}>
+                    <strong>{team.name}</strong>
+                    <small>Owner / {team.team_type} / {team.region}</small>
+                  </a>
+                ))}
+                {myTeamDashboard.accepted.slice(0, 3).map((request) => (
+                  <a className="dashboardRow" href="#teams" key={request.id}>
+                    <strong>{request.team?.name || "Team"}</strong>
+                    <small>Member / {request.member_role || "Player"}</small>
+                  </a>
+                ))}
+                {myDashboard.teamCount === 0 && <small>No teams yet.</small>}
+              </article>
+              <article>
+                <div>
+                  <span>My showcase</span>
+                  <a href="#showcase">Open showcase</a>
+                </div>
+                {myDashboard.posts.length > 0 ? (
+                  myDashboard.posts.map((post) => (
+                    <a className="dashboardRow" href="#showcase" key={post.id}>
+                      <strong>{post.category}</strong>
+                      <small>{post.caption}</small>
+                    </a>
+                  ))
+                ) : (
+                  <small>No showcase posts yet.</small>
+                )}
+              </article>
+              <article>
+                <div>
+                  <span>My reports</span>
+                  <a href="#safety">Open safety</a>
+                </div>
+                {myDashboard.reports.length > 0 ? (
+                  myDashboard.reports.map((report) => (
+                    <a className="dashboardRow" href="#safety" key={report.id}>
+                      <strong>{report.title}</strong>
+                      <small>{report.reason} / {report.status}</small>
+                    </a>
+                  ))
+                ) : (
+                  <small>No submitted reports yet.</small>
+                )}
+              </article>
+              <article>
+                <div>
+                  <span>My invites</span>
+                  <a href="#invites">Open invites</a>
+                </div>
+                {myDashboard.pendingInvites.length > 0 ? (
+                  myDashboard.pendingInvites.map((invite) => (
+                    <a className="dashboardRow" href="#invites" key={invite.id}>
+                      <strong>{challengeTitle(invite.challenge_id)}</strong>
+                      <small>{invite.status} invite for {invite.invited_name}</small>
+                    </a>
+                  ))
+                ) : (
+                  <small>No pending invites.</small>
+                )}
+              </article>
+            </div>
           </div>
         ) : (
           <div className="emptyState">
