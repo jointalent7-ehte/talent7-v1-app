@@ -421,6 +421,7 @@ export default function Home() {
   const [profileSearch, setProfileSearch] = useState("");
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
   const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<TalentProfile | null>(null);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
@@ -1121,6 +1122,42 @@ export default function Home() {
       relatedChallenges
     };
   }, [challenges, joins, proofs, ratings, selectedActivityProfile, votes]);
+
+  const selectedProfileSummary = useMemo(() => {
+    if (!selectedProfile) return null;
+
+    const userId = selectedProfile.user_id;
+    const joinedChallengeIds = new Set(joins.filter((join) => join.user_id === userId).map((join) => join.challenge_id));
+    const ownedTeamIds = teams.filter((team) => team.owner_user_id === userId).map((team) => team.id);
+    const joinedTeamRequests = teamRequests
+      .filter((request) => request.requester_user_id === userId && request.status === "Accepted")
+      .map((request) => ({
+        ...request,
+        team: teams.find((team) => team.id === request.team_id)
+      }));
+    const relatedChallenges = challenges
+      .filter(
+        (challenge) =>
+          challenge.created_by === userId ||
+          challenge.completed_by === userId ||
+          joinedChallengeIds.has(challenge.id) ||
+          ownedTeamIds.includes(challenge.team_a_id || "") ||
+          ownedTeamIds.includes(challenge.team_b_id || "")
+      )
+      .slice(0, 6);
+
+    return {
+      showcasePosts: showcasePosts.filter((post) => post.user_id === userId).slice(0, 4),
+      challenges: relatedChallenges,
+      wins: challenges
+        .filter((challenge) => challenge.status === "Completed" && challenge.winner && challengeMatchesProfileActivity(challenge, selectedProfile))
+        .slice(0, 4),
+      ownedTeams: teams.filter((team) => team.owner_user_id === userId),
+      joinedTeams: joinedTeamRequests,
+      proofs: proofs.filter((proof) => proof.user_id === userId),
+      ratings: ratings.filter((rating) => rating.user_id === userId)
+    };
+  }, [challenges, joins, proofs, ratings, selectedProfile, showcasePosts, teamRequests, teams]);
 
   function challengeTitle(challengeId: string) {
     return challenges.find((challenge) => challenge.id === challengeId)?.title || "Challenge room";
@@ -1957,6 +1994,12 @@ export default function Home() {
     setSelectedStatus("All");
     setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
+  function openProfileDetail(item: TalentProfile) {
+    setSelectedProfile(item);
+    setMessage(`Opened ${item.display_name}'s Talent7 profile.`);
+    setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
   async function toggleFollow(item: TalentProfile) {
@@ -3943,6 +3986,112 @@ export default function Home() {
             value={profileSearch}
           />
         </label>
+        {selectedProfile && selectedProfileSummary && (
+          <div className="profileDetailPanel" id="profile-detail">
+            <div className="profileDetailHeader">
+              <div>
+                <p className="eyebrow">Profile detail</p>
+                <h3>{selectedProfile.display_name}</h3>
+                <span>@{selectedProfile.username}</span>
+              </div>
+              <button onClick={() => setSelectedProfile(null)} type="button">
+                Close profile
+              </button>
+            </div>
+            <div className="profileDetailStats">
+              <small>{selectedProfile.role}</small>
+              <small>{selectedProfile.main_interest || "No main interest yet"}</small>
+              <small>{selectedProfile.region || "Global"}</small>
+              <small>{followCounts[selectedProfile.user_id]?.followers || 0} followers</small>
+              <small>{selectedProfileSummary.showcasePosts.length} showcase posts</small>
+              <small>{selectedProfileSummary.challenges.length} rooms</small>
+              <small>{selectedProfileSummary.wins.length} wins</small>
+              <small>{selectedProfileSummary.proofs.length} proofs</small>
+            </div>
+            <div className="profileDetailActions">
+              <button
+                disabled={followActionId === selectedProfile.user_id || selectedProfile.user_id === session?.user.id}
+                onClick={() => toggleFollow(selectedProfile)}
+                type="button"
+              >
+                {follows.some((follow) => follow.follower_id === session?.user.id && follow.following_id === selectedProfile.user_id)
+                  ? "Following"
+                  : selectedProfile.user_id === session?.user.id
+                    ? "Your profile"
+                    : "Follow"}
+              </button>
+              <button onClick={() => inviteProfileToChallenge(selectedProfile)} type="button">
+                Challenge profile
+              </button>
+              <button onClick={() => viewProfileActivity(selectedProfile)} type="button">
+                View activity
+              </button>
+            </div>
+            <div className="profileDetailGrid">
+              <article>
+                <span>Showcase</span>
+                {selectedProfileSummary.showcasePosts.length > 0 ? (
+                  selectedProfileSummary.showcasePosts.map((post) => (
+                    <div key={post.id}>
+                      <strong>{post.caption}</strong>
+                      <small>{post.category} / {post.media_type}</small>
+                      <MediaPreview label="Open post" mediaType={post.media_type} url={post.media_url} />
+                    </div>
+                  ))
+                ) : (
+                  <small>No showcase posts yet.</small>
+                )}
+              </article>
+              <article>
+                <span>Challenge rooms</span>
+                {selectedProfileSummary.challenges.length > 0 ? (
+                  selectedProfileSummary.challenges.map((challenge) => (
+                    <button key={challenge.id} onClick={() => viewTeamChallenge(challenge)} type="button">
+                      <strong>{challenge.title}</strong>
+                      <small>{challenge.status}{challenge.winner ? ` / Winner: ${challenge.winner}` : ""}</small>
+                    </button>
+                  ))
+                ) : (
+                  <small>No related challenge rooms yet.</small>
+                )}
+              </article>
+              <article>
+                <span>Wins</span>
+                {selectedProfileSummary.wins.length > 0 ? (
+                  selectedProfileSummary.wins.map((challenge) => (
+                    <button key={challenge.id} onClick={() => viewTeamChallenge(challenge)} type="button">
+                      <strong>{challenge.winner}</strong>
+                      <small>{challenge.title}{challenge.final_score ? ` / ${challenge.final_score}` : ""}</small>
+                    </button>
+                  ))
+                ) : (
+                  <small>No completed wins found yet.</small>
+                )}
+              </article>
+              <article>
+                <span>Teams</span>
+                {selectedProfileSummary.ownedTeams.length > 0 || selectedProfileSummary.joinedTeams.length > 0 ? (
+                  <>
+                    {selectedProfileSummary.ownedTeams.map((team) => (
+                      <div key={team.id}>
+                        <strong>{team.name}</strong>
+                        <small>Owner / {team.main_activity} / {team.region}</small>
+                      </div>
+                    ))}
+                    {selectedProfileSummary.joinedTeams.map((request) => (
+                      <div key={request.id}>
+                        <strong>{request.team?.name || "Team"}</strong>
+                        <small>{request.member_role || "Player"} / {request.team?.main_activity || "Team activity"}</small>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <small>No teams yet.</small>
+                )}
+              </article>
+            </div>
+          </div>
+        )}
         {publicProfiles.length > 0 ? (
           <div className="profileGrid">
             {visibleProfiles.length === 0 && (
@@ -3971,6 +4120,9 @@ export default function Home() {
                   </div>
                 )}
                 <div className="profileActions">
+                  <button onClick={() => openProfileDetail(item)} type="button">
+                    Open profile
+                  </button>
                   <button
                     disabled={followActionId === item.user_id || item.user_id === session?.user.id}
                     onClick={() => toggleFollow(item)}
