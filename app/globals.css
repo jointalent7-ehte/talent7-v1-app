@@ -1991,6 +1991,99 @@ textarea {
   gap: 10px;
 }
 
+.livePreviewSection {
+  color: #fff;
+  background: var(--ink);
+}
+
+.livePreviewSection .sectionHeader p:not(.eyebrow) {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.livePreviewGrid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 14px;
+}
+
+.liveBattleMock,
+.liveModules article {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+}
+
+.liveStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.liveStatus span,
+.liveModules span {
+  width: fit-content;
+  padding: 7px 9px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.liveScreens {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.liveScreens article {
+  min-height: 260px;
+  display: grid;
+  align-content: end;
+  gap: 6px;
+  padding: 16px;
+  background:
+    linear-gradient(180deg, rgba(15, 143, 140, 0.16), rgba(239, 102, 84, 0.44)),
+    #263032;
+  border-radius: 8px;
+}
+
+.liveScreens strong {
+  font-size: 1.8rem;
+}
+
+.liveScreens small,
+.liveModules p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.5;
+}
+
+.liveReactionBar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.liveReactionBar button {
+  min-height: 46px;
+  color: var(--ink);
+  background: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.liveModules {
+  display: grid;
+  gap: 10px;
+}
+
 .plansSection {
   background: #fff;
 }
@@ -3129,6 +3222,9 @@ textarea {
   .adminStats,
   .adminQueues,
   .expertHelpLayout,
+  .livePreviewGrid,
+  .liveScreens,
+  .liveReactionBar,
   .inviteGrid,
   .joinForm,
   .resultForm,

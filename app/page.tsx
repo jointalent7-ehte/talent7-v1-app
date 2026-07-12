@@ -3317,6 +3317,11 @@ export default function Home() {
               <strong>Request expert guidance</strong>
               <small>Medical caution, plumbing, tech, fitness, and more.</small>
             </a>
+            <a href="#live-preview">
+              <span>Live</span>
+              <strong>Preview live battles</strong>
+              <small>Two-screen challenges, reactions, and 7-star ratings.</small>
+            </a>
           </div>
           <div className="heroUtilityLinks">
             <a href="#account">Account</a>
@@ -3327,6 +3332,7 @@ export default function Home() {
             <a href="#invites" className="secondary">Invites</a>
             <a href="#safety" className="secondary">Safety</a>
             <a href="#expert-help" className="secondary">Expert help</a>
+            <a href="#live-preview" className="secondary">Live preview</a>
             <a href="#plans" className="secondary">Plans</a>
             <a href="#roadmap" className="secondary">Roadmap</a>
           </div>
@@ -4311,6 +4317,56 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section livePreviewSection" id="live-preview">
+        <div className="sectionHeader">
+          <p className="eyebrow">Live video roadmap</p>
+          <h2>Two-screen battles are the future Talent7 arena</h2>
+          <p>This preview shows the planned live experience before real video rooms are added: challengers side by side, audience reactions, public 7-star ratings, coaching, and expert help.</p>
+        </div>
+        <div className="livePreviewGrid">
+          <div className="liveBattleMock">
+            <div className="liveStatus">
+              <span>Coming later</span>
+              <strong>Live battle preview</strong>
+            </div>
+            <div className="liveScreens">
+              <article>
+                <span>Breakdance</span>
+                <strong>Arya</strong>
+                <small>Round 2 / 60 seconds</small>
+              </article>
+              <article>
+                <span>Calisthenics</span>
+                <strong>Mateo</strong>
+                <small>Round 2 / 60 seconds</small>
+              </article>
+            </div>
+            <div className="liveReactionBar">
+              <button type="button">Love reaction</button>
+              <button type="button">Rate 7 stars</button>
+              <button type="button">Vote winner</button>
+            </div>
+          </div>
+          <div className="liveModules">
+            <article>
+              <span>Talent battles</span>
+              <strong>Two challengers, one screen</strong>
+              <p>Breakdance, calisthenics, singing, freestyle, or any talent format with both competitors visible side by side.</p>
+            </article>
+            <article>
+              <span>Sports coaching</span>
+              <strong>Coach watches live</strong>
+              <p>Instructors can observe form, give feedback, and later combine live sessions with uploaded coaching videos.</p>
+            </article>
+            <article>
+              <span>Expert help</span>
+              <strong>Guided video support</strong>
+              <p>Verified helpers can later respond to non-life-threatening problems with safety rules and reporting tools.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
           <p className="eyebrow">Plans & payments</p>
@@ -4404,8 +4460,8 @@ export default function Home() {
           </article>
           <article>
             <span>Next</span>
-            <strong>Profiles, coaching, and sports links</strong>
-            <p>Improve public profiles, add coaching flows, and connect sports challenges to booking links by city or region.</p>
+            <strong>Profiles, coaching, sports links, and live previews</strong>
+            <p>Improve public profiles, coaching flows, sports booking links, and the planned two-screen live battle experience.</p>
           </article>
           <article>
             <span>Later</span>
