@@ -174,6 +174,19 @@ type CoachingInterest = {
   created_at: string;
 };
 
+type ExpertHelpRequest = {
+  id: string;
+  requester_id: string;
+  requester_name: string;
+  help_type: ExpertHelpType;
+  urgency: "Need guidance soon" | "Can wait" | "Urgent but not life-threatening";
+  location: string | null;
+  details: string;
+  status: "Open" | "In review" | "Closed";
+  created_at: string;
+  updated_at?: string | null;
+};
+
 type TalentTeam = {
   id: string;
   owner_user_id: string;
@@ -467,6 +480,7 @@ export default function Home() {
   const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
+  const [expertHelpRequests, setExpertHelpRequests] = useState<ExpertHelpRequest[]>([]);
   const [teams, setTeams] = useState<TalentTeam[]>([]);
   const [teamRequests, setTeamRequests] = useState<TeamRequest[]>([]);
   const [isOwnerReviewer, setIsOwnerReviewer] = useState(false);
@@ -474,6 +488,8 @@ export default function Home() {
   const [savingCoachOffer, setSavingCoachOffer] = useState(false);
   const [coachingInterestId, setCoachingInterestId] = useState<string | null>(null);
   const [coachingInterestActionId, setCoachingInterestActionId] = useState<string | null>(null);
+  const [savingExpertHelp, setSavingExpertHelp] = useState(false);
+  const [expertHelpActionId, setExpertHelpActionId] = useState<string | null>(null);
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamRequestId, setTeamRequestId] = useState<string | null>(null);
   const [teamRequestActionId, setTeamRequestActionId] = useState<string | null>(null);
@@ -1812,6 +1828,29 @@ export default function Home() {
 
     loadMyReports();
   }, [session]);
+
+  useEffect(() => {
+    async function loadExpertHelpRequests() {
+      if (!supabase || !session?.user.id) {
+        setExpertHelpRequests([]);
+        return;
+      }
+
+      const requestQuery = supabase
+        .from("expert_help_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const { data, error } = await (isOwnerReviewer
+        ? requestQuery
+        : requestQuery.eq("requester_id", session.user.id));
+
+      if (error) return;
+      if (data) setExpertHelpRequests(data as ExpertHelpRequest[]);
+    }
+
+    loadExpertHelpRequests();
+  }, [isOwnerReviewer, session]);
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -3183,26 +3222,97 @@ export default function Home() {
     setSafetyReportActionId(null);
   }
 
-  function submitExpertHelpRequest(event: FormEvent<HTMLFormElement>) {
+  async function submitExpertHelpRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!requireLogin("request expert help")) return;
+    if (!requireProfile("request expert help")) return;
 
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const location = String(form.get("location") || "").trim();
     const details = String(form.get("details") || "").trim();
-    const urgency = String(form.get("urgency") || "").trim();
+    const urgency = String(form.get("urgency") || "Need guidance soon").trim() as ExpertHelpRequest["urgency"];
 
     if (!details) {
       setMessage("Add a short description of what help is needed.");
       return;
     }
 
-    setMessage(
-      `${selectedHelpType} help request prepared${urgency ? ` as ${urgency.toLowerCase()}` : ""}${
-        location ? ` for ${location}` : ""
-      }. Expert live video matching will be added later.`
-    );
-    formElement.reset();
+    const request = {
+      requester_id: session?.user.id || "",
+      requester_name: profileName(),
+      help_type: selectedHelpType,
+      urgency,
+      location: location || null,
+      details,
+      status: "Open" as const
+    };
+
+    setSavingExpertHelp(true);
+    setMessage("");
+
+    if (!supabase) {
+      setExpertHelpRequests((items) => [
+        {
+          ...request,
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString()
+        },
+        ...items
+      ]);
+      setMessage("Demo mode: expert help request saved on this page.");
+      formElement.reset();
+      setSavingExpertHelp(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .insert(request)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not save expert help request: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) => [data as ExpertHelpRequest, ...items]);
+      setMessage("Expert help request saved. Live expert matching will be added later.");
+      formElement.reset();
+    }
+
+    setSavingExpertHelp(false);
+  }
+
+  async function updateExpertHelpStatus(request: ExpertHelpRequest, status: ExpertHelpRequest["status"]) {
+    if (!requireLogin("review expert help requests")) return;
+
+    if (!isOwnerReviewer) {
+      setMessage("Only the Talent7 owner account can update expert help requests.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    setExpertHelpActionId(request.id);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update expert help request: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? (data as ExpertHelpRequest) : item))
+      );
+      setMessage(`Expert help request marked ${status.toLowerCase()}.`);
+    }
+
+    setExpertHelpActionId(null);
   }
 
   async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -4294,8 +4404,10 @@ export default function Home() {
               What help is needed?
               <textarea name="details" rows={4} placeholder="Describe the issue, what happened, and what kind of expert would help." />
             </label>
-            <button type="submit">Prepare help request</button>
-            <small>Later this can match users with verified professionals through live video, chat, or uploaded guidance.</small>
+            <button disabled={savingExpertHelp} type="submit">
+              {savingExpertHelp ? "Saving request..." : "Save help request"}
+            </button>
+            <small>Requests are saved now. Later this can match users with verified professionals through live video, chat, or uploaded guidance.</small>
           </form>
           <div className="expertRoadmap">
             <article>
@@ -4314,6 +4426,61 @@ export default function Home() {
               <p>Connect users to available experts with careful disclaimers and reporting tools.</p>
             </article>
           </div>
+        </div>
+        <div className="expertHelpInbox">
+          <div className="expertHelpInboxHeader">
+            <div>
+              <p className="eyebrow">{isOwnerReviewer ? "Owner queue" : "My requests"}</p>
+              <h3>{isOwnerReviewer ? "Expert help requests" : "My expert help requests"}</h3>
+            </div>
+            <small>{session ? `${expertHelpRequests.length} shown` : "Login required"}</small>
+          </div>
+          {session ? (
+            expertHelpRequests.length > 0 ? (
+              <div className="expertRequestList">
+                {expertHelpRequests.slice(0, 8).map((request) => (
+                  <article key={request.id}>
+                    <span>{request.help_type}</span>
+                    <strong>{request.urgency}</strong>
+                    <p>{request.details}</p>
+                    <div>
+                      <small>{request.location || "No location"}</small>
+                      <small>{request.status}</small>
+                      {isOwnerReviewer && <small>{request.requester_name}</small>}
+                    </div>
+                    {isOwnerReviewer && (
+                      <div className="ownerReportActions">
+                        <button
+                          disabled={expertHelpActionId === request.id || request.status === "In review"}
+                          onClick={() => updateExpertHelpStatus(request, "In review")}
+                          type="button"
+                        >
+                          Mark in review
+                        </button>
+                        <button
+                          disabled={expertHelpActionId === request.id || request.status === "Closed"}
+                          onClick={() => updateExpertHelpStatus(request, "Closed")}
+                          type="button"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="emptySafetyInbox">
+                <strong>No expert help requests yet.</strong>
+                <small>Saved help requests will appear here.</small>
+              </div>
+            )
+          ) : (
+            <div className="emptySafetyInbox">
+              <strong>Log in to save and view expert help requests.</strong>
+              <a href="#account">Go to account</a>
+            </div>
+          )}
         </div>
       </section>
 
