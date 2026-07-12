@@ -134,7 +134,7 @@ h1 {
 
 .heroGuide {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   max-width: 1120px;
   margin-top: 22px;
@@ -1891,6 +1891,106 @@ textarea {
   font-weight: 850;
 }
 
+.expertHelpSection {
+  background: #f4f8f7;
+}
+
+.expertWarning {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 16px;
+  color: var(--ink);
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.expertWarning p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.expertHelpLayout {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr 1fr;
+  gap: 14px;
+}
+
+.expertHelpTypes,
+.expertHelpForm,
+.expertRoadmap article {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.expertHelpTypes button {
+  min-height: 46px;
+  color: var(--ink);
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.expertHelpTypes button.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+.expertHelpForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.expertHelpForm input,
+.expertHelpForm select,
+.expertHelpForm textarea {
+  width: 100%;
+  padding: 12px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.expertHelpForm > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  background: #f7fafa;
+  border-radius: 8px;
+}
+
+.expertHelpForm span,
+.expertRoadmap span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.expertHelpForm small,
+.expertRoadmap p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.expertRoadmap {
+  display: grid;
+  gap: 10px;
+}
+
 .plansSection {
   background: #fff;
 }
@@ -3028,6 +3128,7 @@ textarea {
   .dashboardPanels,
   .adminStats,
   .adminQueues,
+  .expertHelpLayout,
   .inviteGrid,
   .joinForm,
   .resultForm,

@@ -6,10 +6,19 @@ import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
 type ChallengeStatusFilter = "All" | "Open" | "Completed";
+type ExpertHelpType = "Medical guidance" | "Plumbing" | "Electrical" | "Tech help" | "Fitness injury" | "Other urgent help";
 
 const teamMemberRoles = ["Player", "Captain", "Dancer", "Coach", "Substitute", "Proof uploader", "Organizer"];
 const proofManagerRoles = ["Captain", "Organizer", "Proof uploader"];
 const resultManagerRoles = ["Captain", "Organizer"];
+const expertHelpTypes: ExpertHelpType[] = [
+  "Medical guidance",
+  "Plumbing",
+  "Electrical",
+  "Tech help",
+  "Fitness injury",
+  "Other urgent help"
+];
 
 type Challenge = {
   id: string;
@@ -479,6 +488,7 @@ export default function Home() {
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
   const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
   const [notificationSearch, setNotificationSearch] = useState("");
+  const [selectedHelpType, setSelectedHelpType] = useState<ExpertHelpType>("Medical guidance");
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -3173,6 +3183,28 @@ export default function Home() {
     setSafetyReportActionId(null);
   }
 
+  function submitExpertHelpRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const location = String(form.get("location") || "").trim();
+    const details = String(form.get("details") || "").trim();
+    const urgency = String(form.get("urgency") || "").trim();
+
+    if (!details) {
+      setMessage("Add a short description of what help is needed.");
+      return;
+    }
+
+    setMessage(
+      `${selectedHelpType} help request prepared${urgency ? ` as ${urgency.toLowerCase()}` : ""}${
+        location ? ` for ${location}` : ""
+      }. Expert live video matching will be added later.`
+    );
+    formElement.reset();
+  }
+
   async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("complete a challenge")) return;
@@ -3280,6 +3312,11 @@ export default function Home() {
               <strong>Find coaching</strong>
               <small>Offer lessons or ask coaches for help.</small>
             </a>
+            <a href="#expert-help">
+              <span>Help</span>
+              <strong>Request expert guidance</strong>
+              <small>Medical caution, plumbing, tech, fitness, and more.</small>
+            </a>
           </div>
           <div className="heroUtilityLinks">
             <a href="#account">Account</a>
@@ -3289,6 +3326,7 @@ export default function Home() {
             <a href="#following-feed" className="secondary">Feed</a>
             <a href="#invites" className="secondary">Invites</a>
             <a href="#safety" className="secondary">Safety</a>
+            <a href="#expert-help" className="secondary">Expert help</a>
             <a href="#plans" className="secondary">Plans</a>
             <a href="#roadmap" className="secondary">Roadmap</a>
           </div>
@@ -4203,6 +4241,73 @@ export default function Home() {
               <a href="#account">Go to account</a>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="section expertHelpSection" id="expert-help">
+        <div className="sectionHeader">
+          <p className="eyebrow">Live expert help</p>
+          <h2>Get guidance from someone who knows the problem</h2>
+          <p>This is the early request flow for future live video help across medical guidance, home fixes, tech, fitness injuries, and urgent everyday problems.</p>
+        </div>
+        <div className="expertWarning">
+          <strong>Important safety note</strong>
+          <p>Talent7 expert help is guidance only. For medical danger, fire, electric shock risk, violence, or any life-threatening emergency, call local emergency services first.</p>
+        </div>
+        <div className="expertHelpLayout">
+          <div className="expertHelpTypes">
+            {expertHelpTypes.map((helpType) => (
+              <button
+                className={selectedHelpType === helpType ? "active" : ""}
+                key={helpType}
+                onClick={() => setSelectedHelpType(helpType)}
+                type="button"
+              >
+                {helpType}
+              </button>
+            ))}
+          </div>
+          <form className="expertHelpForm" onSubmit={submitExpertHelpRequest}>
+            <div>
+              <span>Selected area</span>
+              <strong>{selectedHelpType}</strong>
+            </div>
+            <label>
+              Urgency
+              <select name="urgency" defaultValue="Need guidance soon">
+                <option>Need guidance soon</option>
+                <option>Can wait</option>
+                <option>Urgent but not life-threatening</option>
+              </select>
+            </label>
+            <label>
+              Location / region
+              <input name="location" placeholder="City, country, or time zone" />
+            </label>
+            <label>
+              What help is needed?
+              <textarea name="details" rows={4} placeholder="Describe the issue, what happened, and what kind of expert would help." />
+            </label>
+            <button type="submit">Prepare help request</button>
+            <small>Later this can match users with verified professionals through live video, chat, or uploaded guidance.</small>
+          </form>
+          <div className="expertRoadmap">
+            <article>
+              <span>Now</span>
+              <strong>Request flow</strong>
+              <p>Collect the help type, urgency, region, and problem description.</p>
+            </article>
+            <article>
+              <span>Next</span>
+              <strong>Expert profiles</strong>
+              <p>Let professionals list their expertise, availability, and safety boundaries.</p>
+            </article>
+            <article>
+              <span>Later</span>
+              <strong>Live video matching</strong>
+              <p>Connect users to available experts with careful disclaimers and reporting tools.</p>
+            </article>
+          </div>
         </div>
       </section>
 
