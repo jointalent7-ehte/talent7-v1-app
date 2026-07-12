@@ -182,7 +182,9 @@ type ExpertHelpRequest = {
   urgency: "Need guidance soon" | "Can wait" | "Urgent but not life-threatening";
   location: string | null;
   details: string;
-  status: "Open" | "In review" | "Closed";
+  status: "Open" | "In review" | "Assigned" | "Closed";
+  assigned_expert_id?: string | null;
+  assigned_expert_name?: string | null;
   created_at: string;
   updated_at?: string | null;
 };
@@ -1989,6 +1991,15 @@ export default function Home() {
     return linkedTeam(teamId)?.name || fallback;
   }
 
+  function matchingExpertsFor(request: ExpertHelpRequest) {
+    return visibleExpertProfiles.filter(
+      (expert) =>
+        expert.verification_status === "Verified" &&
+        expert.expertise_area === request.help_type &&
+        expert.user_id !== request.requester_id
+    );
+  }
+
   useEffect(() => {
     async function loadPublicProfiles() {
       if (!supabase) return;
@@ -3360,6 +3371,43 @@ export default function Home() {
     setExpertHelpActionId(null);
   }
 
+  async function assignExpertToRequest(request: ExpertHelpRequest, expert: ExpertProfile) {
+    if (!requireLogin("assign expert help requests")) return;
+
+    if (!isOwnerReviewer) {
+      setMessage("Only the Talent7 owner account can assign experts.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    setExpertHelpActionId(request.id);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .update({
+        status: "Assigned",
+        assigned_expert_id: expert.id,
+        assigned_expert_name: expert.display_name,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not assign expert: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? (data as ExpertHelpRequest) : item))
+      );
+      setMessage(`${expert.display_name} assigned to ${request.help_type.toLowerCase()} request.`);
+    }
+
+    setExpertHelpActionId(null);
+  }
+
   async function submitExpertProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireLogin("create an expert profile")) return;
@@ -4670,36 +4718,69 @@ export default function Home() {
           {session ? (
             expertHelpRequests.length > 0 ? (
               <div className="expertRequestList">
-                {expertHelpRequests.slice(0, 8).map((request) => (
-                  <article key={request.id}>
-                    <span>{request.help_type}</span>
-                    <strong>{request.urgency}</strong>
-                    <p>{request.details}</p>
-                    <div>
-                      <small>{request.location || "No location"}</small>
-                      <small>{request.status}</small>
-                      {isOwnerReviewer && <small>{request.requester_name}</small>}
-                    </div>
-                    {isOwnerReviewer && (
-                      <div className="ownerReportActions">
-                        <button
-                          disabled={expertHelpActionId === request.id || request.status === "In review"}
-                          onClick={() => updateExpertHelpStatus(request, "In review")}
-                          type="button"
-                        >
-                          Mark in review
-                        </button>
-                        <button
-                          disabled={expertHelpActionId === request.id || request.status === "Closed"}
-                          onClick={() => updateExpertHelpStatus(request, "Closed")}
-                          type="button"
-                        >
-                          Close
-                        </button>
+                {expertHelpRequests.slice(0, 8).map((request) => {
+                  const matchingExperts = matchingExpertsFor(request);
+
+                  return (
+                    <article key={request.id}>
+                      <span>{request.help_type}</span>
+                      <strong>{request.urgency}</strong>
+                      <p>{request.details}</p>
+                      <div>
+                        <small>{request.location || "No location"}</small>
+                        <small>{request.status}</small>
+                        {request.assigned_expert_name && <small>Assigned: {request.assigned_expert_name}</small>}
+                        {isOwnerReviewer && <small>{request.requester_name}</small>}
                       </div>
-                    )}
-                  </article>
-                ))}
+                      <div className="expertMatchBox">
+                        <strong>Matching verified experts</strong>
+                        {matchingExperts.length > 0 ? (
+                          matchingExperts.slice(0, 4).map((expert) => (
+                            <div className="expertMatchItem" key={expert.id}>
+                              <div>
+                                <b>{expert.display_name}</b>
+                                <small>{expert.region} · {expert.availability}</small>
+                              </div>
+                              {isOwnerReviewer && (
+                                <button
+                                  disabled={
+                                    expertHelpActionId === request.id ||
+                                    request.assigned_expert_id === expert.id ||
+                                    request.status === "Closed"
+                                  }
+                                  onClick={() => assignExpertToRequest(request, expert)}
+                                  type="button"
+                                >
+                                  {request.assigned_expert_id === expert.id ? "Assigned" : "Assign"}
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <small>No verified match yet.</small>
+                        )}
+                      </div>
+                      {isOwnerReviewer && (
+                        <div className="ownerReportActions">
+                          <button
+                            disabled={expertHelpActionId === request.id || request.status === "In review"}
+                            onClick={() => updateExpertHelpStatus(request, "In review")}
+                            type="button"
+                          >
+                            Mark in review
+                          </button>
+                          <button
+                            disabled={expertHelpActionId === request.id || request.status === "Closed"}
+                            onClick={() => updateExpertHelpStatus(request, "Closed")}
+                            type="button"
+                          >
+                            Close
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <div className="emptySafetyInbox">
