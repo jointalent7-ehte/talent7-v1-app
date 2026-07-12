@@ -4208,32 +4208,74 @@ export default function Home() {
 
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
-          <p className="eyebrow">Plans & contributions</p>
-          <h2>Keep watching free, grow Talent7 together</h2>
-          <p>These are early placeholders for how Talent7 can stay free for audiences while supporting challenge tools, coaching, and the founder.</p>
+          <p className="eyebrow">Plans & payments</p>
+          <h2>Keep discovery free, charge for power tools later</h2>
+          <p>This is the pricing direction before real payments are added. Audience access stays free while serious challengers, coaches, and organizers can support the platform later.</p>
+        </div>
+        <div className="paymentNotice">
+          <strong>Payments are not live yet.</strong>
+          <small>These cards explain the future business model first. Stripe or another payment system can be added after the app flow feels right.</small>
         </div>
         <div className="plansGrid">
           <article>
             <span>Audience</span>
             <strong>Free</strong>
-            <p>Watch rooms, vote, rate, follow results, and discover talent without a platform fee.</p>
+            <p>For people watching talent, rating rooms, following profiles, and discovering winners.</p>
+            <ul>
+              <li>Watch challenge rooms</li>
+              <li>Vote and rate out of 7</li>
+              <li>Follow profiles and results</li>
+            </ul>
           </article>
           <article>
-            <span>Challenger</span>
-            <strong>Subscription later</strong>
-            <p>For people creating frequent challenges, joining competitive rooms, and building challenge history.</p>
+            <span>Basic challenger</span>
+            <strong>Free</strong>
+            <p>For people joining normal rooms and trying Talent7 without a payment barrier.</p>
+            <ul>
+              <li>Join open challenges</li>
+              <li>Upload victory proof</li>
+              <li>Build early public history</li>
+            </ul>
+          </article>
+          <article>
+            <span>Challenge Plus</span>
+            <strong>Paid later</strong>
+            <p>For frequent competitors who want more challenge tools and stronger visibility.</p>
+            <ul>
+              <li>Featured challenge rooms</li>
+              <li>Advanced stats and history</li>
+              <li>More invite and team tools</li>
+            </ul>
+            <em>Subscription idea</em>
           </article>
           <article>
             <span>Coach / instructor</span>
-            <strong>Platform fee later</strong>
-            <p>For coaches who upload training, run live sessions, and grow paid coaching inside Talent7.</p>
+            <strong>Fee later</strong>
+            <p>For coaches who upload lessons, run live sessions, and earn through Talent7.</p>
+            <ul>
+              <li>Coaching profile tools</li>
+              <li>Paid session requests</li>
+              <li>Uploaded lessons and live coaching</li>
+            </ul>
+            <em>Monthly or platform fee</em>
+          </article>
+          <article>
+            <span>Team / organizer</span>
+            <strong>Paid later</strong>
+            <p>For sports organizers, gaming clans, and teams running repeated tournaments.</p>
+            <ul>
+              <li>Team pages and member roles</li>
+              <li>Tournament and bracket tools</li>
+              <li>Venue and event links</li>
+            </ul>
+            <em>Organizer tools</em>
           </article>
         </div>
         <div className="contributionBox">
           <div>
             <p className="eyebrow">Founder support</p>
             <h3>Contribute as a kind gesture</h3>
-            <p>Talent7 is being built by a standalone founder. If you like the idea and want to help it grow, these future contribution ranges will be in US dollars.</p>
+            <p>Talent7 is being built by a standalone founder. If you like the idea and want to help it grow, these future contribution ranges are in US dollars.</p>
           </div>
           <div className="contributionButtons">
             {["$0-50", "$50-200", "$200-1000", "$1000+"].map((amount) => (

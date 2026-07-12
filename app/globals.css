@@ -1897,12 +1897,13 @@ textarea {
 
 .plansGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
 }
 
 .plansGrid article,
-.contributionBox {
+.contributionBox,
+.paymentNotice {
   display: grid;
   gap: 10px;
   padding: 18px;
@@ -1924,10 +1925,47 @@ textarea {
 }
 
 .plansGrid p,
-.contributionBox p:not(.eyebrow) {
+.plansGrid ul,
+.contributionBox p:not(.eyebrow),
+.paymentNotice small {
   margin: 0;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.plansGrid ul {
+  display: grid;
+  gap: 7px;
+  padding-left: 18px;
+  font-weight: 750;
+}
+
+.plansGrid li::marker {
+  color: var(--teal);
+}
+
+.plansGrid em {
+  width: fit-content;
+  padding: 7px 9px;
+  color: var(--ink);
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.paymentNotice {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  margin-bottom: 14px;
+  background: #fff8e7;
+  border-color: #efd28a;
+}
+
+.paymentNotice strong {
+  font-size: 1.05rem;
 }
 
 .contributionBox {
@@ -3013,6 +3051,7 @@ textarea {
 
   .safetyGrid,
   .safetyReportList,
+  .paymentNotice,
   .plansGrid,
   .contributionBox,
   .roadmapGrid,
