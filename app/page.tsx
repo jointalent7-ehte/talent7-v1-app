@@ -3254,12 +3254,35 @@ export default function Home() {
             collect ratings, vote winners, and build leaderboards before live video.
           </p>
           <div className="heroActions">
-            <a href="#account" className="secondary">Account</a>
-            <a href="#showcase" className="secondary">Showcase</a>
-            <a href="#coaching" className="secondary">Coaching</a>
-            <a href="#teams" className="secondary">Teams</a>
-            <a href="#profiles" className="secondary">Profiles</a>
-            <a href="#my-talent7" className="secondary">My Talent7</a>
+            <a href="#rooms" className="primary">Join a challenge</a>
+            <a href="#create" className="secondary">Create challenge</a>
+            <a href="#my-talent7" className="secondary">Open dashboard</a>
+            <a href="#showcase" className="secondary">Upload showcase</a>
+          </div>
+          <div className="heroGuide">
+            <a href="#rooms">
+              <span>Compete</span>
+              <strong>Find live challenge rooms</strong>
+              <small>Badminton, breakdance, gaming, and more.</small>
+            </a>
+            <a href="#teams">
+              <span>Teams</span>
+              <strong>Form squads and crews</strong>
+              <small>Create doubles partners, dance crews, or gaming clans.</small>
+            </a>
+            <a href="#profiles">
+              <span>Discover</span>
+              <strong>Browse talent profiles</strong>
+              <small>Follow people, copy profile links, and view activity.</small>
+            </a>
+            <a href="#coaching">
+              <span>Learn</span>
+              <strong>Find coaching</strong>
+              <small>Offer lessons or ask coaches for help.</small>
+            </a>
+          </div>
+          <div className="heroUtilityLinks">
+            <a href="#account">Account</a>
             <a href="#notifications" className="secondary">
               Notifications{unreadNotifications.length > 0 ? ` (${unreadNotifications.length})` : ""}
             </a>
@@ -3268,8 +3291,6 @@ export default function Home() {
             <a href="#safety" className="secondary">Safety</a>
             <a href="#plans" className="secondary">Plans</a>
             <a href="#roadmap" className="secondary">Roadmap</a>
-            <a href="#create" className="primary">Create challenge</a>
-            <a href="#rooms" className="secondary">View rooms</a>
           </div>
         </section>
       </header>

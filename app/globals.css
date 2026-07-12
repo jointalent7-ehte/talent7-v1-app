@@ -119,6 +119,7 @@ h1 {
 }
 
 .heroActions,
+.heroUtilityLinks,
 .filters,
 .roomButtons,
 .roomStats {
@@ -127,8 +128,56 @@ h1 {
   gap: 10px;
 }
 
+.heroActions {
+  margin-top: 24px;
+}
+
+.heroGuide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 1120px;
+  margin-top: 22px;
+}
+
+.heroGuide a {
+  display: grid;
+  gap: 7px;
+  min-height: 150px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+}
+
+.heroGuide span {
+  width: fit-content;
+  padding: 6px 8px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.heroGuide strong {
+  font-size: 1.05rem;
+}
+
+.heroGuide small {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.heroUtilityLinks {
+  margin-top: 14px;
+}
+
 .primary,
 .secondary,
+.heroUtilityLinks a,
 form button,
 .filters button,
 .roomButtons button {
@@ -146,10 +195,17 @@ form button {
 }
 
 .secondary,
+.heroUtilityLinks a,
 .filters button,
 .roomButtons button {
   color: var(--ink);
   background: #fff;
+}
+
+.heroUtilityLinks a {
+  min-height: 38px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.86);
 }
 
 .setupNotice,
@@ -2924,6 +2980,7 @@ textarea {
   .coachOfferGrid,
   .coachRequestList,
   .teamForm,
+  .heroGuide,
   .myTeamsGrid,
   .teamGrid,
   .teamMeta,
