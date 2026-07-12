@@ -36,6 +36,14 @@ textarea {
   font: inherit;
 }
 
+input,
+select,
+textarea,
+button,
+a {
+  max-width: 100%;
+}
+
 button {
   cursor: pointer;
 }
@@ -3274,6 +3282,125 @@ textarea {
   }
 
   .versus {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero {
+    min-height: auto;
+    padding: 18px 16px 38px;
+  }
+
+  .hero nav {
+    align-items: stretch;
+    flex-direction: column;
+    margin-bottom: 42px;
+  }
+
+  .navActions {
+    align-items: stretch;
+  }
+
+  .navActions span {
+    max-width: 100%;
+  }
+
+  h1 {
+    font-size: clamp(2.55rem, 15vw, 4rem);
+    line-height: 0.96;
+  }
+
+  .section {
+    padding: 40px 16px;
+  }
+
+  .sectionHeader h2 {
+    font-size: clamp(2rem, 11vw, 3rem);
+    line-height: 1.04;
+  }
+
+  .heroActions a,
+  .heroUtilityLinks a,
+  .dashboardActions a,
+  .bookingActions a,
+  .primary,
+  .secondary {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .heroGuide a {
+    min-height: auto;
+  }
+
+  .createForm,
+  .showcaseForm,
+  .coachOfferForm,
+  .teamForm,
+  .profileForm,
+  .roomCard,
+  .dashboardPanels article,
+  .expertHelpForm,
+  .liveBattleMock,
+  .plansGrid article,
+  .contributionBox,
+  .safetyInbox,
+  .adminModerationPanel {
+    padding: 14px;
+  }
+
+  input,
+  select,
+  textarea {
+    min-width: 0;
+    font-size: 1rem;
+  }
+
+  .filters,
+  .statusFilters,
+  .notificationFilters,
+  .dashboardActions,
+  .heroActions,
+  .heroUtilityLinks {
+    gap: 8px;
+  }
+
+  .filters button,
+  .statusFilters button,
+  .notificationFilters button,
+  .roomButtons button,
+  .proofTypePicker button,
+  .joinPicker button,
+  .liveReactionBar button {
+    width: 100%;
+  }
+
+  .joinForm,
+  .resultForm {
+    gap: 10px;
+  }
+
+  .proofList > a,
+  .proofList small,
+  .showcaseCommentItem small {
+    white-space: normal;
+  }
+
+  .liveScreens article {
+    min-height: 210px;
+  }
+
+  .liveStatus,
+  .safetyInboxHeader,
+  .dashboardPanels article > div,
+  .bookingPanel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .contributionButtons {
     grid-template-columns: 1fr;
   }
 }
