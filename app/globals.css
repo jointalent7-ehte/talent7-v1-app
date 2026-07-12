@@ -2076,6 +2076,113 @@ textarea {
   font-weight: 850;
 }
 
+.expertProfilePanel {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.06);
+}
+
+.expertProfileForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.expertProfileForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.expertProfileForm input,
+.expertProfileForm select,
+.expertProfileForm textarea {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.expertProfileForm label:nth-child(4),
+.expertProfileForm small,
+.expertProfileForm button {
+  grid-column: 1 / -1;
+}
+
+.expertProfileToggle {
+  grid-column: 1 / -1;
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+
+.expertProfileToggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.expertProfileForm small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.expertProfileGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.expertProfileCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.expertProfileCard > span {
+  width: fit-content;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.expertProfileCard p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.expertProfileMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.expertProfileMeta small {
+  padding: 7px 9px;
+  color: var(--ink);
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
 .livePreviewSection {
   color: #fff;
   background: var(--ink);
@@ -3308,6 +3415,8 @@ textarea {
   .adminQueues,
   .expertHelpLayout,
   .expertRequestList,
+  .expertProfileForm,
+  .expertProfileGrid,
   .livePreviewGrid,
   .liveScreens,
   .liveReactionBar,
@@ -3422,6 +3531,8 @@ textarea {
   .roomCard,
   .dashboardPanels article,
   .expertHelpForm,
+  .expertProfilePanel,
+  .expertProfileForm,
   .liveBattleMock,
   .plansGrid article,
   .contributionBox,

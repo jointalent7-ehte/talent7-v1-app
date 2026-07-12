@@ -187,6 +187,20 @@ type ExpertHelpRequest = {
   updated_at?: string | null;
 };
 
+type ExpertProfile = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  expertise_area: ExpertHelpType;
+  region: string;
+  availability: string;
+  live_video_ready: boolean;
+  bio: string;
+  verification_status: "Pending review" | "Verified" | "Needs changes";
+  created_at: string;
+  updated_at?: string | null;
+};
+
 type TalentTeam = {
   id: string;
   owner_user_id: string;
@@ -481,6 +495,7 @@ export default function Home() {
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
   const [expertHelpRequests, setExpertHelpRequests] = useState<ExpertHelpRequest[]>([]);
+  const [expertProfiles, setExpertProfiles] = useState<ExpertProfile[]>([]);
   const [teams, setTeams] = useState<TalentTeam[]>([]);
   const [teamRequests, setTeamRequests] = useState<TeamRequest[]>([]);
   const [isOwnerReviewer, setIsOwnerReviewer] = useState(false);
@@ -490,6 +505,8 @@ export default function Home() {
   const [coachingInterestActionId, setCoachingInterestActionId] = useState<string | null>(null);
   const [savingExpertHelp, setSavingExpertHelp] = useState(false);
   const [expertHelpActionId, setExpertHelpActionId] = useState<string | null>(null);
+  const [savingExpertProfile, setSavingExpertProfile] = useState(false);
+  const [expertProfileActionId, setExpertProfileActionId] = useState<string | null>(null);
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamRequestId, setTeamRequestId] = useState<string | null>(null);
   const [teamRequestActionId, setTeamRequestActionId] = useState<string | null>(null);
@@ -505,6 +522,15 @@ export default function Home() {
   const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
   const [notificationSearch, setNotificationSearch] = useState("");
   const [selectedHelpType, setSelectedHelpType] = useState<ExpertHelpType>("Medical guidance");
+
+  const visibleExpertProfiles = useMemo(() => {
+    return expertProfiles.filter(
+      (expert) =>
+        isOwnerReviewer ||
+        expert.verification_status === "Verified" ||
+        (session?.user.id && expert.user_id === session.user.id)
+    );
+  }, [expertProfiles, isOwnerReviewer, session]);
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -1850,6 +1876,25 @@ export default function Home() {
     }
 
     loadExpertHelpRequests();
+  }, [isOwnerReviewer, session]);
+
+  useEffect(() => {
+    async function loadExpertProfiles() {
+      if (!supabase) {
+        setExpertProfiles([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("expert_profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setExpertProfiles(data as ExpertProfile[]);
+    }
+
+    loadExpertProfiles();
   }, [isOwnerReviewer, session]);
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -3315,6 +3360,110 @@ export default function Home() {
     setExpertHelpActionId(null);
   }
 
+  async function submitExpertProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!requireLogin("create an expert profile")) return;
+    if (!requireProfile("create an expert profile")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const expertiseArea = String(form.get("expertise_area") || selectedHelpType) as ExpertHelpType;
+    const region = String(form.get("region") || "").trim();
+    const availability = String(form.get("availability") || "").trim();
+    const bio = String(form.get("bio") || "").trim();
+    const liveVideoReady = form.get("live_video_ready") === "on";
+
+    if (!region || !availability || !bio) {
+      setMessage("Add your region, availability, and a short expert profile note.");
+      return;
+    }
+
+    const profileData = {
+      user_id: session?.user.id || "",
+      display_name: profileName(),
+      expertise_area: expertiseArea,
+      region,
+      availability,
+      live_video_ready: liveVideoReady,
+      bio,
+      verification_status: "Pending review" as const
+    };
+
+    setSavingExpertProfile(true);
+    setMessage("");
+
+    if (!supabase) {
+      const demoProfile: ExpertProfile = {
+        ...profileData,
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString()
+      };
+      setExpertProfiles((items) => [demoProfile, ...items]);
+      setMessage("Demo mode: expert profile saved on this page.");
+      formElement.reset();
+      setSavingExpertProfile(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("expert_profiles")
+      .upsert(
+        { ...profileData, updated_at: new Date().toISOString() },
+        { onConflict: "user_id,expertise_area" }
+      )
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not save expert profile: ${error.message}`);
+    } else if (data) {
+      setExpertProfiles((items) => {
+        const saved = data as ExpertProfile;
+        const exists = items.some((item) => item.id === saved.id);
+        return exists ? items.map((item) => (item.id === saved.id ? saved : item)) : [saved, ...items];
+      });
+      setMessage("Expert profile saved for owner review.");
+      formElement.reset();
+    }
+
+    setSavingExpertProfile(false);
+  }
+
+  async function updateExpertProfileStatus(
+    expert: ExpertProfile,
+    verificationStatus: ExpertProfile["verification_status"]
+  ) {
+    if (!requireLogin("review expert profiles")) return;
+
+    if (!isOwnerReviewer) {
+      setMessage("Only the Talent7 owner account can verify expert profiles.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    setExpertProfileActionId(expert.id);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("expert_profiles")
+      .update({ verification_status: verificationStatus, updated_at: new Date().toISOString() })
+      .eq("id", expert.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update expert profile: ${error.message}`);
+    } else if (data) {
+      setExpertProfiles((items) =>
+        items.map((item) => (item.id === expert.id ? (data as ExpertProfile) : item))
+      );
+      setMessage(`Expert profile marked ${verificationStatus.toLowerCase()}.`);
+    }
+
+    setExpertProfileActionId(null);
+  }
+
   async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("complete a challenge")) return;
@@ -4425,6 +4574,89 @@ export default function Home() {
               <strong>Live video matching</strong>
               <p>Connect users to available experts with careful disclaimers and reporting tools.</p>
             </article>
+          </div>
+        </div>
+        <div className="expertProfilePanel">
+          <div className="expertHelpInboxHeader">
+            <div>
+              <p className="eyebrow">Expert profiles</p>
+              <h3>Professionals and helpers</h3>
+            </div>
+            <small>{visibleExpertProfiles.length} shown</small>
+          </div>
+          <form className="expertProfileForm" onSubmit={submitExpertProfile}>
+            <label>
+              Expertise area
+              <select name="expertise_area" defaultValue={selectedHelpType}>
+                {expertHelpTypes.map((helpType) => (
+                  <option key={helpType}>{helpType}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Region
+              <input name="region" placeholder="City, country, or time zone" />
+            </label>
+            <label>
+              Availability
+              <input name="availability" placeholder="Example: evenings, weekends, 10am-6pm" />
+            </label>
+            <label>
+              Short profile note
+              <textarea name="bio" rows={3} placeholder="Mention experience, what you can help with, and safety limits." />
+            </label>
+            <label className="expertProfileToggle">
+              <input name="live_video_ready" type="checkbox" />
+              Ready for future live video help
+            </label>
+            <button disabled={savingExpertProfile} type="submit">
+              {savingExpertProfile ? "Saving expert profile..." : "Create expert profile"}
+            </button>
+            <small>New or updated expert profiles stay pending until the Talent7 owner reviews them.</small>
+          </form>
+          <div className="expertProfileGrid">
+            {visibleExpertProfiles.length > 0 ? (
+              visibleExpertProfiles.slice(0, 8).map((expert) => (
+                <article className="expertProfileCard" key={expert.id}>
+                  <span>{expert.expertise_area}</span>
+                  <strong>{expert.display_name}</strong>
+                  <p>{expert.bio}</p>
+                  <div className="expertProfileMeta">
+                    <small>{expert.region}</small>
+                    <small>{expert.availability}</small>
+                    <small>{expert.live_video_ready ? "Live video ready" : "Guidance profile"}</small>
+                    <small>{expert.verification_status}</small>
+                  </div>
+                  {isOwnerReviewer && (
+                    <div className="ownerReportActions">
+                      <button
+                        disabled={
+                          expertProfileActionId === expert.id || expert.verification_status === "Verified"
+                        }
+                        onClick={() => updateExpertProfileStatus(expert, "Verified")}
+                        type="button"
+                      >
+                        Verify
+                      </button>
+                      <button
+                        disabled={
+                          expertProfileActionId === expert.id || expert.verification_status === "Needs changes"
+                        }
+                        onClick={() => updateExpertProfileStatus(expert, "Needs changes")}
+                        type="button"
+                      >
+                        Needs changes
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))
+            ) : (
+              <div className="emptySafetyInbox">
+                <strong>No expert profiles yet.</strong>
+                <small>Verified helpers will appear here after profiles are submitted and reviewed.</small>
+              </div>
+            )}
           </div>
         </div>
         <div className="expertHelpInbox">
