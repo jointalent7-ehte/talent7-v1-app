@@ -547,6 +547,11 @@ export default function Home() {
   const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
   const [notificationSearch, setNotificationSearch] = useState("");
   const [selectedHelpType, setSelectedHelpType] = useState<ExpertHelpType>("Medical guidance");
+  const [expertProfileSearch, setExpertProfileSearch] = useState("");
+  const [expertProfileAreaFilter, setExpertProfileAreaFilter] = useState<"All" | ExpertHelpType>("All");
+  const [expertProfileServiceFilter, setExpertProfileServiceFilter] = useState("All");
+  const [expertProfileAvailabilityFilter, setExpertProfileAvailabilityFilter] = useState("All");
+  const [expertProfileMinRating, setExpertProfileMinRating] = useState("0");
 
   const visibleExpertProfiles = useMemo(() => {
     return expertProfiles.filter(
@@ -583,6 +588,45 @@ export default function Home() {
       return stats;
     }, {});
   }, [expertHelpRequests]);
+
+  const filteredExpertProfiles = useMemo(() => {
+    const search = expertProfileSearch.trim().toLowerCase();
+    const minimumRating = Number(expertProfileMinRating);
+
+    return visibleExpertProfiles.filter((expert) => {
+      const reputation = expertReputation[expert.id];
+      const averageRating = Number(reputation?.averageRating || 0);
+      const searchText = [
+        expert.display_name,
+        expert.expertise_area,
+        expert.region,
+        expert.availability,
+        expert.bio,
+        expert.service_mode,
+        expert.price_range,
+        expert.availability_status
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!search || searchText.includes(search)) &&
+        (expertProfileAreaFilter === "All" || expert.expertise_area === expertProfileAreaFilter) &&
+        (expertProfileServiceFilter === "All" || (expert.service_mode || "Free help") === expertProfileServiceFilter) &&
+        (expertProfileAvailabilityFilter === "All" ||
+          (expert.availability_status || "Accepting requests") === expertProfileAvailabilityFilter) &&
+        averageRating >= minimumRating
+      );
+    });
+  }, [
+    expertProfileAreaFilter,
+    expertProfileAvailabilityFilter,
+    expertProfileMinRating,
+    expertProfileSearch,
+    expertProfileServiceFilter,
+    expertReputation,
+    visibleExpertProfiles
+  ]);
 
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
@@ -5160,7 +5204,7 @@ export default function Home() {
               <p className="eyebrow">Expert profiles</p>
               <h3>Professionals and helpers</h3>
             </div>
-            <small>{visibleExpertProfiles.length} shown</small>
+            <small>{filteredExpertProfiles.length} shown</small>
           </div>
           <form className="expertProfileForm" onSubmit={submitExpertProfile}>
             <label>
@@ -5218,9 +5262,69 @@ export default function Home() {
             </button>
             <small>New or updated expert profiles stay pending until the Talent7 owner reviews them.</small>
           </form>
+          <div className="expertFilterPanel">
+            <label>
+              Search experts
+              <input
+                onChange={(event) => setExpertProfileSearch(event.target.value)}
+                placeholder="Name, region, skill, bio..."
+                type="search"
+                value={expertProfileSearch}
+              />
+            </label>
+            <label>
+              Expertise
+              <select
+                onChange={(event) => setExpertProfileAreaFilter(event.target.value as "All" | ExpertHelpType)}
+                value={expertProfileAreaFilter}
+              >
+                <option>All</option>
+                {expertHelpTypes.map((helpType) => (
+                  <option key={helpType}>{helpType}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Service
+              <select
+                onChange={(event) => setExpertProfileServiceFilter(event.target.value)}
+                value={expertProfileServiceFilter}
+              >
+                <option>All</option>
+                <option>Free help</option>
+                <option>Paid consultation</option>
+                <option>Both</option>
+              </select>
+            </label>
+            <label>
+              Availability
+              <select
+                onChange={(event) => setExpertProfileAvailabilityFilter(event.target.value)}
+                value={expertProfileAvailabilityFilter}
+              >
+                <option>All</option>
+                <option>Accepting requests</option>
+                <option>Busy</option>
+                <option>Unavailable</option>
+              </select>
+            </label>
+            <label>
+              Minimum rating
+              <select
+                onChange={(event) => setExpertProfileMinRating(event.target.value)}
+                value={expertProfileMinRating}
+              >
+                <option value="0">Any rating</option>
+                <option value="4">4+/7</option>
+                <option value="5">5+/7</option>
+                <option value="6">6+/7</option>
+                <option value="7">7/7</option>
+              </select>
+            </label>
+          </div>
           <div className="expertProfileGrid">
-            {visibleExpertProfiles.length > 0 ? (
-              visibleExpertProfiles.slice(0, 8).map((expert) => {
+            {filteredExpertProfiles.length > 0 ? (
+              filteredExpertProfiles.slice(0, 8).map((expert) => {
                 const reputation = expertReputation[expert.id] || {
                   completed: 0,
                   averageRating: "0.0",
@@ -5291,8 +5395,8 @@ export default function Home() {
               })
             ) : (
               <div className="emptySafetyInbox">
-                <strong>No expert profiles yet.</strong>
-                <small>Verified helpers will appear here after profiles are submitted and reviewed.</small>
+                <strong>No matching expert profiles.</strong>
+                <small>Try changing the search or filters.</small>
               </div>
             )}
           </div>

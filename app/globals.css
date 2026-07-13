@@ -2373,6 +2373,32 @@ textarea {
   line-height: 1.45;
 }
 
+.expertFilterPanel {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  background: #eef8f7;
+  border: 1px solid #b7ddda;
+  border-radius: 8px;
+}
+
+.expertFilterPanel label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.expertFilterPanel input,
+.expertFilterPanel select {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 .expertProfileGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3703,6 +3729,7 @@ textarea {
   .expertHelpLayout,
   .expertRequestList,
   .expertProfileForm,
+  .expertFilterPanel,
   .expertProfileGrid,
   .expertReputationGrid,
   .livePreviewGrid,
