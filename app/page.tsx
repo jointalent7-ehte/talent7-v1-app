@@ -196,6 +196,11 @@ type ExpertHelpRequest = {
   session_link_note?: string | null;
   session_link_added_by?: string | null;
   session_link_added_at?: string | null;
+  session_completed_at?: string | null;
+  session_completed_by?: string | null;
+  expert_rating?: number | null;
+  expert_feedback?: string | null;
+  expert_feedback_at?: string | null;
   created_at: string;
   updated_at?: string | null;
 };
@@ -523,6 +528,7 @@ export default function Home() {
   const [expertReplyActionId, setExpertReplyActionId] = useState<string | null>(null);
   const [expertScheduleActionId, setExpertScheduleActionId] = useState<string | null>(null);
   const [expertSessionLinkActionId, setExpertSessionLinkActionId] = useState<string | null>(null);
+  const [expertCompletionActionId, setExpertCompletionActionId] = useState<string | null>(null);
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamRequestId, setTeamRequestId] = useState<string | null>(null);
   const [teamRequestActionId, setTeamRequestActionId] = useState<string | null>(null);
@@ -1318,6 +1324,25 @@ export default function Home() {
         href: "#expert-help"
       }));
 
+    const expertSessionCompletedAlerts = expertHelpRequests
+      .filter(
+        (request) =>
+          Boolean(request.session_completed_at) &&
+          request.assigned_expert_id &&
+          myExpertProfileIds.has(request.assigned_expert_id)
+      )
+      .map((request) => ({
+        id: `notification-expert-session-completed-${request.id}`,
+        label: "Session completed",
+        category: "Expert help" as const,
+        title: request.help_type,
+        detail: request.expert_rating
+          ? `Requester rated your help ${request.expert_rating}/7.`
+          : "Requester marked the expert session completed.",
+        createdAt: request.session_completed_at || request.updated_at || request.created_at,
+        href: "#expert-help"
+      }));
+
     return [
       ...receivedInviteAlerts,
       ...sentInviteAlerts,
@@ -1332,7 +1357,8 @@ export default function Home() {
       ...expertResponseAlerts,
       ...expertSessionProposalAlerts,
       ...expertSessionConfirmedAlerts,
-      ...expertSessionLinkAlerts
+      ...expertSessionLinkAlerts,
+      ...expertSessionCompletedAlerts
     ]
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
       .slice(0, 12);
@@ -2148,6 +2174,16 @@ export default function Home() {
 
   function canManageSessionLink(request: ExpertHelpRequest) {
     return canScheduleExpertRequest(request) && request.session_status === "Confirmed";
+  }
+
+  function canCompleteExpertSession(request: ExpertHelpRequest) {
+    return Boolean(
+      session?.user.id &&
+        request.requester_id === session.user.id &&
+        request.session_status === "Confirmed" &&
+        request.session_link &&
+        !request.session_completed_at
+    );
   }
 
   useEffect(() => {
@@ -3801,6 +3837,69 @@ export default function Home() {
     setExpertSessionLinkActionId(null);
   }
 
+  async function completeExpertSession(event: FormEvent<HTMLFormElement>, request: ExpertHelpRequest) {
+    event.preventDefault();
+    if (!requireLogin("complete expert sessions")) return;
+
+    if (!canCompleteExpertSession(request)) {
+      setMessage("Only the requester can rate and complete a confirmed session with a live link.");
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const rating = Number(form.get("expert_rating") || 0);
+    const feedback = String(form.get("expert_feedback") || "").trim();
+
+    if (!Number.isFinite(rating) || rating < 1 || rating > 7) {
+      setMessage("Choose an expert rating from 1 to 7.");
+      return;
+    }
+
+    const updateTime = new Date().toISOString();
+    setExpertCompletionActionId(request.id);
+    setMessage("");
+
+    const completionUpdate = {
+      status: "Closed" as const,
+      session_completed_at: updateTime,
+      session_completed_by: session?.user.id || null,
+      expert_rating: rating,
+      expert_feedback: feedback || null,
+      expert_feedback_at: updateTime,
+      updated_at: updateTime
+    };
+
+    if (!supabase) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? { ...item, ...completionUpdate } : item))
+      );
+      setMessage("Demo mode: expert session completed on this page.");
+      formElement.reset();
+      setExpertCompletionActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .update(completionUpdate)
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not complete expert session: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? (data as ExpertHelpRequest) : item))
+      );
+      setMessage("Expert session completed and feedback saved.");
+      formElement.reset();
+    }
+
+    setExpertCompletionActionId(null);
+  }
+
   async function submitExpertProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireLogin("create an expert profile")) return;
@@ -5203,6 +5302,17 @@ export default function Home() {
                               {request.session_link_note && <small>{request.session_link_note}</small>}
                             </div>
                           )}
+                          {request.session_completed_at && (
+                            <div className="expertCompletionBox">
+                              <strong>Session completed</strong>
+                              <p>
+                                {request.expert_rating
+                                  ? `Expert help rating: ${request.expert_rating}/7`
+                                  : "This expert help session has been completed."}
+                              </p>
+                              {request.expert_feedback && <small>{request.expert_feedback}</small>}
+                            </div>
+                          )}
                           {canScheduleExpertRequest(request) && request.status !== "Closed" && (
                             <>
                               <form className="expertSessionForm" onSubmit={(event) => proposeExpertSession(event, request)}>
@@ -5244,6 +5354,31 @@ export default function Home() {
                                 </form>
                               )}
                             </>
+                          )}
+                          {canCompleteExpertSession(request) && (
+                            <form className="expertCompletionForm" onSubmit={(event) => completeExpertSession(event, request)}>
+                              <label>
+                                Rate expert help out of 7
+                                <select name="expert_rating" defaultValue="7">
+                                  {[7, 6, 5, 4, 3, 2, 1].map((rating) => (
+                                    <option key={rating} value={rating}>
+                                      {rating}/7
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label>
+                                Short feedback
+                                <textarea
+                                  name="expert_feedback"
+                                  rows={3}
+                                  placeholder="Was the expert helpful, clear, and respectful?"
+                                />
+                              </label>
+                              <button disabled={expertCompletionActionId === request.id} type="submit">
+                                {expertCompletionActionId === request.id ? "Completing..." : "Mark completed"}
+                              </button>
+                            </form>
                           )}
                         </div>
                       )}

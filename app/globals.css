@@ -2260,6 +2260,58 @@ textarea {
   font-weight: 850;
 }
 
+.expertCompletionBox,
+.expertCompletionForm {
+  display: grid !important;
+  gap: 10px;
+  padding: 12px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.expertCompletionBox p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.expertCompletionBox small {
+  width: fit-content;
+  background: #fff;
+}
+
+.expertCompletionForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.expertCompletionForm select,
+.expertCompletionForm textarea {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.expertCompletionForm button {
+  padding: 12px;
+  color: #fff;
+  background: #3268d8;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.expertCompletionForm button:disabled {
+  color: var(--muted);
+  background: #dfe9e9;
+  cursor: not-allowed;
+}
+
 .expertProfilePanel {
   display: grid;
   gap: 14px;
