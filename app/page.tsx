@@ -2049,18 +2049,23 @@ export default function Home() {
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("payment_interests")
         .select("*")
-        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
+
+      if (!isOwnerReviewer) {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) return;
       if (data) setPaymentInterests(data as PaymentInterest[]);
     }
 
     loadPaymentInterests();
-  }, [session]);
+  }, [isOwnerReviewer, session]);
 
   useEffect(() => {
     async function loadTeamRequests() {
@@ -2285,6 +2290,39 @@ export default function Home() {
     } else if (data) {
       setPaymentInterests((items) => [data as PaymentInterest, ...items]);
       setMessage(`${label} saved. Real payment checkout will be added later.`);
+    }
+
+    setPaymentActionKey(null);
+  }
+
+  async function updatePaymentInterestStatus(interest: PaymentInterest, status: PaymentInterest["status"]) {
+    if (!requireLogin("update payment interests")) return;
+
+    if (!isOwnerReviewer) {
+      setMessage("Only the Talent7 owner account can update payment interests.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    const actionKey = `status-${interest.id}-${status}`;
+    setPaymentActionKey(actionKey);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("payment_interests")
+      .update({ status })
+      .eq("id", interest.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update payment interest: ${error.message}`);
+    } else if (data) {
+      setPaymentInterests((items) =>
+        items.map((item) => (item.id === interest.id ? (data as PaymentInterest) : item))
+      );
+      setMessage(`${interest.display_name}'s ${interest.label} interest marked ${status.toLowerCase()}.`);
     }
 
     setPaymentActionKey(null);
@@ -6038,6 +6076,73 @@ export default function Home() {
             ))}
           </div>
         </div>
+        {isOwnerReviewer && (
+          <div className="ownerPaymentPanel">
+            <div className="ownerPaymentHeader">
+              <div>
+                <p className="eyebrow">Owner payments</p>
+                <h3>Payment interest dashboard</h3>
+                <small>See who selected plans or founder support before real checkout is connected.</small>
+              </div>
+              <strong>{paymentInterests.length} records</strong>
+            </div>
+            <div className="ownerPaymentStats">
+              <article>
+                <span>Challenge Plus</span>
+                <strong>{paymentInterests.filter((interest) => interest.label === "Challenge Plus").length}</strong>
+              </article>
+              <article>
+                <span>Coach Pro</span>
+                <strong>{paymentInterests.filter((interest) => interest.label === "Coach Pro").length}</strong>
+              </article>
+              <article>
+                <span>Organizer Pro</span>
+                <strong>{paymentInterests.filter((interest) => interest.label === "Organizer Pro").length}</strong>
+              </article>
+              <article>
+                <span>Contributions</span>
+                <strong>{paymentInterests.filter((interest) => interest.intent_type === "Contribution").length}</strong>
+              </article>
+            </div>
+            <div className="ownerPaymentList">
+              {paymentInterests.length > 0 ? (
+                paymentInterests.slice(0, 12).map((interest) => (
+                  <article key={interest.id}>
+                    <div>
+                      <span>{interest.intent_type}</span>
+                      <strong>{interest.label}</strong>
+                      <small>{interest.display_name} / {interest.amount_label}</small>
+                    </div>
+                    <small>{new Date(interest.created_at).toLocaleDateString()}</small>
+                    <div className="ownerPaymentActions">
+                      {(["Interested", "Ready later", "Contact requested"] as PaymentInterest["status"][]).map(
+                        (status) => (
+                          <button
+                            className={interest.status === status ? "active" : ""}
+                            disabled={
+                              paymentActionKey === `status-${interest.id}-${status}` ||
+                              interest.status === status
+                            }
+                            key={status}
+                            onClick={() => updatePaymentInterestStatus(interest, status)}
+                            type="button"
+                          >
+                            {status}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="emptyPaymentInterest">
+                  <strong>No payment interest yet.</strong>
+                  <small>When users select plans or contribution ranges, they will appear here.</small>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="section roadmapSection" id="roadmap">

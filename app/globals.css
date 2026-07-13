@@ -2828,6 +2828,119 @@ textarea {
   border-color: var(--ink);
 }
 
+.ownerPaymentPanel {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+}
+
+.ownerPaymentHeader,
+.ownerPaymentList article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.ownerPaymentHeader h3 {
+  color: #fff;
+  font-size: clamp(1.4rem, 3vw, 2.1rem);
+}
+
+.ownerPaymentHeader small,
+.ownerPaymentList small {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 800;
+}
+
+.ownerPaymentHeader > strong {
+  padding: 9px 11px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+}
+
+.ownerPaymentStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ownerPaymentStats article,
+.ownerPaymentList article,
+.emptyPaymentInterest {
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+}
+
+.ownerPaymentStats article {
+  display: grid;
+  gap: 5px;
+}
+
+.ownerPaymentStats span,
+.ownerPaymentList span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.ownerPaymentStats strong {
+  color: #fff;
+  font-size: 1.65rem;
+}
+
+.ownerPaymentList {
+  display: grid;
+  gap: 10px;
+}
+
+.ownerPaymentList article > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.ownerPaymentList strong {
+  color: #fff;
+}
+
+.ownerPaymentActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ownerPaymentActions button {
+  min-height: 38px;
+  padding: 9px 11px;
+  color: var(--ink);
+  background: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.ownerPaymentActions button.active {
+  color: #fff;
+  background: var(--teal);
+}
+
+.ownerPaymentActions button:disabled {
+  opacity: 0.7;
+}
+
+.emptyPaymentInterest {
+  display: grid;
+  gap: 5px;
+}
+
 .roadmapSection {
   background: #f4f8f7;
 }
@@ -3889,6 +4002,7 @@ textarea {
   .safetyReportList,
   .paymentNotice,
   .paymentStatusPanel,
+  .ownerPaymentStats,
   .plansGrid,
   .contributionBox,
   .roadmapGrid,
@@ -3899,6 +4013,8 @@ textarea {
   }
 
   .adminModerationHeader,
+  .ownerPaymentHeader,
+  .ownerPaymentList article,
   .expertHelpInboxHeader,
   .adminQueues article > div:first-child {
     align-items: stretch;
