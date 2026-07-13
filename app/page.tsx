@@ -4368,17 +4368,40 @@ export default function Home() {
           </div>
         </nav>
         <section>
-          <p className="eyebrow">Challenge MVP</p>
-          <h1>Real challenge rooms for Talent, Sports, and Gaming</h1>
+          <p className="eyebrow">Early access MVP</p>
+          <h1>Challenge anyone. Prove it. Rise on Talent7.</h1>
           <p>
-            This is the first real app direction: create proof-based challenges, invite opponents,
-            collect ratings, vote winners, and build leaderboards before live video.
+            Talent7 starts with fair, proof-based challenge rooms for talent battles, sports matchups,
+            mobile gaming, coaching, and verified expert guidance before full live video arrives.
           </p>
+          <div className="heroMetrics">
+            <article>
+              <span>{challenges.length}</span>
+              <small>Challenge rooms</small>
+            </article>
+            <article>
+              <span>{publicProfiles.length}</span>
+              <small>Talent profiles</small>
+            </article>
+            <article>
+              <span>{proofs.length}</span>
+              <small>Proof uploads</small>
+            </article>
+            <article>
+              <span>{leaderboard.length}</span>
+              <small>Top rooms</small>
+            </article>
+          </div>
           <div className="heroActions">
+            <a href="#account" className="primary">Create account</a>
             <a href="#rooms" className="primary">Join a challenge</a>
             <a href="#create" className="secondary">Create challenge</a>
             <a href="#my-talent7" className="secondary">Open dashboard</a>
-            <a href="#showcase" className="secondary">Upload showcase</a>
+          </div>
+          <div className="earlyAccessCallout">
+            <strong>First wave focus</strong>
+            <span>Badminton doubles, breakdance battles, PUBG squads, coaching offers, and safe expert-help requests.</span>
+            <a href="#plans">Support the founder</a>
           </div>
           <div className="heroGuide">
             <a href="#rooms">
@@ -4436,6 +4459,34 @@ export default function Home() {
       )}
 
       {message && <aside className="message">{message}</aside>}
+
+      <section className="section firstWaveSection" id="first-wave">
+        <div className="sectionHeader">
+          <p className="eyebrow">Early access</p>
+          <h2>Built for the first Talent7 testers</h2>
+          <p>New visitors can start as audience, challenger, coach, team owner, or expert helper while payments and full live video stay in preview.</p>
+        </div>
+        <div className="firstWaveGrid">
+          <article>
+            <span>1</span>
+            <strong>Create your profile</strong>
+            <p>Save your Talent7 name, role, region, and first challenge interest so rooms and invites feel personal.</p>
+            <a href="#account">Go to account</a>
+          </article>
+          <article>
+            <span>2</span>
+            <strong>Join or create a challenge</strong>
+            <p>Start with badminton, breakdance, or mobile gaming. Upload proof, collect votes, and lock a winner.</p>
+            <a href="#rooms">View rooms</a>
+          </article>
+          <article>
+            <span>3</span>
+            <strong>Build your circle</strong>
+            <p>Follow profiles, form teams, request coaching, and watch notifications for invites and updates.</p>
+            <a href="#profiles">Browse people</a>
+          </article>
+        </div>
+      </section>
 
       <section className="section notificationsSection" id="notifications">
         <div className="sectionHeader">
