@@ -2419,6 +2419,43 @@ textarea {
   font-weight: 850;
 }
 
+.expertReputationGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.expertReputationGrid small {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.expertReputationGrid b {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.expertFeedbackSnippet {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.expertFeedbackSnippet p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .livePreviewSection {
   color: #fff;
   background: var(--ink);
@@ -3653,6 +3690,7 @@ textarea {
   .expertRequestList,
   .expertProfileForm,
   .expertProfileGrid,
+  .expertReputationGrid,
   .livePreviewGrid,
   .liveScreens,
   .liveReactionBar,

@@ -554,6 +554,33 @@ export default function Home() {
     );
   }, [expertProfiles, isOwnerReviewer, session]);
 
+  const expertReputation = useMemo(() => {
+    return expertHelpRequests.reduce<
+      Record<string, { completed: number; averageRating: string; latestFeedback: string; ratingCount: number }>
+    >((stats, request) => {
+      if (!request.assigned_expert_id || !request.session_completed_at) return stats;
+
+      const current = stats[request.assigned_expert_id] || {
+        completed: 0,
+        averageRating: "0.0",
+        latestFeedback: "",
+        ratingCount: 0
+      };
+
+      const ratingTotal = Number(current.averageRating) * current.ratingCount + (request.expert_rating || 0);
+      const nextRatingCount = request.expert_rating ? current.ratingCount + 1 : current.ratingCount;
+
+      stats[request.assigned_expert_id] = {
+        completed: current.completed + 1,
+        averageRating: nextRatingCount ? (ratingTotal / nextRatingCount).toFixed(1) : "0.0",
+        latestFeedback: request.expert_feedback || current.latestFeedback,
+        ratingCount: nextRatingCount
+      };
+
+      return stats;
+    }, {});
+  }, [expertHelpRequests]);
+
   const joinCounts = useMemo(() => {
     return joins.reduce<Record<string, { challengers: number; audience: number }>>((counts, join) => {
       const current = counts[join.challenge_id] || { challengers: 0, audience: 0 };
@@ -5156,41 +5183,70 @@ export default function Home() {
           </form>
           <div className="expertProfileGrid">
             {visibleExpertProfiles.length > 0 ? (
-              visibleExpertProfiles.slice(0, 8).map((expert) => (
-                <article className="expertProfileCard" key={expert.id}>
-                  <span>{expert.expertise_area}</span>
-                  <strong>{expert.display_name}</strong>
-                  <p>{expert.bio}</p>
-                  <div className="expertProfileMeta">
-                    <small>{expert.region}</small>
-                    <small>{expert.availability}</small>
-                    <small>{expert.live_video_ready ? "Live video ready" : "Guidance profile"}</small>
-                    <small>{expert.verification_status}</small>
-                  </div>
-                  {isOwnerReviewer && (
-                    <div className="ownerReportActions">
-                      <button
-                        disabled={
-                          expertProfileActionId === expert.id || expert.verification_status === "Verified"
-                        }
-                        onClick={() => updateExpertProfileStatus(expert, "Verified")}
-                        type="button"
-                      >
-                        Verify
-                      </button>
-                      <button
-                        disabled={
-                          expertProfileActionId === expert.id || expert.verification_status === "Needs changes"
-                        }
-                        onClick={() => updateExpertProfileStatus(expert, "Needs changes")}
-                        type="button"
-                      >
-                        Needs changes
-                      </button>
+              visibleExpertProfiles.slice(0, 8).map((expert) => {
+                const reputation = expertReputation[expert.id] || {
+                  completed: 0,
+                  averageRating: "0.0",
+                  latestFeedback: "",
+                  ratingCount: 0
+                };
+
+                return (
+                  <article className="expertProfileCard" key={expert.id}>
+                    <span>{expert.expertise_area}</span>
+                    <strong>{expert.display_name}</strong>
+                    <p>{expert.bio}</p>
+                    <div className="expertProfileMeta">
+                      <small>{expert.region}</small>
+                      <small>{expert.availability}</small>
+                      <small>{expert.live_video_ready ? "Live video ready" : "Guidance profile"}</small>
+                      <small>{expert.verification_status}</small>
                     </div>
-                  )}
-                </article>
-              ))
+                    <div className="expertReputationGrid">
+                      <small>
+                        <b>{reputation.completed}</b>
+                        completed
+                      </small>
+                      <small>
+                        <b>{reputation.averageRating}/7</b>
+                        rating
+                      </small>
+                      <small>
+                        <b>{reputation.ratingCount}</b>
+                        reviews
+                      </small>
+                    </div>
+                    {reputation.latestFeedback && (
+                      <div className="expertFeedbackSnippet">
+                        <strong>Latest feedback</strong>
+                        <p>{reputation.latestFeedback}</p>
+                      </div>
+                    )}
+                    {isOwnerReviewer && (
+                      <div className="ownerReportActions">
+                        <button
+                          disabled={
+                            expertProfileActionId === expert.id || expert.verification_status === "Verified"
+                          }
+                          onClick={() => updateExpertProfileStatus(expert, "Verified")}
+                          type="button"
+                        >
+                          Verify
+                        </button>
+                        <button
+                          disabled={
+                            expertProfileActionId === expert.id || expert.verification_status === "Needs changes"
+                          }
+                          onClick={() => updateExpertProfileStatus(expert, "Needs changes")}
+                          type="button"
+                        >
+                          Needs changes
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })
             ) : (
               <div className="emptySafetyInbox">
                 <strong>No expert profiles yet.</strong>
