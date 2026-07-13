@@ -2178,6 +2178,70 @@ textarea {
   cursor: not-allowed;
 }
 
+.expertSessionBox,
+.expertSessionForm {
+  display: grid !important;
+  gap: 10px;
+  padding: 12px;
+  background: #eef8f7;
+  border: 1px solid #b7ddda;
+  border-radius: 8px;
+}
+
+.expertSessionBox > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.expertSessionBox p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.expertSessionBox small {
+  width: fit-content;
+  background: #fff;
+}
+
+.expertSessionForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.expertSessionForm input {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.expertSessionForm button,
+.confirmSessionButton {
+  padding: 12px;
+  color: #fff;
+  background: var(--teal);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.confirmSessionButton {
+  background: #3268d8;
+}
+
+.expertSessionForm button:disabled,
+.confirmSessionButton:disabled {
+  color: var(--muted);
+  background: #dfe9e9;
+  cursor: not-allowed;
+}
+
 .expertProfilePanel {
   display: grid;
   gap: 14px;

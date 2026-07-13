@@ -187,6 +187,11 @@ type ExpertHelpRequest = {
   assigned_expert_name?: string | null;
   expert_response?: string | null;
   expert_response_at?: string | null;
+  session_status?: "Not scheduled" | "Proposed" | "Confirmed" | null;
+  proposed_session_at?: string | null;
+  confirmed_session_at?: string | null;
+  session_note?: string | null;
+  session_updated_by?: string | null;
   created_at: string;
   updated_at?: string | null;
 };
@@ -512,6 +517,7 @@ export default function Home() {
   const [savingExpertProfile, setSavingExpertProfile] = useState(false);
   const [expertProfileActionId, setExpertProfileActionId] = useState<string | null>(null);
   const [expertReplyActionId, setExpertReplyActionId] = useState<string | null>(null);
+  const [expertScheduleActionId, setExpertScheduleActionId] = useState<string | null>(null);
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamRequestId, setTeamRequestId] = useState<string | null>(null);
   const [teamRequestActionId, setTeamRequestActionId] = useState<string | null>(null);
@@ -1252,6 +1258,43 @@ export default function Home() {
         href: "#expert-help"
       }));
 
+    const expertSessionProposalAlerts = expertHelpRequests
+      .filter(
+        (request) =>
+          request.session_status === "Proposed" &&
+          request.proposed_session_at &&
+          request.session_updated_by !== userId &&
+          (request.requester_id === userId ||
+            Boolean(request.assigned_expert_id && myExpertProfileIds.has(request.assigned_expert_id)))
+      )
+      .map((request) => ({
+        id: `notification-expert-session-proposed-${request.id}`,
+        label: "Session proposed",
+        category: "Expert help" as const,
+        title: request.help_type,
+        detail: `Proposed time: ${formatSessionTime(request.proposed_session_at)}.`,
+        createdAt: request.updated_at || request.proposed_session_at || request.created_at,
+        href: "#expert-help"
+      }));
+
+    const expertSessionConfirmedAlerts = expertHelpRequests
+      .filter(
+        (request) =>
+          request.session_status === "Confirmed" &&
+          request.confirmed_session_at &&
+          (request.requester_id === userId ||
+            Boolean(request.assigned_expert_id && myExpertProfileIds.has(request.assigned_expert_id)))
+      )
+      .map((request) => ({
+        id: `notification-expert-session-confirmed-${request.id}`,
+        label: "Session confirmed",
+        category: "Expert help" as const,
+        title: request.help_type,
+        detail: `Confirmed for ${formatSessionTime(request.confirmed_session_at)}.`,
+        createdAt: request.updated_at || request.confirmed_session_at || request.created_at,
+        href: "#expert-help"
+      }));
+
     return [
       ...receivedInviteAlerts,
       ...sentInviteAlerts,
@@ -1263,7 +1306,9 @@ export default function Home() {
       ...commentAlerts,
       ...requesterAssignedAlerts,
       ...assignedExpertAlerts,
-      ...expertResponseAlerts
+      ...expertResponseAlerts,
+      ...expertSessionProposalAlerts,
+      ...expertSessionConfirmedAlerts
     ]
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
       .slice(0, 12);
@@ -2058,6 +2103,23 @@ export default function Home() {
           (expert) => expert.id === request.assigned_expert_id && expert.user_id === session.user.id
         )
     );
+  }
+
+  function canScheduleExpertRequest(request: ExpertHelpRequest) {
+    return Boolean(
+      session?.user.id &&
+        request.status !== "Closed" &&
+        request.assigned_expert_id &&
+        (request.requester_id === session.user.id || canRespondToExpertRequest(request) || isOwnerReviewer)
+    );
+  }
+
+  function formatSessionTime(value?: string | null) {
+    if (!value) return "Not scheduled";
+    return new Date(value).toLocaleString([], {
+      dateStyle: "medium",
+      timeStyle: "short"
+    });
   }
 
   useEffect(() => {
@@ -3535,6 +3597,121 @@ export default function Home() {
     setExpertReplyActionId(null);
   }
 
+  async function proposeExpertSession(event: FormEvent<HTMLFormElement>, request: ExpertHelpRequest) {
+    event.preventDefault();
+    if (!requireLogin("schedule expert help sessions")) return;
+
+    if (!canScheduleExpertRequest(request)) {
+      setMessage("Only the requester, assigned expert, or owner can schedule this request.");
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const proposedValue = String(form.get("session_at") || "").trim();
+    const sessionNote = String(form.get("session_note") || "").trim();
+
+    if (!proposedValue) {
+      setMessage("Choose a date and time before proposing the session.");
+      return;
+    }
+
+    const proposedSessionAt = new Date(proposedValue).toISOString();
+    const updateTime = new Date().toISOString();
+    setExpertScheduleActionId(request.id);
+    setMessage("");
+
+    const scheduleUpdate = {
+      session_status: "Proposed" as const,
+      proposed_session_at: proposedSessionAt,
+      confirmed_session_at: null,
+      session_note: sessionNote || null,
+      session_updated_by: session?.user.id || null,
+      updated_at: updateTime
+    };
+
+    if (!supabase) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? { ...item, ...scheduleUpdate } : item))
+      );
+      setMessage("Demo mode: session time proposed on this page.");
+      formElement.reset();
+      setExpertScheduleActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .update(scheduleUpdate)
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not propose session time: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? (data as ExpertHelpRequest) : item))
+      );
+      setMessage("Expert session time proposed.");
+      formElement.reset();
+    }
+
+    setExpertScheduleActionId(null);
+  }
+
+  async function confirmExpertSession(request: ExpertHelpRequest) {
+    if (!requireLogin("confirm expert help sessions")) return;
+
+    if (!canScheduleExpertRequest(request)) {
+      setMessage("Only the requester, assigned expert, or owner can confirm this session.");
+      return;
+    }
+
+    if (!request.proposed_session_at) {
+      setMessage("A session time must be proposed before it can be confirmed.");
+      return;
+    }
+
+    const updateTime = new Date().toISOString();
+    setExpertScheduleActionId(request.id);
+    setMessage("");
+
+    const scheduleUpdate = {
+      session_status: "Confirmed" as const,
+      confirmed_session_at: request.proposed_session_at,
+      session_updated_by: session?.user.id || null,
+      updated_at: updateTime
+    };
+
+    if (!supabase) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? { ...item, ...scheduleUpdate } : item))
+      );
+      setMessage("Demo mode: expert session confirmed on this page.");
+      setExpertScheduleActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .update(scheduleUpdate)
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not confirm session: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? (data as ExpertHelpRequest) : item))
+      );
+      setMessage("Expert session confirmed.");
+    }
+
+    setExpertScheduleActionId(null);
+  }
+
   async function submitExpertProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireLogin("create an expert profile")) return;
@@ -4914,6 +5091,49 @@ export default function Home() {
                             {expertReplyActionId === request.id ? "Sending response..." : "Send response"}
                           </button>
                         </form>
+                      )}
+                      {request.assigned_expert_id && (
+                        <div className="expertSessionBox">
+                          <div>
+                            <strong>Expert session</strong>
+                            <small>{request.session_status || "Not scheduled"}</small>
+                          </div>
+                          <p>
+                            {request.session_status === "Confirmed"
+                              ? `Confirmed: ${formatSessionTime(request.confirmed_session_at)}`
+                              : request.proposed_session_at
+                                ? `Proposed: ${formatSessionTime(request.proposed_session_at)}`
+                                : "No time proposed yet."}
+                          </p>
+                          {request.session_note && <small>{request.session_note}</small>}
+                          {canScheduleExpertRequest(request) && request.status !== "Closed" && (
+                            <>
+                              <form className="expertSessionForm" onSubmit={(event) => proposeExpertSession(event, request)}>
+                                <label>
+                                  Propose session time
+                                  <input name="session_at" type="datetime-local" />
+                                </label>
+                                <label>
+                                  Short note
+                                  <input name="session_note" placeholder="Example: 20-minute video check, bring photos, etc." />
+                                </label>
+                                <button disabled={expertScheduleActionId === request.id} type="submit">
+                                  {expertScheduleActionId === request.id ? "Saving..." : "Propose time"}
+                                </button>
+                              </form>
+                              {request.proposed_session_at && request.session_status !== "Confirmed" && (
+                                <button
+                                  className="confirmSessionButton"
+                                  disabled={expertScheduleActionId === request.id}
+                                  onClick={() => confirmExpertSession(request)}
+                                  type="button"
+                                >
+                                  Confirm proposed time
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       )}
                       {isOwnerReviewer && (
                         <div className="ownerReportActions">
