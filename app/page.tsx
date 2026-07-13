@@ -438,6 +438,14 @@ function roomHash(challengeId: string) {
   return `room-${challengeId.toLowerCase().replace(/[^a-z0-9_-]+/g, "-")}`;
 }
 
+function teamHash(teamId: string) {
+  return `team-${teamId.toLowerCase().replace(/[^a-z0-9_-]+/g, "-")}`;
+}
+
+function showcaseHash(postId: string) {
+  return `showcase-${postId.toLowerCase().replace(/[^a-z0-9_-]+/g, "-")}`;
+}
+
 function mediaPreviewKind(url: string, mediaType?: string | null) {
   const cleanUrl = url.split("?")[0].toLowerCase();
   const isLocalPreview = url.startsWith("blob:");
@@ -510,6 +518,8 @@ export default function Home() {
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const [highlightedChallengeId, setHighlightedChallengeId] = useState<string | null>(null);
+  const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
+  const [highlightedShowcasePostId, setHighlightedShowcasePostId] = useState<string | null>(null);
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
   const [reportingChallengeId, setReportingChallengeId] = useState<string | null>(null);
@@ -1817,6 +1827,46 @@ export default function Home() {
   }, [challenges]);
 
   useEffect(() => {
+    if (teams.length === 0) return;
+
+    const openTeamFromHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (!hash.startsWith("team-")) return;
+
+      const match = teams.find((team) => teamHash(team.id) === hash);
+      if (!match) return;
+
+      setHighlightedTeamId(match.id);
+      setTimeout(() => document.getElementById(teamHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+      window.setTimeout(() => setHighlightedTeamId(null), 2600);
+    };
+
+    openTeamFromHash();
+    window.addEventListener("hashchange", openTeamFromHash);
+    return () => window.removeEventListener("hashchange", openTeamFromHash);
+  }, [teams]);
+
+  useEffect(() => {
+    if (showcasePosts.length === 0) return;
+
+    const openShowcaseFromHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (!hash.startsWith("showcase-")) return;
+
+      const match = showcasePosts.find((post) => showcaseHash(post.id) === hash);
+      if (!match) return;
+
+      setHighlightedShowcasePostId(match.id);
+      setTimeout(() => document.getElementById(showcaseHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+      window.setTimeout(() => setHighlightedShowcasePostId(null), 2600);
+    };
+
+    openShowcaseFromHash();
+    window.addEventListener("hashchange", openShowcaseFromHash);
+    return () => window.removeEventListener("hashchange", openShowcaseFromHash);
+  }, [showcasePosts]);
+
+  useEffect(() => {
     if (!supabase) return;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -2700,6 +2750,44 @@ export default function Home() {
     setHighlightedChallengeId(challenge.id);
     setMessage(`Room link copied for ${challenge.title}.`);
     window.setTimeout(() => setHighlightedChallengeId(null), 2600);
+  }
+
+  async function copyTeamLink(team: TalentTeam) {
+    const link = `${window.location.origin}${window.location.pathname}#${teamHash(team.id)}`;
+
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = link;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+
+    setHighlightedTeamId(team.id);
+    setMessage(`Team link copied for ${team.name}.`);
+    window.setTimeout(() => setHighlightedTeamId(null), 2600);
+  }
+
+  async function copyShowcaseLink(post: ShowcasePost) {
+    const link = `${window.location.origin}${window.location.pathname}#${showcaseHash(post.id)}`;
+
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = link;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+
+    setHighlightedShowcasePostId(post.id);
+    setMessage("Showcase post link copied.");
+    window.setTimeout(() => setHighlightedShowcasePostId(null), 2600);
   }
 
   async function toggleFollow(item: TalentProfile) {
@@ -4740,7 +4828,11 @@ export default function Home() {
         <div className="showcaseGrid">
           {showcasePosts.length > 0 ? (
             showcasePosts.map((post) => (
-              <article key={post.id}>
+              <article
+                className={post.id === highlightedShowcasePostId ? "highlightShareTarget" : ""}
+                id={showcaseHash(post.id)}
+                key={post.id}
+              >
                 <span>{post.category}</span>
                 <strong>{profileDisplayName(post.user_id)}</strong>
                 <p>{post.caption}</p>
@@ -4752,6 +4844,7 @@ export default function Home() {
                 <div className="showcaseMeta">
                   <small>{post.media_type}</small>
                   <a href={post.media_url} rel="noreferrer" target="_blank">Open post</a>
+                  <button onClick={() => copyShowcaseLink(post)} type="button">Copy post link</button>
                 </div>
                 <div className="showcaseRatingButtons">
                   {([1, 2, 3, 4, 5, 6, 7] as const).map((rating) => (
@@ -5129,7 +5222,11 @@ export default function Home() {
         <div className="teamGrid">
           {teams.length > 0 ? (
             teams.map((team) => (
-              <article key={team.id}>
+              <article
+                className={team.id === highlightedTeamId ? "highlightShareTarget" : ""}
+                id={teamHash(team.id)}
+                key={team.id}
+              >
                 <span>{team.team_type}</span>
                 <strong>{team.name}</strong>
                 <small>Owner: {profileDisplayName(team.owner_user_id)}</small>
@@ -5140,6 +5237,9 @@ export default function Home() {
                   <small>{teamRequestCounts[team.id]?.accepted || 0} accepted</small>
                   <small>{teamRequestCounts[team.id]?.pending || 0} pending</small>
                 </div>
+                <button className="teamShareButton" onClick={() => copyTeamLink(team)} type="button">
+                  Copy team link
+                </button>
                 {team.owner_user_id === session?.user.id ? (
                   <div className="ownTeamNotice">
                     <strong>Your team</strong>

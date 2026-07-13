@@ -949,6 +949,12 @@ textarea {
   box-shadow: 0 12px 36px rgba(20, 23, 25, 0.07);
 }
 
+.showcaseGrid article.highlightShareTarget,
+.teamGrid article.highlightShareTarget {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 4px rgba(55, 104, 214, 0.18), 0 18px 48px rgba(20, 23, 25, 0.12);
+}
+
 .showcaseGrid article > span {
   width: fit-content;
   padding: 7px 10px;
@@ -1043,12 +1049,20 @@ textarea {
   font-weight: 800;
 }
 
-.showcaseMeta a {
+.showcaseMeta a,
+.showcaseMeta button,
+.teamShareButton {
   padding: 9px 11px;
   color: #fff;
   background: var(--ink);
+  border: 0;
   border-radius: 8px;
   font-weight: 850;
+}
+
+.showcaseMeta button,
+.teamShareButton {
+  cursor: pointer;
 }
 
 .showcaseRatingButtons {
