@@ -213,6 +213,9 @@ type ExpertProfile = {
   region: string;
   availability: string;
   live_video_ready: boolean;
+  service_mode?: "Free help" | "Paid consultation" | "Both" | null;
+  price_range?: string | null;
+  availability_status?: "Accepting requests" | "Busy" | "Unavailable" | null;
   bio: string;
   verification_status: "Pending review" | "Verified" | "Needs changes";
   created_at: string;
@@ -3939,6 +3942,11 @@ export default function Home() {
     const availability = String(form.get("availability") || "").trim();
     const bio = String(form.get("bio") || "").trim();
     const liveVideoReady = form.get("live_video_ready") === "on";
+    const serviceMode = String(form.get("service_mode") || "Free help") as ExpertProfile["service_mode"];
+    const priceRange = String(form.get("price_range") || "").trim();
+    const availabilityStatus = String(
+      form.get("availability_status") || "Accepting requests"
+    ) as ExpertProfile["availability_status"];
 
     if (!region || !availability || !bio) {
       setMessage("Add your region, availability, and a short expert profile note.");
@@ -3952,6 +3960,9 @@ export default function Home() {
       region,
       availability,
       live_video_ready: liveVideoReady,
+      service_mode: serviceMode,
+      price_range: priceRange || (serviceMode === "Free help" ? "$0" : null),
+      availability_status: availabilityStatus,
       bio,
       verification_status: "Pending review" as const
     };
@@ -5169,6 +5180,32 @@ export default function Home() {
               <input name="availability" placeholder="Example: evenings, weekends, 10am-6pm" />
             </label>
             <label>
+              Service type
+              <select name="service_mode" defaultValue="Free help">
+                <option>Free help</option>
+                <option>Paid consultation</option>
+                <option>Both</option>
+              </select>
+            </label>
+            <label>
+              Price range
+              <select name="price_range" defaultValue="$0">
+                <option>$0</option>
+                <option>$5-$20</option>
+                <option>$20-$50</option>
+                <option>$50-$100</option>
+                <option>Custom / discuss first</option>
+              </select>
+            </label>
+            <label>
+              Request status
+              <select name="availability_status" defaultValue="Accepting requests">
+                <option>Accepting requests</option>
+                <option>Busy</option>
+                <option>Unavailable</option>
+              </select>
+            </label>
+            <label>
               Short profile note
               <textarea name="bio" rows={3} placeholder="Mention experience, what you can help with, and safety limits." />
             </label>
@@ -5201,6 +5238,11 @@ export default function Home() {
                       <small>{expert.availability}</small>
                       <small>{expert.live_video_ready ? "Live video ready" : "Guidance profile"}</small>
                       <small>{expert.verification_status}</small>
+                    </div>
+                    <div className="expertBusinessMeta">
+                      <small>{expert.service_mode || "Free help"}</small>
+                      <small>{expert.price_range || "$0"}</small>
+                      <small>{expert.availability_status || "Accepting requests"}</small>
                     </div>
                     <div className="expertReputationGrid">
                       <small>
