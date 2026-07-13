@@ -2242,6 +2242,24 @@ textarea {
   cursor: not-allowed;
 }
 
+.expertSessionLinkBox {
+  display: grid !important;
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.expertSessionLinkBox a {
+  width: fit-content;
+  padding: 10px 12px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
 .expertProfilePanel {
   display: grid;
   gap: 14px;

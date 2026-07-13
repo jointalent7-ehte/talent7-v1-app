@@ -192,6 +192,10 @@ type ExpertHelpRequest = {
   confirmed_session_at?: string | null;
   session_note?: string | null;
   session_updated_by?: string | null;
+  session_link?: string | null;
+  session_link_note?: string | null;
+  session_link_added_by?: string | null;
+  session_link_added_at?: string | null;
   created_at: string;
   updated_at?: string | null;
 };
@@ -518,6 +522,7 @@ export default function Home() {
   const [expertProfileActionId, setExpertProfileActionId] = useState<string | null>(null);
   const [expertReplyActionId, setExpertReplyActionId] = useState<string | null>(null);
   const [expertScheduleActionId, setExpertScheduleActionId] = useState<string | null>(null);
+  const [expertSessionLinkActionId, setExpertSessionLinkActionId] = useState<string | null>(null);
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamRequestId, setTeamRequestId] = useState<string | null>(null);
   const [teamRequestActionId, setTeamRequestActionId] = useState<string | null>(null);
@@ -1295,6 +1300,24 @@ export default function Home() {
         href: "#expert-help"
       }));
 
+    const expertSessionLinkAlerts = expertHelpRequests
+      .filter(
+        (request) =>
+          Boolean(request.session_link) &&
+          request.session_link_added_by !== userId &&
+          (request.requester_id === userId ||
+            Boolean(request.assigned_expert_id && myExpertProfileIds.has(request.assigned_expert_id)))
+      )
+      .map((request) => ({
+        id: `notification-expert-session-link-${request.id}`,
+        label: "Session link added",
+        category: "Expert help" as const,
+        title: request.help_type,
+        detail: "Your confirmed expert session has a meeting link.",
+        createdAt: request.session_link_added_at || request.updated_at || request.created_at,
+        href: "#expert-help"
+      }));
+
     return [
       ...receivedInviteAlerts,
       ...sentInviteAlerts,
@@ -1308,7 +1331,8 @@ export default function Home() {
       ...assignedExpertAlerts,
       ...expertResponseAlerts,
       ...expertSessionProposalAlerts,
-      ...expertSessionConfirmedAlerts
+      ...expertSessionConfirmedAlerts,
+      ...expertSessionLinkAlerts
     ]
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
       .slice(0, 12);
@@ -2120,6 +2144,10 @@ export default function Home() {
       dateStyle: "medium",
       timeStyle: "short"
     });
+  }
+
+  function canManageSessionLink(request: ExpertHelpRequest) {
+    return canScheduleExpertRequest(request) && request.session_status === "Confirmed";
   }
 
   useEffect(() => {
@@ -3712,6 +3740,67 @@ export default function Home() {
     setExpertScheduleActionId(null);
   }
 
+  async function saveExpertSessionLink(event: FormEvent<HTMLFormElement>, request: ExpertHelpRequest) {
+    event.preventDefault();
+    if (!requireLogin("add expert session links")) return;
+
+    if (!canManageSessionLink(request)) {
+      setMessage("Confirm the session before adding a live session link.");
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const sessionLink = String(form.get("session_link") || "").trim();
+    const sessionLinkNote = String(form.get("session_link_note") || "").trim();
+
+    if (!sessionLink || !/^https?:\/\//i.test(sessionLink)) {
+      setMessage("Paste a valid meeting link starting with http:// or https://.");
+      return;
+    }
+
+    const updateTime = new Date().toISOString();
+    setExpertSessionLinkActionId(request.id);
+    setMessage("");
+
+    const linkUpdate = {
+      session_link: sessionLink,
+      session_link_note: sessionLinkNote || null,
+      session_link_added_by: session?.user.id || null,
+      session_link_added_at: updateTime,
+      updated_at: updateTime
+    };
+
+    if (!supabase) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? { ...item, ...linkUpdate } : item))
+      );
+      setMessage("Demo mode: session link saved on this page.");
+      formElement.reset();
+      setExpertSessionLinkActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .update(linkUpdate)
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not save session link: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? (data as ExpertHelpRequest) : item))
+      );
+      setMessage("Live session link saved.");
+      formElement.reset();
+    }
+
+    setExpertSessionLinkActionId(null);
+  }
+
   async function submitExpertProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireLogin("create an expert profile")) return;
@@ -5106,6 +5195,14 @@ export default function Home() {
                                 : "No time proposed yet."}
                           </p>
                           {request.session_note && <small>{request.session_note}</small>}
+                          {request.session_link && (
+                            <div className="expertSessionLinkBox">
+                              <a href={request.session_link} rel="noreferrer" target="_blank">
+                                Join session
+                              </a>
+                              {request.session_link_note && <small>{request.session_link_note}</small>}
+                            </div>
+                          )}
                           {canScheduleExpertRequest(request) && request.status !== "Closed" && (
                             <>
                               <form className="expertSessionForm" onSubmit={(event) => proposeExpertSession(event, request)}>
@@ -5130,6 +5227,21 @@ export default function Home() {
                                 >
                                   Confirm proposed time
                                 </button>
+                              )}
+                              {canManageSessionLink(request) && (
+                                <form className="expertSessionForm" onSubmit={(event) => saveExpertSessionLink(event, request)}>
+                                  <label>
+                                    Live session link
+                                    <input name="session_link" placeholder="https://meet.google.com/..." type="url" />
+                                  </label>
+                                  <label>
+                                    Link note
+                                    <input name="session_link_note" placeholder="Example: Join 5 minutes early, keep camera on." />
+                                  </label>
+                                  <button disabled={expertSessionLinkActionId === request.id} type="submit">
+                                    {expertSessionLinkActionId === request.id ? "Saving link..." : "Save live link"}
+                                  </button>
+                                </form>
                               )}
                             </>
                           )}
