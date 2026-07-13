@@ -185,6 +185,18 @@ type PaymentInterest = {
   created_at: string;
 };
 
+type FounderFeedback = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  feedback_type: "Bug" | "Confusing" | "Feature request" | "Payment interest" | "General";
+  area: string | null;
+  message: string;
+  status: "New" | "Reviewed" | "Planned" | "Closed";
+  created_at: string;
+  updated_at?: string | null;
+};
+
 type ExpertHelpRequest = {
   id: string;
   requester_id: string;
@@ -271,7 +283,7 @@ type SafetyReportItem = {
 type AppNotification = {
   id: string;
   label: string;
-  category: "Invites" | "Teams" | "Proof" | "Results" | "Reports" | "Showcase" | "Expert help";
+  category: "Invites" | "Teams" | "Proof" | "Results" | "Reports" | "Showcase" | "Expert help" | "Feedback";
   title: string;
   detail: string;
   createdAt: string;
@@ -537,6 +549,7 @@ export default function Home() {
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
   const [paymentInterests, setPaymentInterests] = useState<PaymentInterest[]>([]);
+  const [founderFeedback, setFounderFeedback] = useState<FounderFeedback[]>([]);
   const [expertHelpRequests, setExpertHelpRequests] = useState<ExpertHelpRequest[]>([]);
   const [expertProfiles, setExpertProfiles] = useState<ExpertProfile[]>([]);
   const [teams, setTeams] = useState<TalentTeam[]>([]);
@@ -547,6 +560,8 @@ export default function Home() {
   const [coachingInterestId, setCoachingInterestId] = useState<string | null>(null);
   const [coachingInterestActionId, setCoachingInterestActionId] = useState<string | null>(null);
   const [paymentActionKey, setPaymentActionKey] = useState<string | null>(null);
+  const [savingFeedback, setSavingFeedback] = useState(false);
+  const [feedbackActionKey, setFeedbackActionKey] = useState<string | null>(null);
   const [savingExpertHelp, setSavingExpertHelp] = useState(false);
   const [expertHelpActionId, setExpertHelpActionId] = useState<string | null>(null);
   const [savingExpertProfile, setSavingExpertProfile] = useState(false);
@@ -1322,6 +1337,20 @@ export default function Home() {
       href: "#safety"
     }));
 
+    const feedbackAlerts = founderFeedback
+      .filter((feedback) => isOwnerReviewer || feedback.user_id === userId)
+      .map((feedback) => ({
+        id: `notification-feedback-${feedback.id}`,
+        label: isOwnerReviewer && feedback.status === "New" ? "New feedback" : "Feedback status",
+        category: "Feedback" as const,
+        title: feedback.feedback_type,
+        detail: isOwnerReviewer
+          ? `${feedback.display_name}: ${feedback.message}`
+          : `Your feedback is ${feedback.status.toLowerCase()}.`,
+        createdAt: feedback.updated_at || feedback.created_at,
+        href: "#feedback"
+      }));
+
     const commentAlerts = showcaseComments
       .filter((comment) => myPostIds.has(comment.post_id) && comment.user_id !== userId)
       .map((comment) => ({
@@ -1457,6 +1486,7 @@ export default function Home() {
       ...proofAlerts,
       ...completedAlerts,
       ...reportAlerts,
+      ...feedbackAlerts,
       ...commentAlerts,
       ...requesterAssignedAlerts,
       ...assignedExpertAlerts,
@@ -1472,7 +1502,9 @@ export default function Home() {
     challenges,
     expertHelpRequests,
     expertProfiles,
+    founderFeedback,
     inviteInbox,
+    isOwnerReviewer,
     joins,
     mySafetyReports,
     proofs,
@@ -2118,6 +2150,31 @@ export default function Home() {
   }, [isOwnerReviewer, session]);
 
   useEffect(() => {
+    async function loadFounderFeedback() {
+      if (!supabase || !session?.user.id) {
+        setFounderFeedback([]);
+        return;
+      }
+
+      let query = supabase
+        .from("founder_feedback")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!isOwnerReviewer) {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) return;
+      if (data) setFounderFeedback(data as FounderFeedback[]);
+    }
+
+    loadFounderFeedback();
+  }, [isOwnerReviewer, session]);
+
+  useEffect(() => {
     async function loadTeamRequests() {
       if (!supabase || !session?.user.id) {
         setTeamRequests([]);
@@ -2376,6 +2433,99 @@ export default function Home() {
     }
 
     setPaymentActionKey(null);
+  }
+
+  async function submitFounderFeedback(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!requireLogin("send founder feedback")) return;
+    if (!requireProfile("send founder feedback")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const feedbackType = String(form.get("feedback_type") || "General") as FounderFeedback["feedback_type"];
+    const area = String(form.get("area") || "").trim();
+    const messageText = String(form.get("message") || "").trim();
+
+    if (!messageText) {
+      setMessage("Add your feedback message before sending.");
+      return;
+    }
+
+    const feedback = {
+      user_id: session?.user.id || "",
+      display_name: profileName(),
+      feedback_type: feedbackType,
+      area: area || null,
+      message: messageText,
+      status: "New" as const
+    };
+
+    setSavingFeedback(true);
+    setMessage("");
+
+    if (!supabase) {
+      setFounderFeedback((items) => [
+        {
+          ...feedback,
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString()
+        },
+        ...items
+      ]);
+      setMessage("Demo mode: feedback saved on this page.");
+      formElement.reset();
+      setSavingFeedback(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("founder_feedback")
+      .insert(feedback)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not send feedback: ${error.message}`);
+    } else if (data) {
+      setFounderFeedback((items) => [data as FounderFeedback, ...items]);
+      setMessage("Feedback sent. Thank you for helping improve Talent7.");
+      formElement.reset();
+    }
+
+    setSavingFeedback(false);
+  }
+
+  async function updateFounderFeedbackStatus(feedback: FounderFeedback, status: FounderFeedback["status"]) {
+    if (!requireLogin("update founder feedback")) return;
+
+    if (!isOwnerReviewer) {
+      setMessage("Only the Talent7 owner account can update feedback.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    const actionKey = `${feedback.id}-${status}`;
+    setFeedbackActionKey(actionKey);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("founder_feedback")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", feedback.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update feedback: ${error.message}`);
+    } else if (data) {
+      setFounderFeedback((items) =>
+        items.map((item) => (item.id === feedback.id ? (data as FounderFeedback) : item))
+      );
+      setMessage(`Feedback marked ${status.toLowerCase()}.`);
+    }
+
+    setFeedbackActionKey(null);
   }
 
   function isChallengeCompleted(challenge: Challenge) {
@@ -4534,6 +4684,7 @@ export default function Home() {
             <a href="#expert-help" className="secondary">Expert help</a>
             <a href="#live-preview" className="secondary">Live preview</a>
             <a href="#plans" className="secondary">Plans</a>
+            <a href="#feedback" className="secondary">Feedback</a>
             <a href="#roadmap" className="secondary">Roadmap</a>
           </div>
         </section>
@@ -6294,6 +6445,90 @@ export default function Home() {
             </div>
           </div>
         )}
+      </section>
+
+      <section className="section feedbackSection" id="feedback">
+        <div className="sectionHeader">
+          <p className="eyebrow">Founder feedback</p>
+          <h2>Tell us what to fix, clarify, or build next</h2>
+          <p>Early testers can report bugs, confusing screens, payment questions, and feature requests directly inside Talent7.</p>
+        </div>
+        {session ? (
+          <form className="feedbackForm" onSubmit={submitFounderFeedback}>
+            <label>
+              Feedback type
+              <select name="feedback_type" defaultValue="General">
+                {(["Bug", "Confusing", "Feature request", "Payment interest", "General"] as FounderFeedback["feedback_type"][]).map((type) => (
+                  <option key={type}>{type}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Page or area
+              <input name="area" placeholder="Example: challenge rooms, profile, payments..." />
+            </label>
+            <label className="wide">
+              Message
+              <textarea name="message" placeholder="What happened, what confused you, or what should Talent7 build next?" rows={4} />
+            </label>
+            <button disabled={savingFeedback} type="submit">
+              {savingFeedback ? "Sending feedback..." : "Send feedback"}
+            </button>
+          </form>
+        ) : (
+          <div className="emptyState">
+            <strong>Log in to send feedback.</strong>
+            <a href="#account">Go to account</a>
+          </div>
+        )}
+        <div className="feedbackInbox">
+          <div className="feedbackInboxHeader">
+            <div>
+              <p className="eyebrow">{isOwnerReviewer ? "Owner feedback" : "My feedback"}</p>
+              <h3>{isOwnerReviewer ? "Founder feedback dashboard" : "Submitted feedback"}</h3>
+            </div>
+            <small>{founderFeedback.length} shown</small>
+          </div>
+          {founderFeedback.length > 0 ? (
+            <div className="feedbackList">
+              {founderFeedback.slice(0, 12).map((feedback) => (
+                <article key={feedback.id}>
+                  <span>{feedback.feedback_type}</span>
+                  <strong>{feedback.area || "General app feedback"}</strong>
+                  <p>{feedback.message}</p>
+                  <div className="feedbackMeta">
+                    <small>{feedback.display_name}</small>
+                    <small>{feedback.status}</small>
+                    <small>{new Date(feedback.created_at).toLocaleDateString()}</small>
+                  </div>
+                  {isOwnerReviewer && (
+                    <div className="feedbackActions">
+                      {(["New", "Reviewed", "Planned", "Closed"] as FounderFeedback["status"][]).map((status) => (
+                        <button
+                          className={feedback.status === status ? "active" : ""}
+                          disabled={
+                            feedbackActionKey === `${feedback.id}-${status}` ||
+                            feedback.status === status
+                          }
+                          key={status}
+                          onClick={() => updateFounderFeedbackStatus(feedback, status)}
+                          type="button"
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyFeedback">
+              <strong>No feedback yet.</strong>
+              <small>Feedback from early testers will appear here.</small>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="section roadmapSection" id="roadmap">
