@@ -2127,6 +2127,57 @@ textarea {
   cursor: not-allowed;
 }
 
+.expertResponseBox,
+.expertResponseForm {
+  display: grid !important;
+  gap: 9px;
+  padding: 12px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 8px;
+}
+
+.expertResponseBox p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.expertResponseBox small {
+  width: fit-content;
+  background: #fff;
+}
+
+.expertResponseForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.expertResponseForm textarea {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.expertResponseForm button {
+  padding: 12px;
+  color: #fff;
+  background: var(--teal);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.expertResponseForm button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  cursor: not-allowed;
+}
+
 .expertProfilePanel {
   display: grid;
   gap: 14px;

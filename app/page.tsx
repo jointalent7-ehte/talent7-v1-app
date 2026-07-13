@@ -182,9 +182,11 @@ type ExpertHelpRequest = {
   urgency: "Need guidance soon" | "Can wait" | "Urgent but not life-threatening";
   location: string | null;
   details: string;
-  status: "Open" | "In review" | "Assigned" | "Closed";
+  status: "Open" | "In review" | "Assigned" | "Responded" | "Closed";
   assigned_expert_id?: string | null;
   assigned_expert_name?: string | null;
+  expert_response?: string | null;
+  expert_response_at?: string | null;
   created_at: string;
   updated_at?: string | null;
 };
@@ -509,6 +511,7 @@ export default function Home() {
   const [expertHelpActionId, setExpertHelpActionId] = useState<string | null>(null);
   const [savingExpertProfile, setSavingExpertProfile] = useState(false);
   const [expertProfileActionId, setExpertProfileActionId] = useState<string | null>(null);
+  const [expertReplyActionId, setExpertReplyActionId] = useState<string | null>(null);
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamRequestId, setTeamRequestId] = useState<string | null>(null);
   const [teamRequestActionId, setTeamRequestActionId] = useState<string | null>(null);
@@ -1869,9 +1872,7 @@ export default function Home() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      const { data, error } = await (isOwnerReviewer
-        ? requestQuery
-        : requestQuery.eq("requester_id", session.user.id));
+      const { data, error } = await requestQuery;
 
       if (error) return;
       if (data) setExpertHelpRequests(data as ExpertHelpRequest[]);
@@ -1997,6 +1998,16 @@ export default function Home() {
         expert.verification_status === "Verified" &&
         expert.expertise_area === request.help_type &&
         expert.user_id !== request.requester_id
+    );
+  }
+
+  function canRespondToExpertRequest(request: ExpertHelpRequest) {
+    return Boolean(
+      session?.user.id &&
+        request.assigned_expert_id &&
+        expertProfiles.some(
+          (expert) => expert.id === request.assigned_expert_id && expert.user_id === session.user.id
+        )
     );
   }
 
@@ -3408,6 +3419,73 @@ export default function Home() {
     setExpertHelpActionId(null);
   }
 
+  async function submitExpertResponse(event: FormEvent<HTMLFormElement>, request: ExpertHelpRequest) {
+    event.preventDefault();
+    if (!requireLogin("respond to expert help requests")) return;
+
+    if (!canRespondToExpertRequest(request)) {
+      setMessage("Only the assigned expert can respond to this help request.");
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const expertResponse = String(form.get("expert_response") || "").trim();
+
+    if (!expertResponse) {
+      setMessage("Add a short guidance note before sending.");
+      return;
+    }
+
+    const responseTime = new Date().toISOString();
+    setExpertReplyActionId(request.id);
+    setMessage("");
+
+    if (!supabase) {
+      setExpertHelpRequests((items) =>
+        items.map((item) =>
+          item.id === request.id
+            ? {
+                ...item,
+                status: "Responded",
+                expert_response: expertResponse,
+                expert_response_at: responseTime,
+                updated_at: responseTime
+              }
+            : item
+        )
+      );
+      setMessage("Demo mode: expert response saved on this page.");
+      formElement.reset();
+      setExpertReplyActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .update({
+        status: "Responded",
+        expert_response: expertResponse,
+        expert_response_at: responseTime,
+        updated_at: responseTime
+      })
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not save expert response: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) =>
+        items.map((item) => (item.id === request.id ? (data as ExpertHelpRequest) : item))
+      );
+      setMessage("Expert response saved. The requester can now see it.");
+      formElement.reset();
+    }
+
+    setExpertReplyActionId(null);
+  }
+
   async function submitExpertProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireLogin("create an expert profile")) return;
@@ -4760,6 +4838,34 @@ export default function Home() {
                           <small>No verified match yet.</small>
                         )}
                       </div>
+                      {request.expert_response && (
+                        <div className="expertResponseBox">
+                          <strong>Expert response</strong>
+                          <p>{request.expert_response}</p>
+                          <small>
+                            {request.assigned_expert_name || "Assigned expert"}
+                            {request.expert_response_at
+                              ? ` replied ${new Date(request.expert_response_at).toLocaleDateString()}`
+                              : ""}
+                          </small>
+                        </div>
+                      )}
+                      {canRespondToExpertRequest(request) && request.status !== "Closed" && (
+                        <form className="expertResponseForm" onSubmit={(event) => submitExpertResponse(event, request)}>
+                          <label>
+                            Add guidance response
+                            <textarea
+                              name="expert_response"
+                              rows={3}
+                              placeholder="Share safe guidance, next steps, limits, and when to contact local emergency services."
+                              defaultValue={request.expert_response || ""}
+                            />
+                          </label>
+                          <button disabled={expertReplyActionId === request.id} type="submit">
+                            {expertReplyActionId === request.id ? "Sending response..." : "Send response"}
+                          </button>
+                        </form>
+                      )}
                       {isOwnerReviewer && (
                         <div className="ownerReportActions">
                           <button
