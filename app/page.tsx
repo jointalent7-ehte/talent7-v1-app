@@ -528,6 +528,7 @@ export default function Home() {
   const [expertHelpActionId, setExpertHelpActionId] = useState<string | null>(null);
   const [savingExpertProfile, setSavingExpertProfile] = useState(false);
   const [expertProfileActionId, setExpertProfileActionId] = useState<string | null>(null);
+  const [requestingExpertId, setRequestingExpertId] = useState<string | null>(null);
   const [expertReplyActionId, setExpertReplyActionId] = useState<string | null>(null);
   const [expertScheduleActionId, setExpertScheduleActionId] = useState<string | null>(null);
   const [expertSessionLinkActionId, setExpertSessionLinkActionId] = useState<string | null>(null);
@@ -3668,6 +3669,83 @@ export default function Home() {
     setExpertHelpActionId(null);
   }
 
+  async function requestSpecificExpert(event: FormEvent<HTMLFormElement>, expert: ExpertProfile) {
+    event.preventDefault();
+    if (!requireLogin("request this expert")) return;
+    if (!requireProfile("request this expert")) return;
+
+    if (expert.user_id === session?.user.id) {
+      setMessage("You cannot request your own expert profile.");
+      return;
+    }
+
+    if (expert.verification_status !== "Verified") {
+      setMessage("Only verified experts can be requested.");
+      return;
+    }
+
+    if ((expert.availability_status || "Accepting requests") === "Unavailable") {
+      setMessage(`${expert.display_name} is unavailable right now.`);
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const details = String(form.get("request_details") || "").trim();
+    const urgency = String(form.get("request_urgency") || "Need guidance soon").trim() as ExpertHelpRequest["urgency"];
+
+    if (!details) {
+      setMessage("Add what you need help with before requesting this expert.");
+      return;
+    }
+
+    const request = {
+      requester_id: session?.user.id || "",
+      requester_name: profileName(),
+      help_type: expert.expertise_area,
+      urgency,
+      location: profile?.region || expert.region || null,
+      details,
+      status: "Assigned" as const,
+      assigned_expert_id: expert.id,
+      assigned_expert_name: expert.display_name
+    };
+
+    setRequestingExpertId(expert.id);
+    setMessage("");
+
+    if (!supabase) {
+      setExpertHelpRequests((items) => [
+        {
+          ...request,
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString()
+        },
+        ...items
+      ]);
+      setMessage(`Demo mode: request sent to ${expert.display_name}.`);
+      formElement.reset();
+      setRequestingExpertId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("expert_help_requests")
+      .insert(request)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not request expert: ${error.message}`);
+    } else if (data) {
+      setExpertHelpRequests((items) => [data as ExpertHelpRequest, ...items]);
+      setMessage(`Request sent to ${expert.display_name}. They will see it in Expert help.`);
+      formElement.reset();
+    }
+
+    setRequestingExpertId(null);
+  }
+
   async function submitExpertResponse(event: FormEvent<HTMLFormElement>, request: ExpertHelpRequest) {
     event.preventDefault();
     if (!requireLogin("respond to expert help requests")) return;
@@ -5367,6 +5445,47 @@ export default function Home() {
                         <strong>Latest feedback</strong>
                         <p>{reputation.latestFeedback}</p>
                       </div>
+                    )}
+                    {expert.verification_status === "Verified" && (
+                      <form
+                        className="expertDirectRequestForm"
+                        onSubmit={(event) => requestSpecificExpert(event, expert)}
+                      >
+                        <label>
+                          Request this expert
+                          <textarea
+                            name="request_details"
+                            placeholder="Tell them what you need help with."
+                            rows={3}
+                          />
+                        </label>
+                        <label>
+                          Urgency
+                          <select name="request_urgency" defaultValue="Need guidance soon">
+                            <option value="Need guidance soon">Need guidance soon</option>
+                            <option value="Urgent but not life-threatening">
+                              Urgent but not life-threatening
+                            </option>
+                            <option value="Can wait">Can wait</option>
+                          </select>
+                        </label>
+                        <button
+                          disabled={
+                            requestingExpertId === expert.id ||
+                            expert.user_id === session?.user.id ||
+                            (expert.availability_status || "Accepting requests") === "Unavailable"
+                          }
+                          type="submit"
+                        >
+                          {requestingExpertId === expert.id
+                            ? "Sending request..."
+                            : expert.user_id === session?.user.id
+                              ? "Your expert profile"
+                              : (expert.availability_status || "Accepting requests") === "Unavailable"
+                                ? "Unavailable"
+                                : "Request this expert"}
+                        </button>
+                      </form>
                     )}
                     {isOwnerReviewer && (
                       <div className="ownerReportActions">
