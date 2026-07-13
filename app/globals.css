@@ -322,6 +322,7 @@ textarea {
 
 .authForm,
 .accountCard,
+.accountPaymentCard,
 .profileForm {
   max-width: 760px;
   padding: 18px;
@@ -418,6 +419,45 @@ textarea {
   font-size: 0.82rem;
   font-weight: 850;
   text-transform: uppercase;
+}
+
+.accountPaymentCard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: center;
+  background: #fff8e7;
+  border-color: #efd28a;
+}
+
+.accountPaymentCard div {
+  display: grid;
+  gap: 4px;
+}
+
+.accountPaymentCard span,
+.accountPaymentCard small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.accountPaymentCard span {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.accountPaymentCard strong {
+  font-size: 1.15rem;
+}
+
+.accountPaymentCard a {
+  padding: 12px 14px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-weight: 900;
+  text-align: center;
+  text-decoration: none;
 }
 
 .myTalent {
@@ -2643,6 +2683,7 @@ textarea {
 
 .plansGrid article,
 .contributionBox,
+.paymentStatusPanel,
 .paymentNotice {
   display: grid;
   gap: 10px;
@@ -2694,6 +2735,51 @@ textarea {
   font-size: 0.78rem;
   font-style: normal;
   font-weight: 850;
+}
+
+.plansGrid button {
+  align-self: end;
+  min-height: 46px;
+  padding: 12px 14px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.plansGrid button:disabled,
+.contributionButtons button:disabled {
+  opacity: 0.68;
+  cursor: wait;
+}
+
+.paymentStatusPanel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+  background: #eef8f7;
+  border-color: #b7ddda;
+  box-shadow: none;
+}
+
+.paymentStatusPanel div {
+  display: grid;
+  gap: 5px;
+}
+
+.paymentStatusPanel span,
+.paymentStatusPanel small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.paymentStatusPanel span {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.paymentStatusPanel strong {
+  font-size: 1.2rem;
 }
 
 .paymentNotice {
@@ -3764,6 +3850,7 @@ textarea {
   .teamMeta,
   .teamRequestList,
   .profileForm,
+  .accountPaymentCard,
   .myTalentGrid,
   .dashboardPanels,
   .adminStats,
@@ -3801,6 +3888,7 @@ textarea {
   .safetyGrid,
   .safetyReportList,
   .paymentNotice,
+  .paymentStatusPanel,
   .plansGrid,
   .contributionBox,
   .roadmapGrid,

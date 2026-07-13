@@ -174,6 +174,17 @@ type CoachingInterest = {
   created_at: string;
 };
 
+type PaymentInterest = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  intent_type: "Plan" | "Contribution";
+  label: string;
+  amount_label: string;
+  status: "Interested" | "Ready later" | "Contact requested";
+  created_at: string;
+};
+
 type ExpertHelpRequest = {
   id: string;
   requester_id: string;
@@ -515,6 +526,7 @@ export default function Home() {
   const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
+  const [paymentInterests, setPaymentInterests] = useState<PaymentInterest[]>([]);
   const [expertHelpRequests, setExpertHelpRequests] = useState<ExpertHelpRequest[]>([]);
   const [expertProfiles, setExpertProfiles] = useState<ExpertProfile[]>([]);
   const [teams, setTeams] = useState<TalentTeam[]>([]);
@@ -524,6 +536,7 @@ export default function Home() {
   const [savingCoachOffer, setSavingCoachOffer] = useState(false);
   const [coachingInterestId, setCoachingInterestId] = useState<string | null>(null);
   const [coachingInterestActionId, setCoachingInterestActionId] = useState<string | null>(null);
+  const [paymentActionKey, setPaymentActionKey] = useState<string | null>(null);
   const [savingExpertHelp, setSavingExpertHelp] = useState(false);
   const [expertHelpActionId, setExpertHelpActionId] = useState<string | null>(null);
   const [savingExpertProfile, setSavingExpertProfile] = useState(false);
@@ -777,6 +790,14 @@ export default function Home() {
       .sort((first, second) => second.score - first.score || first.challenge.title.localeCompare(second.challenge.title))
       .slice(0, 3);
   }, [activityScores, challenges, joinCounts, roomProofs, roomResults]);
+
+  const currentPaymentInterest = useMemo(() => {
+    return paymentInterests.find((interest) => interest.intent_type === "Plan") || null;
+  }, [paymentInterests]);
+
+  const latestContributionInterest = useMemo(() => {
+    return paymentInterests.find((interest) => interest.intent_type === "Contribution") || null;
+  }, [paymentInterests]);
 
   const visibleProfiles = useMemo(() => {
     const search = profileSearch.trim().toLowerCase();
@@ -2022,6 +2043,26 @@ export default function Home() {
   }, [session]);
 
   useEffect(() => {
+    async function loadPaymentInterests() {
+      if (!supabase || !session?.user.id) {
+        setPaymentInterests([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("payment_interests")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setPaymentInterests(data as PaymentInterest[]);
+    }
+
+    loadPaymentInterests();
+  }, [session]);
+
+  useEffect(() => {
     async function loadTeamRequests() {
       if (!supabase || !session?.user.id) {
         setTeamRequests([]);
@@ -2196,6 +2237,57 @@ export default function Home() {
     setMessage(`Please save your profile before you ${action}.`);
     setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
     return false;
+  }
+
+  async function recordPaymentInterest(
+    intentType: PaymentInterest["intent_type"],
+    label: string,
+    amountLabel: string
+  ) {
+    if (!requireLogin("select a plan or contribution range")) return;
+    if (!requireProfile("select a plan or contribution range")) return;
+
+    const actionKey = `${intentType}-${label}-${amountLabel}`;
+    const interest = {
+      user_id: session?.user.id || "",
+      display_name: profileName(),
+      intent_type: intentType,
+      label,
+      amount_label: amountLabel,
+      status: "Interested" as const
+    };
+
+    setPaymentActionKey(actionKey);
+    setMessage("");
+
+    if (!supabase) {
+      setPaymentInterests((items) => [
+        {
+          ...interest,
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString()
+        },
+        ...items
+      ]);
+      setMessage(`Demo mode: saved ${label} interest.`);
+      setPaymentActionKey(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("payment_interests")
+      .insert(interest)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not save payment interest: ${error.message}`);
+    } else if (data) {
+      setPaymentInterests((items) => [data as PaymentInterest, ...items]);
+      setMessage(`${label} saved. Real payment checkout will be added later.`);
+    }
+
+    setPaymentActionKey(null);
   }
 
   function isChallengeCompleted(challenge: Challenge) {
@@ -4411,6 +4503,23 @@ export default function Home() {
               </div>
               <button type="button" onClick={logOut}>Log out</button>
             </div>
+            <div className="accountPaymentCard">
+              <div>
+                <span>Talent7 plan</span>
+                <strong>{currentPaymentInterest ? currentPaymentInterest.label : "Free audience"}</strong>
+                <small>
+                  {currentPaymentInterest
+                    ? currentPaymentInterest.amount_label
+                    : "Audience access stays free"}
+                </small>
+              </div>
+              <div>
+                <span>Founder support</span>
+                <strong>{latestContributionInterest ? latestContributionInterest.amount_label : "$0"}</strong>
+                <small>Real checkout is not connected yet.</small>
+              </div>
+              <a href="#plans">View plans</a>
+            </div>
             <form className="profileForm" key={profile?.updated_at || session.user.id} onSubmit={saveProfile}>
               <label>
                 Display name
@@ -5800,6 +5909,26 @@ export default function Home() {
           <strong>Payments are not live yet.</strong>
           <small>These cards explain the future business model first. Stripe or another payment system can be added after the app flow feels right.</small>
         </div>
+        <div className="paymentStatusPanel">
+          <div>
+            <span>Current plan interest</span>
+            <strong>{currentPaymentInterest ? currentPaymentInterest.label : "Free audience"}</strong>
+            <small>
+              {currentPaymentInterest
+                ? `${currentPaymentInterest.amount_label} selected for later checkout`
+                : "No paid plan selected yet"}
+            </small>
+          </div>
+          <div>
+            <span>Latest contribution interest</span>
+            <strong>{latestContributionInterest ? latestContributionInterest.amount_label : "$0"}</strong>
+            <small>
+              {latestContributionInterest
+                ? `${latestContributionInterest.label} saved`
+                : "Optional founder support can be selected below"}
+            </small>
+          </div>
+        </div>
         <div className="plansGrid">
           <article>
             <span>Audience</span>
@@ -5810,6 +5939,13 @@ export default function Home() {
               <li>Vote and rate out of 7</li>
               <li>Follow profiles and results</li>
             </ul>
+            <button
+              disabled={paymentActionKey === "Plan-Free audience-Free"}
+              onClick={() => recordPaymentInterest("Plan", "Free audience", "Free")}
+              type="button"
+            >
+              {paymentActionKey === "Plan-Free audience-Free" ? "Saving..." : "Keep free"}
+            </button>
           </article>
           <article>
             <span>Basic challenger</span>
@@ -5820,6 +5956,13 @@ export default function Home() {
               <li>Upload victory proof</li>
               <li>Build early public history</li>
             </ul>
+            <button
+              disabled={paymentActionKey === "Plan-Basic challenger-Free"}
+              onClick={() => recordPaymentInterest("Plan", "Basic challenger", "Free")}
+              type="button"
+            >
+              {paymentActionKey === "Plan-Basic challenger-Free" ? "Saving..." : "Select challenger"}
+            </button>
           </article>
           <article>
             <span>Challenge Plus</span>
@@ -5831,6 +5974,13 @@ export default function Home() {
               <li>More invite and team tools</li>
             </ul>
             <em>Subscription idea</em>
+            <button
+              disabled={paymentActionKey === "Plan-Challenge Plus-Future subscription"}
+              onClick={() => recordPaymentInterest("Plan", "Challenge Plus", "Future subscription")}
+              type="button"
+            >
+              {paymentActionKey === "Plan-Challenge Plus-Future subscription" ? "Saving..." : "I want Challenge Plus"}
+            </button>
           </article>
           <article>
             <span>Coach / instructor</span>
@@ -5842,6 +5992,13 @@ export default function Home() {
               <li>Uploaded lessons and live coaching</li>
             </ul>
             <em>Monthly or platform fee</em>
+            <button
+              disabled={paymentActionKey === "Plan-Coach Pro-Future coach fee"}
+              onClick={() => recordPaymentInterest("Plan", "Coach Pro", "Future coach fee")}
+              type="button"
+            >
+              {paymentActionKey === "Plan-Coach Pro-Future coach fee" ? "Saving..." : "I am a coach"}
+            </button>
           </article>
           <article>
             <span>Team / organizer</span>
@@ -5853,6 +6010,13 @@ export default function Home() {
               <li>Venue and event links</li>
             </ul>
             <em>Organizer tools</em>
+            <button
+              disabled={paymentActionKey === "Plan-Organizer Pro-Future organizer fee"}
+              onClick={() => recordPaymentInterest("Plan", "Organizer Pro", "Future organizer fee")}
+              type="button"
+            >
+              {paymentActionKey === "Plan-Organizer Pro-Future organizer fee" ? "Saving..." : "I organize events"}
+            </button>
           </article>
         </div>
         <div className="contributionBox">
@@ -5863,7 +6027,14 @@ export default function Home() {
           </div>
           <div className="contributionButtons">
             {["$0-50", "$50-200", "$200-1000", "$1000+"].map((amount) => (
-              <button key={amount} type="button">{amount}</button>
+              <button
+                disabled={paymentActionKey === `Contribution-Founder support-${amount}`}
+                key={amount}
+                onClick={() => recordPaymentInterest("Contribution", "Founder support", amount)}
+                type="button"
+              >
+                {paymentActionKey === `Contribution-Founder support-${amount}` ? "Saving..." : amount}
+              </button>
             ))}
           </div>
         </div>
