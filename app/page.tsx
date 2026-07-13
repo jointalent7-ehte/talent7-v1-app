@@ -243,7 +243,7 @@ type SafetyReportItem = {
 type AppNotification = {
   id: string;
   label: string;
-  category: "Invites" | "Teams" | "Proof" | "Results" | "Reports" | "Showcase";
+  category: "Invites" | "Teams" | "Proof" | "Results" | "Reports" | "Showcase" | "Expert help";
   title: string;
   detail: string;
   createdAt: string;
@@ -1107,6 +1107,9 @@ export default function Home() {
       joins.filter((join) => join.user_id === userId).map((join) => join.challenge_id)
     );
     const myPostIds = new Set(showcasePosts.filter((post) => post.user_id === userId).map((post) => post.id));
+    const myExpertProfileIds = new Set(
+      expertProfiles.filter((expert) => expert.user_id === userId).map((expert) => expert.id)
+    );
 
     const receivedInviteAlerts = inviteInbox.received.map((invite) => ({
       id: `notification-invite-${invite.id}`,
@@ -1208,6 +1211,47 @@ export default function Home() {
         href: "#showcase"
       }));
 
+    const requesterAssignedAlerts = expertHelpRequests
+      .filter((request) => request.requester_id === userId && request.status === "Assigned" && request.assigned_expert_name)
+      .map((request) => ({
+        id: `notification-expert-assigned-requester-${request.id}`,
+        label: "Expert assigned",
+        category: "Expert help" as const,
+        title: request.help_type,
+        detail: `${request.assigned_expert_name} was assigned to your help request.`,
+        createdAt: request.updated_at || request.created_at,
+        href: "#expert-help"
+      }));
+
+    const assignedExpertAlerts = expertHelpRequests
+      .filter(
+        (request) =>
+          request.status === "Assigned" &&
+          request.assigned_expert_id &&
+          myExpertProfileIds.has(request.assigned_expert_id)
+      )
+      .map((request) => ({
+        id: `notification-expert-assigned-helper-${request.id}`,
+        label: "Assigned to you",
+        category: "Expert help" as const,
+        title: request.help_type,
+        detail: `${request.requester_name} needs guidance: ${request.details}`,
+        createdAt: request.updated_at || request.created_at,
+        href: "#expert-help"
+      }));
+
+    const expertResponseAlerts = expertHelpRequests
+      .filter((request) => request.requester_id === userId && Boolean(request.expert_response))
+      .map((request) => ({
+        id: `notification-expert-response-${request.id}`,
+        label: "Expert responded",
+        category: "Expert help" as const,
+        title: request.help_type,
+        detail: request.expert_response || "Your assigned expert added a response.",
+        createdAt: request.expert_response_at || request.updated_at || request.created_at,
+        href: "#expert-help"
+      }));
+
     return [
       ...receivedInviteAlerts,
       ...sentInviteAlerts,
@@ -1216,12 +1260,17 @@ export default function Home() {
       ...proofAlerts,
       ...completedAlerts,
       ...reportAlerts,
-      ...commentAlerts
+      ...commentAlerts,
+      ...requesterAssignedAlerts,
+      ...assignedExpertAlerts,
+      ...expertResponseAlerts
     ]
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
       .slice(0, 12);
   }, [
     challenges,
+    expertHelpRequests,
+    expertProfiles,
     inviteInbox,
     joins,
     mySafetyReports,
@@ -3737,7 +3786,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Notifications</p>
           <h2>What needs your attention</h2>
-          <p>See invites, team requests, proof uploads, completed challenges, report updates, and showcase comments in one place.</p>
+          <p>See invites, team requests, proof uploads, completed challenges, report updates, expert help, and showcase comments in one place.</p>
         </div>
         {session ? (
           notifications.length > 0 ? (
@@ -3754,13 +3803,13 @@ export default function Home() {
                 Search notifications
                 <input
                   onChange={(event) => setNotificationSearch(event.target.value)}
-                  placeholder="Search invites, proof, teams, reports..."
+                  placeholder="Search invites, proof, teams, reports, expert help..."
                   type="search"
                   value={notificationSearch}
                 />
               </label>
               <div className="notificationFilters">
-                {(["All", "Unread", "Invites", "Teams", "Proof", "Results", "Reports", "Showcase"] as NotificationFilter[]).map(
+                {(["All", "Unread", "Invites", "Teams", "Proof", "Results", "Reports", "Showcase", "Expert help"] as NotificationFilter[]).map(
                   (filter) => (
                     <button
                       className={selectedNotificationFilter === filter ? "active" : ""}
@@ -3810,7 +3859,7 @@ export default function Home() {
           ) : (
             <div className="emptyState">
               <strong>No notifications yet.</strong>
-              <small>Invites, team updates, proof uploads, reports, and comments will appear here.</small>
+              <small>Invites, team updates, proof uploads, expert help, reports, and comments will appear here.</small>
             </div>
           )
         ) : (
