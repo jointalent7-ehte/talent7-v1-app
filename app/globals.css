@@ -4848,6 +4848,110 @@ textarea {
   white-space: nowrap;
 }
 
+.roomChat {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: #eef4f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.roomChatHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.roomChatHeader div {
+  display: grid;
+  gap: 4px;
+}
+
+.roomChatHeader small,
+.roomChatMessages > small {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.roomChatHeader span {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  color: var(--teal);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.roomChatForm {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.roomChatForm input {
+  min-height: 42px;
+  background: #fff;
+}
+
+.roomChatForm button,
+.roomChatMessage button {
+  min-height: 42px;
+  padding: 10px 14px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.roomChatMessages {
+  display: grid;
+  gap: 8px;
+}
+
+.roomChatMessage {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.roomChatMessage div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.roomChatMessage small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.roomChatMessage p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.roomChatMessage button {
+  justify-self: start;
+  min-height: 34px;
+  padding: 8px 12px;
+  color: var(--ink);
+  background: #fff4d8;
+  border: 1px solid #efd28a;
+}
+
 .roomDetails {
   padding: 12px;
   background: #fff;

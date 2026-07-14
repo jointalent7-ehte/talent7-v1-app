@@ -93,6 +93,15 @@ type ChallengeInvite = {
   updated_at?: string | null;
 };
 
+type ChallengeMessage = {
+  id: string;
+  challenge_id: string;
+  user_id?: string | null;
+  author_name: string;
+  body: string;
+  created_at: string;
+};
+
 type ShowcasePost = {
   id: string;
   user_id: string;
@@ -549,6 +558,8 @@ export default function Home() {
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
   const [reportingChallengeId, setReportingChallengeId] = useState<string | null>(null);
+  const [sendingChatChallengeId, setSendingChatChallengeId] = useState<string | null>(null);
+  const [reportingChatMessageId, setReportingChatMessageId] = useState<string | null>(null);
   const [inviteActionId, setInviteActionId] = useState<string | null>(null);
   const [joinChoices, setJoinChoices] = useState<Record<string, { role: JoinRole; side: string }>>({});
   const [proofTypes, setProofTypes] = useState<Record<string, string>>({});
@@ -558,6 +569,7 @@ export default function Home() {
   const [proofs, setProofs] = useState<ChallengeProof[]>([]);
   const [invites, setInvites] = useState<ChallengeInvite[]>([]);
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
+  const [challengeMessages, setChallengeMessages] = useState<ChallengeMessage[]>([]);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
   const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
@@ -725,6 +737,14 @@ export default function Home() {
       return groups;
     }, {});
   }, [proofs]);
+
+  const roomMessages = useMemo(() => {
+    return challengeMessages.reduce<Record<string, ChallengeMessage[]>>((groups, chatMessage) => {
+      groups[chatMessage.challenge_id] = groups[chatMessage.challenge_id] || [];
+      groups[chatMessage.challenge_id].push(chatMessage);
+      return groups;
+    }, {});
+  }, [challengeMessages]);
 
   const showcaseResults = useMemo(() => {
     return showcaseRatings.reduce<Record<string, { ratingAverage: string; ratingCount: number }>>((results, rating) => {
@@ -1994,6 +2014,19 @@ export default function Home() {
     });
   }
 
+  function canUseRoomChat(challenge: Challenge) {
+    if (!session?.user.id) return false;
+    if (challenge.created_by === session.user.id) return true;
+    return joins.some((join) => join.challenge_id === challenge.id && join.user_id === session.user.id);
+  }
+
+  function roomChatHint(challenge: Challenge) {
+    if (!session) return "Log in to read and send room messages.";
+    if (!canUseRoomChat(challenge)) return "Join this challenge first to send room messages.";
+    if (isChallengeCompleted(challenge)) return "This room is completed, so chat is read-only.";
+    return "Use room chat for coordination. Avoid sharing phone numbers or sensitive personal details.";
+  }
+
   function joinChoice(challengeId: string) {
     return joinChoices[challengeId] || { role: "Challenger" as JoinRole, side: "Open invite" };
   }
@@ -2296,6 +2329,22 @@ export default function Home() {
     }
 
     loadProofs();
+  }, []);
+
+  useEffect(() => {
+    async function loadChallengeMessages() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("challenge_messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) return;
+      if (data) setChallengeMessages(data as ChallengeMessage[]);
+    }
+
+    loadChallengeMessages();
   }, []);
 
   useEffect(() => {
@@ -4313,6 +4362,108 @@ export default function Home() {
     }
 
     setSavingProofChallengeId(null);
+  }
+
+  async function sendChallengeMessage(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    if (!requireLogin("send a room message")) return;
+    if (!requireProfile("send a room message")) return;
+
+    if (!canUseRoomChat(challenge)) {
+      setMessage("Join this challenge first before sending room messages.");
+      return;
+    }
+
+    if (isChallengeCompleted(challenge)) {
+      setMessage("This challenge is completed, so room chat is read-only.");
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const body = String(form.get("body") || "").trim();
+
+    if (body.length < 2) {
+      setMessage("Write a short message first.");
+      return;
+    }
+
+    const chatMessage = {
+      challenge_id: challenge.id,
+      user_id: session?.user.id,
+      author_name: profileName(),
+      body: body.slice(0, 280)
+    };
+
+    setSendingChatChallengeId(challenge.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setChallengeMessages((items) => [
+        {
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          ...chatMessage
+        },
+        ...items
+      ]);
+      formElement.reset();
+      setSendingChatChallengeId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("challenge_messages")
+      .insert(chatMessage)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not send message: ${error.message}`);
+    } else if (data) {
+      setChallengeMessages((items) => [data as ChallengeMessage, ...items]);
+      formElement.reset();
+    }
+
+    setSendingChatChallengeId(null);
+  }
+
+  async function reportChallengeMessage(chatMessage: ChallengeMessage, challenge: Challenge) {
+    if (!requireLogin("report a message")) return;
+
+    setReportingChatMessageId(chatMessage.id);
+    setMessage("");
+
+    const report = {
+      challenge_id: challenge.id,
+      proof_id: null,
+      reporter_id: session?.user.id,
+      target_type: "Challenge",
+      reason: "Other" as ReportReason,
+      notes: `Reported chat message from ${chatMessage.author_name}: ${chatMessage.body}`,
+      status: "Open"
+    };
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setMessage("Message report saved for this preview.");
+      setReportingChatMessageId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("reports")
+      .insert(report)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not report message: ${error.message}`);
+    } else if (data) {
+      setChallengeReports((items) => [data as ChallengeReport, ...items]);
+      setMessage("Message reported. Thank you for helping keep Talent7 safe.");
+    }
+
+    setReportingChatMessageId(null);
   }
 
   async function submitReport(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -8204,6 +8355,7 @@ export default function Home() {
             const proofAllowed = canManageTeamProof(challenge);
             const resultAllowed = canManageTeamResult(challenge);
             const roleNotice = teamPermissionLabel(challenge);
+            const messages = roomMessages[challenge.id] || [];
 
             return (
             <article
@@ -8410,6 +8562,49 @@ export default function Home() {
                   ))}
                 </div>
               )}
+              <div className="roomChat">
+                <div className="roomChatHeader">
+                  <div>
+                    <strong>Room chat</strong>
+                    <small>{roomChatHint(challenge)}</small>
+                  </div>
+                  <span>{messages.length} message{messages.length === 1 ? "" : "s"}</span>
+                </div>
+                {canUseRoomChat(challenge) && !isChallengeCompleted(challenge) && (
+                  <form className="roomChatForm" onSubmit={(event) => sendChallengeMessage(event, challenge)}>
+                    <input
+                      maxLength={280}
+                      name="body"
+                      placeholder="Example: I reached, are you there, upload proof after match..."
+                    />
+                    <button disabled={sendingChatChallengeId === challenge.id} type="submit">
+                      {sendingChatChallengeId === challenge.id ? "Sending..." : "Send"}
+                    </button>
+                  </form>
+                )}
+                <div className="roomChatMessages">
+                  {messages.length > 0 ? (
+                    messages.slice(0, 4).map((chatMessage) => (
+                      <div className="roomChatMessage" key={chatMessage.id}>
+                        <div>
+                          <strong>{chatMessage.author_name}</strong>
+                          <small>{new Date(chatMessage.created_at).toLocaleDateString()}</small>
+                        </div>
+                        <p>{chatMessage.body}</p>
+                        <button
+                          disabled={reportingChatMessageId === chatMessage.id}
+                          onClick={() => reportChallengeMessage(chatMessage, challenge)}
+                          type="button"
+                        >
+                          {reportingChatMessageId === chatMessage.id ? "Reporting..." : "Report"}
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <small>No room messages yet.</small>
+                  )}
+                </div>
+              </div>
               <details className="roomDetails">
                 <summary>Room details</summary>
                 <div className="detailGrid">
