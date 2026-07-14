@@ -2498,18 +2498,38 @@ export default function Home() {
   }
 
   async function copyLaunchUpdate() {
-    const updateText = [
+    await copyShareText("Launch update", launchUpdateText());
+  }
+
+  function siteUrl(path = "") {
+    const base =
+      typeof window !== "undefined" && window.location.origin
+        ? window.location.origin
+        : "https://www.jointalent7.com";
+
+    return `${base}${path}`;
+  }
+
+  function launchUpdateText() {
+    return [
       "Talent7 early access is live at jointalent7.com.",
       `Current build: ${challenges.length} challenge rooms, ${publicProfiles.length} talent profiles, ${proofs.length} proof uploads, and ${firstWaveInterests.length} first-wave tester interests.`,
       "You can join as a challenger, audience voter, coach, organizer, gaming squad, or expert helper.",
       "Try a challenge room, rate out of 7, upload proof, and tell us what to improve next."
     ].join("\n\n");
+  }
+
+  async function copyShareText(label: string, text: string) {
+    if (!navigator?.clipboard) {
+      setMessage("Copy is not available in this browser. You can manually select the text.");
+      return;
+    }
 
     try {
-      await navigator.clipboard.writeText(updateText);
-      setMessage("Launch update copied.");
+      await navigator.clipboard.writeText(text);
+      setMessage(`${label} copied.`);
     } catch {
-      setMessage("Copy failed. You can manually copy the launch update text.");
+      setMessage("Copy failed. You can manually select and copy the text.");
     }
   }
 
@@ -4967,6 +4987,51 @@ export default function Home() {
               <small>Show payment or founder support interest.</small>
             </a>
           </div>
+          <div className="shareStrip">
+            <div>
+              <p className="eyebrow">Share Talent7</p>
+              <strong>Invite first testers faster</strong>
+            </div>
+            <button
+              onClick={() => copyShareText("Talent7 link", siteUrl())}
+              type="button"
+            >
+              Copy invite link
+            </button>
+            <button
+              onClick={() =>
+                copyShareText(
+                  "Challenge invite",
+                  `Join me on Talent7 for proof-based challenge rooms. You can compete, vote winners, rate out of 7, and upload victory proof.\n\nStart here: ${siteUrl("#rooms")}`
+                )
+              }
+              type="button"
+            >
+              Copy challenge invite
+            </button>
+            <button
+              onClick={() =>
+                copyShareText(
+                  "First-wave invite",
+                  `Talent7 is inviting first-wave testers for badminton doubles, breakdance battles, PUBG squads, coaching, teams, and expert help.\n\nJoin the first wave here: ${siteUrl("#first-wave")}`
+                )
+              }
+              type="button"
+            >
+              Copy first-wave invite
+            </button>
+            <button
+              onClick={() =>
+                copyShareText(
+                  "Founder support text",
+                  `Talent7 is being built by a standalone founder. If you like the idea, you can show support or select a future contribution range here:\n\n${siteUrl("#plans")}`
+                )
+              }
+              type="button"
+            >
+              Copy founder support
+            </button>
+          </div>
           <div className="heroGuide">
             <a href="#rooms">
               <span>Compete</span>
@@ -7053,12 +7118,45 @@ export default function Home() {
               </article>
               <article>
                 <p className="eyebrow">Copy update</p>
-                <h3>Social post draft</h3>
+                <h3>Launch sharing tools</h3>
                 <p>
                   Talent7 early access is live at jointalent7.com. Current build: {challenges.length} challenge rooms,
                   {" "}{publicProfiles.length} talent profiles, {proofs.length} proof uploads, and {firstWaveInterests.length} first-wave tester interests.
                 </p>
                 <button onClick={copyLaunchUpdate} type="button">Copy launch update</button>
+                <button
+                  onClick={() =>
+                    copyShareText(
+                      "Instagram caption",
+                      `Talent7 early access is live.\n\nChallenge rooms, public 7-star ratings, victory proof, teams, coaching, and expert-help previews are now being tested.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentShowcase #SportsChallenge #Breakdance #Gaming`
+                    )
+                  }
+                  type="button"
+                >
+                  Copy Instagram caption
+                </button>
+                <button
+                  onClick={() =>
+                    copyShareText(
+                      "YouTube description",
+                      `Talent7 is an early app for proof-based talent, sports, and gaming challenges. Users can create rooms, join as challenger or audience, vote winners, rate out of 7, upload proof, form teams, request coaching, and join the first tester wave.\n\nTry Talent7: ${siteUrl()}\nJoin first wave: ${siteUrl("#first-wave")}`
+                    )
+                  }
+                  type="button"
+                >
+                  Copy YouTube description
+                </button>
+                <button
+                  onClick={() =>
+                    copyShareText(
+                      "Direct invite",
+                      `I am building Talent7 and looking for early testers. You can join challenges, vote, rate out of 7, upload proof, form teams, or try coaching/expert-help previews.\n\nStart here: ${siteUrl()}`
+                    )
+                  }
+                  type="button"
+                >
+                  Copy direct invite
+                </button>
               </article>
             </div>
           </div>

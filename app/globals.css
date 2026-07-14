@@ -256,6 +256,42 @@ h1 {
   line-height: 1.4;
 }
 
+.shareStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: 1120px;
+  margin-top: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+}
+
+.shareStrip > div {
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  margin-right: auto;
+}
+
+.shareStrip strong {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.shareStrip button {
+  min-height: 42px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .heroGuide {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
