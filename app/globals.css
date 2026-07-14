@@ -4912,12 +4912,17 @@ textarea {
 .roomChatMessages {
   display: grid;
   gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
 }
 
 .roomChatMessage {
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  padding: 9px 10px;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -4926,8 +4931,9 @@ textarea {
 .roomChatMessage div {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
+  min-width: 0;
 }
 
 .roomChatMessage small {
@@ -4937,14 +4943,16 @@ textarea {
 }
 
 .roomChatMessage p {
+  grid-column: 1 / -1;
   margin: 0;
   color: var(--ink);
-  font-size: 0.92rem;
-  line-height: 1.45;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .roomChatMessage button {
-  justify-self: start;
+  justify-self: end;
   min-height: 34px;
   padding: 8px 12px;
   color: var(--ink);

@@ -8584,7 +8584,7 @@ export default function Home() {
                 )}
                 <div className="roomChatMessages">
                   {messages.length > 0 ? (
-                    messages.slice(0, 4).map((chatMessage) => (
+                    messages.slice(0, 20).map((chatMessage) => (
                       <div className="roomChatMessage" key={chatMessage.id}>
                         <div>
                           <strong>{chatMessage.author_name}</strong>
@@ -8603,6 +8603,7 @@ export default function Home() {
                   ) : (
                     <small>No room messages yet.</small>
                   )}
+                  {messages.length > 20 && <small>Showing latest 20 messages.</small>}
                 </div>
               </div>
               <details className="roomDetails">
