@@ -363,6 +363,164 @@ form button {
   text-decoration: none;
 }
 
+.firstWaveSignup,
+.firstWaveOwnerPanel {
+  margin-top: 16px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.07);
+}
+
+.firstWaveSignup {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 14px;
+}
+
+.firstWaveSignup form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.firstWaveSignup form > div,
+.firstWaveSignup .full,
+.firstWaveSignup button {
+  grid-column: 1 / -1;
+}
+
+.firstWaveSignup h3,
+.firstWaveOwnerHeader h3 {
+  margin-bottom: 8px;
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  line-height: 1;
+}
+
+.firstWaveSignup p,
+.firstWaveOwnerHeader small,
+.firstWaveStatusCard small,
+.firstWaveList small,
+.firstWaveList p {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.firstWaveSignup button {
+  padding: 14px 16px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 950;
+}
+
+.firstWaveSignup aside,
+.firstWaveStatusCard {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 16px;
+  background: #eef8f7;
+  border: 1px solid #b7ddda;
+  border-radius: 8px;
+}
+
+.firstWaveStatusCard span,
+.firstWaveList span {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.firstWaveStatusCard strong {
+  font-size: 1.25rem;
+}
+
+.firstWaveStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.firstWaveStats small {
+  padding: 10px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.firstWaveOwnerHeader,
+.firstWaveList article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.firstWaveOwnerHeader {
+  margin-bottom: 14px;
+}
+
+.firstWaveOwnerHeader > strong {
+  padding: 10px 12px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+}
+
+.firstWaveList {
+  display: grid;
+  gap: 10px;
+}
+
+.firstWaveList article {
+  padding: 14px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.firstWaveList article > div:first-child {
+  display: grid;
+  gap: 7px;
+}
+
+.firstWaveActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.firstWaveActions button {
+  padding: 9px 10px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.firstWaveActions button.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+.firstWaveActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .createForm {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4297,6 +4455,9 @@ textarea {
   .heroMetrics,
   .heroGuide,
   .firstWaveGrid,
+  .firstWaveSignup,
+  .firstWaveSignup form,
+  .firstWaveStats,
   .myTeamsGrid,
   .teamGrid,
   .teamMeta,
@@ -4355,6 +4516,8 @@ textarea {
   .adminModerationHeader,
   .ownerPaymentHeader,
   .ownerPaymentList article,
+  .firstWaveOwnerHeader,
+  .firstWaveList article,
   .feedbackInboxHeader,
   .expertHelpInboxHeader,
   .adminQueues article > div:first-child {

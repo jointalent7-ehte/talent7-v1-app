@@ -197,6 +197,20 @@ type FounderFeedback = {
   updated_at?: string | null;
 };
 
+type FirstWaveInterest = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  main_interest: string;
+  region: string;
+  role_goal: "Challenger" | "Audience" | "Coach" | "Organizer" | "Expert helper" | "Gaming squad";
+  availability: "Ready now" | "This week" | "This month" | "Just exploring";
+  notes: string | null;
+  status: "New" | "Contact later" | "Invited" | "Active tester";
+  created_at: string;
+  updated_at?: string | null;
+};
+
 type ExpertHelpRequest = {
   id: string;
   requester_id: string;
@@ -550,6 +564,7 @@ export default function Home() {
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
   const [paymentInterests, setPaymentInterests] = useState<PaymentInterest[]>([]);
   const [founderFeedback, setFounderFeedback] = useState<FounderFeedback[]>([]);
+  const [firstWaveInterests, setFirstWaveInterests] = useState<FirstWaveInterest[]>([]);
   const [expertHelpRequests, setExpertHelpRequests] = useState<ExpertHelpRequest[]>([]);
   const [expertProfiles, setExpertProfiles] = useState<ExpertProfile[]>([]);
   const [teams, setTeams] = useState<TalentTeam[]>([]);
@@ -562,6 +577,8 @@ export default function Home() {
   const [paymentActionKey, setPaymentActionKey] = useState<string | null>(null);
   const [savingFeedback, setSavingFeedback] = useState(false);
   const [feedbackActionKey, setFeedbackActionKey] = useState<string | null>(null);
+  const [savingFirstWave, setSavingFirstWave] = useState(false);
+  const [firstWaveActionKey, setFirstWaveActionKey] = useState<string | null>(null);
   const [savingExpertHelp, setSavingExpertHelp] = useState(false);
   const [expertHelpActionId, setExpertHelpActionId] = useState<string | null>(null);
   const [savingExpertProfile, setSavingExpertProfile] = useState(false);
@@ -823,6 +840,10 @@ export default function Home() {
   const latestContributionInterest = useMemo(() => {
     return paymentInterests.find((interest) => interest.intent_type === "Contribution") || null;
   }, [paymentInterests]);
+
+  const myFirstWaveInterest = useMemo(() => {
+    return firstWaveInterests.find((interest) => interest.user_id === session?.user.id) || null;
+  }, [firstWaveInterests, session]);
 
   const visibleProfiles = useMemo(() => {
     const search = profileSearch.trim().toLowerCase();
@@ -2239,6 +2260,31 @@ export default function Home() {
   }, [isOwnerReviewer, session]);
 
   useEffect(() => {
+    async function loadFirstWaveInterests() {
+      if (!supabase || !session?.user.id) {
+        setFirstWaveInterests([]);
+        return;
+      }
+
+      let query = supabase
+        .from("first_wave_interests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!isOwnerReviewer) {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) return;
+      if (data) setFirstWaveInterests(data as FirstWaveInterest[]);
+    }
+
+    loadFirstWaveInterests();
+  }, [isOwnerReviewer, session]);
+
+  useEffect(() => {
     async function loadTeamRequests() {
       if (!supabase || !session?.user.id) {
         setTeamRequests([]);
@@ -2497,6 +2543,105 @@ export default function Home() {
     }
 
     setPaymentActionKey(null);
+  }
+
+  async function submitFirstWaveInterest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!requireLogin("join the first wave")) return;
+    if (!requireProfile("join the first wave")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const mainInterest = String(form.get("main_interest") || "").trim();
+    const region = String(form.get("region") || "").trim();
+    const roleGoal = String(form.get("role_goal") || "Challenger") as FirstWaveInterest["role_goal"];
+    const availability = String(form.get("availability") || "Ready now") as FirstWaveInterest["availability"];
+    const notes = String(form.get("notes") || "").trim();
+
+    if (!mainInterest || !region) {
+      setMessage("Add your main interest and region before joining the first wave.");
+      return;
+    }
+
+    const interest = {
+      user_id: session?.user.id || "",
+      display_name: profileName(),
+      main_interest: mainInterest,
+      region,
+      role_goal: roleGoal,
+      availability,
+      notes: notes || null,
+      status: "New" as const
+    };
+
+    setSavingFirstWave(true);
+    setMessage("");
+
+    if (!supabase) {
+      setFirstWaveInterests((items) => [
+        {
+          ...interest,
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString()
+        },
+        ...items.filter((item) => item.user_id !== interest.user_id)
+      ]);
+      setMessage("Demo mode: first-wave interest saved on this page.");
+      setSavingFirstWave(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("first_wave_interests")
+      .upsert(interest, { onConflict: "user_id" })
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not save first-wave interest: ${error.message}`);
+    } else if (data) {
+      setFirstWaveInterests((items) => [
+        data as FirstWaveInterest,
+        ...items.filter((item) => item.id !== (data as FirstWaveInterest).id)
+      ]);
+      setMessage("You are on the Talent7 first-wave list.");
+      formElement.reset();
+    }
+
+    setSavingFirstWave(false);
+  }
+
+  async function updateFirstWaveStatus(interest: FirstWaveInterest, status: FirstWaveInterest["status"]) {
+    if (!requireLogin("update first-wave testers")) return;
+
+    if (!isOwnerReviewer) {
+      setMessage("Only the Talent7 owner account can update first-wave testers.");
+      return;
+    }
+
+    if (!supabase) return;
+
+    const actionKey = `${interest.id}-${status}`;
+    setFirstWaveActionKey(actionKey);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("first_wave_interests")
+      .update({ status })
+      .eq("id", interest.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update first-wave tester: ${error.message}`);
+    } else if (data) {
+      setFirstWaveInterests((items) =>
+        items.map((item) => (item.id === interest.id ? (data as FirstWaveInterest) : item))
+      );
+      setMessage(`${interest.display_name} marked ${status.toLowerCase()}.`);
+    }
+
+    setFirstWaveActionKey(null);
   }
 
   async function submitFounderFeedback(event: FormEvent<HTMLFormElement>) {
@@ -4789,6 +4934,133 @@ export default function Home() {
             <a href="#profiles">Browse people</a>
           </article>
         </div>
+        <div className="firstWaveSignup">
+          <form onSubmit={submitFirstWaveInterest}>
+            <div>
+              <p className="eyebrow">First wave list</p>
+              <h3>Tell Talent7 what you want first</h3>
+              <p>
+                This helps the owner understand who is ready to test challenges, coaching, teams, games, and expert help.
+              </p>
+            </div>
+            <label>
+              Main interest
+              <select name="main_interest" defaultValue={profile?.main_interest || "Badminton doubles"}>
+                {[
+                  "Badminton doubles",
+                  "Breakdance battles",
+                  "PUBG squad battle",
+                  "Mech Arena challenge",
+                  "Sports coaching",
+                  "Expert help",
+                  "Team tournaments",
+                  "Other talent showcase"
+                ].map((interest) => (
+                  <option key={interest}>{interest}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Region
+              <input name="region" placeholder="Example: Mumbai, India" defaultValue={profile?.region || ""} />
+            </label>
+            <label>
+              I want to join as
+              <select name="role_goal" defaultValue="Challenger">
+                {(["Challenger", "Audience", "Coach", "Organizer", "Expert helper", "Gaming squad"] as FirstWaveInterest["role_goal"][]).map(
+                  (role) => (
+                    <option key={role}>{role}</option>
+                  )
+                )}
+              </select>
+            </label>
+            <label>
+              Availability
+              <select name="availability" defaultValue="Ready now">
+                {(["Ready now", "This week", "This month", "Just exploring"] as FirstWaveInterest["availability"][]).map((availability) => (
+                  <option key={availability}>{availability}</option>
+                ))}
+              </select>
+            </label>
+            <label className="full">
+              Notes
+              <textarea
+                name="notes"
+                placeholder="Example: I can test badminton audience voting, or I want to create a PUBG squad challenge."
+              />
+            </label>
+            <button disabled={savingFirstWave} type="submit">
+              {savingFirstWave ? "Saving first-wave interest..." : myFirstWaveInterest ? "Update first-wave interest" : "Join first wave"}
+            </button>
+          </form>
+          <aside>
+            <p className="eyebrow">{isOwnerReviewer ? "Owner view" : "My first-wave status"}</p>
+            <h3>{isOwnerReviewer ? "Early tester dashboard" : myFirstWaveInterest ? "You are on the list" : "Join when ready"}</h3>
+            {myFirstWaveInterest ? (
+              <div className="firstWaveStatusCard">
+                <span>{myFirstWaveInterest.status}</span>
+                <strong>{myFirstWaveInterest.main_interest}</strong>
+                <small>
+                  {myFirstWaveInterest.role_goal} · {myFirstWaveInterest.region} · {myFirstWaveInterest.availability}
+                </small>
+              </div>
+            ) : (
+              <p>Save your profile, then join the first wave so Talent7 knows what to build around first.</p>
+            )}
+            <div className="firstWaveStats">
+              <small>{firstWaveInterests.length} total</small>
+              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Challenger").length} challengers</small>
+              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Coach").length} coaches</small>
+              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Expert helper").length} experts</small>
+            </div>
+          </aside>
+        </div>
+        {isOwnerReviewer && (
+          <div className="firstWaveOwnerPanel">
+            <div className="firstWaveOwnerHeader">
+              <div>
+                <p className="eyebrow">Owner first wave</p>
+                <h3>People ready to test Talent7</h3>
+                <small>Use this list to decide who to message first and which feature lane is getting traction.</small>
+              </div>
+              <strong>{firstWaveInterests.length} signups</strong>
+            </div>
+            {firstWaveInterests.length > 0 ? (
+              <div className="firstWaveList">
+                {firstWaveInterests.slice(0, 12).map((interest) => (
+                  <article key={interest.id}>
+                    <div>
+                      <span>{interest.role_goal}</span>
+                      <strong>{interest.display_name}</strong>
+                      <small>
+                        {interest.main_interest} · {interest.region} · {interest.availability}
+                      </small>
+                      {interest.notes && <p>{interest.notes}</p>}
+                    </div>
+                    <div className="firstWaveActions">
+                      {(["New", "Contact later", "Invited", "Active tester"] as FirstWaveInterest["status"][]).map((status) => (
+                        <button
+                          className={interest.status === status ? "active" : ""}
+                          disabled={firstWaveActionKey === `${interest.id}-${status}` || interest.status === status}
+                          key={status}
+                          onClick={() => updateFirstWaveStatus(interest, status)}
+                          type="button"
+                        >
+                          {firstWaveActionKey === `${interest.id}-${status}` ? "Saving..." : status}
+                        </button>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="emptyState">
+                <strong>No first-wave signups yet.</strong>
+                <small>Early tester interest will appear here after users submit the form.</small>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="section notificationsSection" id="notifications">
