@@ -4846,7 +4846,7 @@ export default function Home() {
             <a href="#my-talent7" className="secondary">Open dashboard</a>
           </div>
           <div className="earlyAccessCallout">
-            <strong>First wave focus</strong>
+            <a className="focusLink" href="#first-wave">First wave focus</a>
             <span>Badminton doubles, breakdance battles, PUBG squads, coaching offers, and safe expert-help requests.</span>
             <a href="#plans">Support the founder</a>
           </div>

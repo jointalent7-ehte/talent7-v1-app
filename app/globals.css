@@ -180,11 +180,13 @@ h1 {
   border-radius: 8px;
 }
 
-.earlyAccessCallout strong {
+.earlyAccessCallout .focusLink {
   padding: 7px 9px;
   color: var(--ink);
   background: var(--gold);
   border-radius: 8px;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .earlyAccessCallout span {
