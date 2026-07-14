@@ -5561,6 +5561,16 @@ export default function Home() {
               </div>
               <a href="#plans">View plans</a>
             </div>
+            <div className="accountLegalCard">
+              <div>
+                <span>Account safety</span>
+                <strong>Privacy, support, and deletion</strong>
+                <small>Manage support questions and account deletion requests from public Play Store-ready pages.</small>
+              </div>
+              <a href="/privacy">Privacy Policy</a>
+              <a href="/delete-account">Delete account request</a>
+              <a href="/support">Support</a>
+            </div>
             <form className="profileForm" key={profile?.updated_at || session.user.id} onSubmit={saveProfile}>
               <label>
                 Display name
@@ -7492,6 +7502,9 @@ export default function Home() {
             <h3>Questions, reports, or permission requests</h3>
             <p>Use Founder Feedback inside the app, or contact the Talent7 founder email if something needs direct attention.</p>
           </div>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/delete-account">Delete account</a>
+          <a href="/support">Support</a>
           <a href="mailto:jointalent7@gmail.com">jointalent7@gmail.com</a>
           <a href="#feedback">Open founder feedback</a>
           <a href="#safety">Open safety reports</a>
@@ -8532,6 +8545,9 @@ export default function Home() {
         <nav>
           <a href="#account">Account</a>
           <a href="#first-wave">First wave</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/delete-account">Delete account</a>
+          <a href="/support">Support</a>
           <a href="#trust-terms">Trust & terms</a>
           <a href="#safety">Safety</a>
           <a href="#feedback">Feedback</a>
