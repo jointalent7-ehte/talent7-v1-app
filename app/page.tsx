@@ -11,6 +11,10 @@ type ExpertHelpType = "Medical guidance" | "Plumbing" | "Electrical" | "Tech hel
 const teamMemberRoles = ["Player", "Captain", "Dancer", "Coach", "Substitute", "Proof uploader", "Organizer"];
 const proofManagerRoles = ["Captain", "Organizer", "Proof uploader"];
 const resultManagerRoles = ["Captain", "Organizer"];
+const maxPhotoUploadBytes = 10 * 1024 * 1024;
+const maxVideoUploadBytes = 50 * 1024 * 1024;
+const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+const videoMimeTypes = ["video/mp4", "video/quicktime"];
 const expertHelpTypes: ExpertHelpType[] = [
   "Medical guidance",
   "Plumbing",
@@ -1946,6 +1950,25 @@ export default function Home() {
     });
   }
 
+  function validateUploadFile(file: File) {
+    const isImage = imageMimeTypes.includes(file.type);
+    const isVideo = videoMimeTypes.includes(file.type);
+
+    if (!isImage && !isVideo) {
+      return "Please upload JPG, PNG, WebP, MP4, or MOV files only.";
+    }
+
+    if (isImage && file.size > maxPhotoUploadBytes) {
+      return "Photos and screenshots must be 10 MB or smaller.";
+    }
+
+    if (isVideo && file.size > maxVideoUploadBytes) {
+      return "Videos must be 50 MB or smaller. Short 30-60 second clips work best.";
+    }
+
+    return "";
+  }
+
   async function uploadMediaFile(bucket: "challenge-proofs" | "showcase-media", file: File, folder: string) {
     if (!supabase || !session?.user.id) {
       throw new Error("Supabase Storage is not connected yet.");
@@ -3555,6 +3578,14 @@ export default function Home() {
       return;
     }
 
+    if (mediaFile) {
+      const uploadError = validateUploadFile(mediaFile);
+      if (uploadError) {
+        setMessage(uploadError);
+        return;
+      }
+    }
+
     setSavingShowcasePost(true);
     setMessage("");
 
@@ -4307,6 +4338,14 @@ export default function Home() {
     if (!proofUrl && !proofFile) {
       setMessage("Please paste a proof link or upload a proof file first.");
       return;
+    }
+
+    if (proofFile) {
+      const uploadError = validateUploadFile(proofFile);
+      if (uploadError) {
+        setMessage(uploadError);
+        return;
+      }
     }
 
     setSavingProofChallengeId(challenge.id);
@@ -5834,7 +5873,7 @@ export default function Home() {
             <label className="wide fileUpload">
               Upload photo or video
               <input accept="image/*,video/*" name="media_file" type="file" />
-              <small>Optional: choose a local file instead of pasting a link.</small>
+              <small>Optional: JPG, PNG, or WebP up to 10 MB. MP4 or MOV up to 50 MB.</small>
             </label>
             <label className="wide">
               Caption
@@ -8515,7 +8554,7 @@ export default function Home() {
                     <label className="fileUpload compact">
                       Upload proof file
                       <input accept="image/*,video/*" name="proof_file" type="file" />
-                      <small>Optional: upload a photo, video, or screenshot instead of pasting a link.</small>
+                      <small>Optional: photos/screenshots up to 10 MB, videos up to 50 MB.</small>
                     </label>
                     <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
                     <button disabled={savingProofChallengeId === challenge.id || !proofAllowed} type="submit">
