@@ -1597,6 +1597,18 @@ textarea {
   cursor: pointer;
 }
 
+.showcaseMeta button.dangerAction,
+.proofItem button.dangerAction {
+  color: #fff;
+  background: #b42318;
+}
+
+.showcaseMeta button.dangerAction:disabled,
+.proofItem button.dangerAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 .showcaseRatingButtons {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -4841,6 +4853,15 @@ textarea {
 
 .proofItem small a {
   color: var(--teal);
+}
+
+.proofItem button.dangerAction {
+  justify-self: start;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
 }
 
 .proofList small {

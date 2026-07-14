@@ -692,6 +692,8 @@ export default function Home() {
   const [savingShowcasePost, setSavingShowcasePost] = useState(false);
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
   const [reportingShowcaseTarget, setReportingShowcaseTarget] = useState<string | null>(null);
+  const [deletingShowcasePostId, setDeletingShowcasePostId] = useState<string | null>(null);
+  const [deletingProofId, setDeletingProofId] = useState<string | null>(null);
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
   const [launchQaDoneKeys, setLaunchQaDoneKeys] = useState<string[]>([]);
   const [playStoreDoneKeys, setPlayStoreDoneKeys] = useState<string[]>([]);
@@ -1983,6 +1985,10 @@ export default function Home() {
 
   function profileDisplayName(userId: string) {
     return publicProfiles.find((item) => item.user_id === userId)?.display_name || "Talent7 creator";
+  }
+
+  function canDeleteUserContent(userId?: string | null) {
+    return Boolean(session?.user.id && (isOwnerReviewer || userId === session.user.id));
   }
 
   function profileTrustBadges(item: TalentProfile) {
@@ -4176,6 +4182,45 @@ export default function Home() {
     setReportingShowcaseTarget(null);
   }
 
+  async function deleteShowcasePost(post: ShowcasePost) {
+    if (!requireLogin("delete a showcase post")) return;
+
+    if (!canDeleteUserContent(post.user_id)) {
+      setMessage("Only the post owner or Talent7 owner can delete this showcase post.");
+      return;
+    }
+
+    const confirmed = window.confirm("Delete this showcase post from Talent7?");
+    if (!confirmed) return;
+
+    setDeletingShowcasePostId(post.id);
+    setMessage("");
+
+    if (!supabase) {
+      setShowcasePosts((items) => items.filter((item) => item.id !== post.id));
+      setShowcaseRatings((items) => items.filter((item) => item.post_id !== post.id));
+      setShowcaseComments((items) => items.filter((item) => item.post_id !== post.id));
+      setShowcaseReports((items) => items.filter((item) => item.post_id !== post.id));
+      setMessage("Showcase post deleted from this preview.");
+      setDeletingShowcasePostId(null);
+      return;
+    }
+
+    const { error } = await supabase.from("showcase_posts").delete().eq("id", post.id);
+
+    if (error) {
+      setMessage(`Could not delete showcase post: ${error.message}`);
+    } else {
+      setShowcasePosts((items) => items.filter((item) => item.id !== post.id));
+      setShowcaseRatings((items) => items.filter((item) => item.post_id !== post.id));
+      setShowcaseComments((items) => items.filter((item) => item.post_id !== post.id));
+      setShowcaseReports((items) => items.filter((item) => item.post_id !== post.id));
+      setMessage("Showcase post deleted.");
+    }
+
+    setDeletingShowcasePostId(null);
+  }
+
   async function respondToInvite(invite: ChallengeInvite, status: "Accepted" | "Declined") {
     if (!requireLogin("respond to an invite")) return;
     if (status === "Accepted" && !requireProfile("accept an invite")) return;
@@ -4477,6 +4522,41 @@ export default function Home() {
     }
 
     setSavingProofChallengeId(null);
+  }
+
+  async function deleteProof(proof: ChallengeProof) {
+    if (!requireLogin("delete proof")) return;
+
+    if (!canDeleteUserContent(proof.user_id)) {
+      setMessage("Only the proof uploader or Talent7 owner can delete this proof.");
+      return;
+    }
+
+    const confirmed = window.confirm("Delete this proof from the challenge room?");
+    if (!confirmed) return;
+
+    setDeletingProofId(proof.id);
+    setMessage("");
+
+    if (!supabase) {
+      setProofs((items) => items.filter((item) => item.id !== proof.id));
+      setChallengeReports((items) => items.filter((item) => item.proof_id !== proof.id));
+      setMessage("Proof deleted from this preview.");
+      setDeletingProofId(null);
+      return;
+    }
+
+    const { error } = await supabase.from("proofs").delete().eq("id", proof.id);
+
+    if (error) {
+      setMessage(`Could not delete proof: ${error.message}`);
+    } else {
+      setProofs((items) => items.filter((item) => item.id !== proof.id));
+      setChallengeReports((items) => items.filter((item) => item.proof_id !== proof.id));
+      setMessage("Proof deleted.");
+    }
+
+    setDeletingProofId(null);
   }
 
   async function sendChallengeMessage(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -5973,6 +6053,16 @@ export default function Home() {
                   <small>{post.media_type}</small>
                   <a href={post.media_url} rel="noreferrer" target="_blank">Open post</a>
                   <button onClick={() => copyShowcaseLink(post)} type="button">Copy post link</button>
+                  {canDeleteUserContent(post.user_id) && (
+                    <button
+                      className="dangerAction"
+                      disabled={deletingShowcasePostId === post.id}
+                      onClick={() => deleteShowcasePost(post)}
+                      type="button"
+                    >
+                      {deletingShowcasePostId === post.id ? "Deleting..." : "Delete post"}
+                    </button>
+                  )}
                 </div>
                 <div className="showcaseRatingButtons">
                   {([1, 2, 3, 4, 5, 6, 7] as const).map((rating) => (
@@ -8653,6 +8743,16 @@ export default function Home() {
                         <small>
                           {proof.review_status || "Pending review"} | <a href={proof.proof_url} rel="noreferrer" target="_blank">Open proof</a>
                         </small>
+                        {canDeleteUserContent(proof.user_id) && (
+                          <button
+                            className="dangerAction"
+                            disabled={deletingProofId === proof.id}
+                            onClick={() => deleteProof(proof)}
+                            type="button"
+                          >
+                            {deletingProofId === proof.id ? "Deleting..." : "Delete proof"}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
