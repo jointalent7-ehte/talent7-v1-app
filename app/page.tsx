@@ -2411,6 +2411,7 @@ export default function Home() {
       setMessage(result.error.message);
     } else if (authMode === "Sign up" && !result.data.session) {
       setConfirmationEmail(email);
+      setAuthMode("Log in");
       setMessage("Account created. Check your email to confirm it, then log in.");
     } else {
       setConfirmationEmail("");
@@ -2423,6 +2424,7 @@ export default function Home() {
   async function logOut() {
     if (!supabase) return;
     await supabase.auth.signOut();
+    setAuthMode("Log in");
     setMessage("Logged out.");
   }
 
