@@ -15,6 +15,44 @@ const maxPhotoUploadBytes = 10 * 1024 * 1024;
 const maxVideoUploadBytes = 50 * 1024 * 1024;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
 const videoMimeTypes = ["video/mp4", "video/quicktime"];
+const challengeActivityOptions = [
+  "Badminton doubles",
+  "Badminton singles",
+  "Breakdance battle",
+  "Swimming race",
+  "Volleyball match",
+  "Football match",
+  "Cricket match",
+  "Basketball match",
+  "Running race",
+  "Athletics challenge",
+  "Skating challenge",
+  "Arm wrestling",
+  "Karate sparring",
+  "Bouldering challenge",
+  "Calisthenics",
+  "Gym / fitness",
+  "Dance battle",
+  "PUBG squad battle",
+  "Mech Arena challenge",
+  "Mobile gaming",
+  "Chess match",
+  "Table tennis",
+  "Tennis match",
+  "Boxing training challenge",
+  "Martial arts challenge",
+  "Cycling challenge",
+  "Parkour challenge",
+  "Yoga challenge",
+  "Singing battle",
+  "Rap battle",
+  "Music performance",
+  "Art challenge",
+  "Team tournament",
+  "Sports coaching",
+  "Expert help",
+  "Other talent showcase"
+];
 const expertHelpTypes: ExpertHelpType[] = [
   "Medical guidance",
   "Plumbing",
@@ -367,11 +405,23 @@ const defaultChallengeDraft: ChallengeDraft = {
 function laneForInterest(interest: string): ChallengeLane {
   const normalized = interest.toLowerCase();
 
-  if (normalized.includes("pubg") || normalized.includes("gaming") || normalized.includes("game")) {
+  if (
+    normalized.includes("pubg") ||
+    normalized.includes("mech arena") ||
+    normalized.includes("gaming") ||
+    normalized.includes("game")
+  ) {
     return "Mobile gaming challenge";
   }
 
-  if (normalized.includes("dance") || normalized.includes("break") || normalized.includes("calisthenics")) {
+  if (
+    normalized.includes("dance") ||
+    normalized.includes("break") ||
+    normalized.includes("singing") ||
+    normalized.includes("rap") ||
+    normalized.includes("music") ||
+    normalized.includes("art")
+  ) {
     return "Talent battle";
   }
 
@@ -5513,16 +5563,7 @@ export default function Home() {
             <label>
               Main interest
               <select name="main_interest" defaultValue={profile?.main_interest || "Badminton doubles"}>
-                {[
-                  "Badminton doubles",
-                  "Breakdance battles",
-                  "PUBG squad battle",
-                  "Mech Arena challenge",
-                  "Sports coaching",
-                  "Expert help",
-                  "Team tournaments",
-                  "Other talent showcase"
-                ].map((interest) => (
+                {challengeActivityOptions.map((interest) => (
                   <option key={interest}>{interest}</option>
                 ))}
               </select>
@@ -5783,12 +5824,9 @@ export default function Home() {
               <label>
                 Main interest
                 <select name="main_interest" defaultValue={profile?.main_interest || "Badminton doubles"}>
-                  <option>Badminton doubles</option>
-                  <option>Breakdance battle</option>
-                  <option>PUBG squad battle</option>
-                  <option>Swimming</option>
-                  <option>Calisthenics</option>
-                  <option>Mobile gaming</option>
+                  {challengeActivityOptions.map((interest) => (
+                    <option key={interest}>{interest}</option>
+                  ))}
                 </select>
               </label>
               <label className="wide">
@@ -5995,12 +6033,9 @@ export default function Home() {
             <label>
               Category
               <select name="category" defaultValue={profile?.main_interest || "Badminton"}>
-                <option>Badminton</option>
-                <option>Breakdance</option>
-                <option>Calisthenics</option>
-                <option>Swimming</option>
-                <option>Mobile gaming</option>
-                <option>Fitness</option>
+                {challengeActivityOptions.map((interest) => (
+                  <option key={interest}>{interest}</option>
+                ))}
               </select>
             </label>
             <label>
@@ -8301,13 +8336,9 @@ export default function Home() {
           <label>
             Sport / venue type
             <select name="sport_type" defaultValue={challengeDraft.sport_type}>
-              <option>Badminton</option>
-              <option>Swimming</option>
-              <option>Gym / fitness</option>
-              <option>Dance studio</option>
-              <option>Calisthenics park</option>
-              <option>Mobile gaming</option>
-              <option>General sports venue</option>
+              {challengeActivityOptions.map((interest) => (
+                <option key={interest}>{interest}</option>
+              ))}
             </select>
           </label>
           <label>
