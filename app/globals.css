@@ -3531,6 +3531,12 @@ textarea {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.playStoreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .launchNextActions {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -3538,7 +3544,9 @@ textarea {
 .launchStats article,
 .launchChecklist article,
 .launchQaPanel,
+.playStorePanel,
 .launchQaGrid button,
+.playStoreGrid button,
 .launchNextActions article {
   display: grid;
   gap: 8px;
@@ -3550,6 +3558,27 @@ textarea {
 
 .launchQaPanel {
   gap: 14px;
+}
+
+.playStorePanel {
+  gap: 14px;
+  background:
+    linear-gradient(135deg, rgba(20, 150, 143, 0.22), rgba(51, 106, 213, 0.18)),
+    rgba(255, 255, 255, 0.08);
+}
+
+.playStoreProgress {
+  height: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+.playStoreProgress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), var(--blue));
+  border-radius: inherit;
 }
 
 .launchQaHeader {
@@ -3571,9 +3600,16 @@ textarea {
   cursor: pointer;
 }
 
+.playStoreGrid button {
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
 .launchStats span,
 .launchChecklist span,
-.launchQaGrid span {
+.launchQaGrid span,
+.playStoreGrid span {
   width: fit-content;
   padding: 6px 9px;
   color: #fff;
@@ -3600,10 +3636,22 @@ textarea {
   color: var(--ink);
 }
 
+.playStoreGrid button:not(.done) span {
+  background: var(--gold);
+  color: var(--ink);
+}
+
 .launchChecklist strong,
 .launchQaGrid strong,
+.playStoreGrid strong,
 .launchNextActions h3 {
   color: #fff;
+}
+
+.playStoreGrid small {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 800;
+  line-height: 1.5;
 }
 
 .launchNextActions a,
@@ -4894,6 +4942,7 @@ textarea {
   .launchStats,
   .launchChecklist,
   .launchQaGrid,
+  .playStoreGrid,
   .launchNextActions,
   .adminStats,
   .adminQueues,

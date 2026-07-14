@@ -602,6 +602,7 @@ export default function Home() {
   const [reportingShowcaseTarget, setReportingShowcaseTarget] = useState<string | null>(null);
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
   const [launchQaDoneKeys, setLaunchQaDoneKeys] = useState<string[]>([]);
+  const [playStoreDoneKeys, setPlayStoreDoneKeys] = useState<string[]>([]);
   const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
   const [notificationSearch, setNotificationSearch] = useState("");
   const [selectedHelpType, setSelectedHelpType] = useState<ExpertHelpType>("Medical guidance");
@@ -1218,6 +1219,61 @@ export default function Home() {
     return launchQaChecklist.filter((item) => launchQaDoneKeys.includes(item.key)).length;
   }, [launchQaChecklist, launchQaDoneKeys]);
 
+  const playStoreChecklist = useMemo(
+    () => [
+      {
+        key: "app-access",
+        title: "App access",
+        detail: "Tell Google that Talent7 has login for posting, voting, profiles, challenges, teams, and owner tools."
+      },
+      {
+        key: "ads",
+        title: "Ads declaration",
+        detail: "Choose No unless ads are added later."
+      },
+      {
+        key: "content-rating",
+        title: "Content rating",
+        detail: "Complete the questionnaire for user-generated content, social features, and challenge activity."
+      },
+      {
+        key: "target-audience",
+        title: "Target audience",
+        detail: "Use a teen/adult audience, not children, because Talent7 includes user content and competition."
+      },
+      {
+        key: "data-safety",
+        title: "Data safety",
+        detail: "Declare account info, email, profile content, uploaded proof, activity, ratings, votes, and region/location text."
+      },
+      {
+        key: "store-listing",
+        title: "Store listing",
+        detail: "Add app description, icon, screenshots, feature graphic, support email, and privacy policy link."
+      },
+      {
+        key: "closed-testing-release",
+        title: "Closed testing release",
+        detail: "Upload the first Android build and publish it to the closed testing track."
+      },
+      {
+        key: "twelve-testers",
+        title: "12 opted-in accounts",
+        detail: "Confirm 12 people have joined the closed test from Google Play and stayed opted in."
+      },
+      {
+        key: "fourteen-days",
+        title: "14-day run",
+        detail: "Let the closed test run for 14 continuous days before applying for production access."
+      }
+    ],
+    []
+  );
+
+  const playStoreProgress = useMemo(() => {
+    return playStoreChecklist.filter((item) => playStoreDoneKeys.includes(item.key)).length;
+  }, [playStoreChecklist, playStoreDoneKeys]);
+
   const coachingInterestCounts = useMemo(() => {
     return coachingInterests.reduce<Record<string, number>>((counts, interest) => {
       counts[interest.offer_id] = (counts[interest.offer_id] || 0) + 1;
@@ -1738,6 +1794,7 @@ export default function Home() {
 
   const notificationReadStorageKey = session?.user.id ? `talent7-read-notifications-${session.user.id}` : "";
   const launchQaStorageKey = session?.user.id ? `talent7-launch-qa-${session.user.id}` : "";
+  const playStoreStorageKey = session?.user.id ? `talent7-play-store-launch-${session.user.id}` : "";
 
   const unreadNotifications = useMemo(() => {
     const readSet = new Set(readNotificationKeys);
@@ -2055,6 +2112,25 @@ export default function Home() {
     if (!launchQaStorageKey) return;
     window.localStorage.setItem(launchQaStorageKey, JSON.stringify(launchQaDoneKeys));
   }, [launchQaDoneKeys, launchQaStorageKey]);
+
+  useEffect(() => {
+    if (!playStoreStorageKey) {
+      setPlayStoreDoneKeys([]);
+      return;
+    }
+
+    try {
+      const saved = window.localStorage.getItem(playStoreStorageKey);
+      setPlayStoreDoneKeys(saved ? (JSON.parse(saved) as string[]) : []);
+    } catch {
+      setPlayStoreDoneKeys([]);
+    }
+  }, [playStoreStorageKey]);
+
+  useEffect(() => {
+    if (!playStoreStorageKey) return;
+    window.localStorage.setItem(playStoreStorageKey, JSON.stringify(playStoreDoneKeys));
+  }, [playStoreDoneKeys, playStoreStorageKey]);
 
   useEffect(() => {
     if (publicProfiles.length === 0) return;
@@ -2627,6 +2703,12 @@ export default function Home() {
 
   function toggleLaunchQaItem(key: string) {
     setLaunchQaDoneKeys((current) =>
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
+    );
+  }
+
+  function togglePlayStoreItem(key: string) {
+    setPlayStoreDoneKeys((current) =>
       current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
     );
   }
@@ -7244,6 +7326,37 @@ export default function Home() {
                       type="button"
                     >
                       <span>{done ? "Tested" : "Test"}</span>
+                      <strong>{item.title}</strong>
+                      <small>{item.detail}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="playStorePanel">
+              <div className="launchQaHeader">
+                <div>
+                  <p className="eyebrow">Google Play Console</p>
+                  <h3>Production access checklist</h3>
+                  <small>Use this private list while you fill Play Console and run the closed-test gate.</small>
+                </div>
+                <strong>{playStoreProgress} / {playStoreChecklist.length}</strong>
+              </div>
+              <div className="playStoreProgress">
+                <span style={{ width: `${Math.round((playStoreProgress / playStoreChecklist.length) * 100)}%` }} />
+              </div>
+              <div className="playStoreGrid">
+                {playStoreChecklist.map((item) => {
+                  const done = playStoreDoneKeys.includes(item.key);
+
+                  return (
+                    <button
+                      className={done ? "done" : ""}
+                      key={item.key}
+                      onClick={() => togglePlayStoreItem(item.key)}
+                      type="button"
+                    >
+                      <span>{done ? "Done" : "Todo"}</span>
                       <strong>{item.title}</strong>
                       <small>{item.detail}</small>
                     </button>
