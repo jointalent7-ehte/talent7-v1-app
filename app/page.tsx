@@ -1092,6 +1092,8 @@ export default function Home() {
     const activeFirstWave = firstWaveInterests.filter((interest) => interest.status === "Active tester");
     const invitedFirstWave = firstWaveInterests.filter((interest) => interest.status === "Invited");
     const contributionInterest = paymentInterests.filter((interest) => interest.intent_type === "Contribution");
+    const googlePlayClosedTestTarget = 12;
+    const googlePlayClosedTestReady = activeFirstWave.length >= googlePlayClosedTestTarget;
 
     const checklist = [
       {
@@ -1100,9 +1102,14 @@ export default function Home() {
         detail: "jointalent7.com is connected and ready to share."
       },
       {
-        title: "First-wave form is collecting",
+        title: "Launch interest is collecting",
         done: firstWaveInterests.length > 0,
-        detail: `${firstWaveInterests.length} early tester${firstWaveInterests.length === 1 ? "" : "s"} saved.`
+        detail: `${firstWaveInterests.length} first-wave launch signup${firstWaveInterests.length === 1 ? "" : "s"} saved.`
+      },
+      {
+        title: "Google Play closed-test gate",
+        done: googlePlayClosedTestReady,
+        detail: `${activeFirstWave.length} / ${googlePlayClosedTestTarget} active first-wave accounts marked for the required 14-day closed test.`
       },
       {
         title: "Challenge rooms have activity",
@@ -1139,6 +1146,8 @@ export default function Home() {
       activeFirstWave,
       invitedFirstWave,
       contributionInterest,
+      googlePlayClosedTestTarget,
+      googlePlayClosedTestReady,
       checklist,
       readinessPercent: Math.round((checklist.filter((item) => item.done).length / checklist.length) * 100)
     };
@@ -1168,7 +1177,7 @@ export default function Home() {
       },
       {
         key: "first-wave",
-        title: "First-wave form",
+        title: "First-wave launch form",
         detail: "Submit interest, region, role, availability, and confirm it appears for owner."
       },
       {
@@ -1189,7 +1198,12 @@ export default function Home() {
       {
         key: "share-buttons",
         title: "Share buttons",
-        detail: "Copy invite link, first-wave invite, founder support text, and launch captions."
+        detail: "Copy invite link, Play Store wave invite, founder support text, and launch captions."
+      },
+      {
+        key: "play-store-gate",
+        title: "Play Store closed-test gate",
+        detail: "Confirm 12 opted-in first-wave accounts stay in the Google Play closed test for 14 continuous days."
       },
       {
         key: "mobile-view",
@@ -2584,10 +2598,10 @@ export default function Home() {
 
   function launchUpdateText() {
     return [
-      "Talent7 early access is live at jointalent7.com.",
-      `Current build: ${challenges.length} challenge rooms, ${publicProfiles.length} talent profiles, ${proofs.length} proof uploads, and ${firstWaveInterests.length} first-wave tester interests.`,
+      "Talent7 is preparing for Play Store launch at jointalent7.com.",
+      `Current build: ${challenges.length} challenge rooms, ${publicProfiles.length} talent profiles, ${proofs.length} proof uploads, and ${firstWaveInterests.length} first-wave launch signups.`,
       "You can join as a challenger, audience voter, coach, organizer, gaming squad, or expert helper.",
-      "Try a challenge room, rate out of 7, upload proof, and tell us what to improve next."
+      "Try a challenge room, rate out of 7, upload proof, and help shape the launch version."
     ].join("\n\n");
   }
 
@@ -2803,10 +2817,10 @@ export default function Home() {
   }
 
   async function updateFirstWaveStatus(interest: FirstWaveInterest, status: FirstWaveInterest["status"]) {
-    if (!requireLogin("update first-wave testers")) return;
+    if (!requireLogin("update first-wave launch signups")) return;
 
     if (!isOwnerReviewer) {
-      setMessage("Only the Talent7 owner account can update first-wave testers.");
+      setMessage("Only the Talent7 owner account can update first-wave launch signups.");
       return;
     }
 
@@ -2824,7 +2838,7 @@ export default function Home() {
       .single();
 
     if (error) {
-      setMessage(`Could not update first-wave tester: ${error.message}`);
+      setMessage(`Could not update first-wave signup: ${error.message}`);
     } else if (data) {
       setFirstWaveInterests((items) =>
         items.map((item) => (item.id === interest.id ? (data as FirstWaveInterest) : item))
@@ -5076,7 +5090,7 @@ export default function Home() {
           <div className="shareStrip">
             <div>
               <p className="eyebrow">Share Talent7</p>
-              <strong>Invite first testers faster</strong>
+              <strong>Build the first Play Store launch wave</strong>
             </div>
             <button
               onClick={() => copyShareText("Talent7 link", siteUrl())}
@@ -5099,12 +5113,12 @@ export default function Home() {
               onClick={() =>
                 copyShareText(
                   "First-wave invite",
-                  `Talent7 is inviting first-wave testers for badminton doubles, breakdance battles, PUBG squads, coaching, teams, and expert help.\n\nJoin the first wave here: ${siteUrl("#first-wave")}`
+                  `Talent7 is preparing for Play Store launch with badminton doubles, breakdance battles, PUBG squads, coaching, teams, and expert help.\n\nJoin the first launch wave here: ${siteUrl("#first-wave")}`
                 )
               }
               type="button"
             >
-              Copy first-wave invite
+              Copy launch-wave invite
             </button>
             <button
               onClick={() =>
@@ -5192,7 +5206,7 @@ export default function Home() {
       <section className="section firstWaveSection" id="first-wave">
         <div className="sectionHeader">
           <p className="eyebrow">Early access</p>
-          <h2>Built for the first Talent7 testers</h2>
+          <h2>Built for the first Play Store launch wave</h2>
           <p>New visitors can start as audience, challenger, coach, team owner, or expert helper while payments and full live video stay in preview.</p>
         </div>
         <div className="firstWaveGrid">
@@ -5221,7 +5235,7 @@ export default function Home() {
               <p className="eyebrow">First wave list</p>
               <h3>Tell Talent7 what you want first</h3>
               <p>
-                This helps the owner understand who is ready to test challenges, coaching, teams, games, and expert help.
+                This helps the owner prepare the right challenge, coaching, team, game, and expert-help flows before Play Store launch.
               </p>
             </div>
             <label>
@@ -5276,7 +5290,7 @@ export default function Home() {
           </form>
           <aside>
             <p className="eyebrow">{isOwnerReviewer ? "Owner view" : "My first-wave status"}</p>
-            <h3>{isOwnerReviewer ? "Early tester dashboard" : myFirstWaveInterest ? "You are on the list" : "Join when ready"}</h3>
+            <h3>{isOwnerReviewer ? "Launch-wave dashboard" : myFirstWaveInterest ? "You are on the list" : "Join when ready"}</h3>
             {myFirstWaveInterest ? (
               <div className="firstWaveStatusCard">
                 <span>{myFirstWaveInterest.status}</span>
@@ -5301,8 +5315,8 @@ export default function Home() {
             <div className="firstWaveOwnerHeader">
               <div>
                 <p className="eyebrow">Owner first wave</p>
-                <h3>People ready to test Talent7</h3>
-                <small>Use this list to decide who to message first and which feature lane is getting traction.</small>
+                <h3>People ready for Talent7 launch</h3>
+                <small>Use this list to choose the first Play Store closed-test group and see which feature lane is getting traction.</small>
               </div>
               <strong>{firstWaveInterests.length} signups</strong>
             </div>
@@ -5327,7 +5341,7 @@ export default function Home() {
                           onClick={() => updateFirstWaveStatus(interest, status)}
                           type="button"
                         >
-                          {firstWaveActionKey === `${interest.id}-${status}` ? "Saving..." : status}
+                          {firstWaveActionKey === `${interest.id}-${status}` ? "Saving..." : status === "Active tester" ? "Active launch account" : status}
                         </button>
                       ))}
                     </div>
@@ -5337,7 +5351,7 @@ export default function Home() {
             ) : (
               <div className="emptyState">
                 <strong>No first-wave signups yet.</strong>
-                <small>Early tester interest will appear here after users submit the form.</small>
+                <small>Launch-wave interest will appear here after users submit the form.</small>
               </div>
             )}
           </div>
@@ -7068,7 +7082,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Founder feedback</p>
           <h2>Tell us what to fix, clarify, or build next</h2>
-          <p>Early testers can report bugs, confusing screens, payment questions, and feature requests directly inside Talent7.</p>
+          <p>Launch-wave users can report bugs, confusing screens, payment questions, and feature requests directly inside Talent7.</p>
         </div>
         {session ? (
           <form className="feedbackForm" onSubmit={submitFounderFeedback}>
@@ -7146,7 +7160,7 @@ export default function Home() {
           ) : (
             <div className="emptyFeedback">
               <strong>No feedback yet.</strong>
-              <small>Feedback from early testers will appear here.</small>
+              <small>Feedback from launch-wave users will appear here.</small>
             </div>
           )}
         </div>
@@ -7157,14 +7171,14 @@ export default function Home() {
           <div className="sectionHeader">
             <p className="eyebrow">Owner command center</p>
             <h2>Founder launch control</h2>
-            <p>One private place to check early launch signals, review what needs attention, and copy an update for social posts.</p>
+            <p>One private place to check Play Store launch readiness, review what needs attention, and copy updates for social posts.</p>
           </div>
           <div className="launchControlPanel">
             <div className="launchHeader">
               <div>
                 <p className="eyebrow">Readiness</p>
-                <h3>{launchControl.readinessPercent}% ready for first public testing</h3>
-                <small>Based on first-wave interest, room activity, safety, feedback, and payment signals.</small>
+                <h3>{launchControl.readinessPercent}% ready for Play Store launch path</h3>
+                <small>Based on domain, launch-wave interest, Google Play closed-test gate, room activity, safety, feedback, and payment signals.</small>
               </div>
               <strong>{launchControl.checklist.filter((item) => item.done).length} / {launchControl.checklist.length}</strong>
             </div>
@@ -7177,7 +7191,7 @@ export default function Home() {
               <article>
                 <span>First wave</span>
                 <strong>{firstWaveInterests.length}</strong>
-                <small>{launchControl.activeFirstWave.length} active testers</small>
+                <small>{launchControl.activeFirstWave.length} / {launchControl.googlePlayClosedTestTarget} active for Google Play</small>
               </article>
               <article>
                 <span>Rooms</span>
@@ -7212,9 +7226,9 @@ export default function Home() {
             <div className="launchQaPanel">
               <div className="launchQaHeader">
                 <div>
-                  <p className="eyebrow">Before you invite people</p>
+                  <p className="eyebrow">Before Play Store submission</p>
                   <h3>Manual launch QA checklist</h3>
-                  <small>Tick these after you personally test them on the live site.</small>
+                  <small>Tick these after you personally test them on the live site and prepare the Play Console release path.</small>
                 </div>
                 <strong>{launchQaProgress} / {launchQaChecklist.length}</strong>
               </div>
@@ -7240,8 +7254,8 @@ export default function Home() {
             <div className="launchNextActions">
               <article>
                 <p className="eyebrow">Next actions</p>
-                <h3>Do these before inviting more people</h3>
-                <a href="#first-wave">Review first-wave testers</a>
+                <h3>Do these before Play Store production</h3>
+                <a href="#first-wave">Review first-wave launch group</a>
                 <a href="#safety">Check safety reports</a>
                 <a href="#feedback">Review founder feedback</a>
                 <a href="#rooms">Check challenge rooms</a>
@@ -7250,15 +7264,15 @@ export default function Home() {
                 <p className="eyebrow">Copy update</p>
                 <h3>Launch sharing tools</h3>
                 <p>
-                  Talent7 early access is live at jointalent7.com. Current build: {challenges.length} challenge rooms,
-                  {" "}{publicProfiles.length} talent profiles, {proofs.length} proof uploads, and {firstWaveInterests.length} first-wave tester interests.
+                  Talent7 is preparing for Play Store launch at jointalent7.com. Current build: {challenges.length} challenge rooms,
+                  {" "}{publicProfiles.length} talent profiles, {proofs.length} proof uploads, and {firstWaveInterests.length} first-wave launch signups.
                 </p>
                 <button onClick={copyLaunchUpdate} type="button">Copy launch update</button>
                 <button
                   onClick={() =>
                     copyShareText(
                       "Instagram caption",
-                      `Talent7 early access is live.\n\nChallenge rooms, public 7-star ratings, victory proof, teams, coaching, and expert-help previews are now being tested.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentShowcase #SportsChallenge #Breakdance #Gaming`
+                      `Talent7 is preparing for Play Store launch.\n\nChallenge rooms, public 7-star ratings, victory proof, teams, coaching, and expert-help previews are ready for the first launch wave.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentShowcase #SportsChallenge #Breakdance #Gaming`
                     )
                   }
                   type="button"
@@ -7269,7 +7283,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "YouTube description",
-                      `Talent7 is an early app for proof-based talent, sports, and gaming challenges. Users can create rooms, join as challenger or audience, vote winners, rate out of 7, upload proof, form teams, request coaching, and join the first tester wave.\n\nTry Talent7: ${siteUrl()}\nJoin first wave: ${siteUrl("#first-wave")}`
+                      `Talent7 is preparing for Play Store launch as a proof-based talent, sports, and gaming challenge app. Users can create rooms, join as challenger or audience, vote winners, rate out of 7, upload proof, form teams, request coaching, and join the first launch wave.\n\nTry Talent7: ${siteUrl()}\nJoin first wave: ${siteUrl("#first-wave")}`
                     )
                   }
                   type="button"
@@ -7280,7 +7294,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "Direct invite",
-                      `I am building Talent7 and looking for early testers. You can join challenges, vote, rate out of 7, upload proof, form teams, or try coaching/expert-help previews.\n\nStart here: ${siteUrl()}`
+                      `I am preparing Talent7 for Play Store launch. You can join challenges, vote, rate out of 7, upload proof, form teams, or try coaching/expert-help previews.\n\nStart here: ${siteUrl()}`
                     )
                   }
                   type="button"
@@ -7323,7 +7337,7 @@ export default function Home() {
           <p className="eyebrow">Trust & terms</p>
           <h2>Clear rules before real users arrive</h2>
           <p>
-            These are simple MVP trust notes for early testers. They are not a replacement for lawyer-reviewed terms,
+            These are simple MVP trust notes for launch-wave users. They are not a replacement for lawyer-reviewed terms,
             but they make Talent7's boundaries clear while the app is still growing.
           </p>
         </div>
