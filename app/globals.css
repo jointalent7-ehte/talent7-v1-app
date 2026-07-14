@@ -3489,13 +3489,16 @@ textarea {
 .launchHeader small,
 .launchStats small,
 .launchChecklist small,
+.launchQaHeader small,
+.launchQaGrid small,
 .launchNextActions p {
   color: rgba(255, 255, 255, 0.72);
   font-weight: 800;
   line-height: 1.5;
 }
 
-.launchHeader > strong {
+.launchHeader > strong,
+.launchQaHeader > strong {
   padding: 10px 12px;
   color: var(--ink);
   background: #fff;
@@ -3505,6 +3508,7 @@ textarea {
 
 .launchStats,
 .launchChecklist,
+.launchQaGrid,
 .launchNextActions {
   display: grid;
   gap: 10px;
@@ -3518,12 +3522,18 @@ textarea {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.launchQaGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .launchNextActions {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .launchStats article,
 .launchChecklist article,
+.launchQaPanel,
+.launchQaGrid button,
 .launchNextActions article {
   display: grid;
   gap: 8px;
@@ -3533,8 +3543,32 @@ textarea {
   border-radius: 8px;
 }
 
+.launchQaPanel {
+  gap: 14px;
+}
+
+.launchQaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.launchQaHeader h3 {
+  color: #fff;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1;
+}
+
+.launchQaGrid button {
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
 .launchStats span,
-.launchChecklist span {
+.launchChecklist span,
+.launchQaGrid span {
   width: fit-content;
   padding: 6px 9px;
   color: #fff;
@@ -3556,7 +3590,13 @@ textarea {
   color: var(--ink);
 }
 
+.launchQaGrid button:not(.done) span {
+  background: var(--gold);
+  color: var(--ink);
+}
+
 .launchChecklist strong,
+.launchQaGrid strong,
 .launchNextActions h3 {
   color: #fff;
 }
@@ -4719,6 +4759,7 @@ textarea {
   .dashboardPanels,
   .launchStats,
   .launchChecklist,
+  .launchQaGrid,
   .launchNextActions,
   .adminStats,
   .adminQueues,
@@ -4772,6 +4813,7 @@ textarea {
   .firstWaveOwnerHeader,
   .firstWaveList article,
   .launchHeader,
+  .launchQaHeader,
   .feedbackInboxHeader,
   .expertHelpInboxHeader,
   .adminQueues article > div:first-child {

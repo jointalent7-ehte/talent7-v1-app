@@ -601,6 +601,7 @@ export default function Home() {
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
   const [reportingShowcaseTarget, setReportingShowcaseTarget] = useState<string | null>(null);
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
+  const [launchQaDoneKeys, setLaunchQaDoneKeys] = useState<string[]>([]);
   const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
   const [notificationSearch, setNotificationSearch] = useState("");
   const [selectedHelpType, setSelectedHelpType] = useState<ExpertHelpType>("Medical guidance");
@@ -1153,6 +1154,56 @@ export default function Home() {
     votes.length
   ]);
 
+  const launchQaChecklist = useMemo(
+    () => [
+      {
+        key: "signup-confirmation",
+        title: "Signup and email confirmation",
+        detail: "Create a test account, confirm email, then return to log in."
+      },
+      {
+        key: "login-logout",
+        title: "Login and logout",
+        detail: "Log in, log out, and confirm the Account form returns to Log in."
+      },
+      {
+        key: "first-wave",
+        title: "First-wave form",
+        detail: "Submit interest, region, role, availability, and confirm it appears for owner."
+      },
+      {
+        key: "challenge-flow",
+        title: "Challenge create and join",
+        detail: "Create a room, join as challenger/audience, then confirm counts update."
+      },
+      {
+        key: "votes-ratings-proof",
+        title: "Vote, rate, and proof",
+        detail: "Vote A/B, rate out of 7, upload/paste proof, and lock a winner."
+      },
+      {
+        key: "reports-feedback",
+        title: "Reports and feedback",
+        detail: "Use the launch issue shortcut and check reports/feedback owner queues."
+      },
+      {
+        key: "share-buttons",
+        title: "Share buttons",
+        detail: "Copy invite link, first-wave invite, founder support text, and launch captions."
+      },
+      {
+        key: "mobile-view",
+        title: "Mobile view",
+        detail: "Open on phone width and check buttons, forms, and cards do not overlap."
+      }
+    ],
+    []
+  );
+
+  const launchQaProgress = useMemo(() => {
+    return launchQaChecklist.filter((item) => launchQaDoneKeys.includes(item.key)).length;
+  }, [launchQaChecklist, launchQaDoneKeys]);
+
   const coachingInterestCounts = useMemo(() => {
     return coachingInterests.reduce<Record<string, number>>((counts, interest) => {
       counts[interest.offer_id] = (counts[interest.offer_id] || 0) + 1;
@@ -1672,6 +1723,7 @@ export default function Home() {
   ]);
 
   const notificationReadStorageKey = session?.user.id ? `talent7-read-notifications-${session.user.id}` : "";
+  const launchQaStorageKey = session?.user.id ? `talent7-launch-qa-${session.user.id}` : "";
 
   const unreadNotifications = useMemo(() => {
     const readSet = new Set(readNotificationKeys);
@@ -1970,6 +2022,25 @@ export default function Home() {
     if (!notificationReadStorageKey) return;
     window.localStorage.setItem(notificationReadStorageKey, JSON.stringify(readNotificationKeys));
   }, [notificationReadStorageKey, readNotificationKeys]);
+
+  useEffect(() => {
+    if (!launchQaStorageKey) {
+      setLaunchQaDoneKeys([]);
+      return;
+    }
+
+    try {
+      const saved = window.localStorage.getItem(launchQaStorageKey);
+      setLaunchQaDoneKeys(saved ? (JSON.parse(saved) as string[]) : []);
+    } catch {
+      setLaunchQaDoneKeys([]);
+    }
+  }, [launchQaStorageKey]);
+
+  useEffect(() => {
+    if (!launchQaStorageKey) return;
+    window.localStorage.setItem(launchQaStorageKey, JSON.stringify(launchQaDoneKeys));
+  }, [launchQaDoneKeys, launchQaStorageKey]);
 
   useEffect(() => {
     if (publicProfiles.length === 0) return;
@@ -2538,6 +2609,12 @@ export default function Home() {
     setFeedbackDraftType(type);
     setMessage(`${type} selected. Add details in Founder Feedback.`);
     setTimeout(() => document.getElementById("feedback")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
+  function toggleLaunchQaItem(key: string) {
+    setLaunchQaDoneKeys((current) =>
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
+    );
   }
 
   function requireLogin(action: string) {
@@ -7130,6 +7207,34 @@ export default function Home() {
                   <small>{item.detail}</small>
                 </article>
               ))}
+            </div>
+            <div className="launchQaPanel">
+              <div className="launchQaHeader">
+                <div>
+                  <p className="eyebrow">Before you invite people</p>
+                  <h3>Manual launch QA checklist</h3>
+                  <small>Tick these after you personally test them on the live site.</small>
+                </div>
+                <strong>{launchQaProgress} / {launchQaChecklist.length}</strong>
+              </div>
+              <div className="launchQaGrid">
+                {launchQaChecklist.map((item) => {
+                  const done = launchQaDoneKeys.includes(item.key);
+
+                  return (
+                    <button
+                      className={done ? "done" : ""}
+                      key={item.key}
+                      onClick={() => toggleLaunchQaItem(item.key)}
+                      type="button"
+                    >
+                      <span>{done ? "Tested" : "Test"}</span>
+                      <strong>{item.title}</strong>
+                      <small>{item.detail}</small>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="launchNextActions">
               <article>
