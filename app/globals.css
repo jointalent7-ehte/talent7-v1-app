@@ -205,6 +205,57 @@ h1 {
   text-decoration: none;
 }
 
+.pathFinder {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 1120px;
+  margin-top: 18px;
+}
+
+.pathFinder > div,
+.pathFinder a {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-height: 112px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+}
+
+.pathFinder > div {
+  background: rgba(255, 248, 231, 0.14);
+  border-color: rgba(239, 210, 138, 0.38);
+}
+
+.pathFinder strong {
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.pathFinder a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.pathFinder span {
+  width: fit-content;
+  padding: 7px 9px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  font-weight: 950;
+}
+
+.pathFinder small {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 760;
+  line-height: 1.4;
+}
+
 .heroGuide {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -4579,6 +4630,7 @@ textarea {
   .coachRequestList,
   .teamForm,
   .heroMetrics,
+  .pathFinder,
   .heroGuide,
   .firstWaveGrid,
   .firstWaveSignup,

@@ -4937,6 +4937,36 @@ export default function Home() {
             <span>Badminton doubles, breakdance battles, PUBG squads, coaching offers, and safe expert-help requests.</span>
             <a href="#plans">Support the founder</a>
           </div>
+          <div className="pathFinder">
+            <div>
+              <p className="eyebrow">Choose your path</p>
+              <strong>What do you want to do first?</strong>
+            </div>
+            <a href="#rooms">
+              <span>Compete</span>
+              <small>Create or join proof-based challenges.</small>
+            </a>
+            <a href="#rooms">
+              <span>Watch / rate</span>
+              <small>Vote winners and rate rooms out of 7.</small>
+            </a>
+            <a href="#coaching">
+              <span>Coaching</span>
+              <small>Find lessons or offer training help.</small>
+            </a>
+            <a href="#expert-help">
+              <span>Expert help</span>
+              <small>Request safe guidance from verified helpers.</small>
+            </a>
+            <a href="#teams">
+              <span>Teams</span>
+              <small>Build sports teams, crews, or gaming clans.</small>
+            </a>
+            <a href="#plans">
+              <span>Support</span>
+              <small>Show payment or founder support interest.</small>
+            </a>
+          </div>
           <div className="heroGuide">
             <a href="#rooms">
               <span>Compete</span>
