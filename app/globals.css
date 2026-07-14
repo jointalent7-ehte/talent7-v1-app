@@ -581,6 +581,105 @@ textarea {
   gap: 16px;
 }
 
+.onboardingChecklist {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.07);
+}
+
+.onboardingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.onboardingHeader h3 {
+  margin-bottom: 4px;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.onboardingHeader small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.onboardingHeader > strong {
+  padding: 10px 12px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+}
+
+.onboardingProgress {
+  height: 10px;
+  overflow: hidden;
+  background: #eef4f4;
+  border-radius: 999px;
+}
+
+.onboardingProgress span {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+  border-radius: 999px;
+}
+
+.onboardingStepGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.onboardingStepGrid article {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.onboardingStepGrid article.done {
+  background: #eef8f7;
+  border-color: #b7ddda;
+}
+
+.onboardingStepGrid span {
+  width: fit-content;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.onboardingStepGrid article.done span {
+  background: var(--teal);
+}
+
+.onboardingStepGrid small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.onboardingStepGrid a {
+  width: fit-content;
+  padding: 9px 11px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .dashboardActions {
   display: flex;
   flex-wrap: wrap;
@@ -4204,6 +4303,7 @@ textarea {
   .teamRequestList,
   .profileForm,
   .accountPaymentCard,
+  .onboardingStepGrid,
   .myTalentGrid,
   .dashboardPanels,
   .adminStats,

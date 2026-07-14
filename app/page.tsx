@@ -1234,6 +1234,70 @@ export default function Home() {
     teamInbox
   ]);
 
+  const onboardingSteps = useMemo(() => {
+    const userId = session?.user.id;
+    const hasProfile = Boolean(profile?.display_name && profile?.username);
+    const hasRoomAction = Boolean(
+      userId &&
+        (challenges.some((challenge) => challenge.created_by === userId) ||
+          joins.some((join) => join.user_id === userId))
+    );
+    const hasVotedOrRated = Boolean(
+      userId &&
+        (votes.some((vote) => vote.user_id === userId) ||
+          ratings.some((rating) => rating.user_id === userId) ||
+          showcaseRatings.some((rating) => rating.user_id === userId))
+    );
+    const hasProofOrShowcase = Boolean(
+      userId &&
+        (proofs.some((proof) => proof.user_id === userId) ||
+          showcasePosts.some((post) => post.user_id === userId))
+    );
+    const hasFollow = Boolean(userId && follows.some((follow) => follow.follower_id === userId));
+    const hasFeedback = Boolean(userId && founderFeedback.some((feedback) => feedback.user_id === userId));
+
+    return [
+      {
+        title: "Save profile",
+        detail: "Add your name, username, role, interest, and region.",
+        done: hasProfile,
+        href: "#account"
+      },
+      {
+        title: "Join or create one challenge",
+        detail: "Start with a badminton, breakdance, gaming, or open challenge room.",
+        done: hasRoomAction,
+        href: hasRoomAction ? "#my-talent7" : "#rooms"
+      },
+      {
+        title: "Vote or rate once",
+        detail: "Help another room by voting for a winner or rating out of 7.",
+        done: hasVotedOrRated,
+        href: "#rooms"
+      },
+      {
+        title: "Upload proof or showcase",
+        detail: "Add victory proof or post a talent photo, video, or link.",
+        done: hasProofOrShowcase,
+        href: hasProofOrShowcase ? "#my-talent7" : "#showcase"
+      },
+      {
+        title: "Follow one profile",
+        detail: "Build your Talent7 circle by following another creator.",
+        done: hasFollow,
+        href: "#profiles"
+      },
+      {
+        title: "Send founder feedback",
+        detail: "Tell us what felt confusing, broken, or worth building next.",
+        done: hasFeedback,
+        href: "#feedback"
+      }
+    ];
+  }, [challenges, follows, founderFeedback, joins, profile, proofs, ratings, session, showcasePosts, showcaseRatings, votes]);
+
+  const completedOnboardingSteps = onboardingSteps.filter((step) => step.done).length;
+
   const notifications = useMemo<AppNotification[]>(() => {
     if (!session?.user.id) return [];
 
@@ -6776,6 +6840,29 @@ export default function Home() {
         </div>
         {session ? (
           <div className="dashboardShell">
+            <div className="onboardingChecklist">
+              <div className="onboardingHeader">
+                <div>
+                  <p className="eyebrow">Get started</p>
+                  <h3>New user checklist</h3>
+                  <small>{completedOnboardingSteps} of {onboardingSteps.length} completed</small>
+                </div>
+                <strong>{Math.round((completedOnboardingSteps / onboardingSteps.length) * 100)}%</strong>
+              </div>
+              <div className="onboardingProgress">
+                <span style={{ width: `${(completedOnboardingSteps / onboardingSteps.length) * 100}%` }} />
+              </div>
+              <div className="onboardingStepGrid">
+                {onboardingSteps.map((step) => (
+                  <article className={step.done ? "done" : ""} key={step.title}>
+                    <span>{step.done ? "Done" : "Next"}</span>
+                    <strong>{step.title}</strong>
+                    <small>{step.detail}</small>
+                    <a href={step.href}>{step.done ? "View" : "Start"}</a>
+                  </article>
+                ))}
+              </div>
+            </div>
             <div className="dashboardActions">
               <a href="#create">Create challenge</a>
               <a href="#showcase">Post showcase</a>
