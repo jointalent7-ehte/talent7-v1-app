@@ -1083,6 +1083,75 @@ export default function Home() {
     };
   }, [mySafetyReports]);
 
+  const launchControl = useMemo(() => {
+    const openChallenges = challenges.filter((challenge) => challenge.status !== "Completed");
+    const completedChallenges = challenges.filter((challenge) => challenge.status === "Completed");
+    const newFeedback = founderFeedback.filter((feedback) => feedback.status === "New");
+    const activeFirstWave = firstWaveInterests.filter((interest) => interest.status === "Active tester");
+    const invitedFirstWave = firstWaveInterests.filter((interest) => interest.status === "Invited");
+    const contributionInterest = paymentInterests.filter((interest) => interest.intent_type === "Contribution");
+
+    const checklist = [
+      {
+        title: "Public domain is live",
+        done: true,
+        detail: "jointalent7.com is connected and ready to share."
+      },
+      {
+        title: "First-wave form is collecting",
+        done: firstWaveInterests.length > 0,
+        detail: `${firstWaveInterests.length} early tester${firstWaveInterests.length === 1 ? "" : "s"} saved.`
+      },
+      {
+        title: "Challenge rooms have activity",
+        done: joins.length + votes.length + ratings.length + proofs.length > 0,
+        detail: `${joins.length} joins, ${votes.length} votes, ${ratings.length} ratings, ${proofs.length} proofs.`
+      },
+      {
+        title: "Safety queue is under control",
+        done: adminModeration.openReports.length === 0,
+        detail:
+          adminModeration.openReports.length === 0
+            ? "No open reports waiting."
+            : `${adminModeration.openReports.length} open report${adminModeration.openReports.length === 1 ? "" : "s"} to review.`
+      },
+      {
+        title: "Feedback has been reviewed",
+        done: newFeedback.length === 0,
+        detail:
+          newFeedback.length === 0
+            ? "No new feedback waiting."
+            : `${newFeedback.length} new feedback item${newFeedback.length === 1 ? "" : "s"} waiting.`
+      },
+      {
+        title: "Launch interest is visible",
+        done: paymentInterests.length > 0 || firstWaveInterests.length > 0,
+        detail: `${paymentInterests.length} payment signal${paymentInterests.length === 1 ? "" : "s"} and ${firstWaveInterests.length} first-wave signal${firstWaveInterests.length === 1 ? "" : "s"}.`
+      }
+    ];
+
+    return {
+      openChallenges,
+      completedChallenges,
+      newFeedback,
+      activeFirstWave,
+      invitedFirstWave,
+      contributionInterest,
+      checklist,
+      readinessPercent: Math.round((checklist.filter((item) => item.done).length / checklist.length) * 100)
+    };
+  }, [
+    adminModeration.openReports.length,
+    challenges,
+    firstWaveInterests,
+    founderFeedback,
+    joins.length,
+    paymentInterests,
+    proofs.length,
+    ratings.length,
+    votes.length
+  ]);
+
   const coachingInterestCounts = useMemo(() => {
     return coachingInterests.reduce<Record<string, number>>((counts, interest) => {
       counts[interest.offer_id] = (counts[interest.offer_id] || 0) + 1;
@@ -2426,6 +2495,22 @@ export default function Home() {
     await supabase.auth.signOut();
     setAuthMode("Log in");
     setMessage("Logged out.");
+  }
+
+  async function copyLaunchUpdate() {
+    const updateText = [
+      "Talent7 early access is live at jointalent7.com.",
+      `Current build: ${challenges.length} challenge rooms, ${publicProfiles.length} talent profiles, ${proofs.length} proof uploads, and ${firstWaveInterests.length} first-wave tester interests.`,
+      "You can join as a challenger, audience voter, coach, organizer, gaming squad, or expert helper.",
+      "Try a challenge room, rate out of 7, upload proof, and tell us what to improve next."
+    ].join("\n\n");
+
+    try {
+      await navigator.clipboard.writeText(updateText);
+      setMessage("Launch update copied.");
+    } catch {
+      setMessage("Copy failed. You can manually copy the launch update text.");
+    }
   }
 
   function requireLogin(action: string) {
@@ -4896,6 +4981,7 @@ export default function Home() {
             <a href="#live-preview" className="secondary">Live preview</a>
             <a href="#plans" className="secondary">Plans</a>
             <a href="#feedback" className="secondary">Feedback</a>
+            {isOwnerReviewer && <a href="#launch-control" className="secondary">Launch control</a>}
             <a href="#roadmap" className="secondary">Roadmap</a>
           </div>
         </section>
@@ -6868,6 +6954,86 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {isOwnerReviewer && (
+        <section className="section launchControlSection" id="launch-control">
+          <div className="sectionHeader">
+            <p className="eyebrow">Owner command center</p>
+            <h2>Founder launch control</h2>
+            <p>One private place to check early launch signals, review what needs attention, and copy an update for social posts.</p>
+          </div>
+          <div className="launchControlPanel">
+            <div className="launchHeader">
+              <div>
+                <p className="eyebrow">Readiness</p>
+                <h3>{launchControl.readinessPercent}% ready for first public testing</h3>
+                <small>Based on first-wave interest, room activity, safety, feedback, and payment signals.</small>
+              </div>
+              <strong>{launchControl.checklist.filter((item) => item.done).length} / {launchControl.checklist.length}</strong>
+            </div>
+            <div className="launchStats">
+              <article>
+                <span>Profiles</span>
+                <strong>{publicProfiles.length}</strong>
+                <small>People with Talent7 identities</small>
+              </article>
+              <article>
+                <span>First wave</span>
+                <strong>{firstWaveInterests.length}</strong>
+                <small>{launchControl.activeFirstWave.length} active testers</small>
+              </article>
+              <article>
+                <span>Rooms</span>
+                <strong>{challenges.length}</strong>
+                <small>{launchControl.openChallenges.length} open, {launchControl.completedChallenges.length} completed</small>
+              </article>
+              <article>
+                <span>Safety</span>
+                <strong>{adminModeration.openReports.length}</strong>
+                <small>Open reports</small>
+              </article>
+              <article>
+                <span>Feedback</span>
+                <strong>{launchControl.newFeedback.length}</strong>
+                <small>New items waiting</small>
+              </article>
+              <article>
+                <span>Payment signals</span>
+                <strong>{paymentInterests.length}</strong>
+                <small>{launchControl.contributionInterest.length} contribution interests</small>
+              </article>
+            </div>
+            <div className="launchChecklist">
+              {launchControl.checklist.map((item) => (
+                <article className={item.done ? "done" : ""} key={item.title}>
+                  <span>{item.done ? "Done" : "Check"}</span>
+                  <strong>{item.title}</strong>
+                  <small>{item.detail}</small>
+                </article>
+              ))}
+            </div>
+            <div className="launchNextActions">
+              <article>
+                <p className="eyebrow">Next actions</p>
+                <h3>Do these before inviting more people</h3>
+                <a href="#first-wave">Review first-wave testers</a>
+                <a href="#safety">Check safety reports</a>
+                <a href="#feedback">Review founder feedback</a>
+                <a href="#rooms">Check challenge rooms</a>
+              </article>
+              <article>
+                <p className="eyebrow">Copy update</p>
+                <h3>Social post draft</h3>
+                <p>
+                  Talent7 early access is live at jointalent7.com. Current build: {challenges.length} challenge rooms,
+                  {" "}{publicProfiles.length} talent profiles, {proofs.length} proof uploads, and {firstWaveInterests.length} first-wave tester interests.
+                </p>
+                <button onClick={copyLaunchUpdate} type="button">Copy launch update</button>
+              </article>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="section roadmapSection" id="roadmap">
         <div className="sectionHeader">

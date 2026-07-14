@@ -3330,6 +3330,130 @@ textarea {
   background: #f4f8f7;
 }
 
+.launchControlSection {
+  background: #101417;
+}
+
+.launchControlSection .sectionHeader h2,
+.launchControlSection .sectionHeader p:not(.eyebrow) {
+  color: #fff;
+}
+
+.launchControlPanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  color: #fff;
+  background: #161b1e;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+}
+
+.launchHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.launchHeader h3 {
+  color: #fff;
+  font-size: clamp(1.5rem, 3vw, 2.3rem);
+  line-height: 1;
+}
+
+.launchHeader small,
+.launchStats small,
+.launchChecklist small,
+.launchNextActions p {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.launchHeader > strong {
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  font-size: 1.1rem;
+}
+
+.launchStats,
+.launchChecklist,
+.launchNextActions {
+  display: grid;
+  gap: 10px;
+}
+
+.launchStats {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.launchChecklist {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.launchNextActions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.launchStats article,
+.launchChecklist article,
+.launchNextActions article {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+}
+
+.launchStats span,
+.launchChecklist span {
+  width: fit-content;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.launchStats strong {
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.launchChecklist article:not(.done) span {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.launchChecklist strong,
+.launchNextActions h3 {
+  color: #fff;
+}
+
+.launchNextActions a,
+.launchNextActions button {
+  width: fit-content;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.launchNextActions button {
+  cursor: pointer;
+}
+
 .feedbackForm,
 .feedbackInbox {
   display: grid;
@@ -4469,6 +4593,9 @@ textarea {
   .onboardingStepGrid,
   .myTalentGrid,
   .dashboardPanels,
+  .launchStats,
+  .launchChecklist,
+  .launchNextActions,
   .adminStats,
   .adminQueues,
   .expertHelpLayout,
@@ -4520,6 +4647,7 @@ textarea {
   .ownerPaymentList article,
   .firstWaveOwnerHeader,
   .firstWaveList article,
+  .launchHeader,
   .feedbackInboxHeader,
   .expertHelpInboxHeader,
   .adminQueues article > div:first-child {
