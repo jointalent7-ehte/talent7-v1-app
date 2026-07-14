@@ -404,6 +404,11 @@ form button {
   background: rgba(255, 255, 255, 0.86);
 }
 
+.heroUtilityLinks .ownerOnlyNav {
+  color: #fff;
+  background: var(--blue);
+}
+
 .setupNotice,
 .message {
   margin: 18px clamp(18px, 5vw, 72px) 0;
@@ -4800,6 +4805,58 @@ textarea {
   font-weight: 800;
 }
 
+.siteFooter {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) 2fr;
+  gap: 18px;
+  padding: 28px clamp(18px, 5vw, 72px);
+  color: #fff;
+  background: var(--ink);
+}
+
+.siteFooter strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1.25rem;
+}
+
+.siteFooter p {
+  max-width: 520px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.siteFooter nav,
+.footerSocials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.siteFooter nav {
+  justify-content: flex-end;
+}
+
+.siteFooter a,
+.footerSocials span {
+  padding: 9px 11px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.footerSocials {
+  grid-column: 1 / -1;
+}
+
+.footerSocials span {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
 @media (max-width: 900px) {
   .accountCard,
   .navActions,
@@ -4911,6 +4968,14 @@ textarea {
   .versus {
     grid-template-columns: 1fr;
   }
+
+  .siteFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .siteFooter nav {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 620px) {
@@ -4994,6 +5059,40 @@ textarea {
   .heroActions,
   .heroUtilityLinks {
     gap: 8px;
+  }
+
+  .desktopFeatureTiles {
+    display: none;
+  }
+
+  .shareStrip,
+  .issueShortcut {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shareStrip > div,
+  .issueShortcut > div {
+    width: 100%;
+    min-width: 0;
+    margin-right: 0;
+  }
+
+  .shareStrip button,
+  .issueShortcut button,
+  .siteFooter a,
+  .footerSocials span {
+    width: 100%;
+    text-align: center;
+  }
+
+  .pathFinder > div,
+  .pathFinder a {
+    min-height: auto;
+  }
+
+  .earlyAccessCallout span {
+    min-width: 0;
   }
 
   .filters button,

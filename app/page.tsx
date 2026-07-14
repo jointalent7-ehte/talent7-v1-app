@@ -5033,10 +5033,10 @@ export default function Home() {
             </article>
           </div>
           <div className="heroActions">
-            <a href="#account" className="primary">Create account</a>
-            <a href="#rooms" className="primary">Join a challenge</a>
-            <a href="#create" className="secondary">Create challenge</a>
-            <a href="#my-talent7" className="secondary">Open dashboard</a>
+            <a href="#account" className="primary">Start with account</a>
+            <a href="#rooms" className="primary">Browse challenge rooms</a>
+            <a href="#create" className="secondary">Create a challenge</a>
+            <a href="#my-talent7" className="secondary">My dashboard</a>
           </div>
           <div className="earlyAccessCallout">
             <a className="focusLink" href="#first-wave">First wave focus</a>
@@ -5129,7 +5129,7 @@ export default function Home() {
               </button>
             ))}
           </div>
-          <div className="heroGuide">
+          <div className="heroGuide desktopFeatureTiles">
             <a href="#rooms">
               <span>Compete</span>
               <strong>Find live challenge rooms</strong>
@@ -5173,7 +5173,7 @@ export default function Home() {
             <a href="#live-preview" className="secondary">Live preview</a>
             <a href="#plans" className="secondary">Plans</a>
             <a href="#feedback" className="secondary">Feedback</a>
-            {isOwnerReviewer && <a href="#launch-control" className="secondary">Launch control</a>}
+            {isOwnerReviewer && <a href="#launch-control" className="secondary ownerOnlyNav">Launch control</a>}
             <a href="#trust-terms" className="secondary">Trust & terms</a>
             <a href="#roadmap" className="secondary">Roadmap</a>
           </div>
@@ -8397,6 +8397,25 @@ export default function Home() {
           ))}
         </div>
       </section>
+      <footer className="siteFooter">
+        <div>
+          <strong>Talent7</strong>
+          <p>Proof-based challenge rooms, public 7-star ratings, teams, coaching, and expert-help previews.</p>
+        </div>
+        <nav>
+          <a href="#account">Account</a>
+          <a href="#first-wave">First wave</a>
+          <a href="#trust-terms">Trust & terms</a>
+          <a href="#safety">Safety</a>
+          <a href="#feedback">Feedback</a>
+          <a href="mailto:jointalent7@gmail.com">Contact</a>
+        </nav>
+        <div className="footerSocials">
+          <span>jointalent7.com</span>
+          <span>@jointalent7</span>
+          <span>YouTube: jointalent7</span>
+        </div>
+      </footer>
     </main>
   );
 }
