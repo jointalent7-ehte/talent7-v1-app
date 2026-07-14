@@ -54,8 +54,10 @@ const challengeActivityOptions = [
   "Mobile gaming",
   "Chess match",
   "Table tennis",
+  "Boxing",
   "Tennis match",
   "Boxing training challenge",
+  "Kickboxing",
   "Martial arts challenge",
   "Cycling challenge",
   "Parkour challenge",
@@ -694,6 +696,9 @@ export default function Home() {
   const [reportingShowcaseTarget, setReportingShowcaseTarget] = useState<string | null>(null);
   const [deletingShowcasePostId, setDeletingShowcasePostId] = useState<string | null>(null);
   const [deletingProofId, setDeletingProofId] = useState<string | null>(null);
+  const [editingChallengeId, setEditingChallengeId] = useState<string | null>(null);
+  const [editingShowcasePostId, setEditingShowcasePostId] = useState<string | null>(null);
+  const [editingProofId, setEditingProofId] = useState<string | null>(null);
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
   const [launchQaDoneKeys, setLaunchQaDoneKeys] = useState<string[]>([]);
   const [playStoreDoneKeys, setPlayStoreDoneKeys] = useState<string[]>([]);
@@ -1989,6 +1994,10 @@ export default function Home() {
 
   function canDeleteUserContent(userId?: string | null) {
     return Boolean(session?.user.id && (isOwnerReviewer || userId === session.user.id));
+  }
+
+  function canEditChallenge(challenge: Challenge) {
+    return Boolean(session?.user.id && (isOwnerReviewer || challenge.created_by === session.user.id));
   }
 
   function profileTrustBadges(item: TalentProfile) {
@@ -3405,6 +3414,55 @@ export default function Home() {
     setIsSaving(false);
   }
 
+  async function updateChallengeDetails(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    if (!requireLogin("edit a challenge")) return;
+
+    if (!canEditChallenge(challenge)) {
+      setMessage("Only the challenge creator or Talent7 owner can edit this room.");
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const update = {
+      title: String(form.get("title") || challenge.title).trim() || challenge.title,
+      lane: String(form.get("lane") || challenge.lane) as ChallengeLane,
+      team_a: String(form.get("team_a") || challenge.team_a).trim() || challenge.team_a,
+      team_b: String(form.get("team_b") || challenge.team_b).trim() || challenge.team_b,
+      rules: String(form.get("rules") || challenge.rules).trim() || challenge.rules,
+      venue_name: String(form.get("venue_name") || "").trim() || null,
+      booking_url: String(form.get("booking_url") || "").trim() || null,
+      sport_type: String(form.get("sport_type") || "").trim() || null,
+      booking_region: String(form.get("booking_region") || "").trim() || null
+    };
+
+    setEditingChallengeId(challenge.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setChallenges((items) => items.map((item) => (item.id === challenge.id ? { ...item, ...update } : item)));
+      setMessage("Challenge details updated in this preview.");
+      setEditingChallengeId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("challenges")
+      .update(update)
+      .eq("id", challenge.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update challenge: ${error.message}`);
+    } else if (data) {
+      setChallenges((items) => items.map((item) => (item.id === challenge.id ? (data as Challenge) : item)));
+      setMessage("Challenge details updated.");
+    }
+
+    setEditingChallengeId(null);
+  }
+
   async function sendInviteForChallenge(challenge: Challenge) {
     if (!supabase || !session?.user.id || !challengeDraft.invitedUserId) return "";
 
@@ -4221,6 +4279,50 @@ export default function Home() {
     setDeletingShowcasePostId(null);
   }
 
+  async function updateShowcasePost(event: FormEvent<HTMLFormElement>, post: ShowcasePost) {
+    event.preventDefault();
+    if (!requireLogin("edit a showcase post")) return;
+
+    if (!canDeleteUserContent(post.user_id)) {
+      setMessage("Only the post owner or Talent7 owner can edit this showcase post.");
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const update = {
+      caption: String(form.get("caption") || post.caption).trim() || post.caption,
+      category: String(form.get("category") || post.category).trim() || post.category,
+      media_url: String(form.get("media_url") || post.media_url).trim() || post.media_url,
+      media_type: String(form.get("media_type") || post.media_type) as ShowcasePost["media_type"]
+    };
+
+    setEditingShowcasePostId(post.id);
+    setMessage("");
+
+    if (!supabase) {
+      setShowcasePosts((items) => items.map((item) => (item.id === post.id ? { ...item, ...update } : item)));
+      setMessage("Showcase post updated in this preview.");
+      setEditingShowcasePostId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("showcase_posts")
+      .update(update)
+      .eq("id", post.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update showcase post: ${error.message}`);
+    } else if (data) {
+      setShowcasePosts((items) => items.map((item) => (item.id === post.id ? (data as ShowcasePost) : item)));
+      setMessage("Showcase post updated.");
+    }
+
+    setEditingShowcasePostId(null);
+  }
+
   async function respondToInvite(invite: ChallengeInvite, status: "Accepted" | "Declined") {
     if (!requireLogin("respond to an invite")) return;
     if (status === "Accepted" && !requireProfile("accept an invite")) return;
@@ -4557,6 +4659,49 @@ export default function Home() {
     }
 
     setDeletingProofId(null);
+  }
+
+  async function updateProofNote(event: FormEvent<HTMLFormElement>, proof: ChallengeProof) {
+    event.preventDefault();
+    if (!requireLogin("edit proof")) return;
+
+    if (!canDeleteUserContent(proof.user_id)) {
+      setMessage("Only the proof uploader or Talent7 owner can edit this proof.");
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const update = {
+      proof_type: String(form.get("proof_type") || proof.proof_type || "Video"),
+      proof_url: String(form.get("proof_url") || proof.proof_url).trim() || proof.proof_url,
+      notes: String(form.get("notes") || "").trim() || null
+    };
+
+    setEditingProofId(proof.id);
+    setMessage("");
+
+    if (!supabase) {
+      setProofs((items) => items.map((item) => (item.id === proof.id ? { ...item, ...update } : item)));
+      setMessage("Proof updated in this preview.");
+      setEditingProofId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("proofs")
+      .update(update)
+      .eq("id", proof.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update proof: ${error.message}`);
+    } else if (data) {
+      setProofs((items) => items.map((item) => (item.id === proof.id ? (data as ChallengeProof) : item)));
+      setMessage("Proof updated.");
+    }
+
+    setEditingProofId(null);
   }
 
   async function sendChallengeMessage(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -6064,6 +6209,46 @@ export default function Home() {
                     </button>
                   )}
                 </div>
+                {canDeleteUserContent(post.user_id) && (
+                  <details className="editPanel">
+                    <summary>Edit post</summary>
+                    <form onSubmit={(event) => updateShowcasePost(event, post)}>
+                      <label>
+                        Media type
+                        <select name="media_type" defaultValue={post.media_type}>
+                          <option>Video</option>
+                          <option>Photo</option>
+                          <option>Link</option>
+                        </select>
+                      </label>
+                      <label>
+                        Category
+                        <select name="category" defaultValue={post.category}>
+                          <option>Talent</option>
+                          <option>Dance</option>
+                          <option>Sports</option>
+                          <option>Gaming</option>
+                          <option>Coaching</option>
+                          <option>Fitness</option>
+                          {challengeActivityOptions.map((interest) => (
+                            <option key={interest}>{interest}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="wide">
+                        Media link
+                        <input name="media_url" defaultValue={post.media_url} />
+                      </label>
+                      <label className="wide">
+                        Caption
+                        <textarea name="caption" defaultValue={post.caption} rows={2} />
+                      </label>
+                      <button disabled={editingShowcasePostId === post.id} type="submit">
+                        {editingShowcasePostId === post.id ? "Saving..." : "Save post"}
+                      </button>
+                    </form>
+                  </details>
+                )}
                 <div className="showcaseRatingButtons">
                   {([1, 2, 3, 4, 5, 6, 7] as const).map((rating) => (
                     <button
@@ -8557,6 +8742,60 @@ export default function Home() {
               <button className="roomLinkButton" onClick={() => copyRoomLink(challenge)} type="button">
                 Copy room link
               </button>
+              {canEditChallenge(challenge) && (
+                <details className="editPanel roomEditPanel">
+                  <summary>Edit room</summary>
+                  <form onSubmit={(event) => updateChallengeDetails(event, challenge)}>
+                    <label>
+                      Challenge title
+                      <input name="title" defaultValue={challenge.title} />
+                    </label>
+                    <label>
+                      Lane
+                      <select name="lane" defaultValue={challenge.lane}>
+                        <option>Talent battle</option>
+                        <option>Sports challenge</option>
+                        <option>Mobile gaming challenge</option>
+                      </select>
+                    </label>
+                    <label>
+                      Team or challenger A
+                      <input name="team_a" defaultValue={challenge.team_a} />
+                    </label>
+                    <label>
+                      Team or challenger B
+                      <input name="team_b" defaultValue={challenge.team_b} />
+                    </label>
+                    <label className="wide">
+                      Rules
+                      <textarea name="rules" defaultValue={challenge.rules} rows={3} />
+                    </label>
+                    <label>
+                      Venue or booking note
+                      <input name="venue_name" defaultValue={challenge.venue_name || ""} />
+                    </label>
+                    <label>
+                      Booking link
+                      <input name="booking_url" defaultValue={challenge.booking_url || ""} />
+                    </label>
+                    <label>
+                      Sport / venue type
+                      <select name="sport_type" defaultValue={challenge.sport_type || "Badminton doubles"}>
+                        {challengeActivityOptions.map((interest) => (
+                          <option key={interest}>{interest}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Booking region
+                      <input name="booking_region" defaultValue={challenge.booking_region || ""} />
+                    </label>
+                    <button disabled={editingChallengeId === challenge.id} type="submit">
+                      {editingChallengeId === challenge.id ? "Saving..." : "Save room"}
+                    </button>
+                  </form>
+                </details>
+              )}
               {challenge.status === "Completed" && (
                 <div className="winnerBanner">
                   <span>Winner</span>
@@ -8744,14 +8983,41 @@ export default function Home() {
                           {proof.review_status || "Pending review"} | <a href={proof.proof_url} rel="noreferrer" target="_blank">Open proof</a>
                         </small>
                         {canDeleteUserContent(proof.user_id) && (
-                          <button
-                            className="dangerAction"
-                            disabled={deletingProofId === proof.id}
-                            onClick={() => deleteProof(proof)}
-                            type="button"
-                          >
-                            {deletingProofId === proof.id ? "Deleting..." : "Delete proof"}
-                          </button>
+                          <>
+                            <details className="editPanel proofEditPanel">
+                              <summary>Edit proof</summary>
+                              <form onSubmit={(event) => updateProofNote(event, proof)}>
+                                <label>
+                                  Proof type
+                                  <select name="proof_type" defaultValue={proof.proof_type || "Video"}>
+                                    <option>Photo</option>
+                                    <option>Video</option>
+                                    <option>Screenshot</option>
+                                    <option>Match link</option>
+                                  </select>
+                                </label>
+                                <label className="wide">
+                                  Proof link
+                                  <input name="proof_url" defaultValue={proof.proof_url} />
+                                </label>
+                                <label className="wide">
+                                  Proof note
+                                  <textarea name="notes" defaultValue={proof.notes || ""} rows={2} />
+                                </label>
+                                <button disabled={editingProofId === proof.id} type="submit">
+                                  {editingProofId === proof.id ? "Saving..." : "Save proof"}
+                                </button>
+                              </form>
+                            </details>
+                            <button
+                              className="dangerAction"
+                              disabled={deletingProofId === proof.id}
+                              onClick={() => deleteProof(proof)}
+                              type="button"
+                            >
+                              {deletingProofId === proof.id ? "Deleting..." : "Delete proof"}
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
