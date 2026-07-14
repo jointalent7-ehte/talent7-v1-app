@@ -6,7 +6,23 @@ import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
 type ChallengeStatusFilter = "All" | "Open" | "Completed";
-type ExpertHelpType = "Medical guidance" | "Plumbing" | "Electrical" | "Tech help" | "Fitness injury" | "Other urgent help";
+type ExpertHelpType =
+  | "Medical guidance"
+  | "Fitness injury"
+  | "Plumbing"
+  | "Electrical"
+  | "Tech help"
+  | "Auto / bike help"
+  | "Home repair"
+  | "Study help"
+  | "Career help"
+  | "Mental wellness support"
+  | "Legal / document guidance"
+  | "Travel/local guidance"
+  | "Cooking / nutrition help"
+  | "Parenting / childcare guidance"
+  | "Pet care guidance"
+  | "Other urgent help";
 
 const teamMemberRoles = ["Player", "Captain", "Dancer", "Coach", "Substitute", "Proof uploader", "Organizer"];
 const proofManagerRoles = ["Captain", "Organizer", "Proof uploader"];
@@ -55,10 +71,20 @@ const challengeActivityOptions = [
 ];
 const expertHelpTypes: ExpertHelpType[] = [
   "Medical guidance",
+  "Fitness injury",
   "Plumbing",
   "Electrical",
   "Tech help",
-  "Fitness injury",
+  "Auto / bike help",
+  "Home repair",
+  "Study help",
+  "Career help",
+  "Mental wellness support",
+  "Legal / document guidance",
+  "Travel/local guidance",
+  "Cooking / nutrition help",
+  "Parenting / childcare guidance",
+  "Pet care guidance",
   "Other urgent help"
 ];
 
