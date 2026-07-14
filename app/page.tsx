@@ -5174,6 +5174,7 @@ export default function Home() {
             <a href="#plans" className="secondary">Plans</a>
             <a href="#feedback" className="secondary">Feedback</a>
             {isOwnerReviewer && <a href="#launch-control" className="secondary">Launch control</a>}
+            <a href="#trust-terms" className="secondary">Trust & terms</a>
             <a href="#roadmap" className="secondary">Roadmap</a>
           </div>
         </section>
@@ -7314,6 +7315,59 @@ export default function Home() {
             <strong>Live battles and expert help</strong>
             <p>Add two-screen live challenge battles, real payments, instructor tools, and carefully designed emergency/expert video help.</p>
           </article>
+        </div>
+      </section>
+
+      <section className="section trustTermsSection" id="trust-terms">
+        <div className="sectionHeader">
+          <p className="eyebrow">Trust & terms</p>
+          <h2>Clear rules before real users arrive</h2>
+          <p>
+            These are simple MVP trust notes for early testers. They are not a replacement for lawyer-reviewed terms,
+            but they make Talent7's boundaries clear while the app is still growing.
+          </p>
+        </div>
+        <div className="trustTermsGrid">
+          <article>
+            <span>Terms</span>
+            <strong>Use Talent7 fairly</strong>
+            <p>Create honest challenge rooms, respect other users, avoid spam, and do not use Talent7 to harass, threaten, or pressure anyone.</p>
+          </article>
+          <article>
+            <span>Privacy</span>
+            <strong>Use a sensible public profile</strong>
+            <p>Your public name, username, role, region, posts, rooms, comments, and ratings may be visible. Do not post private information you do not want shared.</p>
+          </article>
+          <article>
+            <span>Uploads</span>
+            <strong>Only share content you can use</strong>
+            <p>Upload photos, videos, screenshots, and links you own or have permission to share. Fake proof and misleading victory claims can be reported.</p>
+          </article>
+          <article>
+            <span>Sports</span>
+            <strong>Meet safely and follow venue rules</strong>
+            <p>Talent7 does not run courts, pools, gyms, or events yet. Check local rules, safety, costs, and permissions before recording or playing.</p>
+          </article>
+          <article>
+            <span>Medical caution</span>
+            <strong>Emergency services come first</strong>
+            <p>Expert help is guidance only. For medical emergencies, danger, serious injury, or urgent risk, contact local emergency services first.</p>
+          </article>
+          <article>
+            <span>Payments</span>
+            <strong>Payments are not live yet</strong>
+            <p>Plans and contribution ranges show future interest only. No paid checkout is active until a real payment provider is added and clearly shown.</p>
+          </article>
+        </div>
+        <div className="trustContactBox">
+          <div>
+            <p className="eyebrow">Contact</p>
+            <h3>Questions, reports, or permission requests</h3>
+            <p>Use Founder Feedback inside the app, or contact the Talent7 founder email if something needs direct attention.</p>
+          </div>
+          <a href="mailto:jointalent7@gmail.com">jointalent7@gmail.com</a>
+          <a href="#feedback">Open founder feedback</a>
+          <a href="#safety">Open safety reports</a>
         </div>
       </section>
 
