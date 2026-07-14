@@ -292,6 +292,42 @@ h1 {
   cursor: pointer;
 }
 
+.issueShortcut {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: 1120px;
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 248, 231, 0.12);
+  border: 1px solid rgba(239, 210, 138, 0.36);
+  border-radius: 8px;
+}
+
+.issueShortcut > div {
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  margin-right: auto;
+}
+
+.issueShortcut strong {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.issueShortcut button {
+  min-height: 42px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: var(--gold);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .heroGuide {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

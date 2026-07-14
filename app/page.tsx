@@ -577,6 +577,7 @@ export default function Home() {
   const [paymentActionKey, setPaymentActionKey] = useState<string | null>(null);
   const [savingFeedback, setSavingFeedback] = useState(false);
   const [feedbackActionKey, setFeedbackActionKey] = useState<string | null>(null);
+  const [feedbackDraftType, setFeedbackDraftType] = useState<FounderFeedback["feedback_type"]>("General");
   const [savingFirstWave, setSavingFirstWave] = useState(false);
   const [firstWaveActionKey, setFirstWaveActionKey] = useState<string | null>(null);
   const [savingExpertHelp, setSavingExpertHelp] = useState(false);
@@ -2533,6 +2534,12 @@ export default function Home() {
     }
   }
 
+  function startFounderFeedback(type: FounderFeedback["feedback_type"]) {
+    setFeedbackDraftType(type);
+    setMessage(`${type} selected. Add details in Founder Feedback.`);
+    setTimeout(() => document.getElementById("feedback")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
   function requireLogin(action: string) {
     if (session) return true;
 
@@ -2790,6 +2797,7 @@ export default function Home() {
       ]);
       setMessage("Demo mode: feedback saved on this page.");
       formElement.reset();
+      setFeedbackDraftType("General");
       setSavingFeedback(false);
       return;
     }
@@ -2806,6 +2814,7 @@ export default function Home() {
       setFounderFeedback((items) => [data as FounderFeedback, ...items]);
       setMessage("Feedback sent. Thank you for helping improve Talent7.");
       formElement.reset();
+      setFeedbackDraftType("General");
     }
 
     setSavingFeedback(false);
@@ -5032,6 +5041,17 @@ export default function Home() {
               Copy founder support
             </button>
           </div>
+          <div className="issueShortcut">
+            <div>
+              <p className="eyebrow">Found a launch issue?</p>
+              <strong>Tell the founder quickly</strong>
+            </div>
+            {(["Bug", "Confusing", "Feature request", "Payment interest"] as FounderFeedback["feedback_type"][]).map((type) => (
+              <button key={type} onClick={() => startFounderFeedback(type)} type="button">
+                {type}
+              </button>
+            ))}
+          </div>
           <div className="heroGuide">
             <a href="#rooms">
               <span>Compete</span>
@@ -6976,7 +6996,11 @@ export default function Home() {
           <form className="feedbackForm" onSubmit={submitFounderFeedback}>
             <label>
               Feedback type
-              <select name="feedback_type" defaultValue="General">
+              <select
+                name="feedback_type"
+                onChange={(event) => setFeedbackDraftType(event.target.value as FounderFeedback["feedback_type"])}
+                value={feedbackDraftType}
+              >
                 {(["Bug", "Confusing", "Feature request", "Payment interest", "General"] as FounderFeedback["feedback_type"][]).map((type) => (
                   <option key={type}>{type}</option>
                 ))}
