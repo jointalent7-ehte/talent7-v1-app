@@ -618,6 +618,7 @@ export default function Home() {
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("All");
   const [roomSearch, setRoomSearch] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const [profileSearch, setProfileSearch] = useState("");
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
   const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
@@ -2220,6 +2221,15 @@ export default function Home() {
 
     return `Your team role: ${roles.map((item) => `${item.teamName} ${item.role}`).join(", ")}.`;
   }
+
+  useEffect(() => {
+    const updateBackToTop = () => setShowBackToTop(window.scrollY > 700);
+
+    updateBackToTop();
+    window.addEventListener("scroll", updateBackToTop);
+
+    return () => window.removeEventListener("scroll", updateBackToTop);
+  }, []);
 
   useEffect(() => {
     if (!notificationReadStorageKey) {
@@ -9216,6 +9226,11 @@ export default function Home() {
           <span>YouTube: jointalent7</span>
         </div>
       </footer>
+      {showBackToTop ? (
+        <button className="backToTopButton" type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          Back to top
+        </button>
+      ) : null}
     </main>
   );
 }
