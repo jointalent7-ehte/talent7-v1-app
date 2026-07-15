@@ -89,6 +89,67 @@ const expertHelpTypes: ExpertHelpType[] = [
   "Other urgent help"
 ];
 
+type MobileTabId = "challenges" | "showcase" | "coaching" | "help" | "account";
+
+const mobileTabs: {
+  id: MobileTabId;
+  label: string;
+  firstSection: string;
+  links: { label: string; href: string }[];
+}[] = [
+  {
+    id: "challenges",
+    label: "Challenges",
+    firstSection: "rooms",
+    links: [
+      { label: "Rooms", href: "#rooms" },
+      { label: "Create", href: "#create" },
+      { label: "Teams", href: "#teams" },
+      { label: "Invites", href: "#invites" }
+    ]
+  },
+  {
+    id: "showcase",
+    label: "Showcase",
+    firstSection: "showcase",
+    links: [
+      { label: "Posts", href: "#showcase" },
+      { label: "Profiles", href: "#profiles" },
+      { label: "Feed", href: "#following-feed" }
+    ]
+  },
+  {
+    id: "coaching",
+    label: "Coaching",
+    firstSection: "coaching",
+    links: [
+      { label: "Coaching", href: "#coaching" },
+      { label: "Live preview", href: "#live-preview" }
+    ]
+  },
+  {
+    id: "help",
+    label: "Help",
+    firstSection: "expert-help",
+    links: [
+      { label: "Expert help", href: "#expert-help" },
+      { label: "Safety", href: "#safety" },
+      { label: "Feedback", href: "#feedback" }
+    ]
+  },
+  {
+    id: "account",
+    label: "Account",
+    firstSection: "account",
+    links: [
+      { label: "Account", href: "#account" },
+      { label: "Alerts", href: "#notifications" },
+      { label: "Dashboard", href: "#my-talent7" },
+      { label: "Plans", href: "#plans" }
+    ]
+  }
+];
+
 type Challenge = {
   id: string;
   title: string;
@@ -619,6 +680,7 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("All");
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [activeMobileTab, setActiveMobileTab] = useState<MobileTabId>("challenges");
   const [profileSearch, setProfileSearch] = useState("");
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
   const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
@@ -2900,6 +2962,14 @@ export default function Home() {
     } catch {
       setMessage("Copy failed. You can manually select and copy the text.");
     }
+  }
+
+  function switchMobileTab(tabId: MobileTabId) {
+    const tab = mobileTabs.find((item) => item.id === tabId);
+    setActiveMobileTab(tabId);
+    window.setTimeout(() => {
+      document.getElementById(tab?.firstSection || "rooms")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
   }
 
   function startFounderFeedback(type: FounderFeedback["feedback_type"]) {
@@ -5628,8 +5698,10 @@ export default function Home() {
     setCompletingChallengeId(null);
   }
 
+  const activeMobileConfig = mobileTabs.find((tab) => tab.id === activeMobileTab) || mobileTabs[0];
+
   return (
-    <main>
+    <main className={`mobileTab-${activeMobileTab}`}>
       <header className="hero">
         <nav>
           <strong>Talent7</strong>
@@ -5819,6 +5891,27 @@ export default function Home() {
       )}
 
       {message && <aside className="message">{message}</aside>}
+
+      <nav className="mobileAppTabs" aria-label="Talent7 mobile sections">
+        {mobileTabs.map((tab) => (
+          <button
+            className={activeMobileTab === tab.id ? "active" : ""}
+            key={tab.id}
+            onClick={() => switchMobileTab(tab.id)}
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <nav className="mobileSubTabs" aria-label={`${activeMobileConfig.label} options`}>
+        {activeMobileConfig.links.map((link) => (
+          <a href={link.href} key={link.href}>
+            {link.label}
+          </a>
+        ))}
+      </nav>
 
       <section className="section firstWaveSection" id="first-wave">
         <div className="sectionHeader">
