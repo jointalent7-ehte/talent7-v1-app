@@ -627,6 +627,9 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<TalentProfile | null>(null);
@@ -2829,6 +2832,38 @@ export default function Home() {
     await supabase.auth.signOut();
     setAuthMode("Log in");
     setMessage("Logged out.");
+  }
+
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase || !session) {
+      setMessage("Log in before changing your password.");
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const newPassword = String(form.get("new_password") || "");
+
+    if (newPassword.length < 6) {
+      setMessage("Enter a new password with at least 6 characters.");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (error) {
+      setMessage(error.message);
+    } else {
+      event.currentTarget.reset();
+      setShowNewPassword(false);
+      setMessage("Password updated.");
+    }
+
+    setUpdatingPassword(false);
   }
 
   async function copyLaunchUpdate() {
@@ -6062,6 +6097,25 @@ export default function Home() {
               <a href="/delete-account">Delete account request</a>
               <a href="/support">Support</a>
             </div>
+            <form className="passwordForm" onSubmit={changePassword}>
+              <div>
+                <span>Password</span>
+                <strong>Change your password</strong>
+                <small>Use at least 6 characters. Your password is never shown to Talent7.</small>
+              </div>
+              <label className="passwordField">
+                New password
+                <span>
+                  <input name="new_password" placeholder="New password" type={showNewPassword ? "text" : "password"} />
+                  <button type="button" onClick={() => setShowNewPassword((current) => !current)}>
+                    {showNewPassword ? "Hide" : "Show"}
+                  </button>
+                </span>
+              </label>
+              <button disabled={updatingPassword} type="submit">
+                {updatingPassword ? "Updating..." : "Update password"}
+              </button>
+            </form>
             <form className="profileForm" key={profile?.updated_at || session.user.id} onSubmit={saveProfile}>
               <label>
                 Display name
@@ -6128,7 +6182,12 @@ export default function Home() {
             </label>
             <label>
               Password
-              <input name="password" placeholder="At least 6 characters" type="password" />
+              <span className="passwordField">
+                <input name="password" placeholder="At least 6 characters" type={showAuthPassword ? "text" : "password"} />
+                <button type="button" onClick={() => setShowAuthPassword((current) => !current)}>
+                  {showAuthPassword ? "Hide" : "Show"}
+                </button>
+              </span>
             </label>
             <button disabled={authLoading} type="submit">
               {authLoading ? "Please wait..." : authMode}

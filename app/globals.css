@@ -725,6 +725,7 @@ textarea {
 .authForm,
 .accountCard,
 .accountPaymentCard,
+.passwordForm,
 .profileForm {
   max-width: 760px;
   padding: 18px;
@@ -737,6 +738,27 @@ textarea {
 .authForm {
   display: grid;
   gap: 14px;
+}
+
+.passwordField {
+  display: grid;
+  gap: 8px;
+}
+
+.passwordField span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.passwordField button {
+  min-height: 44px;
+  padding: 10px 13px;
+  color: #fff;
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
 }
 
 .profileStack {
@@ -860,6 +882,44 @@ textarea {
   font-weight: 900;
   text-align: center;
   text-decoration: none;
+}
+
+.passwordForm {
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  background: #f4f8f7;
+}
+
+.passwordForm > div {
+  display: grid;
+  gap: 4px;
+}
+
+.passwordForm span,
+.passwordForm small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.passwordForm > div > span {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.passwordForm > button {
+  min-height: 44px;
+  padding: 12px 14px;
+  color: #fff;
+  background: var(--teal);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.passwordForm > button:disabled {
+  opacity: 0.65;
 }
 
 .accountLegalCard {
@@ -5303,6 +5363,7 @@ textarea {
   .teamRequestList,
   .profileForm,
   .accountPaymentCard,
+  .passwordForm,
   .legalGrid,
   .onboardingStepGrid,
   .myTalentGrid,
