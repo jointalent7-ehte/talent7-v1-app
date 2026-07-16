@@ -129,10 +129,10 @@ const mobileTabs: {
   },
   {
     id: "help",
-    label: "Help",
+    label: "Guidance",
     firstSection: "expert-help",
     links: [
-      { label: "Expert help", href: "#expert-help" },
+      { label: "Expert guidance", href: "#expert-help" },
       { label: "Safety", href: "#safety" },
       { label: "Feedback", href: "#feedback" }
     ]
@@ -5854,7 +5854,7 @@ export default function Home() {
               <small>Offer lessons or ask coaches for help.</small>
             </a>
             <a href="#expert-help">
-              <span>Help</span>
+              <span>Guidance</span>
               <strong>Request expert guidance</strong>
               <small>Medical caution, plumbing, tech, fitness, and more.</small>
             </a>
@@ -5872,7 +5872,7 @@ export default function Home() {
             <a href="#following-feed" className="secondary">Feed</a>
             <a href="#invites" className="secondary">Invites</a>
             <a href="#safety" className="secondary">Safety</a>
-            <a href="#expert-help" className="secondary">Expert help</a>
+            <a href="#expert-help" className="secondary">Expert guidance</a>
             <a href="#live-preview" className="secondary">Live preview</a>
             <a href="#plans" className="secondary">Plans</a>
             <a href="#feedback" className="secondary">Feedback</a>
@@ -7070,13 +7070,13 @@ export default function Home() {
 
       <section className="section expertHelpSection" id="expert-help">
         <div className="sectionHeader">
-          <p className="eyebrow">Live expert help</p>
+          <p className="eyebrow">Expert guidance</p>
           <h2>Get guidance from someone who knows the problem</h2>
-          <p>This is the early request flow for future live video help across medical guidance, home fixes, tech, fitness injuries, and urgent everyday problems.</p>
+          <p>This is the early request flow for future live video guidance across medical caution, home fixes, tech, fitness injuries, and urgent everyday problems.</p>
         </div>
         <div className="expertWarning">
           <strong>Important safety note</strong>
-          <p>Talent7 expert help is guidance only. For medical danger, fire, electric shock risk, violence, or any life-threatening emergency, call local emergency services first.</p>
+          <p>Talent7 guidance is informational only. For medical danger, fire, electric shock risk, violence, or any life-threatening emergency, call local emergency services first.</p>
         </div>
         <div className="expertHelpLayout">
           <div className="expertHelpTypes">
