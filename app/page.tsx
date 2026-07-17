@@ -6084,6 +6084,11 @@ export default function Home() {
               <strong>Browse talent profiles</strong>
               <small>Follow people, copy profile links, and view activity.</small>
             </a>
+            <a href="#listen-rooms">
+              <span>Listen</span>
+              <strong>Listen with buddies</strong>
+              <small>Shared music rooms for specials, friends, and groups.</small>
+            </a>
             <a href="#coaching">
               <span>Learn</span>
               <strong>Find coaching</strong>
@@ -6106,6 +6111,7 @@ export default function Home() {
               Notifications{unreadNotifications.length > 0 ? ` (${unreadNotifications.length})` : ""}
             </a>
             <a href="#following-feed" className="secondary">Feed</a>
+            <a href="#listen-rooms" className="secondary">Listen rooms</a>
             <a href="#invites" className="secondary">Invites</a>
             <a href="#safety" className="secondary">Safety</a>
             <a href="#expert-help" className="secondary">Expert guidance</a>
