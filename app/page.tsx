@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -89,7 +89,7 @@ const expertHelpTypes: ExpertHelpType[] = [
   "Other urgent help"
 ];
 
-type MobileTabId = "challenges" | "showcase" | "coaching" | "help" | "account";
+type MobileTabId = "challenges" | "showcase" | "listen" | "coaching" | "help" | "account";
 
 const mobileTabs: {
   id: MobileTabId;
@@ -119,6 +119,15 @@ const mobileTabs: {
     ]
   },
   {
+    id: "listen",
+    label: "Listen",
+    firstSection: "listen-rooms",
+    links: [
+      { label: "Listen rooms", href: "#listen-rooms" },
+      { label: "Showcase", href: "#showcase" },
+      { label: "Feed", href: "#following-feed" }
+    ]
+  },  {
     id: "coaching",
     label: "Coaching",
     firstSection: "coaching",
@@ -150,6 +159,78 @@ const mobileTabs: {
   }
 ];
 
+type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
+
+type ListenRoom = {
+  id: string;
+  title: string;
+  host_name: string;
+  mood: ListenMood;
+  room_note: string | null;
+  current_track_title: string;
+  current_track_url: string;
+  listener_count: number;
+  love_count: number;
+  vibe_count: number;
+  created_by: string | null;
+  created_at: string;
+};
+
+type ListenTrack = {
+  id: string;
+  room_id: string;
+  track_title: string;
+  track_url: string;
+  added_by: string;
+  created_at: string;
+};
+
+type ListenRoomDraft = {
+  title: string;
+  host_name: string;
+  mood: ListenMood;
+  room_note: string;
+  current_track_title: string;
+  current_track_url: string;
+};
+
+type ListenTrackDraft = {
+  track_title: string;
+  track_url: string;
+  added_by: string;
+};
+
+const listenMoodOptions: ListenMood[] = ["Chill", "Workout", "Focus", "Romantic", "Party", "Road trip", "Study", "Open vibe"];
+
+const defaultListenDraft: ListenRoomDraft = {
+  title: "",
+  host_name: "",
+  mood: "Chill",
+  room_note: "",
+  current_track_title: "",
+  current_track_url: ""
+};
+
+const sampleListenRooms: ListenRoom[] = [
+  {
+    id: "listen-room-first-wave",
+    title: "First wave favourites",
+    host_name: "Talent7",
+    mood: "Open vibe",
+    room_note: "A room for friends, squads, couples, and challengers to share public song links while hanging out.",
+    current_track_title: "Add the first public song link",
+    current_track_url: "https://www.youtube.com",
+    listener_count: 7,
+    love_count: 12,
+    vibe_count: 9,
+    created_by: null,
+    created_at: "2026-07-17T00:00:00.000Z"
+  }
+];
+
+const sampleListenTracks: ListenTrack[] = [];
+const listenRoomsStorageKey = "talent7-listen-rooms";
+const listenTracksStorageKey = "talent7-listen-tracks";
 type Challenge = {
   id: string;
   title: string;
@@ -681,6 +762,41 @@ export default function Home() {
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTabId>("challenges");
+  const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
+  const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
+  const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
+  const [listenTrackDrafts, setListenTrackDrafts] = useState<Record<string, ListenTrackDraft>>({});
+
+  const listenTracksByRoom = useMemo(() => {
+    return listenTracks.reduce<Record<string, ListenTrack[]>>((grouped, track) => {
+      if (!grouped[track.room_id]) grouped[track.room_id] = [];
+      grouped[track.room_id].push(track);
+      return grouped;
+    }, {});
+  }, [listenTracks]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const savedRooms = window.localStorage.getItem(listenRoomsStorageKey);
+      if (savedRooms) setListenRooms(JSON.parse(savedRooms));
+      const savedTracks = window.localStorage.getItem(listenTracksStorageKey);
+      if (savedTracks) setListenTracks(JSON.parse(savedTracks));
+    } catch {
+      setListenRooms(sampleListenRooms);
+      setListenTracks(sampleListenTracks);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(listenRoomsStorageKey, JSON.stringify(listenRooms));
+  }, [listenRooms]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(listenTracksStorageKey, JSON.stringify(listenTracks));
+  }, [listenTracks]);
   const [profileSearch, setProfileSearch] = useState("");
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
   const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
@@ -3025,6 +3141,126 @@ export default function Home() {
     return false;
   }
 
+  function makeLocalListenId(prefix = "listen") {
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function isPublicSongLink(value: string) {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" || url.protocol === "http:";
+    } catch {
+      return false;
+    }
+  }
+
+  function updateListenRoomDraft<K extends keyof ListenRoomDraft>(key: K, value: ListenRoomDraft[K]) {
+    setListenRoomDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateListenTrackDraft(roomId: string, key: keyof ListenTrackDraft, value: string) {
+    setListenTrackDrafts((current) => ({
+      ...current,
+      [roomId]: {
+        track_title: current[roomId]?.track_title || "",
+        track_url: current[roomId]?.track_url || "",
+        added_by: current[roomId]?.added_by || profileName(),
+        [key]: value
+      }
+    }));
+  }
+
+  function handleCreateListenRoom(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!requireProfile("create a listen room")) return;
+
+    const trackUrl = listenRoomDraft.current_track_url.trim();
+    if (trackUrl && !isPublicSongLink(trackUrl)) {
+      setMessage("Please use a public song link that starts with http or https.");
+      return;
+    }
+
+    const room: ListenRoom = {
+      id: makeLocalListenId("listen-room"),
+      title: listenRoomDraft.title.trim() || "Untitled listen room",
+      host_name: listenRoomDraft.host_name.trim() || profileName(),
+      mood: listenRoomDraft.mood,
+      room_note: listenRoomDraft.room_note.trim() || null,
+      current_track_title: listenRoomDraft.current_track_title.trim() || "Open the first shared song",
+      current_track_url: trackUrl || "https://www.youtube.com",
+      listener_count: 1,
+      love_count: 0,
+      vibe_count: 0,
+      created_by: session?.user.id || null,
+      created_at: new Date().toISOString()
+    };
+
+    setListenRooms((current) => [room, ...current]);
+    setListenRoomDraft({ ...defaultListenDraft, host_name: profileName() });
+    setMessage("Listen room created.");
+    setTimeout(() => document.getElementById("listen-rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
+
+  function handleJoinListenRoom(roomId: string) {
+    if (!requireProfile("join a listen room")) return;
+    setListenRooms((current) =>
+      current.map((room) => (room.id === roomId ? { ...room, listener_count: room.listener_count + 1 } : room))
+    );
+    setMessage("Joined listen room.");
+  }
+
+  function handleReactListenRoom(roomId: string, reaction: "love" | "vibe") {
+    setListenRooms((current) =>
+      current.map((room) =>
+        room.id === roomId
+          ? {
+              ...room,
+              love_count: reaction === "love" ? room.love_count + 1 : room.love_count,
+              vibe_count: reaction === "vibe" ? room.vibe_count + 1 : room.vibe_count
+            }
+          : room
+      )
+    );
+  }
+
+  function handleAddListenTrack(event: FormEvent<HTMLFormElement>, roomId: string) {
+    event.preventDefault();
+    if (!requireProfile("add a song")) return;
+
+    const draft = listenTrackDrafts[roomId] || { track_title: "", track_url: "", added_by: profileName() };
+    const trackUrl = draft.track_url.trim();
+    if (!trackUrl || !isPublicSongLink(trackUrl)) {
+      setMessage("Please paste a public YouTube, Spotify, or song link.");
+      return;
+    }
+
+    const track: ListenTrack = {
+      id: makeLocalListenId("listen-track"),
+      room_id: roomId,
+      track_title: draft.track_title.trim() || "Shared song",
+      track_url: trackUrl,
+      added_by: draft.added_by.trim() || profileName(),
+      created_at: new Date().toISOString()
+    };
+
+    setListenTracks((current) => [track, ...current]);
+    setListenRooms((current) =>
+      current.map((room) =>
+        room.id === roomId
+          ? {
+              ...room,
+              current_track_title: track.track_title,
+              current_track_url: track.track_url
+            }
+          : room
+      )
+    );
+    setListenTrackDrafts((current) => ({
+      ...current,
+      [roomId]: { track_title: "", track_url: "", added_by: profileName() }
+    }));
+    setMessage("Song added to the listen room.");
+  }
   async function recordPaymentInterest(
     intentType: PaymentInterest["intent_type"],
     label: string,
@@ -5997,7 +6233,7 @@ export default function Home() {
                 <span>{myFirstWaveInterest.status}</span>
                 <strong>{myFirstWaveInterest.main_interest}</strong>
                 <small>
-                  {myFirstWaveInterest.role_goal} · {myFirstWaveInterest.region} · {myFirstWaveInterest.availability}
+                  {myFirstWaveInterest.role_goal} Â· {myFirstWaveInterest.region} Â· {myFirstWaveInterest.availability}
                 </small>
               </div>
             ) : (
@@ -6029,7 +6265,7 @@ export default function Home() {
                       <span>{interest.role_goal}</span>
                       <strong>{interest.display_name}</strong>
                       <small>
-                        {interest.main_interest} · {interest.region} · {interest.availability}
+                        {interest.main_interest} Â· {interest.region} Â· {interest.availability}
                       </small>
                       {interest.notes && <p>{interest.notes}</p>}
                     </div>
@@ -6189,6 +6425,7 @@ export default function Home() {
               <a href="/privacy">Privacy Policy</a>
               <a href="/delete-account">Delete account request</a>
               <a href="/support">Support</a>
+              <a href="/child-safety">Child safety standards</a>
             </div>
             <form className="passwordForm" onSubmit={changePassword}>
               <div>
@@ -6477,6 +6714,161 @@ export default function Home() {
               <small>Post a first video, photo, or link to start the global talent showcase.</small>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="section listenSection" id="listen-rooms">
+        <div className="sectionHeader">
+          <span className="eyebrow">Listen together</span>
+          <h2>Wanna listen to songs with your specials/buddies?</h2>
+          <p>
+            Create a shared listen room, drop public song links, react together, and keep the queue moving. Real synced playback
+            can come later after the challenge flow is stable.
+          </p>
+        </div>
+
+        <div className="listenLayout">
+          <form className="card listenCreateCard" onSubmit={handleCreateListenRoom}>
+            <div>
+              <span className="statusBadge">Public links only</span>
+              <h3>Create a listen room</h3>
+              <p className="muted">Use YouTube, Spotify, or another public song link. Talent7 is not storing copyrighted songs.</p>
+            </div>
+
+            <div className="listenFormGrid">
+              <label>
+                Room title
+                <input
+                  value={listenRoomDraft.title}
+                  onChange={(event) => updateListenRoomDraft("title", event.target.value)}
+                  placeholder="Late night favourites"
+                />
+              </label>
+              <label>
+                Mood
+                <select
+                  value={listenRoomDraft.mood}
+                  onChange={(event) => updateListenRoomDraft("mood", event.target.value as ListenMood)}
+                >
+                  {listenMoodOptions.map((mood) => (
+                    <option key={mood} value={mood}>
+                      {mood}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Host name
+                <input
+                  value={listenRoomDraft.host_name}
+                  onChange={(event) => updateListenRoomDraft("host_name", event.target.value)}
+                  placeholder={profileName()}
+                />
+              </label>
+              <label>
+                First song title
+                <input
+                  value={listenRoomDraft.current_track_title}
+                  onChange={(event) => updateListenRoomDraft("current_track_title", event.target.value)}
+                  placeholder="Song or playlist name"
+                />
+              </label>
+            </div>
+
+            <label>
+              Song link
+              <input
+                value={listenRoomDraft.current_track_url}
+                onChange={(event) => updateListenRoomDraft("current_track_url", event.target.value)}
+                placeholder="https://youtube.com/... or https://open.spotify.com/..."
+              />
+            </label>
+
+            <label>
+              Room note
+              <textarea
+                value={listenRoomDraft.room_note}
+                onChange={(event) => updateListenRoomDraft("room_note", event.target.value)}
+                placeholder="Who is this room for? Friends, couples, team warmups, study buddies..."
+              />
+            </label>
+
+            <button type="submit">Create listen room</button>
+          </form>
+
+          <div className="listenRoomList">
+            {listenRooms.map((room) => {
+              const draft = listenTrackDrafts[room.id] || { track_title: "", track_url: "", added_by: profileName() };
+              const tracks = listenTracksByRoom[room.id] || [];
+
+              return (
+                <article className="card listenRoomCard" key={room.id}>
+                  <div className="listenRoomTop">
+                    <div>
+                      <span className="pill">{room.mood}</span>
+                      <h3>{room.title}</h3>
+                      <p className="muted">Hosted by {room.host_name}</p>
+                    </div>
+                    <span className="statusBadge">Sync playback later</span>
+                  </div>
+
+                  {room.room_note ? <p>{room.room_note}</p> : null}
+
+                  <div className="nowPlaying">
+                    <span className="eyebrow">Now playing</span>
+                    <a href={room.current_track_url} rel="noreferrer" target="_blank">
+                      {room.current_track_title}
+                    </a>
+                  </div>
+
+                  <div className="listenRoomActions">
+                    <button type="button" onClick={() => handleJoinListenRoom(room.id)}>
+                      Join room ({room.listener_count})
+                    </button>
+                    <button type="button" onClick={() => handleReactListenRoom(room.id, "love")}>
+                      Love ({room.love_count})
+                    </button>
+                    <button type="button" onClick={() => handleReactListenRoom(room.id, "vibe")}>
+                      Vibe ({room.vibe_count})
+                    </button>
+                  </div>
+
+                  <form className="listenQueueForm" onSubmit={(event) => handleAddListenTrack(event, room.id)}>
+                    <input
+                      value={draft.track_title}
+                      onChange={(event) => updateListenTrackDraft(room.id, "track_title", event.target.value)}
+                      placeholder="Song title"
+                    />
+                    <input
+                      value={draft.track_url}
+                      onChange={(event) => updateListenTrackDraft(room.id, "track_url", event.target.value)}
+                      placeholder="Paste public song link"
+                    />
+                    <input
+                      value={draft.added_by}
+                      onChange={(event) => updateListenTrackDraft(room.id, "added_by", event.target.value)}
+                      placeholder="Your name"
+                    />
+                    <button type="submit">Add song</button>
+                  </form>
+
+                  <div className="listenQueue">
+                    <h4>Room queue</h4>
+                    {tracks.length ? (
+                      tracks.slice(0, 5).map((track) => (
+                        <a href={track.track_url} key={track.id} rel="noreferrer" target="_blank">
+                          <span>{track.track_title}</span>
+                          <small>Added by {track.added_by}</small>
+                        </a>
+                      ))
+                    ) : (
+                      <p className="muted">No songs added yet.</p>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -7411,7 +7803,7 @@ export default function Home() {
                             <div className="expertMatchItem" key={expert.id}>
                               <div>
                                 <b>{expert.display_name}</b>
-                                <small>{expert.region} · {expert.availability}</small>
+                                <small>{expert.region} Â· {expert.availability}</small>
                               </div>
                               {isOwnerReviewer && (
                                 <button
@@ -8192,6 +8584,7 @@ export default function Home() {
           <a href="/privacy">Privacy Policy</a>
           <a href="/delete-account">Delete account</a>
           <a href="/support">Support</a>
+          <a href="/child-safety">Child safety standards</a>
           <a href="mailto:jointalent7@gmail.com">jointalent7@gmail.com</a>
           <a href="#feedback">Open founder feedback</a>
           <a href="#safety">Open safety reports</a>
@@ -8823,7 +9216,7 @@ export default function Home() {
               <span>Viewing public activity for</span>
               <strong>{selectedActivityProfile.display_name}</strong>
               <small>
-                @{selectedActivityProfile.username} · {selectedActivityProfile.main_interest || "No interest yet"}
+                @{selectedActivityProfile.username} Â· {selectedActivityProfile.main_interest || "No interest yet"}
               </small>
             </div>
             <div className="profileActivityStats">
@@ -9367,6 +9760,7 @@ export default function Home() {
           <a href="/privacy">Privacy Policy</a>
           <a href="/delete-account">Delete account</a>
           <a href="/support">Support</a>
+          <a href="/child-safety">Child safety</a>
           <a href="#trust-terms">Trust & terms</a>
           <a href="#safety">Safety</a>
           <a href="#feedback">Feedback</a>
@@ -9386,3 +9780,4 @@ export default function Home() {
     </main>
   );
 }
+

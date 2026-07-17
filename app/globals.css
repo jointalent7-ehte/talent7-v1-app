@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --ink: #141719;
   --muted: #687276;
   --line: #dbe3e4;
@@ -5588,6 +5588,12 @@ textarea {
     display: block;
   }
 
+  main.mobileTab-listen > #listen-rooms,
+  main.mobileTab-listen > #showcase,
+  main.mobileTab-listen > #following-feed {
+    display: block;
+  }
+
   main.mobileTab-coaching > #coaching,
   main.mobileTab-coaching > #live-preview {
     display: block;
@@ -5776,6 +5782,140 @@ textarea {
   }
 
   .contributionButtons {
+    grid-template-columns: 1fr;
+  }
+}
+
+.listenSection {
+  background: #f6fbfb;
+}
+
+.listenLayout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.listenCreateCard,
+.listenRoomCard {
+  border-radius: 8px;
+}
+
+.listenCreateCard {
+  display: grid;
+  gap: 16px;
+}
+
+.listenFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.listenCreateCard label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 900;
+}
+
+.listenCreateCard input,
+.listenCreateCard select,
+.listenCreateCard textarea,
+.listenQueueForm input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+
+.listenCreateCard textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.listenRoomList {
+  display: grid;
+  gap: 18px;
+}
+
+.listenRoomCard {
+  display: grid;
+  gap: 16px;
+}
+
+.listenRoomTop {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.nowPlaying {
+  padding: 16px;
+  border-radius: 8px;
+  background: #fff7e6;
+  border: 1px solid #f4c867;
+}
+
+.nowPlaying a,
+.listenQueue a {
+  color: var(--teal);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.listenRoomActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.listenRoomActions button {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.listenQueueForm {
+  display: grid;
+  grid-template-columns: 1.1fr 1.3fr 0.8fr auto;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eef6f6;
+  border: 1px solid var(--line);
+}
+
+.listenQueue {
+  padding: 14px;
+  border-radius: 8px;
+  background: #f4f8f8;
+}
+
+.listenQueue a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.listenQueue a:first-of-type {
+  border-top: 0;
+}
+
+@media (max-width: 900px) {
+  .listenLayout,
+  .listenFormGrid,
+  .listenRoomTop,
+  .listenRoomActions,
+  .listenQueueForm,
+  .listenQueue a {
     grid-template-columns: 1fr;
   }
 }
