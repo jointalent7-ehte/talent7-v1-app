@@ -810,6 +810,7 @@ export default function Home() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
+  const [loginPrompt, setLoginPrompt] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<TalentProfile | null>(null);
   const [publicProfiles, setPublicProfiles] = useState<TalentProfile[]>([]);
@@ -2986,6 +2987,7 @@ export default function Home() {
 
     setAuthLoading(true);
     setMessage("");
+    setLoginPrompt("");
 
     const result =
       authMode === "Sign up"
@@ -3010,6 +3012,7 @@ export default function Home() {
     if (!supabase) return;
     await supabase.auth.signOut();
     setAuthMode("Log in");
+    setLoginPrompt("");
     setMessage("Logged out.");
   }
 
@@ -3089,6 +3092,16 @@ export default function Home() {
     }, 60);
   }
 
+  function scrollToAccount() {
+    const accountTab = mobileTabs.find((item) => item.id === "account");
+    setActiveMobileTab("account");
+    window.setTimeout(() => {
+      document
+        .getElementById(accountTab?.firstSection || "account")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  }
+
   function startFounderFeedback(type: FounderFeedback["feedback_type"]) {
     setFeedbackDraftType(type);
     setMessage(`${type} selected. Add details in Founder Feedback.`);
@@ -3110,8 +3123,12 @@ export default function Home() {
   function requireLogin(action: string) {
     if (session) return true;
 
-    setMessage(`Please log in before you ${action}.`);
-    setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+    const prompt = `Please log in first before you ${action}.`;
+    setAuthMode("Log in");
+    setConfirmationEmail("");
+    setLoginPrompt(prompt);
+    setMessage(prompt);
+    scrollToAccount();
     return false;
   }
 
@@ -3138,7 +3155,8 @@ export default function Home() {
     if (profile?.display_name && profile?.username) return true;
 
     setMessage(`Please save your profile before you ${action}.`);
-    setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+    setLoginPrompt("");
+    scrollToAccount();
     return false;
   }
 
@@ -6498,6 +6516,7 @@ export default function Home() {
                   key={mode}
                   onClick={() => {
                     setAuthMode(mode);
+                    setLoginPrompt("");
                     if (mode === "Log in") setConfirmationEmail("");
                   }}
                   type="button"
@@ -6506,6 +6525,22 @@ export default function Home() {
                 </button>
               ))}
             </div>
+            {loginPrompt && !session && (
+              <div className="loginPrompt" role="alert">
+                <div>
+                  <strong>Log in first</strong>
+                  <span>{loginPrompt}</span>
+                </div>
+                <div className="loginPromptActions">
+                  <button type="button" onClick={() => setAuthMode("Log in")}>
+                    Log in
+                  </button>
+                  <button className="secondary" type="button" onClick={() => setLoginPrompt("")}>
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
             {confirmationEmail && (
               <div className="confirmEmailNotice">
                 <strong>Check your email to finish signup</strong>
