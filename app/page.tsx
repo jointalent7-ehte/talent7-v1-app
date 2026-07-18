@@ -9485,24 +9485,51 @@ export default function Home() {
                   <form className="proofForm" onSubmit={(event) => submitProof(event, challenge)}>
                     <strong>Victory proof</strong>
                     <input name="proof_type" type="hidden" value={selectedProofType(challenge.id)} />
-                    <div className="proofTypePicker">
-                      {["Photo", "Video", "Screenshot", "Match link"].map((proofType) => (
-                        <button
-                          className={selectedProofType(challenge.id) === proofType ? "active" : ""}
-                          key={proofType}
-                          onClick={() => updateProofType(challenge.id, proofType)}
-                          type="button"
+                    <div className="proofEvidenceTools">
+                      <label>
+                        Proof type
+                        <select
+                          value={selectedProofType(challenge.id)}
+                          onChange={(event) => updateProofType(challenge.id, event.currentTarget.value)}
                         >
-                          {proofType}
-                        </button>
-                      ))}
+                          {["Photo", "Video", "Screenshot", "Match link"].map((proofType) => (
+                            <option key={proofType} value={proofType}>
+                              {proofType}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {selectedProofType(challenge.id) === "Match link" ? (
+                        <p className="proofHint">Paste the match room, stream, Drive, or YouTube link below.</p>
+                      ) : (
+                        <label className="fileUpload compact">
+                          {selectedProofType(challenge.id) === "Video"
+                            ? "Record or upload video"
+                            : selectedProofType(challenge.id) === "Screenshot"
+                              ? "Upload screenshot"
+                              : "Take or upload photo"}
+                          <input
+                            accept={selectedProofType(challenge.id) === "Video" ? "video/*" : "image/*"}
+                            capture={selectedProofType(challenge.id) === "Screenshot" ? undefined : "environment"}
+                            name="proof_file"
+                            type="file"
+                          />
+                          <small>
+                            {selectedProofType(challenge.id) === "Video"
+                              ? "Videos can be up to 50 MB. On supported phones, this can open the camera recorder."
+                              : "Photos/screenshots can be up to 10 MB. On supported phones, this can open the camera."}
+                          </small>
+                        </label>
+                      )}
                     </div>
-                    <input name="proof_url" placeholder="Paste photo, video, screenshot, or match link" />
-                    <label className="fileUpload compact">
-                      Upload proof file
-                      <input accept="image/*,video/*" name="proof_file" type="file" />
-                      <small>Optional: photos/screenshots up to 10 MB, videos up to 50 MB.</small>
-                    </label>
+                    <input
+                      name="proof_url"
+                      placeholder={
+                        selectedProofType(challenge.id) === "Match link"
+                          ? "Paste match, stream, Drive, or YouTube link"
+                          : "Optional: paste a link instead"
+                      }
+                    />
                     <textarea name="notes" rows={2} placeholder="Short note, winner name, score, or context" />
                     <button disabled={savingProofChallengeId === challenge.id || !proofAllowed} type="submit">
                       {!proofAllowed

@@ -4882,26 +4882,49 @@ textarea {
   font-size: 0.95rem;
 }
 
-.proofTypePicker {
+.proofEvidenceTools {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
+  padding: 10px;
+  background: #eef4f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }
 
-.proofTypePicker button {
-  min-height: 38px;
-  padding: 8px 10px;
+.proofEvidenceTools > label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.proofEvidenceTools select,
+.proofEvidenceTools input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
   color: var(--ink);
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
+  font: inherit;
   font-weight: 850;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
-.proofTypePicker button.active {
-  color: #fff;
-  background: var(--teal);
-  border-color: var(--teal);
+.proofEvidenceTools input[type="file"] {
+  padding: 10px 12px;
+}
+
+.proofHint {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .proofForm input,
@@ -5397,7 +5420,7 @@ textarea {
   .bookingPanel,
   .detailGrid,
   .participantGrid,
-  .proofTypePicker,
+  .proofEvidenceTools,
   .profileActivityPanel,
   .profileActivityStats,
   .profileDetailGrid,
@@ -5755,7 +5778,6 @@ textarea {
   .statusFilters button,
   .notificationFilters button,
   .roomButtons button,
-  .proofTypePicker button,
   .joinPicker button,
   .liveReactionBar button {
     width: 100%;
