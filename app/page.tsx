@@ -89,7 +89,7 @@ const expertHelpTypes: ExpertHelpType[] = [
   "Other urgent help"
 ];
 
-type MobileTabId = "challenges" | "showcase" | "listen" | "coaching" | "help" | "account";
+type MobileTabId = "account" | "challenges" | "showcase" | "listen" | "coaching" | "help";
 
 const mobileTabs: {
   id: MobileTabId;
@@ -97,6 +97,17 @@ const mobileTabs: {
   firstSection: string;
   links: { label: string; href: string }[];
 }[] = [
+  {
+    id: "account",
+    label: "Account",
+    firstSection: "account",
+    links: [
+      { label: "Account", href: "#account" },
+      { label: "Alerts", href: "#notifications" },
+      { label: "Dashboard", href: "#my-talent7" },
+      { label: "Plans", href: "#plans" }
+    ]
+  },
   {
     id: "challenges",
     label: "Challenges",
@@ -127,7 +138,8 @@ const mobileTabs: {
       { label: "Showcase", href: "#showcase" },
       { label: "Feed", href: "#following-feed" }
     ]
-  },  {
+  },
+  {
     id: "coaching",
     label: "Coaching",
     firstSection: "coaching",
@@ -144,17 +156,6 @@ const mobileTabs: {
       { label: "Expert guidance", href: "#expert-help" },
       { label: "Safety", href: "#safety" },
       { label: "Feedback", href: "#feedback" }
-    ]
-  },
-  {
-    id: "account",
-    label: "Account",
-    firstSection: "account",
-    links: [
-      { label: "Account", href: "#account" },
-      { label: "Alerts", href: "#notifications" },
-      { label: "Dashboard", href: "#my-talent7" },
-      { label: "Plans", href: "#plans" }
     ]
   }
 ];
