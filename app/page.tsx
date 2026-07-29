@@ -160,6 +160,28 @@ const mobileTabs: {
   }
 ];
 
+const primaryMobileTabIds: MobileTabId[] = ["account", "challenges", "showcase"];
+const primaryMobileTabs = mobileTabs.filter((tab) => primaryMobileTabIds.includes(tab.id));
+const secondaryMobileTabs = mobileTabs.filter((tab) => !primaryMobileTabIds.includes(tab.id));
+
+const mobileUtilityLinks: { label: string; href: string; tabId: MobileTabId }[] = [
+  { label: "Teams", href: "#teams", tabId: "challenges" },
+  { label: "Alerts", href: "#notifications", tabId: "account" },
+  { label: "Safety", href: "#safety", tabId: "help" },
+  { label: "Plans", href: "#plans", tabId: "account" },
+  { label: "Feedback", href: "#feedback", tabId: "help" },
+  { label: "Live preview", href: "#live-preview", tabId: "coaching" }
+];
+
+const mobileTabDescriptions: Record<MobileTabId, string> = {
+  account: "Profile and settings",
+  challenges: "Compete and connect",
+  showcase: "Share your talent",
+  listen: "Music with friends",
+  coaching: "Learn or teach",
+  help: "Expert support and safety"
+};
+
 type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
 
 type ListenRoom = {
@@ -763,6 +785,7 @@ export default function Home() {
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTabId>("challenges");
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
   const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
@@ -3087,6 +3110,7 @@ export default function Home() {
   function switchMobileTab(tabId: MobileTabId) {
     const tab = mobileTabs.find((item) => item.id === tabId);
     setActiveMobileTab(tabId);
+    setIsMobileMoreOpen(false);
     window.setTimeout(() => {
       document.getElementById(tab?.firstSection || "rooms")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
@@ -3095,11 +3119,20 @@ export default function Home() {
   function scrollToAccount() {
     const accountTab = mobileTabs.find((item) => item.id === "account");
     setActiveMobileTab("account");
+    setIsMobileMoreOpen(false);
     window.setTimeout(() => {
       document
         .getElementById(accountTab?.firstSection || "account")
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
+  }
+
+  function openMobileShortcut(tabId: MobileTabId, href: string) {
+    setActiveMobileTab(tabId);
+    setIsMobileMoreOpen(false);
+    window.setTimeout(() => {
+      document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
   }
 
   function startFounderFeedback(type: FounderFeedback["feedback_type"]) {
@@ -5954,6 +5987,8 @@ export default function Home() {
   }
 
   const activeMobileConfig = mobileTabs.find((tab) => tab.id === activeMobileTab) || mobileTabs[0];
+  const moreIsActive =
+    isMobileMoreOpen || secondaryMobileTabs.some((tab) => tab.id === activeMobileTab);
 
   return (
     <main className={`mobileTab-${activeMobileTab}`}>
@@ -6153,8 +6188,61 @@ export default function Home() {
 
       {message && <aside className="message">{message}</aside>}
 
+      {isMobileMoreOpen && (
+        <>
+          <button
+            className="mobileMoreBackdrop"
+            aria-label="Close mobile menu"
+            onClick={() => setIsMobileMoreOpen(false)}
+            type="button"
+          />
+          <section className="mobileMoreSheet" aria-label="More Talent7 sections">
+            <div className="mobileMoreHeader">
+              <div>
+                <strong>More</strong>
+                <span>Jump to another part of Talent7.</span>
+              </div>
+              <button
+                aria-label="Close mobile menu"
+                title="Close"
+                onClick={() => setIsMobileMoreOpen(false)}
+                type="button"
+              >
+                X
+              </button>
+            </div>
+
+            <div className="mobileMorePrimary">
+              {secondaryMobileTabs.map((tab) => (
+                <button
+                  className={activeMobileTab === tab.id ? "active" : ""}
+                  key={tab.id}
+                  onClick={() => switchMobileTab(tab.id)}
+                  type="button"
+                >
+                  <strong>{tab.label}</strong>
+                  <span>{mobileTabDescriptions[tab.id]}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mobileMoreShortcuts">
+              {mobileUtilityLinks.map((link) => (
+                <button
+                  key={link.href}
+                  onClick={() => openMobileShortcut(link.tabId, link.href)}
+                  type="button"
+                >
+                  {link.label}
+                </button>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+
       <nav className="mobileAppTabs" aria-label="Talent7 mobile sections">
-        {mobileTabs.map((tab) => (
+        {primaryMobileTabs.map((tab) => (
           <button
             className={activeMobileTab === tab.id ? "active" : ""}
             key={tab.id}
@@ -6164,6 +6252,17 @@ export default function Home() {
             {tab.label}
           </button>
         ))}
+        <button
+          aria-expanded={isMobileMoreOpen}
+          className={moreIsActive ? "active" : ""}
+          onClick={() => setIsMobileMoreOpen((current) => !current)}
+          type="button"
+        >
+          <span className="mobileMoreGlyph" aria-hidden="true">
+            ...
+          </span>
+          <span>More</span>
+        </button>
       </nav>
 
       <nav className="mobileSubTabs" aria-label={`${activeMobileConfig.label} options`}>

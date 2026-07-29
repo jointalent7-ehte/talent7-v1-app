@@ -427,7 +427,9 @@ form button {
 }
 
 .mobileAppTabs,
-.mobileSubTabs {
+.mobileSubTabs,
+.mobileMoreBackdrop,
+.mobileMoreSheet {
   display: none;
 }
 
@@ -5620,14 +5622,116 @@ textarea {
     font-weight: 900;
   }
 
+  .mobileMoreBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: block;
+    background: rgba(11, 14, 15, 0.52);
+    border: 0;
+  }
+
+  .mobileMoreSheet {
+    position: fixed;
+    right: 10px;
+    bottom: 82px;
+    left: 10px;
+    z-index: 75;
+    display: block;
+    max-height: min(70vh, 560px);
+    overflow: auto;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  }
+
+  .mobileMoreHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .mobileMoreHeader div {
+    display: grid;
+    gap: 2px;
+  }
+
+  .mobileMoreHeader strong {
+    font-size: 1.15rem;
+  }
+
+  .mobileMoreHeader span {
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+
+  .mobileMoreHeader > button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    font-weight: 900;
+  }
+
+  .mobileMorePrimary {
+    display: grid;
+    gap: 8px;
+  }
+
+  .mobileMorePrimary button {
+    display: grid;
+    gap: 3px;
+    padding: 13px 14px;
+    color: var(--ink);
+    text-align: left;
+    background: #f4f8f8;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
+  .mobileMorePrimary button.active {
+    background: #eaf8f6;
+    border-color: var(--teal);
+  }
+
+  .mobileMorePrimary span {
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+
+  .mobileMoreShortcuts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .mobileMoreShortcuts button {
+    min-height: 44px;
+    padding: 8px 6px;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
   .mobileAppTabs {
     position: fixed;
     right: 10px;
     bottom: 10px;
     left: 10px;
-    z-index: 50;
+    z-index: 80;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 7px;
     padding: 8px;
     background: rgba(20, 23, 25, 0.96);
@@ -5637,6 +5741,9 @@ textarea {
   }
 
   .mobileAppTabs button {
+    display: grid;
+    place-items: center;
+    gap: 2px;
     min-height: 48px;
     padding: 8px 5px;
     color: rgba(255, 255, 255, 0.72);
@@ -5654,6 +5761,13 @@ textarea {
   .mobileAppTabs button.active {
     color: var(--ink);
     background: #fff;
+  }
+
+  .mobileMoreGlyph {
+    height: 14px;
+    font-size: 1rem;
+    line-height: 0.65;
+    letter-spacing: 0;
   }
 
   main[class*="mobileTab-"] > section.section {
@@ -5701,11 +5815,11 @@ textarea {
   }
 
   .siteFooter {
-    margin-bottom: 136px;
+    margin-bottom: 96px;
   }
 
   .backToTopButton {
-    bottom: 154px;
+    bottom: 112px;
   }
 }
 
