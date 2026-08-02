@@ -6613,17 +6613,26 @@ export default function Home() {
             ...(isOwnerReviewer ? [{ label: "Launch control", href: "#launch-control" }] : [])
           ]
         : []);
+  const activeSectionLink = activeSectionLinks.find((link) => link.href === `#${activeSection}`);
+  const activeWorkspaceTitle =
+    activeSectionLink?.label || activeMoreConfig?.label || activePrimaryConfig?.label || "Talent7";
+  const showLandingHero =
+    activeAppTab === "challenges" && activeSection === "rooms" && authHydrated && !session;
 
   return (
     <main className={`appTab-${activeAppTab} appView-${activeSection}`} onClick={handleTabAwareNavigation}>
-      <header className="hero">
+      <header className={`hero ${showLandingHero ? "heroLanding" : "heroCompact"}`}>
         <nav>
-          <strong>Talent7</strong>
+          <div className="brandBlock">
+            <strong>Talent7</strong>
+            {!showLandingHero && <span>{activeWorkspaceTitle}</span>}
+          </div>
           <div className="navActions">
             <span>{session ? profileName() : "Guest mode"}</span>
             <a href="https://www.jointalent7.com">Public site</a>
           </div>
         </nav>
+        {showLandingHero && (
         <section>
           <p className="eyebrow">Early access MVP</p>
           <h1>Challenge anyone. Prove it. Rise on Talent7.</h1>
@@ -6673,6 +6682,7 @@ export default function Home() {
             </div>
           </details>
         </section>
+        )}
       </header>
 
       {!hasSupabaseConfig && (

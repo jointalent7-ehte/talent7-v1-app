@@ -59,12 +59,43 @@ button {
   border-bottom: 1px solid rgba(255, 255, 255, 0.16);
 }
 
+.hero.heroCompact {
+  min-height: 0;
+  padding: 12px clamp(18px, 5vw, 72px);
+  background:
+    radial-gradient(circle at 78% 0%, rgba(15, 143, 140, 0.24), transparent 30%),
+    #0c1517;
+}
+
 .hero nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: clamp(60px, 12vw, 130px);
+}
+
+.hero.heroCompact nav {
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.brandBlock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brandBlock > span {
+  overflow: hidden;
+  padding-left: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hero nav strong {
@@ -6890,6 +6921,17 @@ textarea {
 }
 
 @media (max-width: 620px) {
+  .hero.heroCompact nav {
+    align-items: center;
+    flex-direction: row;
+    margin-bottom: 0;
+  }
+
+  .hero.heroCompact .navActions {
+    align-items: center;
+    margin-left: auto;
+  }
+
   .dashboardFocusHeader,
   .onboardingHeader,
   .dashboardHistory > summary {
