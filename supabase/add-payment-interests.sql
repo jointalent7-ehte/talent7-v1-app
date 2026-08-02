@@ -15,6 +15,8 @@ alter table public.payment_interests enable row level security;
 
 drop policy if exists "Users can create own payment interests" on public.payment_interests;
 drop policy if exists "Users can read own payment interests" on public.payment_interests;
+drop policy if exists "Owners can read all payment interests" on public.payment_interests;
+drop policy if exists "Owners can update payment interests" on public.payment_interests;
 
 create policy "Users can create own payment interests"
 on public.payment_interests for insert
@@ -25,3 +27,32 @@ create policy "Users can read own payment interests"
 on public.payment_interests for select
 to authenticated
 using (auth.uid() = user_id);
+
+create policy "Owners can read all payment interests"
+on public.payment_interests for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.app_admins
+    where app_admins.user_id = auth.uid()
+  )
+);
+
+create policy "Owners can update payment interests"
+on public.payment_interests for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.app_admins
+    where app_admins.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.app_admins
+    where app_admins.user_id = auth.uid()
+  )
+);

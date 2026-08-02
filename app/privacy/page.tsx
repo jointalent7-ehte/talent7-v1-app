@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <main className="legalPage">
-      <a className="legalBack" href="/">Back to Talent7</a>
+      <Link className="legalBack" href="/">Back to Talent7</Link>
       <section className="legalHero">
         <p className="eyebrow">Privacy Policy</p>
         <h1>Talent7 Privacy Policy</h1>
@@ -69,7 +70,7 @@ export default function PrivacyPage() {
           You can request account and data deletion from the Talent7 account deletion page. Some records may be
           retained when needed for safety, fraud prevention, legal compliance, dispute handling, or platform integrity.
         </p>
-        <a href="/delete-account">Request account deletion</a>
+        <Link href="/delete-account">Request account deletion</Link>
       </section>
 
       <section className="legalCard">

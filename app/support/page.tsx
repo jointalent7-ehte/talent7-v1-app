@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 export default function SupportPage() {
   return (
     <main className="legalPage">
-      <a className="legalBack" href="/">Back to Talent7</a>
+      <Link className="legalBack" href="/">Back to Talent7</Link>
       <section className="legalHero">
         <p className="eyebrow">Support</p>
         <h1>Talent7 support</h1>
@@ -37,7 +38,7 @@ export default function SupportPage() {
         <article className="legalCard">
           <h2>Founder Feedback</h2>
           <p>For bugs, confusing screens, payment interest, or feature ideas, use Founder Feedback inside Talent7.</p>
-          <a href="/#feedback">Open Founder Feedback</a>
+          <Link href="/#feedback">Open Founder Feedback</Link>
         </article>
       </section>
 

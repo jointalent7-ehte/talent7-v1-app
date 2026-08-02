@@ -1,53 +1,55 @@
-# Talent7 V1 App
+# Talent7
 
-This is the starter for the real Talent7 web app.
+Talent7 is a proof-based challenge and talent platform built with Next.js, React, TypeScript, and Supabase. It supports accounts, challenge rooms, teams, profiles, showcase posts, coaching, expert guidance, notifications, invitations, moderation, and founder feedback.
 
-It uses:
+## Local development
 
-- Next.js for the app
-- Supabase for database storage
-- Vercel for hosting
+Requirements: Node.js 20.9 or newer and a Supabase project.
 
-## What works in this starter
+1. Copy `.env.local.example` to `.env.local`.
+2. Add your Supabase project URL and public anon key.
+3. Install and run the app:
 
-- Create a challenge
-- View challenge rooms
-- Filter by Talent, Sports, or Gaming
-- Vote for Team A or Team B
-- Rate a challenge 7/7
-- Show a first leaderboard shape
-- Demo mode if Supabase is not connected
-
-## Setup steps
-
-1. Create a new Supabase project.
-2. Open Supabase SQL Editor.
-3. Paste and run `supabase/schema.sql`.
-4. Copy your Supabase project URL.
-5. Copy your Supabase anon public key.
-6. In Vercel, add environment variables:
-
-```text
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
+```bash
+npm ci
+npm run dev
 ```
 
-7. Deploy this folder as a new Vercel project.
+Open `http://localhost:3000`. If Supabase is not configured, the interface uses its built-in demo data where supported.
 
-## Important safety note
+## Environment variables
 
-The SQL policies are open for MVP testing so people can create challenges, votes, and ratings without accounts. Before a real public launch, tighten security with real authentication, moderation, anti-spam controls, and user ownership rules.
+```text
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
+NEXT_PUBLIC_SITE_URL=https://www.jointalent7.com
+```
 
-## First product scope
+`NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. Never commit `.env.local`, service-role keys, or other secrets.
 
-Build this before live video:
+## Database setup
 
-- Proof-based challenge rooms
-- Badminton doubles
-- Breakdance battles
-- Mobile gaming matches
-- Public 7-star ratings
-- Audience voting
-- Leaderboards
+Run the SQL files in `supabase/` in the order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects should apply only migrations they have not already run, but must run `tighten-challenge-completion-and-proof-policies.sql` last. That migration replaces earlier broad completion and proof-upload policies with authenticated, role-aware policies.
 
-Live two-screen battles should come after this proof-based challenge MVP has real users.
+Uploading the repository to GitHub does not apply Supabase migrations. Run them separately in the Supabase SQL editor or through your migration workflow.
+
+## Quality checks
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
+
+`npm run check` runs all three checks in sequence.
+
+## Deploying to Vercel
+
+1. Push the source repository to GitHub.
+2. Import it into Vercel as a Next.js project.
+3. Add all three environment variables for Production and Preview as appropriate.
+4. Use `npm ci` for installation and `npm run build` for the build.
+5. Add the production and preview URLs to Supabase Authentication redirect URLs.
+6. Apply the Supabase migrations before accepting real users.
+
+Review [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) before making the site public.

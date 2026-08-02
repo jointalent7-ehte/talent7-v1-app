@@ -1055,6 +1055,8 @@ function MediaPreview({
   if (kind === "image") {
     return (
       <a className="mediaPreview imagePreview" href={url} rel="noreferrer" target="_blank">
+        {/* User-provided media can come from Supabase or external URLs, so its dimensions and host are not known to next/image. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img alt={label} src={url} />
       </a>
     );
@@ -1097,6 +1099,12 @@ export default function Home() {
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
   const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
   const [listenTrackDrafts, setListenTrackDrafts] = useState<Record<string, ListenTrackDraft>>({});
+
+  const closeConfirmationDialog = useCallback(() => {
+    if (confirmationBusy) return;
+    setConfirmationRequest(null);
+    window.requestAnimationFrame(() => confirmationReturnFocusRef.current?.focus());
+  }, [confirmationBusy]);
 
   const listenTracksByRoom = useMemo(() => {
     return listenTracks.reduce<Record<string, ListenTrack[]>>((grouped, track) => {
@@ -1203,7 +1211,7 @@ export default function Home() {
 
     document.addEventListener("keydown", handleConfirmationKeyDown);
     return () => document.removeEventListener("keydown", handleConfirmationKeyDown);
-  }, [confirmationBusy, confirmationRequest]);
+  }, [closeConfirmationDialog, confirmationBusy, confirmationRequest]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1510,6 +1518,43 @@ export default function Home() {
     }, {});
   }, [challenges, joinCounts, roomProofs, roomResults]);
 
+  const challengeMatchesProfileActivity = useCallback((challenge: Challenge, item: TalentProfile) => {
+    const terms = [item.display_name, item.username, item.main_interest]
+      .filter(Boolean)
+      .map((term) => term.toLowerCase());
+    const directRoomText = [
+      challenge.title,
+      challenge.lane,
+      challenge.team_a,
+      challenge.team_b,
+      challenge.rules,
+      challenge.winner || ""
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    const textMatches = terms.some((term) => directRoomText.includes(term));
+    const userIdMatches = challenge.created_by === item.user_id || challenge.completed_by === item.user_id;
+    const joinMatches = joins.some(
+      (join) =>
+        join.challenge_id === challenge.id &&
+        (join.user_id === item.user_id ||
+          terms.some((term) => join.participant_name.toLowerCase().includes(term)))
+    );
+    const voteMatches = votes.some((vote) => vote.challenge_id === challenge.id && vote.user_id === item.user_id);
+    const ratingMatches = ratings.some(
+      (rating) => rating.challenge_id === challenge.id && rating.user_id === item.user_id
+    );
+    const proofMatches = proofs.some(
+      (proof) =>
+        proof.challenge_id === challenge.id &&
+        (proof.user_id === item.user_id ||
+          terms.some((term) => `${proof.notes || ""} ${proof.proof_url}`.toLowerCase().includes(term)))
+    );
+
+    return textMatches || userIdMatches || joinMatches || voteMatches || ratingMatches || proofMatches;
+  }, [joins, proofs, ratings, votes]);
+
   const visibleChallenges = useMemo(() => {
     const search = roomSearch.trim().toLowerCase();
     const savedInterest = profile?.main_interest;
@@ -1557,17 +1602,14 @@ export default function Home() {
     });
   }, [
     activityScores,
+    challengeMatchesProfileActivity,
     challenges,
-    joins,
-    proofs,
-    ratings,
     roomSearch,
     selectedActivityProfile,
     selectedLane,
     selectedStatus,
     profile?.main_interest,
-    showRecommendedOnly,
-    votes
+    showRecommendedOnly
   ]);
 
   const roomCollectionCounts = useMemo(
@@ -2289,6 +2331,12 @@ export default function Home() {
 
   const completedOnboardingSteps = onboardingSteps.filter((step) => step.done).length;
 
+  const challengeTitle = useCallback(
+    (challengeId: string) =>
+      challenges.find((challenge) => challenge.id === challengeId)?.title || "Challenge room",
+    [challenges]
+  );
+
   const notifications = useMemo<AppNotification[]>(() => {
     if (!session?.user.id) return [];
 
@@ -2554,6 +2602,7 @@ export default function Home() {
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
       .slice(0, 12);
   }, [
+    challengeTitle,
     challenges,
     expertHelpRequests,
     expertProfiles,
@@ -2714,7 +2763,7 @@ export default function Home() {
       completed: challenges.filter((challenge) => challenge.completed_by === userId),
       relatedChallenges
     };
-  }, [challenges, joins, proofs, ratings, selectedActivityProfile, votes]);
+  }, [challengeMatchesProfileActivity, challenges, joins, proofs, ratings, selectedActivityProfile, votes]);
 
   const selectedProfileSummary = useMemo(() => {
     if (!selectedProfile) return null;
@@ -2750,11 +2799,7 @@ export default function Home() {
       proofs: proofs.filter((proof) => proof.user_id === userId),
       ratings: ratings.filter((rating) => rating.user_id === userId)
     };
-  }, [challenges, joins, proofs, ratings, selectedProfile, showcasePosts, teamRequests, teams]);
-
-  function challengeTitle(challengeId: string) {
-    return challenges.find((challenge) => challenge.id === challengeId)?.title || "Challenge room";
-  }
+  }, [challengeMatchesProfileActivity, challenges, joins, proofs, ratings, selectedProfile, showcasePosts, teamRequests, teams]);
 
   function profileDisplayName(userId: string) {
     return publicProfiles.find((item) => item.user_id === userId)?.display_name || "Talent7 creator";
@@ -2868,43 +2913,6 @@ export default function Home() {
     return data.publicUrl;
   }
 
-  function challengeMatchesProfileActivity(challenge: Challenge, item: TalentProfile) {
-    const terms = [item.display_name, item.username, item.main_interest]
-      .filter(Boolean)
-      .map((term) => term.toLowerCase());
-    const directRoomText = [
-      challenge.title,
-      challenge.lane,
-      challenge.team_a,
-      challenge.team_b,
-      challenge.rules,
-      challenge.winner || ""
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    const textMatches = terms.some((term) => directRoomText.includes(term));
-    const userIdMatches = challenge.created_by === item.user_id || challenge.completed_by === item.user_id;
-    const joinMatches = joins.some(
-      (join) =>
-        join.challenge_id === challenge.id &&
-        (join.user_id === item.user_id ||
-          terms.some((term) => join.participant_name.toLowerCase().includes(term)))
-    );
-    const voteMatches = votes.some((vote) => vote.challenge_id === challenge.id && vote.user_id === item.user_id);
-    const ratingMatches = ratings.some(
-      (rating) => rating.challenge_id === challenge.id && rating.user_id === item.user_id
-    );
-    const proofMatches = proofs.some(
-      (proof) =>
-        proof.challenge_id === challenge.id &&
-        (proof.user_id === item.user_id ||
-          terms.some((term) => `${proof.notes || ""} ${proof.proof_url}`.toLowerCase().includes(term)))
-    );
-
-    return textMatches || userIdMatches || joinMatches || voteMatches || ratingMatches || proofMatches;
-  }
-
   function roomJoins(challengeId: string) {
     return joins.filter((join) => join.challenge_id === challengeId);
   }
@@ -2986,16 +2994,25 @@ export default function Home() {
 
   function canManageTeamProof(challenge: Challenge) {
     const ids = challengeTeamIds(challenge);
-    if (ids.length === 0) return true;
+    if (isOwnerReviewer) return true;
     if (challenge.created_by === session?.user.id) return true;
+    if (ids.length === 0) {
+      return joins.some(
+        (join) =>
+          join.challenge_id === challenge.id &&
+          join.user_id === session?.user.id &&
+          join.role === "Challenger"
+      );
+    }
 
     return userTeamRoles(challenge).some((item) => proofManagerRoles.includes(item.role));
   }
 
   function canManageTeamResult(challenge: Challenge) {
     const ids = challengeTeamIds(challenge);
-    if (ids.length === 0) return true;
+    if (isOwnerReviewer) return true;
     if (challenge.created_by === session?.user.id) return true;
+    if (ids.length === 0) return false;
 
     return userTeamRoles(challenge).some((item) => resultManagerRoles.includes(item.role));
   }
@@ -3822,12 +3839,6 @@ export default function Home() {
     confirmationReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setConfirmationRequest(request);
     setConfirmationBusy(false);
-  }
-
-  function closeConfirmationDialog() {
-    if (confirmationBusy) return;
-    setConfirmationRequest(null);
-    window.requestAnimationFrame(() => confirmationReturnFocusRef.current?.focus());
   }
 
   async function runConfirmedAction() {
@@ -9628,7 +9639,7 @@ export default function Home() {
           <h2>Clear rules before real users arrive</h2>
           <p>
             These are simple MVP trust notes for launch-wave users. They are not a replacement for lawyer-reviewed terms,
-            but they make Talent7's boundaries clear while the app is still growing.
+            but they make Talent7&apos;s boundaries clear while the app is still growing.
           </p>
         </div>
         <div className="trustTermsGrid">

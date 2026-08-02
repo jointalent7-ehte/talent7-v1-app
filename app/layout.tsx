@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
+const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.jointalent7.com";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://jointalent7.com"),
+  metadataBase: new URL(productionUrl),
   title: {
     default: "Talent7",
     template: "%s | Talent7"
@@ -25,36 +27,48 @@ export const metadata: Metadata = {
   authors: [{ name: "Talent7" }],
   creator: "Talent7",
   publisher: "Talent7",
+  manifest: "/manifest.webmanifest",
   alternates: {
     canonical: "/"
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1
+    }
   },
   openGraph: {
     title: "Talent7",
     description:
       "Join proof-based talent, sports, and mobile gaming challenges with public 7-star ratings, victory proof, teams, coaching, and expert guidance.",
-    url: "https://jointalent7.com",
+    url: productionUrl,
     siteName: "Talent7",
-    type: "website"
-  },
-  twitter: {
-    card: "summary",
-    title: "Talent7",
-    description:
-      "Proof-based talent, sports, and gaming challenges with public ratings, teams, coaching, and expert guidance."
-  },
-  icons: {
-    icon: [
+    type: "website",
+    images: [
       {
-        url:
-          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141719'/%3E%3Cpath d='M34 8 18 36h13l-3 20 18-31H33l1-17Z' fill='%23f2bd45'/%3E%3C/svg%3E"
-      }
-    ],
-    apple: [
-      {
-        url:
-          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='38' fill='%23141719'/%3E%3Cpath d='M96 22 50 102h37l-9 56 52-89H93l3-47Z' fill='%23f2bd45'/%3E%3C/svg%3E"
+        url: "/talent7-hero.png",
+        width: 1798,
+        height: 875,
+        alt: "Talent7 proof-based challenge rooms"
       }
     ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Talent7",
+    description:
+      "Proof-based talent, sports, and gaming challenges with public ratings, teams, coaching, and expert guidance.",
+    images: ["/talent7-hero.png"]
+  },
+  icons: {
+    icon: "/talent7-icon.svg",
+    shortcut: "/talent7-icon.svg",
+    apple: "/talent7-icon.svg"
   },
   category: "sports"
 };

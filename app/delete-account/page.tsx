@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Delete Account",
@@ -11,7 +12,7 @@ export default function DeleteAccountPage() {
 
   return (
     <main className="legalPage">
-      <a className="legalBack" href="/">Back to Talent7</a>
+      <Link className="legalBack" href="/">Back to Talent7</Link>
       <section className="legalHero">
         <p className="eyebrow">Account deletion</p>
         <h1>Delete your Talent7 account</h1>
@@ -50,7 +51,7 @@ export default function DeleteAccountPage() {
           <p>
             Some information may be retained when needed for safety, abuse prevention, legal obligations,
             dispute handling, platform integrity, or records that cannot reasonably be removed without affecting
-            other users' completed challenge history.
+            other users&apos; completed challenge history.
           </p>
         </article>
 

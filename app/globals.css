@@ -2084,6 +2084,75 @@ textarea {
   text-decoration: none;
 }
 
+.routeStatePage {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  min-height: 100vh;
+  padding: clamp(28px, 8vw, 96px);
+  color: #fff;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(15, 143, 140, 0.34), transparent 34%),
+    #0c1517;
+}
+
+.routeStatePage h1 {
+  max-width: 820px;
+  margin-bottom: 16px;
+  font-size: clamp(2.5rem, 8vw, 6.5rem);
+  line-height: 0.94;
+}
+
+.routeStatePage > p:not(.eyebrow) {
+  max-width: 660px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.routeStateMark {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 22px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--yellow);
+  border-radius: 14px;
+  font-size: 1.7rem;
+  font-weight: 950;
+}
+
+.routeStateMark.error {
+  color: #fff;
+  background: var(--coral);
+}
+
+.routeStateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.routeStateActions a,
+.routeStateActions button {
+  min-height: 44px;
+  padding: 11px 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #fff;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.routeStateActions .secondary {
+  color: #fff;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
 .myTalent {
   background: #f4f8f7;
 }

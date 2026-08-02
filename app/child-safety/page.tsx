@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Child Safety Standards",
@@ -8,9 +9,9 @@ export const metadata: Metadata = {
 export default function ChildSafetyPage() {
   return (
     <main className="legalPage">
-      <a className="legalBack" href="/">
+      <Link className="legalBack" href="/">
         Back to Talent7
-      </a>
+      </Link>
 
       <section className="legalHero">
         <p className="eyebrow">Child Safety Standards</p>
