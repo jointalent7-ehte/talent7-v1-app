@@ -285,6 +285,28 @@ const moreTabs: { id: MoreTabId; label: string; href: string; description: strin
   { id: "roadmap", label: "Roadmap", href: "#roadmap", description: "Launch progress and what is next" }
 ];
 
+const moreTabGroups: Array<{
+  label: string;
+  description: string;
+  tabIds: MoreTabId[];
+}> = [
+  {
+    label: "Community",
+    description: "People, teams, conversations, and invitations",
+    tabIds: ["teams", "profiles", "feed", "invites"]
+  },
+  {
+    label: "Account & support",
+    description: "Updates, plans, and direct feedback",
+    tabIds: ["notifications", "plans", "feedback"]
+  },
+  {
+    label: "Trust & product",
+    description: "Safety controls and the Talent7 roadmap",
+    tabIds: ["safety", "roadmap"]
+  }
+];
+
 const sectionTabMap: Record<string, AppTabId> = {
   "first-wave": "account",
   account: "account",
@@ -6618,6 +6640,15 @@ export default function Home() {
     activeSectionLink?.label || activeMoreConfig?.label || activePrimaryConfig?.label || "Talent7";
   const showLandingHero =
     activeAppTab === "challenges" && activeSection === "rooms" && authHydrated && !session;
+  const moreTabCounts: Partial<Record<MoreTabId, number>> = {
+    teams: myDashboard.pendingTeamRequests,
+    notifications: unreadNotifications.length,
+    invites: myDashboard.pendingInvites.length,
+    feedback: isOwnerReviewer
+      ? founderFeedback.filter((feedback) => feedback.status === "New").length
+      : 0
+  };
+  const moreAttentionSections = Object.values(moreTabCounts).filter((count) => (count || 0) > 0).length;
 
   return (
     <main className={`appTab-${activeAppTab} appView-${activeSection}`} onClick={handleTabAwareNavigation}>
@@ -6724,19 +6755,38 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="appMoreGrid">
-              {moreTabs.map((tab) => (
-                <button
-                  aria-selected={activeAppTab === tab.id}
-                  className={activeAppTab === tab.id ? "active" : ""}
-                  key={tab.id}
-                  onClick={() => switchAppTab(tab.id)}
-                  role="tab"
-                  type="button"
-                >
-                  <strong>{tab.label}</strong>
-                  <span>{tab.description}</span>
-                </button>
+            <div className="appMoreGroups">
+              {moreTabGroups.map((group) => (
+                <section className="appMoreGroup" key={group.label}>
+                  <div className="appMoreGroupHeader">
+                    <strong>{group.label}</strong>
+                    <span>{group.description}</span>
+                  </div>
+                  <div className="appMoreGrid">
+                    {group.tabIds.map((tabId) => {
+                      const tab = moreTabs.find((item) => item.id === tabId);
+                      if (!tab) return null;
+                      const attentionCount = moreTabCounts[tab.id] || 0;
+
+                      return (
+                        <button
+                          aria-selected={activeAppTab === tab.id}
+                          className={activeAppTab === tab.id ? "active" : ""}
+                          key={tab.id}
+                          onClick={() => switchAppTab(tab.id)}
+                          role="tab"
+                          type="button"
+                        >
+                          <span className="appMoreItemTitle">
+                            <strong>{tab.label}</strong>
+                            {attentionCount > 0 && <em aria-label={`${attentionCount} items need attention`}>{attentionCount}</em>}
+                          </span>
+                          <span>{tab.description}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
               ))}
             </div>
           </section>
@@ -6765,7 +6815,12 @@ export default function Home() {
           onClick={() => setIsMoreOpen((current) => !current)}
           type="button"
         >
-          {activeMoreConfig ? `More: ${activeMoreConfig.label}` : "More"}
+          <span>{activeMoreConfig ? `More: ${activeMoreConfig.label}` : "More"}</span>
+          {moreAttentionSections > 0 && (
+            <em className="appTabBadge" aria-label={`${moreAttentionSections} More sections need attention`}>
+              {moreAttentionSections}
+            </em>
+          )}
         </button>
         </div>
       </nav>
