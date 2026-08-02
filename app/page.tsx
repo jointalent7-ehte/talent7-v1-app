@@ -1142,6 +1142,16 @@ export default function Home() {
   }, [listenTracks]);
   const [profileSearch, setProfileSearch] = useState("");
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
+  const [challengeCreateStep, setChallengeCreateStep] = useState<1 | 2 | 3>(1);
+  const [challengeCreateMaxStep, setChallengeCreateMaxStep] = useState<1 | 2 | 3>(1);
+  const [challengeStepError, setChallengeStepError] = useState("");
+  const [challengeReview, setChallengeReview] = useState({
+    activity: defaultChallengeDraft.sport_type,
+    title: defaultChallengeDraft.title,
+    lane: defaultChallengeDraft.lane,
+    teamA: defaultChallengeDraft.team_a,
+    teamB: defaultChallengeDraft.team_b
+  });
   const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<TalentProfile | null>(null);
   const [notices, setNotices] = useState<AppNotice[]>([]);
@@ -3669,6 +3679,9 @@ export default function Home() {
     if (!profile?.main_interest) return;
 
     const activity = profile.main_interest;
+    setChallengeCreateStep(1);
+    setChallengeCreateMaxStep(1);
+    setChallengeStepError("");
     setChallengeDraft((current) => ({
       ...current,
       title: activity,
@@ -4365,11 +4378,98 @@ export default function Home() {
     setProfileLoading(false);
   }
 
+  function challengeFieldValue(formElement: HTMLFormElement, name: string) {
+    const control = formElement.elements.namedItem(name);
+    return control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement
+      ? control.value.trim()
+      : "";
+  }
+
+  function focusChallengeField(formElement: HTMLFormElement, name: string) {
+    window.setTimeout(() => {
+      const control = formElement.elements.namedItem(name);
+      if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) {
+        control.focus();
+      }
+    }, 0);
+  }
+
+  function validateChallengeCreateStep(step: 1 | 2 | 3, formElement: HTMLFormElement) {
+    const requiredFields: Record<1 | 2 | 3, Array<{ name: string; label: string }>> = {
+      1: [
+        { name: "sport_type", label: "challenge type" },
+        { name: "title", label: "challenge title" },
+        { name: "lane", label: "category" }
+      ],
+      2: [
+        { name: "team_a", label: "team or challenger A" },
+        { name: "team_b", label: "team or challenger B" }
+      ],
+      3: [{ name: "rules", label: "challenge rules" }]
+    };
+    const missing = requiredFields[step].find((field) => !challengeFieldValue(formElement, field.name));
+
+    if (missing) {
+      setChallengeStepError(`Add ${missing.label} before continuing.`);
+      focusChallengeField(formElement, missing.name);
+      return false;
+    }
+
+    if (step === 3) {
+      const bookingUrl = challengeFieldValue(formElement, "booking_url");
+      if (bookingUrl) {
+        try {
+          const parsedUrl = new URL(bookingUrl);
+          if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") throw new Error("Unsupported URL");
+        } catch {
+          setChallengeStepError("Use a complete http:// or https:// booking link, or leave it blank.");
+          focusChallengeField(formElement, "booking_url");
+          return false;
+        }
+      }
+    }
+
+    setChallengeStepError("");
+    return true;
+  }
+
+  function updateChallengeReview(formElement: HTMLFormElement) {
+    setChallengeReview({
+      activity: challengeFieldValue(formElement, "sport_type"),
+      title: challengeFieldValue(formElement, "title"),
+      lane: challengeFieldValue(formElement, "lane") as ChallengeLane,
+      teamA: challengeFieldValue(formElement, "team_a"),
+      teamB: challengeFieldValue(formElement, "team_b")
+    });
+  }
+
+  function moveChallengeCreateStep(nextStep: 1 | 2 | 3, formElement: HTMLFormElement | null) {
+    if (!formElement) return;
+
+    if (nextStep > challengeCreateStep) {
+      for (let step = challengeCreateStep; step < nextStep; step += 1) {
+        if (!validateChallengeCreateStep(step as 1 | 2, formElement)) return;
+      }
+    }
+
+    if (nextStep === 3) updateChallengeReview(formElement);
+    setChallengeCreateStep(nextStep);
+    setChallengeCreateMaxStep((current) => Math.max(current, nextStep) as 1 | 2 | 3);
+    setChallengeStepError("");
+    window.setTimeout(() => document.getElementById("challenge-wizard")?.scrollIntoView({ behavior: "smooth", block: "start" }), 40);
+  }
+
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
+    for (const step of [1, 2, 3] as const) {
+      if (!validateChallengeCreateStep(step, formElement)) {
+        setChallengeCreateStep(step);
+        return;
+      }
+    }
     if (!requireLogin("create a challenge")) return;
 
-    const formElement = event.currentTarget;
     setIsSaving(true);
     setMessage("");
 
@@ -4412,6 +4512,9 @@ export default function Home() {
       setMessage("Preview mode: challenge added in this browser session.");
       setIsSaving(false);
       formElement.reset();
+      setChallengeCreateStep(1);
+      setChallengeCreateMaxStep(1);
+      setChallengeStepError("");
       setActiveAppTab("challenges");
       setActiveSection("rooms");
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
@@ -4440,6 +4543,9 @@ export default function Home() {
           : "Challenge created. No invite was sent because no profile invite target was selected."
       );
       formElement.reset();
+      setChallengeCreateStep(1);
+      setChallengeCreateMaxStep(1);
+      setChallengeStepError("");
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
     }
 
@@ -4558,6 +4664,9 @@ export default function Home() {
     const interest = item.main_interest || "New challenge";
     const creatorName = profile?.display_name || (profile?.username ? `@${profile.username}` : "Open challenger");
 
+    setChallengeCreateStep(1);
+    setChallengeCreateMaxStep(1);
+    setChallengeStepError("");
     setChallengeDraft((currentDraft) => ({
       title: interest,
       lane: laneForInterest(interest),
@@ -4566,9 +4675,9 @@ export default function Home() {
       team_a_id: currentDraft.team_a_id || "",
       team_b_id: currentDraft.team_b_id || "",
       rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
-      venue_name: currentDraft.venue_name || "Venue or online lobby to be decided",
+      venue_name: venueForActivity(interest),
       booking_url: currentDraft.booking_url || "",
-      sport_type: currentDraft.sport_type || interest,
+      sport_type: interest,
       booking_region: currentDraft.booking_region || profile?.region || "Global",
       invitedProfile: invitedName,
       invitedUserId: item.user_id,
@@ -4600,6 +4709,9 @@ export default function Home() {
     const region = team.region || profile?.region || "Global";
     const opponentName = isOwnTeam ? "Open invite" : team.name;
 
+    setChallengeCreateStep(1);
+    setChallengeCreateMaxStep(1);
+    setChallengeStepError("");
     setChallengeDraft((currentDraft) => ({
       title: `${activity} challenge`,
       lane: laneForInterest(activity),
@@ -9968,14 +10080,17 @@ export default function Home() {
           <div className="inviteNotice">
             <span>Invite will be sent to {challengeDraft.invitedProfile} when you create this challenge.</span>
             <button
-              onClick={() =>
+              onClick={() => {
+                setChallengeCreateStep(1);
+                setChallengeCreateMaxStep(1);
+                setChallengeStepError("");
                 setChallengeDraft((currentDraft) => ({
                   ...currentDraft,
                   invitedProfile: "",
                   invitedUserId: "",
                   version: currentDraft.version + 1
-                }))
-              }
+                }));
+              }}
               type="button"
             >
               Remove invite target
@@ -9987,116 +10102,170 @@ export default function Home() {
             No invite selected. To send an invite, go to Profiles, click Invite to challenge, then create the challenge.
           </div>
         )}
-        <form className="createForm" key={challengeDraft.version} onSubmit={createChallenge}>
-          <div className="challengeTypeStep wide">
-            <div className="challengeTypeIntro">
-              <span>Step 1</span>
-              <div>
-                <strong>Choose the specific challenge</strong>
-                <small>This fills in a suitable category, title, rules, and venue note. You can edit them next.</small>
+        <form className="createForm challengeWizard" id="challenge-wizard" key={challengeDraft.version} noValidate onSubmit={createChallenge}>
+          <nav className="challengeWizardProgress" aria-label="Challenge creation progress">
+            {[
+              { step: 1 as const, label: "Challenge", detail: "Type and title" },
+              { step: 2 as const, label: "Competitors", detail: "People or teams" },
+              { step: 3 as const, label: "Rules & venue", detail: "Review and publish" }
+            ].map((item) => (
+              <button
+                aria-current={challengeCreateStep === item.step ? "step" : undefined}
+                className={`${challengeCreateStep === item.step ? "active" : ""} ${challengeCreateMaxStep > item.step ? "complete" : ""}`}
+                disabled={item.step > challengeCreateMaxStep}
+                key={item.step}
+                onClick={(event) => moveChallengeCreateStep(item.step, event.currentTarget.form)}
+                type="button"
+              >
+                <span>{challengeCreateMaxStep > item.step ? "✓" : item.step}</span>
+                <strong>{item.label}</strong>
+                <small>{item.detail}</small>
+              </button>
+            ))}
+          </nav>
+          {challengeStepError && <div className="challengeStepError" role="alert">{challengeStepError}</div>}
+
+          <fieldset className="challengeWizardPanel" hidden={challengeCreateStep !== 1}>
+            <legend>Challenge</legend>
+            <div className="challengeTypeStep wide">
+              <div className="challengeTypeIntro">
+                <span>Required</span>
+                <div>
+                  <strong>Choose the specific challenge</strong>
+                  <small>This fills in a suitable category, title, rules, and venue note. You can adjust everything before publishing.</small>
+                </div>
+              </div>
+              <div className="challengeTypeControls">
+                <label>
+                  Challenge type
+                  <select
+                    name="sport_type"
+                    defaultValue={challengeDraft.sport_type}
+                    onChange={(event) => applyChallengeActivity(event.currentTarget.value, event.currentTarget.form)}
+                  >
+                    {challengeActivityGroups.map((group) => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.options.map((activity) => (
+                          <option key={activity}>{activity}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </label>
+                {profile?.main_interest && challengeActivityOptions.includes(profile.main_interest) && (
+                  <button
+                    className="useInterestButton"
+                    onClick={(event) => applyChallengeActivity(profile.main_interest, event.currentTarget.form)}
+                    type="button"
+                  >
+                    Use my interest: {profile.main_interest}
+                  </button>
+                )}
               </div>
             </div>
-            <div className="challengeTypeControls">
-              <label>
-                Challenge type
-                <select
-                  name="sport_type"
-                  defaultValue={challengeDraft.sport_type}
-                  onChange={(event) => applyChallengeActivity(event.currentTarget.value, event.currentTarget.form)}
-                >
-                  {challengeActivityGroups.map((group) => (
-                    <optgroup key={group.label} label={group.label}>
-                      {group.options.map((activity) => (
-                        <option key={activity}>{activity}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </label>
-              {profile?.main_interest && challengeActivityOptions.includes(profile.main_interest) && (
-                <button
-                  className="useInterestButton"
-                  onClick={(event) => applyChallengeActivity(profile.main_interest, event.currentTarget.form)}
-                  type="button"
-                >
-                  Use my interest: {profile.main_interest}
-                </button>
-              )}
+            <label>
+              Challenge title
+              <input name="title" defaultValue={challengeDraft.title} />
+            </label>
+            <label>
+              Category
+              <select name="lane" defaultValue={challengeDraft.lane}>
+                <option>Talent battle</option>
+                <option>Sports challenge</option>
+                <option>Mobile gaming challenge</option>
+              </select>
+              <small className="fieldHint">Selected automatically; change it only if needed.</small>
+            </label>
+            <div className="challengeWizardActions wide">
+              <span>Step 1 of 3</span>
+              <button onClick={(event) => moveChallengeCreateStep(2, event.currentTarget.form)} type="button">Continue to competitors</button>
             </div>
-          </div>
-          <label>
-            Challenge title
-            <input name="title" defaultValue={challengeDraft.title} />
-          </label>
-          <label>
-            Category
-            <select name="lane" defaultValue={challengeDraft.lane}>
-              <option>Talent battle</option>
-              <option>Sports challenge</option>
-              <option>Mobile gaming challenge</option>
-            </select>
-            <small className="fieldHint">Selected automatically; change it only if needed.</small>
-          </label>
-          <label>
-            Team or challenger A
-            <input name="team_a" defaultValue={challengeDraft.team_a} />
-          </label>
-          <label>
-            Team or challenger B
-            <input name="team_b" defaultValue={challengeDraft.team_b} />
-          </label>
-          <details className="teamLinkOptions wide">
-            <summary>Optional: connect saved Talent7 teams</summary>
-            <p>
-              Use this only when a side is an existing team from the Teams tab. It connects the room to that team and its member roles.
-              For individual challengers or one-off teams, leave these blank and use the names above.
-            </p>
-            <div className="teamLinkGrid">
-              <label>
-                Saved team for side A
-                <select name="team_a_id" defaultValue={challengeDraft.team_a_id}>
-                  <option value="">No saved team</option>
-                  {teams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name} / {team.main_activity}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Saved team for side B
-                <select name="team_b_id" defaultValue={challengeDraft.team_b_id}>
-                  <option value="">No saved team</option>
-                  {teams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name} / {team.main_activity}
-                    </option>
-                  ))}
-                </select>
-              </label>
+          </fieldset>
+
+          <fieldset className="challengeWizardPanel" hidden={challengeCreateStep !== 2}>
+            <legend>Competitors</legend>
+            <div className="challengeStageIntro wide">
+              <span>Step 2</span>
+              <div>
+                <strong>Who is competing?</strong>
+                <small>Use a person, duo, crew, squad, or an open invite. Saved Talent7 team connections are optional.</small>
+              </div>
             </div>
-          </details>
-          <label className="wide">
-            Rules
-            <textarea
-              name="rules"
-              rows={4}
-              defaultValue={challengeDraft.rules}
-            />
-          </label>
-          <label>
-            Venue or booking note
-            <input name="venue_name" defaultValue={challengeDraft.venue_name} placeholder="Badminton court, pool, gym, online lobby..." />
-          </label>
-          <label>
-            Booking link
-            <input name="booking_url" defaultValue={challengeDraft.booking_url} placeholder="Paste court, pool, venue, or event booking link" />
-          </label>
-          <label>
-            Booking region
-            <input name="booking_region" defaultValue={challengeDraft.booking_region} placeholder="India, Dubai, London, Online..." />
-          </label>
-          <button disabled={isSaving}>{isSaving ? "Saving..." : "Create challenge"}</button>
+            <label>
+              Team or challenger A
+              <input name="team_a" defaultValue={challengeDraft.team_a} />
+            </label>
+            <label>
+              Team or challenger B
+              <input name="team_b" defaultValue={challengeDraft.team_b} />
+            </label>
+            <details className="teamLinkOptions wide">
+              <summary>Advanced: connect saved Talent7 teams</summary>
+              <p>
+                Use this only when a side is an existing team from the Teams tab. It connects the room to that team and its member roles.
+                For individuals or one-off teams, leave these blank.
+              </p>
+              <div className="teamLinkGrid">
+                <label>
+                  Saved team for side A
+                  <select name="team_a_id" defaultValue={challengeDraft.team_a_id}>
+                    <option value="">No saved team</option>
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id}>{team.name} / {team.main_activity}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Saved team for side B
+                  <select name="team_b_id" defaultValue={challengeDraft.team_b_id}>
+                    <option value="">No saved team</option>
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id}>{team.name} / {team.main_activity}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </details>
+            <div className="challengeWizardActions wide">
+              <button className="back" onClick={(event) => moveChallengeCreateStep(1, event.currentTarget.form)} type="button">Back</button>
+              <span>Step 2 of 3</span>
+              <button onClick={(event) => moveChallengeCreateStep(3, event.currentTarget.form)} type="button">Continue to rules</button>
+            </div>
+          </fieldset>
+
+          <fieldset className="challengeWizardPanel" hidden={challengeCreateStep !== 3}>
+            <legend>Rules and venue</legend>
+            <aside className="challengeReview wide" aria-label="Challenge review">
+              <div>
+                <span>Review</span>
+                <h3>{challengeReview.title}</h3>
+                <small>{challengeReview.activity} / {challengeReview.lane}</small>
+              </div>
+              <strong>{challengeReview.teamA} <b>vs</b> {challengeReview.teamB}</strong>
+            </aside>
+            <label className="wide">
+              Rules
+              <textarea name="rules" rows={4} defaultValue={challengeDraft.rules} />
+            </label>
+            <label>
+              Venue or booking note
+              <input name="venue_name" defaultValue={challengeDraft.venue_name} placeholder="Badminton court, pool, gym, online lobby..." />
+            </label>
+            <label>
+              Booking link
+              <input name="booking_url" defaultValue={challengeDraft.booking_url} inputMode="url" placeholder="https://venue-or-event-link.com" />
+              <small className="fieldHint">Optional. Use a complete public link.</small>
+            </label>
+            <label>
+              Booking region
+              <input name="booking_region" defaultValue={challengeDraft.booking_region} placeholder="India, Dubai, London, Online..." />
+            </label>
+            <div className="challengeWizardActions wide">
+              <button className="back" onClick={(event) => moveChallengeCreateStep(2, event.currentTarget.form)} type="button">Back</button>
+              <span>Step 3 of 3</span>
+              <button disabled={isSaving} type="submit">{isSaving ? "Creating challenge..." : "Create challenge"}</button>
+            </div>
+          </fieldset>
         </form>
       </section>
 
