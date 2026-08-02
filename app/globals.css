@@ -3901,6 +3901,34 @@ textarea {
   color: rgba(255, 255, 255, 0.76);
 }
 
+.conceptNotice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px 16px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  color: #fff;
+  background: rgba(242, 189, 69, 0.12);
+  border: 1px solid rgba(242, 189, 69, 0.6);
+  border-radius: 8px;
+}
+
+.conceptNotice strong {
+  color: var(--yellow);
+}
+
+.conceptNotice span {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.liveReactionBar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .livePreviewGrid {
   display: grid;
   grid-template-columns: 1.25fr 1fr;
@@ -6035,6 +6063,7 @@ textarea {
   .expertProfileGrid,
   .expertReputationGrid,
   .livePreviewGrid,
+  .conceptNotice,
   .liveScreens,
   .liveReactionBar,
   .inviteGrid,

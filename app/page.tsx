@@ -131,7 +131,12 @@ function noticeToneForMessage(text: string): NoticeTone {
   ];
 
   if (errorStarts.some((prefix) => normalized.startsWith(prefix)) || normalized.includes(" error")) return "error";
-  if (normalized.startsWith("demo mode") || normalized.includes("not connected") || normalized.includes("read-only")) return "warning";
+  if (
+    normalized.startsWith("demo mode") ||
+    normalized.startsWith("preview mode") ||
+    normalized.includes("not connected") ||
+    normalized.includes("read-only")
+  ) return "warning";
   if (
     normalized.includes(" saved") ||
     normalized.includes("created") ||
@@ -251,7 +256,7 @@ const primaryTabs: {
     firstSection: "coaching",
     links: [
       { label: "Coaching", href: "#coaching" },
-      { label: "Live preview", href: "#live-preview" }
+      { label: "Live concept", href: "#live-preview" }
     ]
   },
   {
@@ -3635,7 +3640,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage(`Demo mode: saved ${label} interest.`);
+      setMessage(`Preview mode: saved ${label} interest.`);
       setPaymentActionKey(null);
       return;
     }
@@ -3650,7 +3655,7 @@ export default function Home() {
       setMessage(`Could not save payment interest: ${error.message}`);
     } else if (data) {
       setPaymentInterests((items) => [data as PaymentInterest, ...items]);
-      setMessage(`${label} saved. Real payment checkout will be added later.`);
+      setMessage(`${label} interest saved. No payment was collected.`, "success");
     }
 
     setPaymentActionKey(null);
@@ -3829,7 +3834,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage("Demo mode: feedback saved on this page.");
+      setMessage("Preview mode: feedback saved in this browser session.");
       formElement.reset();
       setFeedbackDraftType("General");
       setSavingFeedback(false);
@@ -4079,7 +4084,7 @@ export default function Home() {
       setCreatedChallengeId(localChallenge.id);
       setSelectedLane(challenge.lane);
       setSelectedStatus("Open");
-      setMessage("Demo mode: challenge added below. Connect Supabase to save it for everyone.");
+      setMessage("Preview mode: challenge added in this browser session.");
       setIsSaving(false);
       formElement.reset();
       setActiveAppTab("challenges");
@@ -4498,7 +4503,7 @@ export default function Home() {
       };
 
       setShowcasePosts((items) => [localPost, ...items]);
-      setMessage("Demo mode: showcase post added on this page.");
+      setMessage("Preview mode: showcase post added in this browser session.");
       formElement.reset();
       setSavingShowcasePost(false);
       return;
@@ -4567,7 +4572,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage("Demo mode: coaching offer added on this page.");
+      setMessage("Preview mode: coaching offer added in this browser session.");
       formElement.reset();
       setSavingCoachOffer(false);
       return;
@@ -4625,7 +4630,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage("Demo mode: coaching interest sent on this page.");
+      setMessage("Preview mode: coaching interest saved in this browser session.");
       formElement.reset();
       setCoachingInterestId(null);
       return;
@@ -4641,7 +4646,7 @@ export default function Home() {
       setMessage(error.code === "23505" ? "You already requested this coaching offer." : `Could not request coaching: ${error.message}`);
     } else if (data) {
       setCoachingInterests((items) => [data as CoachingInterest, ...items]);
-      setMessage("Coaching interest sent. Payment and scheduling will be added later.");
+      setMessage("Coaching interest sent. The coach can now review your request.");
       formElement.reset();
     }
 
@@ -4720,7 +4725,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage("Demo mode: team created on this page.");
+      setMessage("Preview mode: team created in this browser session.");
       formElement.reset();
       setSavingTeam(false);
       return;
@@ -4780,7 +4785,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage("Demo mode: team join request sent on this page.");
+      setMessage("Preview mode: team join request saved in this browser session.");
       formElement.reset();
       setTeamRequestId(null);
       return;
@@ -4908,7 +4913,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage("Demo mode: comment added on this page.");
+      setMessage("Preview mode: comment added in this browser session.");
       formElement.reset();
       setCommentingPostId(null);
       return;
@@ -4960,7 +4965,7 @@ export default function Home() {
     setMessage("");
 
     if (!supabase) {
-      setMessage("Demo mode: showcase report saved on this page.");
+      setMessage("Preview mode: showcase report saved in this browser session.");
       formElement.reset();
       setReportingShowcaseTarget(null);
       return;
@@ -5679,7 +5684,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage("Demo mode: expert help request saved on this page.");
+      setMessage("Preview mode: expert help request saved in this browser session.");
       formElement.reset();
       setSavingExpertHelp(false);
       return;
@@ -5695,7 +5700,7 @@ export default function Home() {
       setMessage(`Could not save expert help request: ${error.message}`);
     } else if (data) {
       setExpertHelpRequests((items) => [data as ExpertHelpRequest, ...items]);
-      setMessage("Expert help request saved. Live expert matching will be added later.");
+      setMessage("Expert help request saved for review and assignment.");
       formElement.reset();
     }
 
@@ -5825,7 +5830,7 @@ export default function Home() {
         },
         ...items
       ]);
-      setMessage(`Demo mode: request sent to ${expert.display_name}.`);
+      setMessage(`Preview mode: request to ${expert.display_name} saved in this browser session.`);
       formElement.reset();
       setRequestingExpertId(null);
       return;
@@ -5884,7 +5889,7 @@ export default function Home() {
             : item
         )
       );
-      setMessage("Demo mode: expert response saved on this page.");
+      setMessage("Preview mode: expert response saved in this browser session.");
       formElement.reset();
       setExpertReplyActionId(null);
       return;
@@ -5952,7 +5957,7 @@ export default function Home() {
       setExpertHelpRequests((items) =>
         items.map((item) => (item.id === request.id ? { ...item, ...scheduleUpdate } : item))
       );
-      setMessage("Demo mode: session time proposed on this page.");
+      setMessage("Preview mode: session time saved in this browser session.");
       formElement.reset();
       setExpertScheduleActionId(null);
       return;
@@ -6006,7 +6011,7 @@ export default function Home() {
       setExpertHelpRequests((items) =>
         items.map((item) => (item.id === request.id ? { ...item, ...scheduleUpdate } : item))
       );
-      setMessage("Demo mode: expert session confirmed on this page.");
+      setMessage("Preview mode: expert session confirmed in this browser session.");
       setExpertScheduleActionId(null);
       return;
     }
@@ -6065,7 +6070,7 @@ export default function Home() {
       setExpertHelpRequests((items) =>
         items.map((item) => (item.id === request.id ? { ...item, ...linkUpdate } : item))
       );
-      setMessage("Demo mode: session link saved on this page.");
+      setMessage("Preview mode: session link saved in this browser session.");
       formElement.reset();
       setExpertSessionLinkActionId(null);
       return;
@@ -6128,7 +6133,7 @@ export default function Home() {
       setExpertHelpRequests((items) =>
         items.map((item) => (item.id === request.id ? { ...item, ...completionUpdate } : item))
       );
-      setMessage("Demo mode: expert session completed on this page.");
+      setMessage("Preview mode: expert session completed in this browser session.");
       formElement.reset();
       setExpertCompletionActionId(null);
       return;
@@ -6201,7 +6206,7 @@ export default function Home() {
         created_at: new Date().toISOString()
       };
       setExpertProfiles((items) => [demoProfile, ...items]);
-      setMessage("Demo mode: expert profile saved on this page.");
+      setMessage("Preview mode: expert profile saved in this browser session.");
       formElement.reset();
       setSavingExpertProfile(false);
       return;
@@ -6407,8 +6412,8 @@ export default function Home() {
           <p className="eyebrow">Early access MVP</p>
           <h1>Challenge anyone. Prove it. Rise on Talent7.</h1>
           <p>
-            Talent7 starts with fair, proof-based challenge rooms for talent battles, sports matchups,
-            mobile gaming, coaching, and verified expert guidance before full live video arrives.
+            Talent7 brings fair, proof-based challenge rooms to talent battles, sports matchups,
+            mobile gaming, coaching, and verified expert guidance.
           </p>
           <div className="heroMetrics">
             <article>
@@ -6456,8 +6461,8 @@ export default function Home() {
 
       {!hasSupabaseConfig && (
         <aside className="setupNotice">
-          <strong>Demo mode:</strong> Supabase is not connected yet. You can preview the app, but
-          saved data only lives on this page until Supabase keys are added.
+          <strong>Preview mode:</strong> Supabase is not connected. Changes made here stay in this browser session
+          and are not shared with other users.
         </aside>
       )}
 
@@ -6553,7 +6558,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Early access</p>
           <h2>Built for the first Play Store launch wave</h2>
-          <p>New visitors can start as audience, challenger, coach, team owner, or expert helper while payments and full live video stay in preview.</p>
+          <p>Start as an audience member, challenger, coach, team owner, or expert helper and build an early Talent7 history.</p>
         </div>
         <div className="firstWaveGrid">
           <article>
@@ -7150,8 +7155,8 @@ export default function Home() {
           <span className="eyebrow">Listen together</span>
           <h2>Wanna listen to songs with your specials/buddies?</h2>
           <p>
-            Create a shared listen room, drop public song links, react together, and keep the queue moving. Real synced playback
-            can come later after the challenge flow is stable.
+            Create a shared room, add public song links, react together, and build a queue. Each track opens in its original
+            music service, so Talent7 never stores or rebroadcasts the song.
           </p>
         </div>
 
@@ -7237,7 +7242,7 @@ export default function Home() {
                       <h3>{room.title}</h3>
                       <p className="muted">Hosted by {room.host_name}</p>
                     </div>
-                    <span className="statusBadge">Sync playback later</span>
+                    <span className="statusBadge">Shared link queue</span>
                   </div>
 
                   {room.room_note ? <p>{room.room_note}</p> : null}
@@ -7304,7 +7309,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Coaching</p>
           <h2>Find coaches or offer training</h2>
-          <p>Start with coaching interest and public offers. Real payment, calendar booking, and live sessions can come after this first marketplace layer.</p>
+          <p>Publish a coaching offer, share availability and expected pricing, or send a learner request directly to a coach.</p>
         </div>
         {session && profile?.role.toLowerCase().includes("coach") ? (
           <form className="coachOfferForm" onSubmit={createCoachOffer}>
@@ -7329,7 +7334,7 @@ export default function Home() {
               </select>
             </label>
             <label>
-              Future price range
+              Expected price range
               <select name="price_range" defaultValue="$20-50">
                 <option>Free trial</option>
                 <option>$0-20</option>
@@ -7747,7 +7752,7 @@ export default function Home() {
           </article>
           <article>
             <strong>Emergency help caution</strong>
-            <p>Future live help is guidance only. For medical or urgent danger, call local emergency services first.</p>
+            <p>Talent7 guidance is informational only. For medical or urgent danger, call local emergency services first.</p>
           </article>
         </div>
         {isOwnerReviewer && (
@@ -7892,7 +7897,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Expert guidance</p>
           <h2>Get guidance from someone who knows the problem</h2>
-          <p>This is the early request flow for future live video guidance across medical caution, home fixes, tech, fitness injuries, and urgent everyday problems.</p>
+          <p>Create a private guidance request, find verified expert profiles, agree a session time, and keep responses connected to the request.</p>
         </div>
         <div className="expertWarning">
           <strong>Important safety note</strong>
@@ -7935,23 +7940,23 @@ export default function Home() {
             <button disabled={savingExpertHelp} type="submit">
               {savingExpertHelp ? "Saving request..." : "Save help request"}
             </button>
-            <small>Requests are saved now. Later this can match users with verified professionals through live video, chat, or uploaded guidance.</small>
+            <small>Your request can be reviewed, assigned to a verified expert, scheduled, answered, and completed with feedback.</small>
           </form>
           <div className="expertRoadmap">
             <article>
-              <span>Now</span>
-              <strong>Request flow</strong>
-              <p>Collect the help type, urgency, region, and problem description.</p>
+              <span>Step 1</span>
+              <strong>Describe the request</strong>
+              <p>Add the help type, urgency, region, and a clear problem description.</p>
             </article>
             <article>
-              <span>Next</span>
-              <strong>Expert profiles</strong>
-              <p>Let professionals list their expertise, availability, and safety boundaries.</p>
+              <span>Step 2</span>
+              <strong>Match a verified expert</strong>
+              <p>Review expertise, availability, service type, pricing range, and verification status.</p>
             </article>
             <article>
-              <span>Later</span>
-              <strong>Live video matching</strong>
-              <p>Connect users to available experts with careful disclaimers and reporting tools.</p>
+              <span>Step 3</span>
+              <strong>Schedule and follow up</strong>
+              <p>Agree a time, save the session link, receive guidance, and leave feedback when complete.</p>
             </article>
           </div>
         </div>
@@ -8012,7 +8017,7 @@ export default function Home() {
             </label>
             <label className="expertProfileToggle">
               <input name="live_video_ready" type="checkbox" />
-              Ready for future live video help
+              Available for live video sessions
             </label>
             <button disabled={savingExpertProfile} type="submit">
               {savingExpertProfile ? "Saving expert profile..." : "Create expert profile"}
@@ -8421,15 +8426,19 @@ export default function Home() {
 
       <section className="section livePreviewSection" id="live-preview">
         <div className="sectionHeader">
-          <p className="eyebrow">Live video roadmap</p>
-          <h2>Two-screen battles are the future Talent7 arena</h2>
-          <p>This preview shows the planned live experience before real video rooms are added: challengers side by side, audience reactions, public 7-star ratings, coaching, and expert help.</p>
+          <p className="eyebrow">Concept preview</p>
+          <h2>Explore the planned two-screen arena</h2>
+          <p>See how challengers, reactions, ratings, coaching, and expert guidance could work together in a live Talent7 experience.</p>
+        </div>
+        <div className="conceptNotice">
+          <strong>Design concept—not a live room</strong>
+          <span>The screens and controls below demonstrate the direction only. No camera, microphone, reaction, rating, or vote is submitted here.</span>
         </div>
         <div className="livePreviewGrid">
           <div className="liveBattleMock">
             <div className="liveStatus">
-              <span>Coming later</span>
-              <strong>Live battle preview</strong>
+              <span>Concept only</span>
+              <strong>Two-screen battle</strong>
             </div>
             <div className="liveScreens">
               <article>
@@ -8444,9 +8453,9 @@ export default function Home() {
               </article>
             </div>
             <div className="liveReactionBar">
-              <button type="button">Love reaction</button>
-              <button type="button">Rate 7 stars</button>
-              <button type="button">Vote winner</button>
+              <button disabled title="Concept preview" type="button">Love reaction</button>
+              <button disabled title="Concept preview" type="button">Rate 7 stars</button>
+              <button disabled title="Concept preview" type="button">Vote winner</button>
             </div>
           </div>
           <div className="liveModules">
@@ -8458,12 +8467,12 @@ export default function Home() {
             <article>
               <span>Sports coaching</span>
               <strong>Coach watches live</strong>
-              <p>Instructors can observe form, give feedback, and later combine live sessions with uploaded coaching videos.</p>
+              <p>A planned view for instructors to observe form, give feedback, and connect sessions with uploaded coaching videos.</p>
             </article>
             <article>
               <span>Expert help</span>
               <strong>Guided video support</strong>
-              <p>Verified helpers can later respond to non-life-threatening problems with safety rules and reporting tools.</p>
+              <p>A planned view for verified helpers to respond to non-life-threatening problems with safety rules and reporting tools.</p>
             </article>
           </div>
         </div>
@@ -8471,13 +8480,13 @@ export default function Home() {
 
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
-          <p className="eyebrow">Plans & payments</p>
-          <h2>Keep discovery free, charge for power tools later</h2>
-          <p>This is the pricing direction before real payments are added. Audience access stays free while serious challengers, coaches, and organizers can support the platform later.</p>
+          <p className="eyebrow">Access & pricing research</p>
+          <h2>Keep discovery and basic challenges free</h2>
+          <p>Audience and basic challenger access are free. Optional pro concepts help Talent7 understand which advanced tools people value most.</p>
         </div>
         <div className="paymentNotice">
-          <strong>Payments are not live yet.</strong>
-          <small>These cards explain the future business model first. Stripe or another payment system can be added after the app flow feels right.</small>
+          <strong>Pricing research only—no checkout</strong>
+          <small>Selecting an option records interest. Talent7 does not request card details, charge money, or activate a paid subscription here.</small>
         </div>
         <div className="paymentStatusPanel">
           <div>
@@ -8485,7 +8494,7 @@ export default function Home() {
             <strong>{currentPaymentInterest ? currentPaymentInterest.label : "Free audience"}</strong>
             <small>
               {currentPaymentInterest
-                ? `${currentPaymentInterest.amount_label} selected for later checkout`
+                ? `${currentPaymentInterest.amount_label} · interest recorded`
                 : "No paid plan selected yet"}
             </small>
           </div>
@@ -8536,43 +8545,43 @@ export default function Home() {
           </article>
           <article>
             <span>Challenge Plus</span>
-            <strong>Paid later</strong>
+            <strong>Concept plan</strong>
             <p>For frequent competitors who want more challenge tools and stronger visibility.</p>
             <ul>
               <li>Featured challenge rooms</li>
               <li>Advanced stats and history</li>
               <li>More invite and team tools</li>
             </ul>
-            <em>Subscription idea</em>
+            <em>Pricing not set</em>
             <button
-              disabled={paymentActionKey === "Plan-Challenge Plus-Future subscription"}
-              onClick={() => recordPaymentInterest("Plan", "Challenge Plus", "Future subscription")}
+              disabled={paymentActionKey === "Plan-Challenge Plus-Pricing research"}
+              onClick={() => recordPaymentInterest("Plan", "Challenge Plus", "Pricing research")}
               type="button"
             >
-              {paymentActionKey === "Plan-Challenge Plus-Future subscription" ? "Saving..." : "I want Challenge Plus"}
+              {paymentActionKey === "Plan-Challenge Plus-Pricing research" ? "Saving..." : "Register interest"}
             </button>
           </article>
           <article>
             <span>Coach / instructor</span>
-            <strong>Fee later</strong>
+            <strong>Concept plan</strong>
             <p>For coaches who upload lessons, run live sessions, and earn through Talent7.</p>
             <ul>
               <li>Coaching profile tools</li>
               <li>Paid session requests</li>
               <li>Uploaded lessons and live coaching</li>
             </ul>
-            <em>Monthly or platform fee</em>
+            <em>Pricing not set</em>
             <button
-              disabled={paymentActionKey === "Plan-Coach Pro-Future coach fee"}
-              onClick={() => recordPaymentInterest("Plan", "Coach Pro", "Future coach fee")}
+              disabled={paymentActionKey === "Plan-Coach Pro-Pricing research"}
+              onClick={() => recordPaymentInterest("Plan", "Coach Pro", "Pricing research")}
               type="button"
             >
-              {paymentActionKey === "Plan-Coach Pro-Future coach fee" ? "Saving..." : "I am a coach"}
+              {paymentActionKey === "Plan-Coach Pro-Pricing research" ? "Saving..." : "Register coach interest"}
             </button>
           </article>
           <article>
             <span>Team / organizer</span>
-            <strong>Paid later</strong>
+            <strong>Concept plan</strong>
             <p>For sports organizers, gaming clans, and teams running repeated tournaments.</p>
             <ul>
               <li>Team pages and member roles</li>
@@ -8581,19 +8590,19 @@ export default function Home() {
             </ul>
             <em>Organizer tools</em>
             <button
-              disabled={paymentActionKey === "Plan-Organizer Pro-Future organizer fee"}
-              onClick={() => recordPaymentInterest("Plan", "Organizer Pro", "Future organizer fee")}
+              disabled={paymentActionKey === "Plan-Organizer Pro-Pricing research"}
+              onClick={() => recordPaymentInterest("Plan", "Organizer Pro", "Pricing research")}
               type="button"
             >
-              {paymentActionKey === "Plan-Organizer Pro-Future organizer fee" ? "Saving..." : "I organize events"}
+              {paymentActionKey === "Plan-Organizer Pro-Pricing research" ? "Saving..." : "Register organizer interest"}
             </button>
           </article>
         </div>
         <div className="contributionBox">
           <div>
-            <p className="eyebrow">Founder support</p>
-            <h3>Contribute as a kind gesture</h3>
-            <p>Talent7 is being built by a standalone founder. If you like the idea and want to help it grow, these future contribution ranges are in US dollars.</p>
+            <p className="eyebrow">Founder support research</p>
+            <h3>Share what you might support</h3>
+            <p>These ranges measure potential support in US dollars. Selecting one records interest only; no payment is collected.</p>
           </div>
           <div className="contributionButtons">
             {["$0-50", "$50-200", "$200-1000", "$1000+"].map((amount) => (
@@ -8902,7 +8911,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "Instagram caption",
-                      `Talent7 is preparing for Play Store launch.\n\nChallenge rooms, public 7-star ratings, victory proof, teams, coaching, and expert-help previews are ready for the first launch wave.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentShowcase #SportsChallenge #Breakdance #Gaming`
+                      `Talent7 is preparing for Play Store launch.\n\nCreate proof-based challenge rooms, join as a challenger or audience member, vote winners, rate out of 7, upload proof, form teams, and find coaching or verified guidance.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentShowcase #SportsChallenge #Breakdance #Gaming`
                     )
                   }
                   type="button"
@@ -8924,7 +8933,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "Direct invite",
-                      `I am preparing Talent7 for Play Store launch. You can join challenges, vote, rate out of 7, upload proof, form teams, or try coaching/expert-help previews.\n\nStart here: ${siteUrl()}`
+                      `I am preparing Talent7 for Play Store launch. You can join challenges, vote, rate out of 7, upload proof, form teams, find coaching, or request verified guidance.\n\nStart here: ${siteUrl()}`
                     )
                   }
                   type="button"
@@ -8941,7 +8950,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Founder roadmap</p>
           <h2>What Talent7 is building toward</h2>
-          <p>This is an early version. The first goal is to prove that people want fair, proof-based challenge rooms before adding heavier live features.</p>
+          <p>Talent7 is prioritizing reliable proof-based challenges first, then expanding the tools that active communities use most.</p>
         </div>
         <div className="roadmapGrid">
           <article>
@@ -8950,14 +8959,14 @@ export default function Home() {
             <p>Create challenges, join as challenger or audience, vote, rate, upload proof, report issues, and lock winners.</p>
           </article>
           <article>
-            <span>Next</span>
-            <strong>Profiles, coaching, sports links, and live previews</strong>
-            <p>Improve public profiles, coaching flows, sports booking links, and the planned two-screen live battle experience.</p>
+            <span>Available</span>
+            <strong>Profiles, teams, coaching, guidance, and shared queues</strong>
+            <p>Build a public identity, organize teams, publish coaching offers, request verified guidance, and share music links.</p>
           </article>
           <article>
-            <span>Later</span>
-            <strong>Live battles and expert help</strong>
-            <p>Add two-screen live challenge battles, real payments, instructor tools, and carefully designed emergency/expert video help.</p>
+            <span>In research</span>
+            <strong>Live battles and advanced organizer tools</strong>
+            <p>Validate two-screen live challenges, optional pro tools, brackets, richer statistics, and carefully designed video guidance.</p>
           </article>
         </div>
       </section>
@@ -8990,7 +8999,7 @@ export default function Home() {
           <article>
             <span>Sports</span>
             <strong>Meet safely and follow venue rules</strong>
-            <p>Talent7 does not run courts, pools, gyms, or events yet. Check local rules, safety, costs, and permissions before recording or playing.</p>
+            <p>Talent7 does not operate courts, pools, gyms, or events. Check local rules, safety, costs, and permissions before recording or playing.</p>
           </article>
           <article>
             <span>Medical caution</span>
@@ -8999,8 +9008,8 @@ export default function Home() {
           </article>
           <article>
             <span>Payments</span>
-            <strong>Payments are not live yet</strong>
-            <p>Plans and contribution ranges show future interest only. No paid checkout is active until a real payment provider is added and clearly shown.</p>
+            <strong>No checkout is active</strong>
+            <p>Plan and contribution selections record pricing interest only. Talent7 does not collect payment details or charge users through this screen.</p>
           </article>
         </div>
         <div className="trustContactBox">
@@ -10278,7 +10287,7 @@ export default function Home() {
       <footer className="siteFooter">
         <div>
           <strong>Talent7</strong>
-          <p>Proof-based challenge rooms, public 7-star ratings, teams, coaching, and expert-help previews.</p>
+          <p>Proof-based challenge rooms, public 7-star ratings, teams, coaching, and verified expert guidance.</p>
         </div>
         <nav>
           <a href="#account">Account</a>
