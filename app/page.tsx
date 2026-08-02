@@ -2421,6 +2421,102 @@ export default function Home() {
     return notifications.filter((notification) => !readSet.has(notificationKey(notification)));
   }, [notifications, readNotificationKeys]);
 
+  const dashboardPriorities = useMemo(() => {
+    if (!session?.user.id) return [];
+
+    const priorities: Array<{
+      id: string;
+      label: string;
+      title: string;
+      detail: string;
+      href: string;
+      action: string;
+      tone: "urgent" | "attention" | "next" | "ready";
+    }> = [];
+    const pendingInvites = myDashboard.pendingInvites.length;
+    const pendingTeams = myDashboard.pendingTeamRequests;
+    const otherUnread = unreadNotifications.filter(
+      (notification) => notification.category !== "Invites" && notification.category !== "Teams"
+    ).length;
+    const nextOnboardingStep = onboardingSteps.find((step) => !step.done);
+
+    if (pendingInvites > 0) {
+      priorities.push({
+        id: "pending-invites",
+        label: "Challenge invite",
+        title: `${pendingInvites} invite${pendingInvites === 1 ? "" : "s"} waiting`,
+        detail: "Accept or decline so the challenger knows whether you are joining.",
+        href: "#invites",
+        action: "Review invites",
+        tone: "urgent"
+      });
+    }
+
+    if (pendingTeams > 0) {
+      priorities.push({
+        id: "pending-teams",
+        label: "Team activity",
+        title: `${pendingTeams} pending team item${pendingTeams === 1 ? "" : "s"}`,
+        detail: "Review membership requests or check the status of a team you asked to join.",
+        href: "#teams",
+        action: "Open teams",
+        tone: "attention"
+      });
+    }
+
+    if (otherUnread > 0) {
+      priorities.push({
+        id: "unread-updates",
+        label: "New activity",
+        title: `${otherUnread} unread update${otherUnread === 1 ? "" : "s"}`,
+        detail: "Check results, proof, showcase, guidance, report, and feedback updates.",
+        href: "#notifications",
+        action: "View updates",
+        tone: "attention"
+      });
+    }
+
+    if (nextOnboardingStep) {
+      priorities.push({
+        id: `onboarding-${nextOnboardingStep.title}`,
+        label: "Build your profile",
+        title: nextOnboardingStep.title,
+        detail: nextOnboardingStep.detail,
+        href: nextOnboardingStep.href,
+        action: "Continue setup",
+        tone: "next"
+      });
+    }
+
+    if (priorities.length === 0) {
+      const activeRoom = myDashboard.rooms.find((item) => !isChallengeCompleted(item.challenge));
+
+      priorities.push(
+        activeRoom
+          ? {
+              id: `active-room-${activeRoom.challenge.id}`,
+              label: "Continue",
+              title: activeRoom.challenge.title,
+              detail: `${activeRoom.label}: ${activeRoom.detail}. Open the room for voting, proof, chat, and results.`,
+              href: `#${roomHash(activeRoom.challenge.id)}`,
+              action: "Open room",
+              tone: "ready"
+            }
+          : {
+              id: "find-next-room",
+              label: "You are caught up",
+              title: profile?.main_interest ? `Find a ${profile.main_interest} challenge` : "Find your next challenge",
+              detail: "There are no account actions waiting. Browse active rooms or create a new matchup.",
+              href: "#rooms",
+              action: "Browse rooms",
+              tone: "ready"
+            }
+      );
+    }
+
+    return priorities.slice(0, 4);
+  }, [myDashboard, onboardingSteps, profile?.main_interest, session, unreadNotifications]);
+
   const visibleNotifications = useMemo(() => {
     const readSet = new Set(readNotificationKeys);
     const search = notificationSearch.trim().toLowerCase();
@@ -9368,27 +9464,56 @@ export default function Home() {
         </div>
         {session ? (
           <div className="dashboardShell">
-            <div className="onboardingChecklist">
-              <div className="onboardingHeader">
+            <section className="dashboardFocus" aria-labelledby="dashboard-focus-title">
+              <div className="dashboardFocusHeader">
+                <div>
+                  <p className="eyebrow">Your next move</p>
+                  <h3 id="dashboard-focus-title">
+                    {dashboardPriorities.length > 1 ? "What needs your attention" : "You are ready to continue"}
+                  </h3>
+                </div>
+                <span>{dashboardPriorities.length} priority item{dashboardPriorities.length === 1 ? "" : "s"}</span>
+              </div>
+              <div className="dashboardPriorityGrid">
+                {dashboardPriorities.map((item) => (
+                  <article className={`dashboardPriority ${item.tone}`} key={item.id}>
+                    <span>{item.label}</span>
+                    <strong>{item.title}</strong>
+                    <p>{item.detail}</p>
+                    <a href={item.href}>{item.action}</a>
+                  </article>
+                ))}
+              </div>
+            </section>
+            <details className="onboardingChecklist">
+              <summary className="onboardingHeader">
                 <div>
                   <p className="eyebrow">Get started</p>
-                  <h3>New user checklist</h3>
+                  <h3>{completedOnboardingSteps === onboardingSteps.length ? "Setup completed" : "Profile setup checklist"}</h3>
                   <small>{completedOnboardingSteps} of {onboardingSteps.length} completed</small>
                 </div>
                 <strong>{Math.round((completedOnboardingSteps / onboardingSteps.length) * 100)}%</strong>
+              </summary>
+              <div className="onboardingChecklistBody">
+                <div className="onboardingProgress">
+                  <span style={{ width: `${(completedOnboardingSteps / onboardingSteps.length) * 100}%` }} />
+                </div>
+                <div className="onboardingStepGrid">
+                  {onboardingSteps.map((step) => (
+                    <article className={step.done ? "done" : ""} key={step.title}>
+                      <span>{step.done ? "Done" : "Next"}</span>
+                      <strong>{step.title}</strong>
+                      <small>{step.detail}</small>
+                      <a href={step.href}>{step.done ? "View" : "Start"}</a>
+                    </article>
+                  ))}
+                </div>
               </div>
-              <div className="onboardingProgress">
-                <span style={{ width: `${(completedOnboardingSteps / onboardingSteps.length) * 100}%` }} />
-              </div>
-              <div className="onboardingStepGrid">
-                {onboardingSteps.map((step) => (
-                  <article className={step.done ? "done" : ""} key={step.title}>
-                    <span>{step.done ? "Done" : "Next"}</span>
-                    <strong>{step.title}</strong>
-                    <small>{step.detail}</small>
-                    <a href={step.href}>{step.done ? "View" : "Start"}</a>
-                  </article>
-                ))}
+            </details>
+            <div className="dashboardSectionHeader">
+              <div>
+                <span>Quick actions</span>
+                <strong>Create, publish, or check another workspace</strong>
               </div>
             </div>
             <div className="dashboardActions">
@@ -9397,6 +9522,12 @@ export default function Home() {
               <a href="#teams">Teams</a>
               <a href="#notifications">Notifications</a>
               <a href="#safety">Safety reports</a>
+            </div>
+            <div className="dashboardSectionHeader">
+              <div>
+                <span>At a glance</span>
+                <strong>Your current Talent7 footprint</strong>
+              </div>
             </div>
             <div className="myTalentGrid">
               <article>
@@ -9435,7 +9566,15 @@ export default function Home() {
                 <a href="#profiles">Find profiles</a>
               </article>
             </div>
-            <div className="dashboardPanels">
+            <details className="dashboardHistory">
+              <summary>
+                <div>
+                  <span>Activity and history</span>
+                  <strong>Rooms, teams, showcase posts, reports, and invites</strong>
+                </div>
+                <small>Open full dashboard</small>
+              </summary>
+              <div className="dashboardPanels">
               <article>
                 <div>
                   <span>My rooms</span>
@@ -9530,7 +9669,8 @@ export default function Home() {
                   <small>No pending invites.</small>
                 )}
               </article>
-            </div>
+              </div>
+            </details>
           </div>
         ) : (
           <div className="emptyState">
