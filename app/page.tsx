@@ -1,6 +1,15 @@
 ﻿"use client";
 
-import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
@@ -1041,6 +1050,8 @@ export default function Home() {
   const [activeAppTab, setActiveAppTab] = useState<AppTabId>("challenges");
   const [activeSection, setActiveSection] = useState("rooms");
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const moreMenuRef = useRef<HTMLElement>(null);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
   const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
@@ -1079,6 +1090,46 @@ export default function Home() {
     window.addEventListener("hashchange", syncTabWithHash);
     return () => window.removeEventListener("hashchange", syncTabWithHash);
   }, []);
+
+  useEffect(() => {
+    if (!isMoreOpen) return;
+
+    const menu = moreMenuRef.current;
+    const focusableSelector =
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusableItems = () =>
+      Array.from(menu?.querySelectorAll<HTMLElement>(focusableSelector) || []).filter(
+        (item) => item.getAttribute("aria-hidden") !== "true"
+      );
+
+    window.requestAnimationFrame(() => focusableItems()[0]?.focus());
+
+    const handleMoreKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsMoreOpen(false);
+        window.requestAnimationFrame(() => moreTriggerRef.current?.focus());
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const items = focusableItems();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleMoreKeyDown);
+    return () => document.removeEventListener("keydown", handleMoreKeyDown);
+  }, [isMoreOpen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -3642,6 +3693,42 @@ export default function Home() {
     const primaryTab = primaryTabs.find((item) => item.id === tabId);
     const moreTab = moreTabs.find((item) => item.id === tabId);
     openSection(primaryTab?.firstSection || moreTab?.href || "account", true);
+  }
+
+  function handlePrimaryTabKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, tabIndex: number) {
+    const keyDirections: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
+    let nextIndex = tabIndex;
+
+    if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = primaryTabs.length - 1;
+    else if (event.key in keyDirections) {
+      nextIndex = (tabIndex + keyDirections[event.key] + primaryTabs.length) % primaryTabs.length;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTab = primaryTabs[nextIndex];
+    switchAppTab(nextTab.id);
+    window.setTimeout(() => {
+      document.querySelector<HTMLButtonElement>(`[data-primary-tab="${nextTab.id}"]`)?.focus();
+    }, 0);
+  }
+
+  function closeMoreMenu() {
+    setIsMoreOpen(false);
+    window.requestAnimationFrame(() => moreTriggerRef.current?.focus());
+  }
+
+  function skipToCurrentWorkspace(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const section = document.getElementById(activeSection);
+    if (!section) return;
+
+    section.setAttribute("tabindex", "-1");
+    section.focus({ preventScroll: true });
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function handleTabAwareNavigation(event: MouseEvent<HTMLElement>) {
@@ -6652,6 +6739,7 @@ export default function Home() {
 
   return (
     <main className={`appTab-${activeAppTab} appView-${activeSection}`} onClick={handleTabAwareNavigation}>
+      <a className="skipLink" href={`#${activeSection}`} onClick={skipToCurrentWorkspace}>Skip to current workspace</a>
       <header className={`hero ${showLandingHero ? "heroLanding" : "heroCompact"}`}>
         <nav>
           <div className="brandBlock">
@@ -6736,19 +6824,25 @@ export default function Home() {
           <button
             className="appMoreBackdrop"
             aria-label="Close More menu"
-            onClick={() => setIsMoreOpen(false)}
+            onClick={closeMoreMenu}
             type="button"
           />
-          <section className="appMoreMenu" aria-label="More Talent7 sections">
+          <section
+            aria-labelledby="more-menu-title"
+            aria-modal="true"
+            className="appMoreMenu"
+            ref={moreMenuRef}
+            role="dialog"
+          >
             <div className="appMoreHeader">
               <div>
-                <strong>More</strong>
+                <strong id="more-menu-title">More</strong>
                 <span>Open another Talent7 workspace.</span>
               </div>
               <button
                 aria-label="Close More menu"
                 title="Close"
-                onClick={() => setIsMoreOpen(false)}
+                onClick={closeMoreMenu}
                 type="button"
               >
                 X
@@ -6770,11 +6864,10 @@ export default function Home() {
 
                       return (
                         <button
-                          aria-selected={activeAppTab === tab.id}
+                          aria-current={activeAppTab === tab.id ? "page" : undefined}
                           className={activeAppTab === tab.id ? "active" : ""}
                           key={tab.id}
                           onClick={() => switchAppTab(tab.id)}
-                          role="tab"
                           type="button"
                         >
                           <span className="appMoreItemTitle">
@@ -6795,13 +6888,15 @@ export default function Home() {
 
       <nav className="appTabs" aria-label="Talent7 workspaces" role="tablist">
         <div className="appTabsScroller">
-        {primaryTabs.map((tab) => (
+        {primaryTabs.map((tab, tabIndex) => (
           <button
             aria-controls={tab.firstSection}
             aria-selected={activeAppTab === tab.id}
             className={activeAppTab === tab.id ? "active" : ""}
+            data-primary-tab={tab.id}
             key={tab.id}
             onClick={() => switchAppTab(tab.id)}
+            onKeyDown={(event) => handlePrimaryTabKeyDown(event, tabIndex)}
             role="tab"
             type="button"
           >
@@ -6813,6 +6908,7 @@ export default function Home() {
           aria-haspopup="dialog"
           className={moreIsActive ? "active" : ""}
           onClick={() => setIsMoreOpen((current) => !current)}
+          ref={moreTriggerRef}
           type="button"
         >
           <span>{activeMoreConfig ? `More: ${activeMoreConfig.label}` : "More"}</span>
