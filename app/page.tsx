@@ -802,7 +802,7 @@ function MediaPreview({
 export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
-  const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("All");
+  const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("Open");
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [activeAppTab, setActiveAppTab] = useState<AppTabId>("account");
@@ -938,6 +938,7 @@ export default function Home() {
   const [deletingShowcasePostId, setDeletingShowcasePostId] = useState<string | null>(null);
   const [deletingProofId, setDeletingProofId] = useState<string | null>(null);
   const [editingChallengeId, setEditingChallengeId] = useState<string | null>(null);
+  const [deletingChallengeId, setDeletingChallengeId] = useState<string | null>(null);
   const [editingShowcasePostId, setEditingShowcasePostId] = useState<string | null>(null);
   const [editingProofId, setEditingProofId] = useState<string | null>(null);
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
@@ -1155,6 +1156,14 @@ export default function Home() {
     selectedStatus,
     votes
   ]);
+
+  const roomCollectionCounts = useMemo(
+    () => ({
+      active: challenges.filter((challenge) => !isChallengeCompleted(challenge)).length,
+      archived: challenges.filter((challenge) => isChallengeCompleted(challenge)).length
+    }),
+    [challenges]
+  );
 
   const leaderboard = useMemo(() => {
     return challenges
@@ -2241,6 +2250,28 @@ export default function Home() {
     return Boolean(session?.user.id && (isOwnerReviewer || challenge.created_by === session.user.id));
   }
 
+  function challengeHasActivity(challengeId: string) {
+    return Boolean(
+      joins.some((item) => item.challenge_id === challengeId) ||
+        ratings.some((item) => item.challenge_id === challengeId) ||
+        votes.some((item) => item.challenge_id === challengeId) ||
+        proofs.some((item) => item.challenge_id === challengeId) ||
+        invites.some((item) => item.challenge_id === challengeId) ||
+        challengeMessages.some((item) => item.challenge_id === challengeId) ||
+        challengeReports.some((item) => item.challenge_id === challengeId)
+    );
+  }
+
+  function canDeleteChallenge(challenge: Challenge) {
+    if (!session?.user.id) return false;
+    if (isOwnerReviewer) return true;
+    return Boolean(
+      challenge.created_by === session.user.id &&
+        !isChallengeCompleted(challenge) &&
+        !challengeHasActivity(challenge.id)
+    );
+  }
+
   function profileTrustBadges(item: TalentProfile) {
     const userId = item.user_id;
     const badges: string[] = [];
@@ -2563,7 +2594,7 @@ export default function Home() {
       setActiveAppTab("challenges");
       setActiveSection("rooms");
       setSelectedLane("All");
-      setSelectedStatus("All");
+      setSelectedStatus(isChallengeCompleted(match) ? "Completed" : "Open");
       setRoomSearch("");
       setHighlightedChallengeId(match.id);
       setTimeout(() => document.getElementById(roomHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
@@ -3834,6 +3865,7 @@ export default function Home() {
       setChallenges((items) => [localChallenge, ...items]);
       setCreatedChallengeId(localChallenge.id);
       setSelectedLane(challenge.lane);
+      setSelectedStatus("Open");
       setMessage("Demo mode: challenge added below. Connect Supabase to save it for everyone.");
       setIsSaving(false);
       formElement.reset();
@@ -3856,6 +3888,7 @@ export default function Home() {
       const inviteMessage = await sendInviteForChallenge(savedChallenge);
 
       setChallenges((items) => [savedChallenge, ...items]);
+      setSelectedStatus("Open");
       setCreatedChallengeId(savedChallenge.id);
       setSelectedLane(savedChallenge.lane);
       setMessage(
@@ -4026,7 +4059,7 @@ export default function Home() {
     setSelectedActivityProfile(item);
     setRoomSearch("");
     setSelectedLane("All");
-    setSelectedStatus("All");
+    setSelectedStatus("Open");
     setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
     setActiveAppTab("challenges");
     setActiveSection("rooms");
@@ -4844,7 +4877,7 @@ export default function Home() {
       setMessage(status === "Accepted" ? "Invite accepted. You joined the challenge." : "Invite declined.");
       if (status === "Accepted") {
         setSelectedLane("All");
-        setSelectedStatus("All");
+        setSelectedStatus("Open");
         setRoomSearch("");
         setActiveAppTab("challenges");
         setActiveSection("rooms");
@@ -5991,6 +6024,52 @@ export default function Home() {
     setExpertProfileActionId(null);
   }
 
+  async function deleteChallengeRoom(challenge: Challenge) {
+    if (!requireLogin("delete a challenge room")) return;
+
+    if (!canDeleteChallenge(challenge)) {
+      setMessage(
+        "Only the room creator can delete an open room before anyone interacts with it. The Talent7 owner can remove rooms for moderation."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      isOwnerReviewer
+        ? `Permanently delete “${challenge.title}” and its related room activity?`
+        : `Delete “${challenge.title}”? This is only available before the room receives activity.`
+    );
+    if (!confirmed) return;
+
+    setDeletingChallengeId(challenge.id);
+    setMessage("");
+
+    if (supabase && !challenge.id.startsWith("sample-")) {
+      const { error } = await supabase.from("challenges").delete().eq("id", challenge.id);
+      if (error) {
+        setMessage(`Could not delete room: ${error.message}`);
+        setDeletingChallengeId(null);
+        return;
+      }
+    }
+
+    const proofIds = new Set(proofs.filter((item) => item.challenge_id === challenge.id).map((item) => item.id));
+    setChallenges((items) => items.filter((item) => item.id !== challenge.id));
+    setJoins((items) => items.filter((item) => item.challenge_id !== challenge.id));
+    setRatings((items) => items.filter((item) => item.challenge_id !== challenge.id));
+    setVotes((items) => items.filter((item) => item.challenge_id !== challenge.id));
+    setProofs((items) => items.filter((item) => item.challenge_id !== challenge.id));
+    setInvites((items) => items.filter((item) => item.challenge_id !== challenge.id));
+    setChallengeMessages((items) => items.filter((item) => item.challenge_id !== challenge.id));
+    setChallengeReports((items) =>
+      items.filter((item) => item.challenge_id !== challenge.id && !proofIds.has(item.proof_id || ""))
+    );
+    if (createdChallengeId === challenge.id) setCreatedChallengeId(null);
+    if (highlightedChallengeId === challenge.id) setHighlightedChallengeId(null);
+    setMessage("Challenge room deleted.");
+    setDeletingChallengeId(null);
+  }
+
   async function completeChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("complete a challenge")) return;
@@ -6030,7 +6109,8 @@ export default function Home() {
       setChallenges((items) =>
         items.map((item) => (item.id === challenge.id ? { ...item, ...challengeResult } : item))
       );
-      setMessage(`${challenge.title} completed. Winner: ${winner}.`);
+      setSelectedStatus("Completed");
+      setMessage(`${challenge.title} completed and moved to Archive. Winner: ${winner}.`);
       formElement.reset();
       setCompletingChallengeId(null);
       return;
@@ -6047,7 +6127,8 @@ export default function Home() {
       setMessage(`Could not complete challenge: ${error.message}`);
     } else if (data) {
       setChallenges((items) => items.map((item) => (item.id === challenge.id ? (data as Challenge) : item)));
-      setMessage(`${challenge.title} completed. Winner: ${winner}.`);
+      setSelectedStatus("Completed");
+      setMessage(`${challenge.title} completed and moved to Archive. Winner: ${winner}.`);
       formElement.reset();
     }
 
@@ -6106,156 +6187,28 @@ export default function Home() {
             </article>
           </div>
           <div className="heroActions">
-            <a href="#account" className="primary">Start with account</a>
             <a href="#rooms" className="primary">Browse challenge rooms</a>
             <a href="#create" className="secondary">Create a challenge</a>
-            <a href="#my-talent7" className="secondary">My dashboard</a>
           </div>
-          <div className="earlyAccessCallout">
-            <a className="focusLink" href="#first-wave">First wave focus</a>
-            <span>Badminton doubles, breakdance battles, PUBG squads, coaching offers, and safe expert-help requests.</span>
-            <a href="#plans">Support the founder</a>
-          </div>
-          <div className="pathFinder">
-            <div>
-              <p className="eyebrow">Choose your path</p>
-              <strong>What do you want to do first?</strong>
-            </div>
-            <a href="#rooms">
-              <span>Compete</span>
-              <small>Create or join proof-based challenges.</small>
-            </a>
-            <a href="#rooms">
-              <span>Watch / rate</span>
-              <small>Vote winners and rate rooms out of 7.</small>
-            </a>
-            <a href="#coaching">
-              <span>Coaching</span>
-              <small>Find lessons or offer training help.</small>
-            </a>
-            <a href="#expert-help">
-              <span>Expert help</span>
-              <small>Request safe guidance from verified helpers.</small>
-            </a>
-            <a href="#teams">
-              <span>Teams</span>
-              <small>Build sports teams, crews, or gaming clans.</small>
-            </a>
-            <a href="#plans">
-              <span>Support</span>
-              <small>Show payment or founder support interest.</small>
-            </a>
-          </div>
-          <div className="shareStrip">
-            <div>
-              <p className="eyebrow">Share Talent7</p>
-              <strong>Build the first Play Store launch wave</strong>
-            </div>
-            <button
-              onClick={() => copyShareText("Talent7 link", siteUrl())}
-              type="button"
-            >
-              Copy invite link
-            </button>
-            <button
-              onClick={() =>
-                copyShareText(
-                  "Challenge invite",
-                  `Join me on Talent7 for proof-based challenge rooms. You can compete, vote winners, rate out of 7, and upload victory proof.\n\nStart here: ${siteUrl("#rooms")}`
-                )
-              }
-              type="button"
-            >
-              Copy challenge invite
-            </button>
-            <button
-              onClick={() =>
-                copyShareText(
-                  "First-wave invite",
-                  `Talent7 is preparing for Play Store launch with badminton doubles, breakdance battles, PUBG squads, coaching, teams, and expert help.\n\nJoin the first launch wave here: ${siteUrl("#first-wave")}`
-                )
-              }
-              type="button"
-            >
-              Copy launch-wave invite
-            </button>
-            <button
-              onClick={() =>
-                copyShareText(
-                  "Founder support text",
-                  `Talent7 is being built by a standalone founder. If you like the idea, you can show support or select a future contribution range here:\n\n${siteUrl("#plans")}`
-                )
-              }
-              type="button"
-            >
-              Copy founder support
-            </button>
-          </div>
-          <div className="issueShortcut">
-            <div>
-              <p className="eyebrow">Found a launch issue?</p>
-              <strong>Tell the founder quickly</strong>
-            </div>
-            {(["Bug", "Confusing", "Feature request", "Payment interest"] as FounderFeedback["feedback_type"][]).map((type) => (
-              <button key={type} onClick={() => startFounderFeedback(type)} type="button">
-                {type}
+          <details className="heroTools">
+            <summary>Share and launch tools</summary>
+            <div className="heroToolsGrid">
+              <button onClick={() => copyShareText("Talent7 link", siteUrl())} type="button">Copy invite link</button>
+              <button
+                onClick={() =>
+                  copyShareText(
+                    "Challenge invite",
+                    `Join me on Talent7 for proof-based challenge rooms. You can compete, vote winners, rate out of 7, and upload victory proof.\n\nStart here: ${siteUrl("#rooms")}`
+                  )
+                }
+                type="button"
+              >
+                Copy challenge invite
               </button>
-            ))}
-          </div>
-          <div className="heroGuide desktopFeatureTiles">
-            <a href="#rooms">
-              <span>Compete</span>
-              <strong>Find live challenge rooms</strong>
-              <small>Badminton, breakdance, gaming, and more.</small>
-            </a>
-            <a href="#teams">
-              <span>Teams</span>
-              <strong>Form squads and crews</strong>
-              <small>Create doubles partners, dance crews, or gaming clans.</small>
-            </a>
-            <a href="#profiles">
-              <span>Discover</span>
-              <strong>Browse talent profiles</strong>
-              <small>Follow people, copy profile links, and view activity.</small>
-            </a>
-            <a href="#listen-rooms">
-              <span>Listen</span>
-              <strong>Listen with buddies</strong>
-              <small>Shared music rooms for specials, friends, and groups.</small>
-            </a>
-            <a href="#coaching">
-              <span>Learn</span>
-              <strong>Find coaching</strong>
-              <small>Offer lessons or ask coaches for help.</small>
-            </a>
-            <a href="#expert-help">
-              <span>Guidance</span>
-              <strong>Request expert guidance</strong>
-              <small>Medical caution, plumbing, tech, fitness, and more.</small>
-            </a>
-            <a href="#live-preview">
-              <span>Live</span>
-              <strong>Preview live battles</strong>
-              <small>Two-screen challenges, reactions, and 7-star ratings.</small>
-            </a>
-          </div>
-          <div className="heroUtilityLinks">
-            <a href="#account">Account</a>
-            <a href="#notifications" className="secondary">
-              Notifications{unreadNotifications.length > 0 ? ` (${unreadNotifications.length})` : ""}
-            </a>
-            <a href="#following-feed" className="secondary">Feed</a>
-            <a href="#listen-rooms" className="secondary">Listen rooms</a>
-            <a href="#invites" className="secondary">Invites</a>
-            <a href="#safety" className="secondary">Safety</a>
-            <a href="#expert-help" className="secondary">Expert guidance</a>
-            <a href="#live-preview" className="secondary">Live preview</a>
-            <a href="#plans" className="secondary">Plans</a>
-            <a href="#feedback" className="secondary">Feedback</a>
-            {isOwnerReviewer && <a href="#launch-control" className="secondary ownerOnlyNav">Launch control</a>}
-            <a href="#trust-terms" className="secondary">Trust & terms</a>
-            <a href="#roadmap" className="secondary">Roadmap</a>
-          </div>
+              <button onClick={() => startFounderFeedback("Bug")} type="button">Report a bug</button>
+              <a href="#plans">Founder support</a>
+            </div>
+          </details>
         </section>
       </header>
 
@@ -9108,7 +9061,7 @@ export default function Home() {
                       key={item.challenge.id}
                       onClick={() => {
                         setSelectedLane("All");
-                        setSelectedStatus("All");
+                        setSelectedStatus(isChallengeCompleted(item.challenge) ? "Completed" : "Open");
                         setRoomSearch("");
                         setHighlightedChallengeId(item.challenge.id);
                         window.setTimeout(() => setHighlightedChallengeId(null), 2600);
@@ -9420,11 +9373,11 @@ export default function Home() {
         </form>
       </section>
 
-      <section className="section" id="rooms">
+      <section className="section roomsSection" id="rooms">
         <div className="sectionHeader">
           <p className="eyebrow">Rooms</p>
           <h2>Challenge rooms</h2>
-          <p>Filter by lane and status, then open rooms to view proof, votes, and results.</p>
+          <p>Swipe through active rooms, or open Archive for completed results and proof.</p>
         </div>
         {selectedActivityProfile && selectedProfileActivity && (
           <div className="profileActivityPanel">
@@ -9450,46 +9403,57 @@ export default function Home() {
             </div>
           </div>
         )}
-        <label className="roomSearch">
-          Search rooms
-          <input
-            onChange={(event) => setRoomSearch(event.target.value)}
-            placeholder="Search badminton, PUBG, Rahul, breakdance..."
-            type="search"
-            value={roomSearch}
-          />
-        </label>
-        <strong className="filterLabel">Lane</strong>
-        <div className="filters">
-          {(["All", "Talent battle", "Sports challenge", "Mobile gaming challenge"] as const).map((lane) => (
-            <button
-              className={selectedLane === lane ? "active" : ""}
-              key={lane}
-              onClick={() => setSelectedLane(lane)}
-              type="button"
-            >
-              {lane}
-            </button>
-          ))}
+        <div className="roomShelfTabs" aria-label="Room collections" role="tablist">
+          <button
+            aria-selected={selectedStatus === "Open"}
+            className={selectedStatus === "Open" ? "active" : ""}
+            onClick={() => setSelectedStatus("Open")}
+            role="tab"
+            type="button"
+          >
+            Active rooms <span>{roomCollectionCounts.active}</span>
+          </button>
+          <button
+            aria-selected={selectedStatus === "Completed"}
+            className={selectedStatus === "Completed" ? "active" : ""}
+            onClick={() => setSelectedStatus("Completed")}
+            role="tab"
+            type="button"
+          >
+            Archive <span>{roomCollectionCounts.archived}</span>
+          </button>
         </div>
-        <strong className="filterLabel">Status</strong>
-        <div className="filters statusFilters">
-          {(["All", "Open", "Completed"] as const).map((status) => (
-            <button
-              className={selectedStatus === status ? "active" : ""}
-              key={status}
-              onClick={() => setSelectedStatus(status)}
-              type="button"
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-        <div className="roomsGrid">
+        <details className="roomFilterPanel">
+          <summary>Search and filter rooms</summary>
+          <label className="roomSearch">
+            Search rooms
+            <input
+              onChange={(event) => setRoomSearch(event.target.value)}
+              placeholder="Search badminton, PUBG, Rahul, breakdance..."
+              type="search"
+              value={roomSearch}
+            />
+          </label>
+          <strong className="filterLabel">Lane</strong>
+          <div className="filters">
+            {(["All", "Talent battle", "Sports challenge", "Mobile gaming challenge"] as const).map((lane) => (
+              <button
+                className={selectedLane === lane ? "active" : ""}
+                key={lane}
+                onClick={() => setSelectedLane(lane)}
+                type="button"
+              >
+                {lane}
+              </button>
+            ))}
+          </div>
+        </details>
+        {visibleChallenges.length > 1 && <p className="roomSwipeHint">Swipe sideways to browse {visibleChallenges.length} rooms.</p>}
+        <div className="roomsGrid" aria-label={selectedStatus === "Completed" ? "Archived challenge rooms" : "Active challenge rooms"}>
           {visibleChallenges.length === 0 && (
             <div className="emptyRooms">
-              <strong>No rooms found</strong>
-              <small>Try changing the search, lane, or status filters.</small>
+              <strong>{selectedStatus === "Completed" ? "No archived rooms" : "No active rooms found"}</strong>
+              <small>Try changing the search or lane filter.</small>
             </div>
           )}
           {visibleChallenges.map((challenge) => {
@@ -9509,9 +9473,27 @@ export default function Home() {
               <span>{challenge.lane}</span>
               {challenge.id === createdChallengeId && <em>New challenge</em>}
               <h3>{challenge.title}</h3>
-              <button className="roomLinkButton" onClick={() => copyRoomLink(challenge)} type="button">
-                Copy room link
-              </button>
+              <div className="roomCardActions">
+                <button className="roomLinkButton" onClick={() => copyRoomLink(challenge)} type="button">
+                  Copy link
+                </button>
+                {canDeleteChallenge(challenge) && (
+                  <button
+                    className="dangerAction"
+                    disabled={deletingChallengeId === challenge.id}
+                    onClick={() => deleteChallengeRoom(challenge)}
+                    type="button"
+                  >
+                    {deletingChallengeId === challenge.id ? "Deleting..." : isOwnerReviewer ? "Discard room" : "Delete mistaken room"}
+                  </button>
+                )}
+              </div>
+              {!isOwnerReviewer &&
+                challenge.created_by === session?.user.id &&
+                !isChallengeCompleted(challenge) &&
+                challengeHasActivity(challenge.id) && (
+                  <small className="deleteLockNote">Deletion locked after room activity begins. You can still edit or complete it.</small>
+                )}
               {canEditChallenge(challenge) && (
                 <details className="editPanel roomEditPanel">
                   <summary>Edit room</summary>
@@ -9652,7 +9634,9 @@ export default function Home() {
                   <small>Joins, votes, ratings, and proof uploads are locked after completion.</small>
                 </div>
               ) : (
-                <>
+                <details className="roomActionPanel roomDisclosure">
+                  <summary>Join, add proof, or finish</summary>
+                  <div className="roomActionPanelBody">
                   <form className="joinForm" onSubmit={(event) => joinChallenge(event, challenge)}>
                     <input
                       name="participant_name"
@@ -9748,29 +9732,28 @@ export default function Home() {
                           : "Submit proof"}
                     </button>
                   </form>
-                </>
-              )}
-              {!isChallengeCompleted(challenge) && (
-                <form className="resultForm" onSubmit={(event) => completeChallenge(event, challenge)}>
-                  <strong>Finish challenge</strong>
-                  <select name="winner" defaultValue="">
-                    <option value="">Choose winner</option>
-                    <option value={challenge.team_a}>{challenge.team_a}</option>
-                    <option value={challenge.team_b}>{challenge.team_b}</option>
-                  </select>
-                  <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
-                  <button disabled={completingChallengeId === challenge.id || !resultAllowed} type="submit">
-                    {!resultAllowed
-                      ? "Captain/organizer required"
-                      : completingChallengeId === challenge.id
-                        ? "Saving result..."
-                        : "Mark completed"}
-                  </button>
-                </form>
+                    <form className="resultForm" onSubmit={(event) => completeChallenge(event, challenge)}>
+                      <strong>Finish challenge</strong>
+                      <select name="winner" defaultValue="">
+                        <option value="">Choose winner</option>
+                        <option value={challenge.team_a}>{challenge.team_a}</option>
+                        <option value={challenge.team_b}>{challenge.team_b}</option>
+                      </select>
+                      <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
+                      <button disabled={completingChallengeId === challenge.id || !resultAllowed} type="submit">
+                        {!resultAllowed
+                          ? "Captain/organizer required"
+                          : completingChallengeId === challenge.id
+                            ? "Saving result..."
+                            : "Mark completed"}
+                      </button>
+                    </form>
+                  </div>
+                </details>
               )}
               {(roomProofs[challenge.id] || []).length > 0 && (
-                <div className="proofList">
-                  <strong>Proofs submitted</strong>
+                <details className="proofList roomDisclosure">
+                  <summary>Proofs submitted ({(roomProofs[challenge.id] || []).length})</summary>
                   {(roomProofs[challenge.id] || []).slice(0, 3).map((proof) => (
                     <div className="proofItem" key={proof.id}>
                       <MediaPreview label="View proof" mediaType={proof.proof_type} url={proof.proof_url} />
@@ -9819,9 +9802,11 @@ export default function Home() {
                       </div>
                     </div>
                   ))}
-                </div>
+                </details>
               )}
-              <div className="roomChat">
+              <details className="roomChat roomDisclosure">
+                <summary>Room chat ({messages.length})</summary>
+                <div className="roomChatBody">
                 <div className="roomChatHeader">
                   <div>
                     <strong>Room chat</strong>
@@ -9864,7 +9849,8 @@ export default function Home() {
                   )}
                   {messages.length > 20 && <small>Showing latest 20 messages.</small>}
                 </div>
-              </div>
+                </div>
+              </details>
               <details className="roomDetails">
                 <summary>Room details</summary>
                 <div className="detailGrid">
@@ -9980,7 +9966,7 @@ export default function Home() {
                 href={`#${roomHash(item.challenge.id)}`}
                 onClick={() => {
                   setSelectedLane("All");
-                  setSelectedStatus("All");
+                  setSelectedStatus(isChallengeCompleted(item.challenge) ? "Completed" : "Open");
                   setRoomSearch("");
                   setHighlightedChallengeId(item.challenge.id);
                   window.setTimeout(() => setHighlightedChallengeId(null), 2600);
