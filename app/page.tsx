@@ -9990,6 +9990,46 @@ export default function Home() {
                 <em className="personalizedRoomBadge">Matches your interest</em>
               )}
               <h3>{challenge.title}</h3>
+              {challenge.status === "Completed" && (
+                <div className="winnerBanner">
+                  <span>Winner</span>
+                  <strong>{challenge.winner || "Winner declared"}</strong>
+                  {challenge.final_score && <small>Final score: {challenge.final_score}</small>}
+                </div>
+              )}
+              <div className="versus">
+                <strong>{challenge.team_a}</strong>
+                <b>vs</b>
+                <strong>{challenge.team_b}</strong>
+              </div>
+              <div className="roomOverviewStats" aria-label="Room activity summary">
+                <div>
+                  <strong>{joinCounts[challenge.id]?.challengers || 0}</strong>
+                  <span>Challengers</span>
+                </div>
+                <div>
+                  <strong>{joinCounts[challenge.id]?.audience || 0}</strong>
+                  <span>Audience</span>
+                </div>
+                <div>
+                  <strong>{(roomResults[challenge.id]?.teamAVotes || 0) + (roomResults[challenge.id]?.teamBVotes || 0)}</strong>
+                  <span>Votes</span>
+                </div>
+                <div>
+                  <strong>{roomResults[challenge.id]?.ratingAverage || "0.0"}</strong>
+                  <span>Rating / 7</span>
+                </div>
+              </div>
+              <details className="roomWorkspace">
+                <summary>
+                  <span>{isChallengeCompleted(challenge) ? "View archived room" : "Open room"}</span>
+                  <small>
+                    {isChallengeCompleted(challenge)
+                      ? "Result, proof, chat, and participants"
+                      : "Join, vote, proof, chat, and room tools"}
+                  </small>
+                </summary>
+                <div className="roomWorkspaceBody">
               <div className="roomCardActions">
                 <button className="roomLinkButton" onClick={() => copyRoomLink(challenge)} type="button">
                   Copy link
@@ -10065,18 +10105,6 @@ export default function Home() {
                   </form>
                 </details>
               )}
-              {challenge.status === "Completed" && (
-                <div className="winnerBanner">
-                  <span>Winner</span>
-                  <strong>{challenge.winner || "Winner declared"}</strong>
-                  {challenge.final_score && <small>Final score: {challenge.final_score}</small>}
-                </div>
-              )}
-              <div className="versus">
-                <strong>{challenge.team_a}</strong>
-                <b>vs</b>
-                <strong>{challenge.team_b}</strong>
-              </div>
               {(challenge.team_a_id || challenge.team_b_id) && (
                 <div className="linkedTeams">
                   {(["A", "B"] as const).map((side) => {
@@ -10100,10 +10128,6 @@ export default function Home() {
                   <small>Captains and organizers can finish results. Proof uploaders can submit victory proof.</small>
                 </div>
               )}
-              <div className="roomStats">
-                <strong>Challengers: {joinCounts[challenge.id]?.challengers || 0}</strong>
-                <strong>Audience: {joinCounts[challenge.id]?.audience || 0}</strong>
-              </div>
               <div className="scoreBoard">
                 <div>
                   <span>Votes</span>
@@ -10455,6 +10479,8 @@ export default function Home() {
                   </button>
                 </div>
               )}
+                </div>
+              </details>
             </article>
             );
           })}

@@ -5542,6 +5542,98 @@ textarea {
   font-size: 0.86rem;
 }
 
+.roomOverviewStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.roomOverviewStats div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px;
+  background: #f4f8f8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.roomOverviewStats strong {
+  color: var(--ink);
+  font-size: 1.08rem;
+  line-height: 1;
+}
+
+.roomOverviewStats span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.roomWorkspace {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+}
+
+.roomWorkspace > summary {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  min-height: 52px;
+  padding: 11px 42px 11px 13px;
+  color: #fff;
+  background: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.roomWorkspace > summary::-webkit-details-marker {
+  display: none;
+}
+
+.roomWorkspace > summary::after {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  content: "+";
+  font-size: 1.35rem;
+  font-weight: 800;
+  transform: translateY(-50%);
+}
+
+.roomWorkspace[open] > summary::after {
+  content: "−";
+}
+
+.roomWorkspace > summary span {
+  font-weight: 950;
+}
+
+.roomWorkspace > summary small {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.roomWorkspaceBody {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.roomWorkspaceBody > p {
+  margin: 0;
+  padding: 12px;
+  color: var(--ink);
+  background: #f7fafa;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
 .bookingPanel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
