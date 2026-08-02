@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
@@ -98,6 +98,120 @@ const expertHelpTypes: ExpertHelpType[] = [
 type PrimaryTabId = "account" | "challenges" | "showcase" | "coaching" | "guidance" | "listen";
 type MoreTabId = "teams" | "profiles" | "notifications" | "feed" | "invites" | "safety" | "plans" | "feedback" | "roadmap";
 type AppTabId = PrimaryTabId | MoreTabId;
+type NoticeTone = "success" | "error" | "warning" | "info";
+
+type AppNotice = {
+  id: number;
+  text: string;
+  tone: NoticeTone;
+  duration: number;
+};
+
+let noticeSequence = 0;
+
+function noticeToneForMessage(text: string): NoticeTone {
+  const normalized = text.toLowerCase();
+  const errorStarts = [
+    "could not",
+    "copy failed",
+    "please ",
+    "only ",
+    "you cannot",
+    "this challenge is completed",
+    "enter ",
+    "add ",
+    "choose ",
+    "paste ",
+    "write ",
+    "log in",
+    "connect supabase",
+    "that username",
+    "a session time must",
+    "confirm the session"
+  ];
+
+  if (errorStarts.some((prefix) => normalized.startsWith(prefix)) || normalized.includes(" error")) return "error";
+  if (normalized.startsWith("demo mode") || normalized.includes("not connected") || normalized.includes("read-only")) return "warning";
+  if (
+    normalized.includes(" saved") ||
+    normalized.includes("created") ||
+    normalized.includes("updated") ||
+    normalized.includes("sent") ||
+    normalized.includes("copied") ||
+    normalized.includes("joined") ||
+    normalized.includes("following") ||
+    normalized.includes("deleted") ||
+    normalized.includes("completed") ||
+    normalized.includes("recorded") ||
+    normalized.includes("published") ||
+    normalized.includes("accepted") ||
+    normalized.includes("submitted") ||
+    normalized.includes("added") ||
+    normalized.includes("logged in") ||
+    normalized.includes("logged out") ||
+    normalized.includes("on the talent7")
+  ) {
+    return "success";
+  }
+
+  return "info";
+}
+
+function noticeDuration(tone: NoticeTone) {
+  if (tone === "success") return 4000;
+  if (tone === "warning") return 6500;
+  if (tone === "error") return 9000;
+  return 4500;
+}
+
+function noticeTitle(tone: NoticeTone) {
+  if (tone === "success") return "Done";
+  if (tone === "warning") return "Please note";
+  if (tone === "error") return "Needs attention";
+  return "Talent7 update";
+}
+
+function noticeIcon(tone: NoticeTone) {
+  if (tone === "success") return "✓";
+  if (tone === "warning") return "!";
+  if (tone === "error") return "×";
+  return "i";
+}
+
+function AppToast({ notice, onDismiss }: { notice: AppNotice; onDismiss: (id: number) => void }) {
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const timeout = window.setTimeout(() => onDismiss(notice.id), notice.duration);
+    return () => window.clearTimeout(timeout);
+  }, [notice.duration, notice.id, onDismiss, paused]);
+
+  return (
+    <aside
+      aria-atomic="true"
+      aria-live={notice.tone === "error" ? "assertive" : "polite"}
+      className={`appToast appToast-${notice.tone}`}
+      onBlur={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      role={notice.tone === "error" ? "alert" : "status"}
+    >
+      <span className="appToastIcon" aria-hidden="true">{noticeIcon(notice.tone)}</span>
+      <div className="appToastCopy">
+        <strong>{noticeTitle(notice.tone)}</strong>
+        <span>{notice.text}</span>
+      </div>
+      <button aria-label="Dismiss notification" onClick={() => onDismiss(notice.id)} type="button">×</button>
+      <span
+        aria-hidden="true"
+        className="appToastProgress"
+        style={{ animationDuration: `${notice.duration}ms`, animationPlayState: paused ? "paused" : "running" }}
+      />
+    </aside>
+  );
+}
 
 const primaryTabs: {
   id: PrimaryTabId;
@@ -933,7 +1047,7 @@ export default function Home() {
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
   const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<TalentProfile | null>(null);
-  const [message, setMessage] = useState("");
+  const [notices, setNotices] = useState<AppNotice[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
@@ -987,6 +1101,7 @@ export default function Home() {
   const [feedbackActionKey, setFeedbackActionKey] = useState<string | null>(null);
   const [feedbackDraftType, setFeedbackDraftType] = useState<FounderFeedback["feedback_type"]>("General");
   const [savingFirstWave, setSavingFirstWave] = useState(false);
+  const [firstWaveSaveConfirmed, setFirstWaveSaveConfirmed] = useState(false);
   const [firstWaveActionKey, setFirstWaveActionKey] = useState<string | null>(null);
   const [savingExpertHelp, setSavingExpertHelp] = useState(false);
   const [expertHelpActionId, setExpertHelpActionId] = useState<string | null>(null);
@@ -1019,6 +1134,27 @@ export default function Home() {
   const [playStoreDoneKeys, setPlayStoreDoneKeys] = useState<string[]>([]);
   const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
   const [notificationSearch, setNotificationSearch] = useState("");
+
+  const dismissNotice = useCallback((id: number) => {
+    setNotices((current) => current.filter((notice) => notice.id !== id));
+  }, []);
+
+  function setMessage(text: string, tone?: NoticeTone) {
+    if (!text) {
+      setNotices([]);
+      return;
+    }
+
+    const resolvedTone = tone || noticeToneForMessage(text);
+    const notice: AppNotice = {
+      id: ++noticeSequence,
+      text,
+      tone: resolvedTone,
+      duration: noticeDuration(resolvedTone)
+    };
+
+    setNotices((current) => [...current.filter((item) => item.text !== text), notice].slice(-3));
+  }
   const [selectedHelpType, setSelectedHelpType] = useState<ExpertHelpType>("Medical guidance");
   const [expertProfileSearch, setExpertProfileSearch] = useState("");
   const [expertProfileAreaFilter, setExpertProfileAreaFilter] = useState<"All" | ExpertHelpType>("All");
@@ -3314,7 +3450,7 @@ export default function Home() {
     setAuthMode("Log in");
     setConfirmationEmail("");
     setLoginPrompt(prompt);
-    setMessage(prompt);
+    setMessage("Log in to continue.", "warning");
     scrollToAccount();
     return false;
   }
@@ -3567,6 +3703,7 @@ export default function Home() {
     const notes = String(form.get("notes") || "").trim();
 
     if (!mainInterest || !region) {
+      setFirstWaveSaveConfirmed(false);
       setMessage("Add your main interest and region before joining the first wave.");
       return;
     }
@@ -3594,7 +3731,8 @@ export default function Home() {
         },
         ...items.filter((item) => item.user_id !== interest.user_id)
       ]);
-      setMessage("Demo mode: first-wave interest saved on this page.");
+      setFirstWaveSaveConfirmed(true);
+      setMessage("Interests saved for this preview.", "success");
       setSavingFirstWave(false);
       return;
     }
@@ -3606,13 +3744,15 @@ export default function Home() {
       .single();
 
     if (error) {
+      setFirstWaveSaveConfirmed(false);
       setMessage(`Could not save first-wave interest: ${error.message}`);
     } else if (data) {
       setFirstWaveInterests((items) => [
         data as FirstWaveInterest,
         ...items.filter((item) => item.id !== (data as FirstWaveInterest).id)
       ]);
-      setMessage("You are on the Talent7 first-wave list.");
+      setFirstWaveSaveConfirmed(true);
+      setMessage("Interests saved. You are on the Talent7 first-wave list.", "success");
       formElement.reset();
     }
 
@@ -6321,7 +6461,13 @@ export default function Home() {
         </aside>
       )}
 
-      {message && <aside className="message">{message}</aside>}
+      {notices.length > 0 && (
+        <div className="appToastViewport" aria-label="Talent7 notifications">
+          {notices.map((notice) => (
+            <AppToast key={notice.id} notice={notice} onDismiss={dismissNotice} />
+          ))}
+        </div>
+      )}
 
       {isMoreOpen && (
         <>
@@ -6430,7 +6576,7 @@ export default function Home() {
           </article>
         </div>
         <div className="firstWaveSignup">
-          <form onSubmit={submitFirstWaveInterest}>
+          <form onChange={() => setFirstWaveSaveConfirmed(false)} onSubmit={submitFirstWaveInterest}>
             <div>
               <p className="eyebrow">First wave list</p>
               <h3>Tell Talent7 what you want first</h3>
@@ -6475,9 +6621,20 @@ export default function Home() {
                 placeholder="Example: I can test badminton audience voting, or I want to create a PUBG squad challenge."
               />
             </label>
-            <button disabled={savingFirstWave} type="submit">
-              {savingFirstWave ? "Saving first-wave interest..." : myFirstWaveInterest ? "Update first-wave interest" : "Join first wave"}
-            </button>
+            <div className="firstWaveSubmit">
+              <button disabled={savingFirstWave} type="submit">
+                {savingFirstWave
+                  ? "Saving interests..."
+                  : firstWaveSaveConfirmed
+                    ? "Interests saved ✓"
+                    : myFirstWaveInterest
+                      ? "Update interests"
+                      : "Save interests"}
+              </button>
+              {firstWaveSaveConfirmed && (
+                <span className="formSavedStatus" role="status">✓ Your interests were saved successfully.</span>
+              )}
+            </div>
           </form>
           <aside>
             <p className="eyebrow">{isOwnerReviewer ? "Owner view" : "My first-wave status"}</p>
