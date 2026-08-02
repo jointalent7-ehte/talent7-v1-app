@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
@@ -89,10 +89,12 @@ const expertHelpTypes: ExpertHelpType[] = [
   "Other urgent help"
 ];
 
-type MobileTabId = "account" | "challenges" | "showcase" | "listen" | "coaching" | "help";
+type PrimaryTabId = "account" | "challenges" | "showcase" | "coaching" | "guidance" | "listen";
+type MoreTabId = "teams" | "profiles" | "notifications" | "feed" | "invites" | "safety" | "plans" | "feedback" | "roadmap";
+type AppTabId = PrimaryTabId | MoreTabId;
 
-const mobileTabs: {
-  id: MobileTabId;
+const primaryTabs: {
+  id: PrimaryTabId;
   label: string;
   firstSection: string;
   links: { label: string; href: string }[];
@@ -103,9 +105,8 @@ const mobileTabs: {
     firstSection: "account",
     links: [
       { label: "Account", href: "#account" },
-      { label: "Alerts", href: "#notifications" },
       { label: "Dashboard", href: "#my-talent7" },
-      { label: "Plans", href: "#plans" }
+      { label: "First wave", href: "#first-wave" }
     ]
   },
   {
@@ -115,29 +116,14 @@ const mobileTabs: {
     links: [
       { label: "Rooms", href: "#rooms" },
       { label: "Create", href: "#create" },
-      { label: "Teams", href: "#teams" },
-      { label: "Invites", href: "#invites" }
+      { label: "Leaderboard", href: "#leaderboard" }
     ]
   },
   {
     id: "showcase",
     label: "Showcase",
     firstSection: "showcase",
-    links: [
-      { label: "Posts", href: "#showcase" },
-      { label: "Profiles", href: "#profiles" },
-      { label: "Feed", href: "#following-feed" }
-    ]
-  },
-  {
-    id: "listen",
-    label: "Listen",
-    firstSection: "listen-rooms",
-    links: [
-      { label: "Listen rooms", href: "#listen-rooms" },
-      { label: "Showcase", href: "#showcase" },
-      { label: "Feed", href: "#following-feed" }
-    ]
+    links: [{ label: "Posts", href: "#showcase" }]
   },
   {
     id: "coaching",
@@ -149,38 +135,64 @@ const mobileTabs: {
     ]
   },
   {
-    id: "help",
+    id: "guidance",
     label: "Guidance",
     firstSection: "expert-help",
-    links: [
-      { label: "Expert guidance", href: "#expert-help" },
-      { label: "Safety", href: "#safety" },
-      { label: "Feedback", href: "#feedback" }
-    ]
+    links: [{ label: "Expert guidance", href: "#expert-help" }]
+  },
+  {
+    id: "listen",
+    label: "Listen",
+    firstSection: "listen-rooms",
+    links: [{ label: "Listen rooms", href: "#listen-rooms" }]
   }
 ];
 
-const primaryMobileTabIds: MobileTabId[] = ["account", "challenges", "showcase"];
-const primaryMobileTabs = mobileTabs.filter((tab) => primaryMobileTabIds.includes(tab.id));
-const secondaryMobileTabs = mobileTabs.filter((tab) => !primaryMobileTabIds.includes(tab.id));
-
-const mobileUtilityLinks: { label: string; href: string; tabId: MobileTabId }[] = [
-  { label: "Teams", href: "#teams", tabId: "challenges" },
-  { label: "Alerts", href: "#notifications", tabId: "account" },
-  { label: "Safety", href: "#safety", tabId: "help" },
-  { label: "Plans", href: "#plans", tabId: "account" },
-  { label: "Feedback", href: "#feedback", tabId: "help" },
-  { label: "Live preview", href: "#live-preview", tabId: "coaching" }
+const moreTabs: { id: MoreTabId; label: string; href: string; description: string }[] = [
+  { id: "teams", label: "Teams", href: "#teams", description: "Squads, crews, and requests" },
+  { id: "profiles", label: "Profiles", href: "#profiles", description: "Discover Talent7 people" },
+  { id: "notifications", label: "Notifications", href: "#notifications", description: "Updates that need attention" },
+  { id: "feed", label: "Feed", href: "#following-feed", description: "Activity from people you follow" },
+  { id: "invites", label: "Invites", href: "#invites", description: "Challenge invitations" },
+  { id: "safety", label: "Safety", href: "#safety", description: "Reports, trust, and terms" },
+  { id: "plans", label: "Plans", href: "#plans", description: "Plans and founder support" },
+  { id: "feedback", label: "Feedback", href: "#feedback", description: "Send and review feedback" },
+  { id: "roadmap", label: "Roadmap", href: "#roadmap", description: "Launch progress and what is next" }
 ];
 
-const mobileTabDescriptions: Record<MobileTabId, string> = {
-  account: "Profile and settings",
-  challenges: "Compete and connect",
-  showcase: "Share your talent",
-  listen: "Music with friends",
-  coaching: "Learn or teach",
-  help: "Expert support and safety"
+const sectionTabMap: Record<string, AppTabId> = {
+  "first-wave": "account",
+  account: "account",
+  "my-talent7": "account",
+  create: "challenges",
+  rooms: "challenges",
+  leaderboard: "challenges",
+  showcase: "showcase",
+  coaching: "coaching",
+  "live-preview": "coaching",
+  "expert-help": "guidance",
+  "listen-rooms": "listen",
+  teams: "teams",
+  profiles: "profiles",
+  notifications: "notifications",
+  "following-feed": "feed",
+  invites: "invites",
+  safety: "safety",
+  "trust-terms": "safety",
+  plans: "plans",
+  feedback: "feedback",
+  roadmap: "roadmap",
+  "launch-control": "roadmap"
 };
+
+function tabForHash(hash: string): AppTabId | null {
+  const target = hash.replace(/^#/, "");
+  if (target.startsWith("profile-")) return "profiles";
+  if (target.startsWith("room-")) return "challenges";
+  if (target.startsWith("team-")) return "teams";
+  if (target.startsWith("showcase-")) return "showcase";
+  return sectionTabMap[target] || null;
+}
 
 type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
 
@@ -784,8 +796,8 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("All");
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [activeMobileTab, setActiveMobileTab] = useState<MobileTabId>("challenges");
-  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const [activeAppTab, setActiveAppTab] = useState<AppTabId>("account");
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
   const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
@@ -810,6 +822,17 @@ export default function Home() {
       setListenRooms(sampleListenRooms);
       setListenTracks(sampleListenTracks);
     }
+  }, []);
+
+  useEffect(() => {
+    const syncTabWithHash = () => {
+      const hashTab = tabForHash(window.location.hash);
+      if (hashTab) setActiveAppTab(hashTab);
+    };
+
+    syncTabWithHash();
+    window.addEventListener("hashchange", syncTabWithHash);
+    return () => window.removeEventListener("hashchange", syncTabWithHash);
   }, []);
 
   useEffect(() => {
@@ -2504,6 +2527,7 @@ export default function Home() {
       const match = publicProfiles.find((item) => profileHash(item.username) === hash);
       if (!match) return;
 
+      setActiveAppTab("profiles");
       setSelectedProfile(match);
       setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
     };
@@ -2523,6 +2547,7 @@ export default function Home() {
       const match = challenges.find((challenge) => roomHash(challenge.id) === hash);
       if (!match) return;
 
+      setActiveAppTab("challenges");
       setSelectedLane("All");
       setSelectedStatus("All");
       setRoomSearch("");
@@ -2546,6 +2571,7 @@ export default function Home() {
       const match = teams.find((team) => teamHash(team.id) === hash);
       if (!match) return;
 
+      setActiveAppTab("teams");
       setHighlightedTeamId(match.id);
       setTimeout(() => document.getElementById(teamHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
       window.setTimeout(() => setHighlightedTeamId(null), 2600);
@@ -2566,6 +2592,7 @@ export default function Home() {
       const match = showcasePosts.find((post) => showcaseHash(post.id) === hash);
       if (!match) return;
 
+      setActiveAppTab("showcase");
       setHighlightedShowcasePostId(match.id);
       setTimeout(() => document.getElementById(showcaseHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
       window.setTimeout(() => setHighlightedShowcasePostId(null), 2600);
@@ -3107,38 +3134,43 @@ export default function Home() {
     }
   }
 
-  function switchMobileTab(tabId: MobileTabId) {
-    const tab = mobileTabs.find((item) => item.id === tabId);
-    setActiveMobileTab(tabId);
-    setIsMobileMoreOpen(false);
+  function openSection(sectionId: string, updateHash = false) {
+    const tabId = tabForHash(sectionId);
+    if (tabId) setActiveAppTab(tabId);
+    setIsMoreOpen(false);
+
+    if (updateHash) window.history.pushState(null, "", `#${sectionId.replace(/^#/, "")}`);
     window.setTimeout(() => {
-      document.getElementById(tab?.firstSection || "rooms")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(sectionId.replace(/^#/, ""))?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
+  }
+
+  function switchAppTab(tabId: AppTabId) {
+    const primaryTab = primaryTabs.find((item) => item.id === tabId);
+    const moreTab = moreTabs.find((item) => item.id === tabId);
+    openSection(primaryTab?.firstSection || moreTab?.href || "account", true);
+  }
+
+  function handleTabAwareNavigation(event: MouseEvent<HTMLElement>) {
+    const anchor = (event.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]');
+    if (!anchor) return;
+
+    const href = anchor.getAttribute("href") || "";
+    const tabId = tabForHash(href);
+    if (!tabId) return;
+
+    event.preventDefault();
+    openSection(href, true);
   }
 
   function scrollToAccount() {
-    const accountTab = mobileTabs.find((item) => item.id === "account");
-    setActiveMobileTab("account");
-    setIsMobileMoreOpen(false);
-    window.setTimeout(() => {
-      document
-        .getElementById(accountTab?.firstSection || "account")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-  }
-
-  function openMobileShortcut(tabId: MobileTabId, href: string) {
-    setActiveMobileTab(tabId);
-    setIsMobileMoreOpen(false);
-    window.setTimeout(() => {
-      document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 60);
+    openSection("account");
   }
 
   function startFounderFeedback(type: FounderFeedback["feedback_type"]) {
     setFeedbackDraftType(type);
     setMessage(`${type} selected. Add details in Founder Feedback.`);
-    setTimeout(() => document.getElementById("feedback")?.scrollIntoView({ behavior: "smooth" }), 80);
+    openSection("feedback");
   }
 
   function toggleLaunchQaItem(key: string) {
@@ -3250,6 +3282,7 @@ export default function Home() {
     setListenRooms((current) => [room, ...current]);
     setListenRoomDraft({ ...defaultListenDraft, host_name: profileName() });
     setMessage("Listen room created.");
+    setActiveAppTab("listen");
     setTimeout(() => document.getElementById("listen-rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -3785,6 +3818,7 @@ export default function Home() {
       setMessage("Demo mode: challenge added below. Connect Supabase to save it for everyone.");
       setIsSaving(false);
       formElement.reset();
+      setActiveAppTab("challenges");
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
     }
@@ -3917,6 +3951,7 @@ export default function Home() {
     }));
 
     setMessage(`Invite draft ready for ${invitedName}. Review it, then create the challenge.`);
+    setActiveAppTab("challenges");
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -3924,6 +3959,7 @@ export default function Home() {
     setSelectedLane(challenge.lane);
     setRoomSearch(challenge.title);
     setMessage(`${challenge.title} is now shown in Challenge rooms.`);
+    setActiveAppTab("challenges");
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -3959,6 +3995,7 @@ export default function Home() {
         ? `Team challenge draft ready for ${team.name}. Review it, then create the challenge.`
         : `Challenge draft ready against ${team.name}. Review it, then create the challenge.`
     );
+    setActiveAppTab("challenges");
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -3968,6 +4005,7 @@ export default function Home() {
     setSelectedLane("All");
     setSelectedStatus("All");
     setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
+    setActiveAppTab("challenges");
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -3975,6 +4013,7 @@ export default function Home() {
     setSelectedProfile(item);
     window.history.replaceState(null, "", `#${profileHash(item.username)}`);
     setMessage(`Opened ${item.display_name}'s Talent7 profile.`);
+    setActiveAppTab("profiles");
     setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -4190,6 +4229,7 @@ export default function Home() {
 
     if (!profile?.role.toLowerCase().includes("coach")) {
       setMessage("Set your profile role to Coach / instructor before creating a coaching offer.");
+      setActiveAppTab("account");
       setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
     }
@@ -4780,6 +4820,7 @@ export default function Home() {
         setSelectedLane("All");
         setSelectedStatus("All");
         setRoomSearch("");
+        setActiveAppTab("challenges");
         setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
       }
     }
@@ -5986,12 +6027,12 @@ export default function Home() {
     setCompletingChallengeId(null);
   }
 
-  const activeMobileConfig = mobileTabs.find((tab) => tab.id === activeMobileTab) || mobileTabs[0];
-  const moreIsActive =
-    isMobileMoreOpen || secondaryMobileTabs.some((tab) => tab.id === activeMobileTab);
+  const activePrimaryConfig = primaryTabs.find((tab) => tab.id === activeAppTab);
+  const activeMoreConfig = moreTabs.find((tab) => tab.id === activeAppTab);
+  const moreIsActive = isMoreOpen || Boolean(activeMoreConfig);
 
   return (
-    <main className={`mobileTab-${activeMobileTab}`}>
+    <main className={`appTab-${activeAppTab}`} onClick={handleTabAwareNavigation}>
       <header className="hero">
         <nav>
           <strong>Talent7</strong>
@@ -6188,52 +6229,42 @@ export default function Home() {
 
       {message && <aside className="message">{message}</aside>}
 
-      {isMobileMoreOpen && (
+      {isMoreOpen && (
         <>
           <button
-            className="mobileMoreBackdrop"
-            aria-label="Close mobile menu"
-            onClick={() => setIsMobileMoreOpen(false)}
+            className="appMoreBackdrop"
+            aria-label="Close More menu"
+            onClick={() => setIsMoreOpen(false)}
             type="button"
           />
-          <section className="mobileMoreSheet" aria-label="More Talent7 sections">
-            <div className="mobileMoreHeader">
+          <section className="appMoreMenu" aria-label="More Talent7 sections">
+            <div className="appMoreHeader">
               <div>
                 <strong>More</strong>
-                <span>Jump to another part of Talent7.</span>
+                <span>Open another Talent7 workspace.</span>
               </div>
               <button
-                aria-label="Close mobile menu"
+                aria-label="Close More menu"
                 title="Close"
-                onClick={() => setIsMobileMoreOpen(false)}
+                onClick={() => setIsMoreOpen(false)}
                 type="button"
               >
                 X
               </button>
             </div>
 
-            <div className="mobileMorePrimary">
-              {secondaryMobileTabs.map((tab) => (
+            <div className="appMoreGrid">
+              {moreTabs.map((tab) => (
                 <button
-                  className={activeMobileTab === tab.id ? "active" : ""}
+                  aria-selected={activeAppTab === tab.id}
+                  className={activeAppTab === tab.id ? "active" : ""}
                   key={tab.id}
-                  onClick={() => switchMobileTab(tab.id)}
+                  onClick={() => switchAppTab(tab.id)}
+                  role="tab"
                   type="button"
                 >
                   <strong>{tab.label}</strong>
-                  <span>{mobileTabDescriptions[tab.id]}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="mobileMoreShortcuts">
-              {mobileUtilityLinks.map((link) => (
-                <button
-                  key={link.href}
-                  onClick={() => openMobileShortcut(link.tabId, link.href)}
-                  type="button"
-                >
-                  {link.label}
+                  <span>{tab.description}</span>
                 </button>
               ))}
             </div>
@@ -6241,37 +6272,42 @@ export default function Home() {
         </>
       )}
 
-      <nav className="mobileAppTabs" aria-label="Talent7 mobile sections">
-        {primaryMobileTabs.map((tab) => (
+      <nav className="appTabs" aria-label="Talent7 workspaces" role="tablist">
+        <div className="appTabsScroller">
+        {primaryTabs.map((tab) => (
           <button
-            className={activeMobileTab === tab.id ? "active" : ""}
+            aria-controls={tab.firstSection}
+            aria-selected={activeAppTab === tab.id}
+            className={activeAppTab === tab.id ? "active" : ""}
             key={tab.id}
-            onClick={() => switchMobileTab(tab.id)}
+            onClick={() => switchAppTab(tab.id)}
+            role="tab"
             type="button"
           >
             {tab.label}
           </button>
         ))}
         <button
-          aria-expanded={isMobileMoreOpen}
+          aria-expanded={isMoreOpen}
+          aria-haspopup="dialog"
           className={moreIsActive ? "active" : ""}
-          onClick={() => setIsMobileMoreOpen((current) => !current)}
+          onClick={() => setIsMoreOpen((current) => !current)}
           type="button"
         >
-          <span className="mobileMoreGlyph" aria-hidden="true">
-            ...
-          </span>
-          <span>More</span>
+          {activeMoreConfig ? `More: ${activeMoreConfig.label}` : "More"}
         </button>
+        </div>
       </nav>
 
-      <nav className="mobileSubTabs" aria-label={`${activeMobileConfig.label} options`}>
-        {activeMobileConfig.links.map((link) => (
-          <a href={link.href} key={link.href}>
-            {link.label}
-          </a>
-        ))}
-      </nav>
+      {activePrimaryConfig && activePrimaryConfig.links.length > 1 && (
+        <nav className="appSubTabs" aria-label={`${activePrimaryConfig.label} options`}>
+          {activePrimaryConfig.links.map((link) => (
+            <a href={link.href} key={link.href}>
+              {link.label}
+            </a>
+          ))}
+        </nav>
+      )}
 
       <section className="section firstWaveSection" id="first-wave">
         <div className="sectionHeader">
@@ -9883,7 +9919,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section leaderboard">
+      <section className="section leaderboard" id="leaderboard">
         <div className="sectionHeader">
           <p className="eyebrow">Leaderboard</p>
           <h2>Top challenge rooms</h2>

@@ -50,7 +50,7 @@ button {
 
 .hero {
   min-height: 76vh;
-  padding: 24px clamp(18px, 5vw, 72px) 70px;
+  padding: 88px clamp(18px, 5vw, 72px) 70px;
   color: #fff;
   background:
     linear-gradient(90deg, rgba(8, 13, 15, 0.96), rgba(8, 13, 15, 0.68) 48%, rgba(8, 13, 15, 0.38)),
@@ -426,11 +426,182 @@ form button {
   border-color: #9bd5ce;
 }
 
-.mobileAppTabs,
-.mobileSubTabs,
-.mobileMoreBackdrop,
-.mobileMoreSheet {
+.appTabs {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 60;
+  padding: 10px clamp(14px, 4vw, 48px);
+  overflow: hidden;
+  background: rgba(251, 252, 251, 0.96);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 10px 28px rgba(20, 23, 25, 0.1);
+  backdrop-filter: blur(14px);
+}
+
+.appTabsScroller {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 1320px;
+  margin: 0 auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.appTabs button,
+.appSubTabs a {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 15px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.appTabs button:hover,
+.appSubTabs a:hover {
+  border-color: var(--teal);
+}
+
+.appTabs button.active {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+  box-shadow: 0 8px 18px rgba(20, 23, 25, 0.16);
+}
+
+.appSubTabs {
+  position: sticky;
+  top: 65px;
+  z-index: 45;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  overflow-x: auto;
+  background: rgba(244, 248, 247, 0.96);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+}
+
+.appSubTabs a {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+}
+
+.appMoreBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(11, 14, 15, 0.48);
+  border: 0;
+}
+
+.appMoreMenu {
+  position: fixed;
+  top: 82px;
+  right: clamp(18px, 5vw, 72px);
+  z-index: 75;
+  width: min(620px, calc(100vw - 36px));
+  max-height: calc(100vh - 110px);
+  padding: 18px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+}
+
+.appMoreHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.appMoreHeader div {
+  display: grid;
+  gap: 3px;
+}
+
+.appMoreHeader strong {
+  font-size: 1.25rem;
+}
+
+.appMoreHeader span,
+.appMoreGrid span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.appMoreHeader > button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-weight: 900;
+}
+
+.appMoreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.appMoreGrid button {
+  display: grid;
+  gap: 4px;
+  min-height: 76px;
+  padding: 13px;
+  color: var(--ink);
+  text-align: left;
+  background: #f4f8f8;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.appMoreGrid button.active {
+  background: #e1f5f2;
+  border-color: var(--teal);
+}
+
+main[class*="appTab-"] > section.section {
   display: none;
+}
+
+main.appTab-account > #account,
+main.appTab-account > #my-talent7,
+main.appTab-account > #first-wave,
+main.appTab-challenges > #rooms,
+main.appTab-challenges > #create,
+main.appTab-challenges > #leaderboard,
+main.appTab-showcase > #showcase,
+main.appTab-coaching > #coaching,
+main.appTab-coaching > #live-preview,
+main.appTab-guidance > #expert-help,
+main.appTab-listen > #listen-rooms,
+main.appTab-teams > #teams,
+main.appTab-profiles > #profiles,
+main.appTab-notifications > #notifications,
+main.appTab-feed > #following-feed,
+main.appTab-invites > #invites,
+main.appTab-safety > #safety,
+main.appTab-safety > #trust-terms,
+main.appTab-plans > #plans,
+main.appTab-feedback > #feedback,
+main.appTab-roadmap > #roadmap,
+main.appTab-roadmap > #launch-control {
+  display: block;
 }
 
 .section {
@@ -5538,7 +5709,50 @@ textarea {
 
 @media (max-width: 760px) {
   body {
-    padding-bottom: 150px;
+    padding-bottom: 74px;
+  }
+
+  .appTabs {
+    top: auto;
+    bottom: 0;
+    padding: 8px 10px;
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+    box-shadow: 0 -10px 28px rgba(20, 23, 25, 0.14);
+  }
+
+  .appTabsScroller {
+    gap: 6px;
+  }
+
+  .appTabs button {
+    min-height: 42px;
+    padding: 9px 12px;
+    font-size: 0.84rem;
+  }
+
+  .appSubTabs {
+    top: 59px;
+    justify-content: flex-start;
+    padding: 8px 10px;
+  }
+
+  .appMoreMenu {
+    top: auto;
+    right: 10px;
+    bottom: 70px;
+    left: 10px;
+    width: auto;
+    max-height: min(78vh, 680px);
+    padding: 16px;
+  }
+
+  .appMoreGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .backToTopButton {
+    bottom: 82px;
   }
 
   .loginPrompt {
@@ -5770,57 +5984,6 @@ textarea {
     letter-spacing: 0;
   }
 
-  main[class*="mobileTab-"] > section.section {
-    display: none;
-  }
-
-  main.mobileTab-challenges > #create,
-  main.mobileTab-challenges > #rooms,
-  main.mobileTab-challenges > #teams,
-  main.mobileTab-challenges > #invites {
-    display: block;
-  }
-
-  main.mobileTab-showcase > #showcase,
-  main.mobileTab-showcase > #profiles,
-  main.mobileTab-showcase > #following-feed {
-    display: block;
-  }
-
-  main.mobileTab-listen > #listen-rooms,
-  main.mobileTab-listen > #showcase,
-  main.mobileTab-listen > #following-feed {
-    display: block;
-  }
-
-  main.mobileTab-coaching > #coaching,
-  main.mobileTab-coaching > #live-preview {
-    display: block;
-  }
-
-  main.mobileTab-help > #expert-help,
-  main.mobileTab-help > #safety,
-  main.mobileTab-help > #feedback,
-  main.mobileTab-help > #trust-terms {
-    display: block;
-  }
-
-  main.mobileTab-account > #notifications,
-  main.mobileTab-account > #account,
-  main.mobileTab-account > #my-talent7,
-  main.mobileTab-account > #plans,
-  main.mobileTab-account > #roadmap,
-  main.mobileTab-account > #launch-control {
-    display: block;
-  }
-
-  .siteFooter {
-    margin-bottom: 96px;
-  }
-
-  .backToTopButton {
-    bottom: 112px;
-  }
 }
 
 @media (max-width: 620px) {
