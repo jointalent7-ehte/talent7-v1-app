@@ -495,6 +495,12 @@ form button {
   font-size: 0.88rem;
 }
 
+.appSubTabs a.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
 .appMoreBackdrop {
   position: fixed;
   inset: 0;
@@ -602,6 +608,37 @@ main.appTab-feedback > #feedback,
 main.appTab-roadmap > #roadmap,
 main.appTab-roadmap > #launch-control {
   display: block;
+}
+
+@media (min-width: 761px) {
+  main[class*="appView-"] > section.section {
+    display: none !important;
+  }
+
+  main.appView-first-wave > #first-wave,
+  main.appView-notifications > #notifications,
+  main.appView-account > #account,
+  main.appView-showcase > #showcase,
+  main.appView-listen-rooms > #listen-rooms,
+  main.appView-coaching > #coaching,
+  main.appView-teams > #teams,
+  main.appView-safety > #safety,
+  main.appView-expert-help > #expert-help,
+  main.appView-live-preview > #live-preview,
+  main.appView-plans > #plans,
+  main.appView-feedback > #feedback,
+  main.appView-launch-control > #launch-control,
+  main.appView-roadmap > #roadmap,
+  main.appView-trust-terms > #trust-terms,
+  main.appView-profiles > #profiles,
+  main.appView-my-talent7 > #my-talent7,
+  main.appView-following-feed > #following-feed,
+  main.appView-invites > #invites,
+  main.appView-create > #create,
+  main.appView-rooms > #rooms,
+  main.appView-leaderboard > #leaderboard {
+    display: block !important;
+  }
 }
 
 .section {

@@ -194,6 +194,15 @@ function tabForHash(hash: string): AppTabId | null {
   return sectionTabMap[target] || null;
 }
 
+function sectionForHash(hash: string): string | null {
+  const target = hash.replace(/^#/, "");
+  if (target.startsWith("profile-")) return "profiles";
+  if (target.startsWith("room-")) return "rooms";
+  if (target.startsWith("team-")) return "teams";
+  if (target.startsWith("showcase-")) return "showcase";
+  return sectionTabMap[target] ? target : null;
+}
+
 type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
 
 type ListenRoom = {
@@ -797,6 +806,7 @@ export default function Home() {
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [activeAppTab, setActiveAppTab] = useState<AppTabId>("account");
+  const [activeSection, setActiveSection] = useState("account");
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
@@ -828,6 +838,8 @@ export default function Home() {
     const syncTabWithHash = () => {
       const hashTab = tabForHash(window.location.hash);
       if (hashTab) setActiveAppTab(hashTab);
+      const hashSection = sectionForHash(window.location.hash);
+      if (hashSection) setActiveSection(hashSection);
     };
 
     syncTabWithHash();
@@ -2528,6 +2540,7 @@ export default function Home() {
       if (!match) return;
 
       setActiveAppTab("profiles");
+      setActiveSection("profiles");
       setSelectedProfile(match);
       setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
     };
@@ -2548,6 +2561,7 @@ export default function Home() {
       if (!match) return;
 
       setActiveAppTab("challenges");
+      setActiveSection("rooms");
       setSelectedLane("All");
       setSelectedStatus("All");
       setRoomSearch("");
@@ -2572,6 +2586,7 @@ export default function Home() {
       if (!match) return;
 
       setActiveAppTab("teams");
+      setActiveSection("teams");
       setHighlightedTeamId(match.id);
       setTimeout(() => document.getElementById(teamHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
       window.setTimeout(() => setHighlightedTeamId(null), 2600);
@@ -2593,6 +2608,7 @@ export default function Home() {
       if (!match) return;
 
       setActiveAppTab("showcase");
+      setActiveSection("showcase");
       setHighlightedShowcasePostId(match.id);
       setTimeout(() => document.getElementById(showcaseHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
       window.setTimeout(() => setHighlightedShowcasePostId(null), 2600);
@@ -3136,7 +3152,9 @@ export default function Home() {
 
   function openSection(sectionId: string, updateHash = false) {
     const tabId = tabForHash(sectionId);
+    const section = sectionForHash(sectionId);
     if (tabId) setActiveAppTab(tabId);
+    if (section) setActiveSection(section);
     setIsMoreOpen(false);
 
     if (updateHash) window.history.pushState(null, "", `#${sectionId.replace(/^#/, "")}`);
@@ -3283,6 +3301,7 @@ export default function Home() {
     setListenRoomDraft({ ...defaultListenDraft, host_name: profileName() });
     setMessage("Listen room created.");
     setActiveAppTab("listen");
+    setActiveSection("listen-rooms");
     setTimeout(() => document.getElementById("listen-rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -3819,6 +3838,7 @@ export default function Home() {
       setIsSaving(false);
       formElement.reset();
       setActiveAppTab("challenges");
+      setActiveSection("rooms");
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
     }
@@ -3952,6 +3972,7 @@ export default function Home() {
 
     setMessage(`Invite draft ready for ${invitedName}. Review it, then create the challenge.`);
     setActiveAppTab("challenges");
+    setActiveSection("create");
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -3960,6 +3981,7 @@ export default function Home() {
     setRoomSearch(challenge.title);
     setMessage(`${challenge.title} is now shown in Challenge rooms.`);
     setActiveAppTab("challenges");
+    setActiveSection("rooms");
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -3996,6 +4018,7 @@ export default function Home() {
         : `Challenge draft ready against ${team.name}. Review it, then create the challenge.`
     );
     setActiveAppTab("challenges");
+    setActiveSection("create");
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -4006,6 +4029,7 @@ export default function Home() {
     setSelectedStatus("All");
     setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
     setActiveAppTab("challenges");
+    setActiveSection("rooms");
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -4014,6 +4038,7 @@ export default function Home() {
     window.history.replaceState(null, "", `#${profileHash(item.username)}`);
     setMessage(`Opened ${item.display_name}'s Talent7 profile.`);
     setActiveAppTab("profiles");
+    setActiveSection("profiles");
     setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
@@ -4230,6 +4255,7 @@ export default function Home() {
     if (!profile?.role.toLowerCase().includes("coach")) {
       setMessage("Set your profile role to Coach / instructor before creating a coaching offer.");
       setActiveAppTab("account");
+      setActiveSection("account");
       setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
     }
@@ -4821,6 +4847,7 @@ export default function Home() {
         setSelectedStatus("All");
         setRoomSearch("");
         setActiveAppTab("challenges");
+        setActiveSection("rooms");
         setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
       }
     }
@@ -6030,9 +6057,21 @@ export default function Home() {
   const activePrimaryConfig = primaryTabs.find((tab) => tab.id === activeAppTab);
   const activeMoreConfig = moreTabs.find((tab) => tab.id === activeAppTab);
   const moreIsActive = isMoreOpen || Boolean(activeMoreConfig);
+  const activeSectionLinks = activePrimaryConfig?.links ||
+    (activeAppTab === "safety"
+      ? [
+          { label: "Safety", href: "#safety" },
+          { label: "Trust & terms", href: "#trust-terms" }
+        ]
+      : activeAppTab === "roadmap"
+        ? [
+            { label: "Roadmap", href: "#roadmap" },
+            ...(isOwnerReviewer ? [{ label: "Launch control", href: "#launch-control" }] : [])
+          ]
+        : []);
 
   return (
-    <main className={`appTab-${activeAppTab}`} onClick={handleTabAwareNavigation}>
+    <main className={`appTab-${activeAppTab} appView-${activeSection}`} onClick={handleTabAwareNavigation}>
       <header className="hero">
         <nav>
           <strong>Talent7</strong>
@@ -6299,10 +6338,10 @@ export default function Home() {
         </div>
       </nav>
 
-      {activePrimaryConfig && activePrimaryConfig.links.length > 1 && (
-        <nav className="appSubTabs" aria-label={`${activePrimaryConfig.label} options`}>
-          {activePrimaryConfig.links.map((link) => (
-            <a href={link.href} key={link.href}>
+      {activeSectionLinks.length > 1 && (
+        <nav className="appSubTabs" aria-label={`${activePrimaryConfig?.label || activeMoreConfig?.label || "Talent7"} options`}>
+          {activeSectionLinks.map((link) => (
+            <a className={activeSection === link.href.slice(1) ? "active" : ""} href={link.href} key={link.href}>
               {link.label}
             </a>
           ))}
