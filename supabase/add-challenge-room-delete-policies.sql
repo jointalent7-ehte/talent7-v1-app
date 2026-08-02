@@ -13,7 +13,7 @@ using (
   and not exists (select 1 from public.proofs where proofs.challenge_id = challenges.id)
   and not exists (select 1 from public.challenge_invites where challenge_invites.challenge_id = challenges.id)
   and not exists (select 1 from public.challenge_messages where challenge_messages.challenge_id = challenges.id)
-  and not exists (select 1 from public.challenge_reports where challenge_reports.challenge_id = challenges.id)
+  and not exists (select 1 from public.reports where reports.challenge_id = challenges.id)
 );
 
 create policy "Owners can delete any challenge room"
