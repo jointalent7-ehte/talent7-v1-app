@@ -31,45 +31,51 @@ const maxPhotoUploadBytes = 10 * 1024 * 1024;
 const maxVideoUploadBytes = 50 * 1024 * 1024;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
 const videoMimeTypes = ["video/mp4", "video/quicktime"];
-const challengeActivityOptions = [
-  "Badminton doubles",
-  "Badminton singles",
-  "Breakdance battle",
-  "Swimming race",
-  "Volleyball match",
-  "Football match",
-  "Cricket match",
-  "Basketball match",
-  "Running race",
-  "Athletics challenge",
-  "Skating challenge",
-  "Arm wrestling",
-  "Karate sparring",
-  "Bouldering challenge",
-  "Calisthenics",
-  "Gym / fitness",
-  "Dance battle",
-  "PUBG squad battle",
-  "Mech Arena challenge",
-  "Mobile gaming",
-  "Chess match",
-  "Table tennis",
-  "Tennis match",
-  "Boxing challenge",
-  "Kickboxing",
-  "Martial arts challenge",
-  "Cycling challenge",
-  "Parkour challenge",
-  "Yoga challenge",
-  "Singing battle",
-  "Rap battle",
-  "Music performance",
-  "Art challenge",
-  "Team tournament",
-  "Sports coaching",
-  "Expert help",
-  "Other talent showcase"
+const challengeActivityGroups = [
+  {
+    label: "Popular challenges",
+    options: ["Badminton doubles", "Badminton singles", "Breakdance battle", "Rap battle", "PUBG squad battle"]
+  },
+  {
+    label: "Sports and fitness",
+    options: [
+      "Swimming race",
+      "Volleyball match",
+      "Football match",
+      "Cricket match",
+      "Basketball match",
+      "Running race",
+      "Athletics challenge",
+      "Skating challenge",
+      "Arm wrestling",
+      "Karate sparring",
+      "Bouldering challenge",
+      "Calisthenics",
+      "Gym / fitness",
+      "Table tennis",
+      "Tennis match",
+      "Boxing challenge",
+      "Kickboxing",
+      "Martial arts challenge",
+      "Cycling challenge",
+      "Parkour challenge",
+      "Yoga challenge"
+    ]
+  },
+  {
+    label: "Gaming and strategy",
+    options: ["Mech Arena challenge", "Mobile gaming", "Chess match"]
+  },
+  {
+    label: "Performance and creative",
+    options: ["Dance battle", "Singing battle", "Music performance", "Art challenge"]
+  },
+  {
+    label: "More",
+    options: ["Team tournament", "Sports coaching", "Expert help", "Other talent showcase"]
+  }
 ];
+const challengeActivityOptions = challengeActivityGroups.flatMap((group) => group.options);
 const expertHelpTypes: ExpertHelpType[] = [
   "Medical guidance",
   "Fitness injury",
@@ -608,7 +614,7 @@ const defaultChallengeDraft: ChallengeDraft = {
   rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
   venue_name: "Local badminton court or sports venue",
   booking_url: "",
-  sport_type: "Badminton",
+  sport_type: "Badminton doubles",
   booking_region: "India",
   invitedProfile: "",
   invitedUserId: "",
@@ -639,6 +645,73 @@ function laneForInterest(interest: string): ChallengeLane {
   }
 
   return "Sports challenge";
+}
+
+function rulesForActivity(activity: string) {
+  const normalized = activity.toLowerCase();
+
+  if (normalized.includes("badminton")) {
+    return "Best of 3 games, 21 points each. Upload the final score and victory proof after the match.";
+  }
+
+  if (normalized.includes("table tennis")) {
+    return "Best of 5 games, 11 points each. Upload the final score and victory proof after the match.";
+  }
+
+  if (normalized.includes("tennis")) {
+    return "Agree the number of sets before starting. Upload the final score and victory proof after the match.";
+  }
+
+  if (normalized.includes("pubg") || normalized.includes("mech arena") || normalized.includes("gaming")) {
+    return "Agree the game mode, map, team size, and number of rounds before starting. Upload a result screenshot or video proof.";
+  }
+
+  if (normalized.includes("dance") || normalized.includes("break")) {
+    return "Agree the number and length of rounds before starting. Upload both performances for audience ratings out of 7.";
+  }
+
+  if (normalized.includes("rap")) {
+    return "Agree the beat, round length, and number of rounds before starting. Upload both performances for audience ratings out of 7.";
+  }
+
+  if (normalized.includes("singing") || normalized.includes("music")) {
+    return "Agree the performance length and format before starting. Upload both performances for audience ratings out of 7.";
+  }
+
+  if (normalized.includes("art")) {
+    return "Agree the prompt, time limit, and allowed tools before starting. Upload both finished entries for audience ratings out of 7.";
+  }
+
+  if (normalized.includes("race") || normalized.includes("running") || normalized.includes("cycling") || normalized.includes("swimming")) {
+    return "Agree the distance, route, and timing method before starting. Upload the recorded times and finish proof.";
+  }
+
+  if (normalized.includes("football") || normalized.includes("basketball") || normalized.includes("volleyball") || normalized.includes("cricket")) {
+    return "Agree the match format and duration before starting. Upload the final score and victory proof after the match.";
+  }
+
+  return `${activity}: agree the format and winning conditions before starting. Upload clear result proof after the challenge.`;
+}
+
+function venueForActivity(activity: string) {
+  const normalized = activity.toLowerCase();
+
+  if (normalized.includes("pubg") || normalized.includes("mech arena") || normalized.includes("gaming") || normalized.includes("chess")) {
+    return "Online lobby or agreed venue";
+  }
+
+  if (
+    normalized.includes("dance") ||
+    normalized.includes("break") ||
+    normalized.includes("rap") ||
+    normalized.includes("singing") ||
+    normalized.includes("music") ||
+    normalized.includes("art")
+  ) {
+    return "Stage, studio, or online submission";
+  }
+
+  return "Local sports venue or agreed location";
 }
 
 const sampleChallenges: Challenge[] = [
@@ -3901,6 +3974,35 @@ export default function Home() {
     }
 
     setIsSaving(false);
+  }
+
+  function applyChallengeActivity(activity: string, formElement: HTMLFormElement | null) {
+    const lane = laneForInterest(activity);
+    const rules = rulesForActivity(activity);
+    const venueName = venueForActivity(activity);
+
+    const setControlValue = (name: string, value: string) => {
+      const control = formElement?.elements.namedItem(name);
+
+      if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) {
+        control.value = value;
+      }
+    };
+
+    setControlValue("sport_type", activity);
+    setControlValue("title", activity);
+    setControlValue("lane", lane);
+    setControlValue("rules", rules);
+    setControlValue("venue_name", venueName);
+
+    setChallengeDraft((currentDraft) => ({
+      ...currentDraft,
+      title: activity,
+      lane,
+      rules,
+      venue_name: venueName,
+      sport_type: activity
+    }));
   }
 
   async function updateChallengeDetails(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -9299,17 +9401,54 @@ export default function Home() {
           </div>
         )}
         <form className="createForm" key={challengeDraft.version} onSubmit={createChallenge}>
+          <div className="challengeTypeStep wide">
+            <div className="challengeTypeIntro">
+              <span>Step 1</span>
+              <div>
+                <strong>Choose the specific challenge</strong>
+                <small>This fills in a suitable category, title, rules, and venue note. You can edit them next.</small>
+              </div>
+            </div>
+            <div className="challengeTypeControls">
+              <label>
+                Challenge type
+                <select
+                  name="sport_type"
+                  defaultValue={challengeDraft.sport_type}
+                  onChange={(event) => applyChallengeActivity(event.currentTarget.value, event.currentTarget.form)}
+                >
+                  {challengeActivityGroups.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((activity) => (
+                        <option key={activity}>{activity}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+              {profile?.main_interest && challengeActivityOptions.includes(profile.main_interest) && (
+                <button
+                  className="useInterestButton"
+                  onClick={(event) => applyChallengeActivity(profile.main_interest, event.currentTarget.form)}
+                  type="button"
+                >
+                  Use my interest: {profile.main_interest}
+                </button>
+              )}
+            </div>
+          </div>
           <label>
             Challenge title
             <input name="title" defaultValue={challengeDraft.title} />
           </label>
           <label>
-            Lane
+            Category
             <select name="lane" defaultValue={challengeDraft.lane}>
               <option>Talent battle</option>
               <option>Sports challenge</option>
               <option>Mobile gaming challenge</option>
             </select>
+            <small className="fieldHint">Selected automatically; change it only if needed.</small>
           </label>
           <label>
             Team or challenger A
@@ -9319,28 +9458,37 @@ export default function Home() {
             Team or challenger B
             <input name="team_b" defaultValue={challengeDraft.team_b} />
           </label>
-          <label>
-            Link Team A
-            <select name="team_a_id" defaultValue={challengeDraft.team_a_id}>
-              <option value="">No linked team</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name} / {team.main_activity}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Link Team B
-            <select name="team_b_id" defaultValue={challengeDraft.team_b_id}>
-              <option value="">No linked team</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name} / {team.main_activity}
-                </option>
-              ))}
-            </select>
-          </label>
+          <details className="teamLinkOptions wide">
+            <summary>Optional: connect saved Talent7 teams</summary>
+            <p>
+              Use this only when a side is an existing team from the Teams tab. It connects the room to that team and its member roles.
+              For individual challengers or one-off teams, leave these blank and use the names above.
+            </p>
+            <div className="teamLinkGrid">
+              <label>
+                Saved team for side A
+                <select name="team_a_id" defaultValue={challengeDraft.team_a_id}>
+                  <option value="">No saved team</option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name} / {team.main_activity}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Saved team for side B
+                <select name="team_b_id" defaultValue={challengeDraft.team_b_id}>
+                  <option value="">No saved team</option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name} / {team.main_activity}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </details>
           <label className="wide">
             Rules
             <textarea
@@ -9356,14 +9504,6 @@ export default function Home() {
           <label>
             Booking link
             <input name="booking_url" defaultValue={challengeDraft.booking_url} placeholder="Paste court, pool, venue, or event booking link" />
-          </label>
-          <label>
-            Sport / venue type
-            <select name="sport_type" defaultValue={challengeDraft.sport_type}>
-              {challengeActivityOptions.map((interest) => (
-                <option key={interest}>{interest}</option>
-              ))}
-            </select>
           </label>
           <label>
             Booking region
