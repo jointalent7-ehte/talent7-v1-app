@@ -833,6 +833,25 @@ function venueForActivity(activity: string) {
   return "Local sports venue or agreed location";
 }
 
+function challengeInterestScore(challenge: Challenge, interest?: string | null) {
+  if (!interest) return 0;
+
+  const normalizedInterest = interest.toLowerCase().trim();
+  const challengeText = [challenge.title, challenge.lane, challenge.rules, challenge.sport_type || ""]
+    .join(" ")
+    .toLowerCase();
+
+  if (challengeText.includes(normalizedInterest)) return 3;
+
+  const genericWords = new Set(["battle", "challenge", "doubles", "fitness", "match", "performance", "race", "singles"]);
+  const interestWords = normalizedInterest
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length > 3 && !genericWords.has(word));
+
+  if (interestWords.some((word) => challengeText.includes(word))) return 2;
+  return challenge.lane === laneForInterest(interest) ? 1 : 0;
+}
+
 const sampleChallenges: Challenge[] = [
   {
     id: "sample-1",
@@ -997,8 +1016,8 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("Open");
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [activeAppTab, setActiveAppTab] = useState<AppTabId>("account");
-  const [activeSection, setActiveSection] = useState("account");
+  const [activeAppTab, setActiveAppTab] = useState<AppTabId>("challenges");
+  const [activeSection, setActiveSection] = useState("rooms");
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
@@ -1053,6 +1072,9 @@ export default function Home() {
   const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<TalentProfile | null>(null);
   const [notices, setNotices] = useState<AppNotice[]>([]);
+  const [authHydrated, setAuthHydrated] = useState(!hasSupabaseConfig);
+  const [profileHydrated, setProfileHydrated] = useState(!hasSupabaseConfig);
+  const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
@@ -1331,12 +1353,15 @@ export default function Home() {
 
   const visibleChallenges = useMemo(() => {
     const search = roomSearch.trim().toLowerCase();
+    const savedInterest = profile?.main_interest;
 
     const filteredChallenges = challenges.filter((challenge) => {
       const laneMatches = selectedLane === "All" || challenge.lane === selectedLane;
       const statusMatches = selectedStatus === "All" || challenge.status === selectedStatus;
       const profileActivityMatches =
         !selectedActivityProfile || challengeMatchesProfileActivity(challenge, selectedActivityProfile);
+      const recommendationMatches =
+        !showRecommendedOnly || challengeInterestScore(challenge, savedInterest) > 0;
       const searchableText = [
         challenge.title,
         challenge.lane,
@@ -1350,10 +1375,23 @@ export default function Home() {
         .toLowerCase();
       const searchMatches = !search || searchableText.includes(search);
 
-      return laneMatches && statusMatches && profileActivityMatches && searchMatches;
+      return laneMatches && statusMatches && profileActivityMatches && recommendationMatches && searchMatches;
     });
 
     return [...filteredChallenges].sort((first, second) => {
+      const shouldPersonalize =
+        Boolean(savedInterest) &&
+        !search &&
+        selectedLane === "All" &&
+        selectedStatus === "Open" &&
+        !selectedActivityProfile;
+
+      if (shouldPersonalize) {
+        const interestDifference =
+          challengeInterestScore(second, savedInterest) - challengeInterestScore(first, savedInterest);
+        if (interestDifference !== 0) return interestDifference;
+      }
+
       const scoreDifference = (activityScores[second.id] || 0) - (activityScores[first.id] || 0);
       if (scoreDifference !== 0) return scoreDifference;
       return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
@@ -1368,6 +1406,8 @@ export default function Home() {
     selectedActivityProfile,
     selectedLane,
     selectedStatus,
+    profile?.main_interest,
+    showRecommendedOnly,
     votes
   ]);
 
@@ -1377,6 +1417,15 @@ export default function Home() {
       archived: challenges.filter((challenge) => isChallengeCompleted(challenge)).length
     }),
     [challenges]
+  );
+
+  const recommendedRoomCount = useMemo(
+    () =>
+      challenges.filter(
+        (challenge) =>
+          !isChallengeCompleted(challenge) && challengeInterestScore(challenge, profile?.main_interest) > 0
+      ).length,
+    [challenges, profile?.main_interest]
   );
 
   const leaderboard = useMemo(() => {
@@ -2865,14 +2914,19 @@ export default function Home() {
   }, [showcasePosts]);
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      setAuthHydrated(true);
+      return;
+    }
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      setAuthHydrated(true);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
+      setAuthHydrated(true);
     });
 
     return () => {
@@ -3314,6 +3368,9 @@ export default function Home() {
     } else {
       setConfirmationEmail("");
       setMessage(authMode === "Sign up" ? "Account created and logged in." : "Logged in.");
+      if (authMode === "Log in") {
+        window.setTimeout(() => openSection("rooms", true), 80);
+      }
     }
 
     setAuthLoading(false);
@@ -3406,6 +3463,61 @@ export default function Home() {
     window.setTimeout(() => {
       document.getElementById(sectionId.replace(/^#/, ""))?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
+  }
+
+  function scrollToRoomShelf() {
+    window.setTimeout(() => {
+      document.querySelector(".roomsGrid")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  }
+
+  function browseActiveRooms() {
+    setSelectedStatus("Open");
+    setSelectedLane("All");
+    setRoomSearch("");
+    setSelectedActivityProfile(null);
+    setShowRecommendedOnly(false);
+    scrollToRoomShelf();
+  }
+
+  function showMyRecommendations() {
+    if (!profile?.main_interest) return;
+
+    setSelectedStatus("Open");
+    setSelectedLane("All");
+    setRoomSearch("");
+    setSelectedActivityProfile(null);
+    setShowRecommendedOnly(true);
+    setMessage(
+      recommendedRoomCount > 0
+        ? `${recommendedRoomCount} room${recommendedRoomCount === 1 ? "" : "s"} match ${profile.main_interest}.`
+        : `No active ${profile.main_interest} rooms yet. You can create the first one.`
+    );
+    scrollToRoomShelf();
+  }
+
+  function createFromSavedInterest() {
+    if (!profile?.main_interest) return;
+
+    const activity = profile.main_interest;
+    setChallengeDraft((current) => ({
+      ...current,
+      title: activity,
+      lane: laneForInterest(activity),
+      team_a: profileName(),
+      team_b: "Open invite",
+      team_a_id: "",
+      team_b_id: "",
+      rules: rulesForActivity(activity),
+      venue_name: venueForActivity(activity),
+      sport_type: activity,
+      booking_region: profile.region || current.booking_region || "Global",
+      invitedProfile: "",
+      invitedUserId: "",
+      version: current.version + 1
+    }));
+    setMessage(`${activity} challenge draft ready.`);
+    openSection("create", true);
   }
 
   function switchAppTab(tabId: AppTabId) {
@@ -3975,16 +4087,22 @@ export default function Home() {
     async function loadProfile() {
       if (!supabase || !session?.user.id) {
         setProfile(null);
+        setProfileHydrated(true);
         return;
       }
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
+      setProfileHydrated(false);
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
 
-      setProfile((data as TalentProfile | null) || null);
+        setProfile((data as TalentProfile | null) || null);
+      } finally {
+        setProfileHydrated(true);
+      }
     }
 
     loadProfile();
@@ -4034,7 +4152,9 @@ export default function Home() {
 
         return [savedProfile, ...others].slice(0, 12);
       });
-      setMessage("Profile saved.");
+      setShowRecommendedOnly(false);
+      setMessage("Profile saved. Your Challenge Rooms are now personalized.");
+      window.setTimeout(() => openSection("rooms", true), 80);
     }
 
     setProfileLoading(false);
@@ -9685,6 +9805,58 @@ export default function Home() {
           <h2>Challenge rooms</h2>
           <p>Swipe through active rooms, or open Archive for completed results and proof.</p>
         </div>
+        <div className={`roomWelcomePanel ${session && profile?.display_name && profile?.username ? "personalized" : ""}`}>
+          {!authHydrated || (session && !profileHydrated) ? (
+            <div className="roomWelcomeCopy roomWelcomeLoading" role="status">
+              <span className="roomWelcomeBadge">Getting ready</span>
+              <h3>Personalizing your Challenge Rooms...</h3>
+              <p>We are checking your account and saved interest.</p>
+            </div>
+          ) : !session ? (
+            <>
+              <div className="roomWelcomeCopy">
+                <span className="roomWelcomeBadge">Start here</span>
+                <h3>Explore challenges before creating an account</h3>
+                <p>Rooms are public to browse. Create an account when you are ready to join, vote, upload proof, or start a challenge.</p>
+              </div>
+              <div className="roomWelcomeActions">
+                <button onClick={browseActiveRooms} type="button">Browse active rooms</button>
+                <a className="secondary" href="#account">Create account</a>
+              </div>
+            </>
+          ) : !profile?.display_name || !profile?.username ? (
+            <>
+              <div className="roomWelcomeCopy">
+                <span className="roomWelcomeBadge">Profile setup</span>
+                <h3>Complete your profile to personalize Talent7</h3>
+                <p>Add a display name, username, main interest, and region. Talent7 will then bring the most relevant rooms to the front.</p>
+              </div>
+              <div className="roomWelcomeActions">
+                <a href="#account">Complete profile</a>
+                <button className="secondary" onClick={browseActiveRooms} type="button">Browse for now</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="roomWelcomeCopy">
+                <span className="roomWelcomeBadge">For you</span>
+                <h3>Welcome back, {profile.display_name}</h3>
+                <p>
+                  Talent7 is prioritizing rooms related to <strong>{profile.main_interest}</strong>. Your saved region is {profile.region || "Global"}.
+                </p>
+              </div>
+              <div className="roomWelcomeActions">
+                <button onClick={showMyRecommendations} type="button">
+                  {recommendedRoomCount > 0
+                    ? `Show ${recommendedRoomCount} match${recommendedRoomCount === 1 ? "" : "es"}`
+                    : `Find ${profile.main_interest}`}
+                </button>
+                <button className="secondary" onClick={createFromSavedInterest} type="button">Create from interest</button>
+                <a className="textAction" href="#my-talent7">My dashboard</a>
+              </div>
+            </>
+          )}
+        </div>
         {selectedActivityProfile && selectedProfileActivity && (
           <div className="profileActivityPanel">
             <div>
@@ -9722,7 +9894,10 @@ export default function Home() {
           <button
             aria-selected={selectedStatus === "Completed"}
             className={selectedStatus === "Completed" ? "active" : ""}
-            onClick={() => setSelectedStatus("Completed")}
+            onClick={() => {
+              setSelectedStatus("Completed");
+              setShowRecommendedOnly(false);
+            }}
             role="tab"
             type="button"
           >
@@ -9731,10 +9906,32 @@ export default function Home() {
         </div>
         <details className="roomFilterPanel">
           <summary>Search and filter rooms</summary>
+          {profile?.main_interest && (
+            <div className="personalizedRoomFilter">
+              <span>Based on your saved interest</span>
+              <button
+                aria-pressed={showRecommendedOnly}
+                className={showRecommendedOnly ? "active" : ""}
+                onClick={() => {
+                  if (showRecommendedOnly) {
+                    setShowRecommendedOnly(false);
+                  } else {
+                    showMyRecommendations();
+                  }
+                }}
+                type="button"
+              >
+                For you: {profile.main_interest} <small>{recommendedRoomCount}</small>
+              </button>
+            </div>
+          )}
           <label className="roomSearch">
             Search rooms
             <input
-              onChange={(event) => setRoomSearch(event.target.value)}
+              onChange={(event) => {
+                setRoomSearch(event.target.value);
+                setShowRecommendedOnly(false);
+              }}
               placeholder="Search badminton, PUBG, Rahul, breakdance..."
               type="search"
               value={roomSearch}
@@ -9746,7 +9943,10 @@ export default function Home() {
               <button
                 className={selectedLane === lane ? "active" : ""}
                 key={lane}
-                onClick={() => setSelectedLane(lane)}
+                onClick={() => {
+                  setSelectedLane(lane);
+                  setShowRecommendedOnly(false);
+                }}
                 type="button"
               >
                 {lane}
@@ -9758,8 +9958,16 @@ export default function Home() {
         <div className="roomsGrid" aria-label={selectedStatus === "Completed" ? "Archived challenge rooms" : "Active challenge rooms"}>
           {visibleChallenges.length === 0 && (
             <div className="emptyRooms">
-              <strong>{selectedStatus === "Completed" ? "No archived rooms" : "No active rooms found"}</strong>
-              <small>Try changing the search or lane filter.</small>
+              <strong>
+                {selectedStatus === "Completed"
+                  ? "No archived rooms"
+                  : showRecommendedOnly
+                    ? `No active ${profile?.main_interest || "recommended"} rooms yet`
+                    : "No active rooms found"}
+              </strong>
+              <small>
+                {showRecommendedOnly ? "Create the first one or turn off the For you filter." : "Try changing the search or lane filter."}
+              </small>
             </div>
           )}
           {visibleChallenges.map((challenge) => {
@@ -9777,7 +9985,10 @@ export default function Home() {
               key={challenge.id}
             >
               <span>{challenge.lane}</span>
-              {challenge.id === createdChallengeId && <em>New challenge</em>}
+              {challenge.id === createdChallengeId && <em className="newRoomBadge">New challenge</em>}
+              {profile?.main_interest && challengeInterestScore(challenge, profile.main_interest) > 0 && (
+                <em className="personalizedRoomBadge">Matches your interest</em>
+              )}
               <h3>{challenge.title}</h3>
               <div className="roomCardActions">
                 <button className="roomLinkButton" onClick={() => copyRoomLink(challenge)} type="button">

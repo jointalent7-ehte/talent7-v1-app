@@ -761,35 +761,33 @@ main.appTab-roadmap > #launch-control {
   display: block;
 }
 
-@media (min-width: 761px) {
-  main[class*="appView-"] > section.section {
-    display: none !important;
-  }
+main[class*="appView-"] > section.section {
+  display: none !important;
+}
 
-  main.appView-first-wave > #first-wave,
-  main.appView-notifications > #notifications,
-  main.appView-account > #account,
-  main.appView-showcase > #showcase,
-  main.appView-listen-rooms > #listen-rooms,
-  main.appView-coaching > #coaching,
-  main.appView-teams > #teams,
-  main.appView-safety > #safety,
-  main.appView-expert-help > #expert-help,
-  main.appView-live-preview > #live-preview,
-  main.appView-plans > #plans,
-  main.appView-feedback > #feedback,
-  main.appView-launch-control > #launch-control,
-  main.appView-roadmap > #roadmap,
-  main.appView-trust-terms > #trust-terms,
-  main.appView-profiles > #profiles,
-  main.appView-my-talent7 > #my-talent7,
-  main.appView-following-feed > #following-feed,
-  main.appView-invites > #invites,
-  main.appView-create > #create,
-  main.appView-rooms > #rooms,
-  main.appView-leaderboard > #leaderboard {
-    display: block !important;
-  }
+main.appView-first-wave > #first-wave,
+main.appView-notifications > #notifications,
+main.appView-account > #account,
+main.appView-showcase > #showcase,
+main.appView-listen-rooms > #listen-rooms,
+main.appView-coaching > #coaching,
+main.appView-teams > #teams,
+main.appView-safety > #safety,
+main.appView-expert-help > #expert-help,
+main.appView-live-preview > #live-preview,
+main.appView-plans > #plans,
+main.appView-feedback > #feedback,
+main.appView-launch-control > #launch-control,
+main.appView-roadmap > #roadmap,
+main.appView-trust-terms > #trust-terms,
+main.appView-profiles > #profiles,
+main.appView-my-talent7 > #my-talent7,
+main.appView-following-feed > #following-feed,
+main.appView-invites > #invites,
+main.appView-create > #create,
+main.appView-rooms > #rooms,
+main.appView-leaderboard > #leaderboard {
+  display: block !important;
 }
 
 .section {
@@ -4975,6 +4973,114 @@ textarea {
   margin-bottom: 18px;
 }
 
+.roomWelcomePanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: clamp(18px, 3vw, 28px);
+  background:
+    radial-gradient(circle at 92% 12%, rgba(245, 184, 49, 0.2), transparent 34%),
+    linear-gradient(135deg, #102a2a 0%, #163d3b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  box-shadow: 0 16px 42px rgba(20, 23, 25, 0.13);
+}
+
+.roomWelcomePanel.personalized {
+  background:
+    radial-gradient(circle at 92% 12%, rgba(245, 184, 49, 0.24), transparent 34%),
+    linear-gradient(135deg, #0d3c3a 0%, #0b5550 100%);
+}
+
+.roomWelcomeCopy {
+  display: grid;
+  gap: 7px;
+  max-width: 780px;
+}
+
+.roomWelcomeCopy h3,
+.roomWelcomeCopy p {
+  margin: 0;
+  color: #fff;
+}
+
+.roomWelcomeCopy h3 {
+  font-size: clamp(1.28rem, 2.5vw, 1.8rem);
+  line-height: 1.08;
+}
+
+.roomWelcomeCopy p {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.roomWelcomeCopy p strong {
+  color: #fff;
+}
+
+.roomWelcomeBadge {
+  width: fit-content;
+  padding: 5px 8px;
+  color: var(--ink);
+  background: var(--yellow);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.roomWelcomeLoading {
+  min-height: 82px;
+  align-content: center;
+}
+
+.roomWelcomeActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 460px;
+}
+
+.roomWelcomeActions button,
+.roomWelcomeActions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #fff;
+  border-radius: 8px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+}
+
+.roomWelcomeActions button {
+  cursor: pointer;
+}
+
+.roomWelcomeActions .secondary {
+  color: #fff;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.roomWelcomeActions .textAction {
+  color: #fff;
+  background: transparent;
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .roomShelfTabs {
   display: flex;
   gap: 8px;
@@ -5028,6 +5134,54 @@ textarea {
 
 .roomFilterPanel[open] {
   padding-bottom: 2px;
+}
+
+.personalizedRoomFilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 11px 12px;
+  background: #e9f7f5;
+  border: 1px solid #9bd5ce;
+  border-radius: 8px;
+}
+
+.personalizedRoomFilter > span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.personalizedRoomFilter button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 11px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #72c0b9;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.personalizedRoomFilter button.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+.personalizedRoomFilter small {
+  display: grid;
+  min-width: 22px;
+  min-height: 22px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--yellow);
+  border-radius: 50%;
+  font-size: 0.72rem;
 }
 
 .roomSwipeHint {
@@ -5285,6 +5439,13 @@ textarea {
   color: #fff;
   background: linear-gradient(135deg, var(--teal), var(--blue));
   border-radius: 8px;
+}
+
+.roomCard .personalizedRoomBadge {
+  color: #6d4600;
+  background: #fff4d8;
+  border-color: #efd28a;
+  font-style: normal;
 }
 
 .winnerBanner span {
@@ -6075,6 +6236,7 @@ textarea {
   .detailGrid,
   .participantGrid,
   .proofEvidenceTools,
+  .roomWelcomePanel,
   .profileActivityPanel,
   .profileActivityStats,
   .profileDetailGrid,
@@ -6622,6 +6784,32 @@ textarea {
 }
 
 @media (max-width: 620px) {
+  .roomWelcomePanel {
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .roomWelcomeActions {
+    justify-content: flex-start;
+    max-width: none;
+  }
+
+  .roomWelcomeActions button,
+  .roomWelcomeActions a {
+    flex: 1 1 145px;
+  }
+
+  .roomWelcomeActions .textAction {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    padding-inline: 0;
+  }
+
+  .personalizedRoomFilter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .roomsGrid {
     margin-right: -16px;
     padding-right: 16px;
