@@ -116,6 +116,13 @@ type AppNotice = {
   duration: number;
 };
 
+type ConfirmationRequest = {
+  title: string;
+  detail: string;
+  confirmLabel: string;
+  onConfirm: () => void | Promise<void>;
+};
+
 let noticeSequence = 0;
 
 function noticeToneForMessage(text: string): NoticeTone {
@@ -224,6 +231,36 @@ function AppToast({ notice, onDismiss }: { notice: AppNotice; onDismiss: (id: nu
         style={{ animationDuration: `${notice.duration}ms`, animationPlayState: paused ? "paused" : "running" }}
       />
     </aside>
+  );
+}
+
+function AppStatePanel({
+  tone = "empty",
+  title,
+  detail,
+  actionLabel,
+  actionHref,
+  onAction
+}: {
+  tone?: "empty" | "error" | "loading" | "success";
+  title: string;
+  detail: string;
+  actionLabel?: string;
+  actionHref?: string;
+  onAction?: () => void;
+}) {
+  const icon = tone === "error" ? "!" : tone === "loading" ? "…" : tone === "success" ? "✓" : "+";
+
+  return (
+    <div className={`appStatePanel ${tone}`} role={tone === "empty" ? undefined : tone === "error" ? "alert" : "status"}>
+      <span className="appStateIcon" aria-hidden="true">{icon}</span>
+      <div>
+        <strong>{title}</strong>
+        <small>{detail}</small>
+      </div>
+      {actionLabel && actionHref && <a href={actionHref}>{actionLabel}</a>}
+      {actionLabel && !actionHref && onAction && <button onClick={onAction} type="button">{actionLabel}</button>}
+    </div>
   );
 }
 
@@ -1052,6 +1089,10 @@ export default function Home() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLElement>(null);
+  const [confirmationRequest, setConfirmationRequest] = useState<ConfirmationRequest | null>(null);
+  const [confirmationBusy, setConfirmationBusy] = useState(false);
+  const confirmationDialogRef = useRef<HTMLElement>(null);
+  const confirmationReturnFocusRef = useRef<HTMLElement | null>(null);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
   const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
@@ -1132,6 +1173,39 @@ export default function Home() {
   }, [isMoreOpen]);
 
   useEffect(() => {
+    if (!confirmationRequest) return;
+
+    const dialog = confirmationDialogRef.current;
+    const focusableItems = () =>
+      Array.from(dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') || []);
+    window.requestAnimationFrame(() => dialog?.querySelector<HTMLElement>("[data-confirm-cancel]")?.focus());
+
+    const handleConfirmationKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape" && !confirmationBusy) {
+        event.preventDefault();
+        closeConfirmationDialog();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const items = focusableItems();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleConfirmationKeyDown);
+    return () => document.removeEventListener("keydown", handleConfirmationKeyDown);
+  }, [confirmationBusy, confirmationRequest]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(listenRoomsStorageKey, JSON.stringify(listenRooms));
   }, [listenRooms]);
@@ -1158,6 +1232,8 @@ export default function Home() {
   const [authHydrated, setAuthHydrated] = useState(!hasSupabaseConfig);
   const [profileHydrated, setProfileHydrated] = useState(!hasSupabaseConfig);
   const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
+  const [challengeLoadError, setChallengeLoadError] = useState("");
+  const [challengeReloadKey, setChallengeReloadKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
@@ -3115,7 +3191,12 @@ export default function Home() {
 
   useEffect(() => {
     async function loadChallenges() {
-      if (!supabase) return;
+      if (!supabase) {
+        setChallengeLoadError("");
+        return;
+      }
+
+      setChallengeLoadError("");
 
       const { data, error } = await supabase
         .from("challenges")
@@ -3123,15 +3204,19 @@ export default function Home() {
         .order("created_at", { ascending: false });
 
       if (error) {
+        setChallengeLoadError(error.message);
         setMessage(`Could not load challenges: ${error.message}`);
         return;
       }
 
-      if (data) setChallenges(data as Challenge[]);
+      if (data) {
+        setChallenges(data as Challenge[]);
+        setChallengeLoadError("");
+      }
     }
 
     loadChallenges();
-  }, []);
+  }, [challengeReloadKey]);
 
   useEffect(() => {
     async function loadJoins() {
@@ -3731,6 +3816,30 @@ export default function Home() {
   function closeMoreMenu() {
     setIsMoreOpen(false);
     window.requestAnimationFrame(() => moreTriggerRef.current?.focus());
+  }
+
+  function requestConfirmation(request: ConfirmationRequest) {
+    confirmationReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setConfirmationRequest(request);
+    setConfirmationBusy(false);
+  }
+
+  function closeConfirmationDialog() {
+    if (confirmationBusy) return;
+    setConfirmationRequest(null);
+    window.requestAnimationFrame(() => confirmationReturnFocusRef.current?.focus());
+  }
+
+  async function runConfirmedAction() {
+    if (!confirmationRequest || confirmationBusy) return;
+    setConfirmationBusy(true);
+    try {
+      await confirmationRequest.onConfirm();
+      setConfirmationRequest(null);
+      window.requestAnimationFrame(() => confirmationReturnFocusRef.current?.focus());
+    } finally {
+      setConfirmationBusy(false);
+    }
   }
 
   function skipToCurrentWorkspace(event: MouseEvent<HTMLAnchorElement>) {
@@ -5425,6 +5534,15 @@ export default function Home() {
     setReportingShowcaseTarget(null);
   }
 
+  function confirmDeleteShowcasePost(post: ShowcasePost) {
+    requestConfirmation({
+      title: "Delete showcase post?",
+      detail: "The post, its ratings, comments, and related reports will be removed. This cannot be undone.",
+      confirmLabel: "Delete post",
+      onConfirm: () => deleteShowcasePost(post)
+    });
+  }
+
   async function deleteShowcasePost(post: ShowcasePost) {
     if (!requireLogin("delete a showcase post")) return;
 
@@ -5432,9 +5550,6 @@ export default function Home() {
       setMessage("Only the post owner or Talent7 owner can delete this showcase post.");
       return;
     }
-
-    const confirmed = window.confirm("Delete this showcase post from Talent7?");
-    if (!confirmed) return;
 
     setDeletingShowcasePostId(post.id);
     setMessage("");
@@ -5813,6 +5928,15 @@ export default function Home() {
     setSavingProofChallengeId(null);
   }
 
+  function confirmDeleteProof(proof: ChallengeProof) {
+    requestConfirmation({
+      title: "Delete challenge proof?",
+      detail: "This proof and reports connected to it will be removed from the room. This cannot be undone.",
+      confirmLabel: "Delete proof",
+      onConfirm: () => deleteProof(proof)
+    });
+  }
+
   async function deleteProof(proof: ChallengeProof) {
     if (!requireLogin("delete proof")) return;
 
@@ -5820,9 +5944,6 @@ export default function Home() {
       setMessage("Only the proof uploader or Talent7 owner can delete this proof.");
       return;
     }
-
-    const confirmed = window.confirm("Delete this proof from the challenge room?");
-    if (!confirmed) return;
 
     setDeletingProofId(proof.id);
     setMessage("");
@@ -6708,6 +6829,17 @@ export default function Home() {
     setExpertProfileActionId(null);
   }
 
+  function confirmDeleteChallengeRoom(challenge: Challenge) {
+    requestConfirmation({
+      title: isOwnerReviewer ? "Permanently discard this room?" : "Delete mistaken room?",
+      detail: isOwnerReviewer
+        ? `“${challenge.title}” and all related joins, votes, ratings, proof, invites, chat, and reports will be removed.`
+        : `“${challenge.title}” will be deleted. Creator deletion is available only before the room receives activity.`,
+      confirmLabel: isOwnerReviewer ? "Discard room" : "Delete room",
+      onConfirm: () => deleteChallengeRoom(challenge)
+    });
+  }
+
   async function deleteChallengeRoom(challenge: Challenge) {
     if (!requireLogin("delete a challenge room")) return;
 
@@ -6717,13 +6849,6 @@ export default function Home() {
       );
       return;
     }
-
-    const confirmed = window.confirm(
-      isOwnerReviewer
-        ? `Permanently delete “${challenge.title}” and its related room activity?`
-        : `Delete “${challenge.title}”? This is only available before the room receives activity.`
-    );
-    if (!confirmed) return;
 
     setDeletingChallengeId(challenge.id);
     setMessage("");
@@ -6929,6 +7054,37 @@ export default function Home() {
             <AppToast key={notice.id} notice={notice} onDismiss={dismissNotice} />
           ))}
         </div>
+      )}
+
+      {confirmationRequest && (
+        <>
+          <button
+            aria-label="Cancel destructive action"
+            className="appConfirmBackdrop"
+            disabled={confirmationBusy}
+            onClick={closeConfirmationDialog}
+            type="button"
+          />
+          <section
+            aria-busy={confirmationBusy}
+            aria-describedby="confirmation-dialog-detail"
+            aria-labelledby="confirmation-dialog-title"
+            aria-modal="true"
+            className="appConfirmDialog"
+            ref={confirmationDialogRef}
+            role="alertdialog"
+          >
+            <span>Permanent action</span>
+            <h2 id="confirmation-dialog-title">{confirmationRequest.title}</h2>
+            <p id="confirmation-dialog-detail">{confirmationRequest.detail}</p>
+            <div className="appConfirmActions">
+              <button data-confirm-cancel disabled={confirmationBusy} onClick={closeConfirmationDialog} type="button">Keep it</button>
+              <button className="confirmDanger" disabled={confirmationBusy} onClick={runConfirmedAction} type="button">
+                {confirmationBusy ? "Working..." : confirmationRequest.confirmLabel}
+              </button>
+            </div>
+          </section>
+        </>
       )}
 
       {isMoreOpen && (
@@ -7522,7 +7678,7 @@ export default function Home() {
                     <button
                       className="dangerAction"
                       disabled={deletingShowcasePostId === post.id}
-                      onClick={() => deleteShowcasePost(post)}
+                      onClick={() => confirmDeleteShowcasePost(post)}
                       type="button"
                     >
                       {deletingShowcasePostId === post.id ? "Deleting..." : "Delete post"}
@@ -7631,10 +7787,12 @@ export default function Home() {
               </article>
             ))
           ) : (
-            <div className="emptyShowcase">
-              <strong>No showcase posts yet.</strong>
-              <small>Post a first video, photo, or link to start the global talent showcase.</small>
-            </div>
+            <AppStatePanel
+              actionLabel="Create the first post"
+              detail="Post a video, photo, or public link to start the global talent showcase."
+              onAction={() => document.querySelector<HTMLElement>(".showcaseForm")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              title="No showcase posts yet"
+            />
           )}
         </div>
       </section>
@@ -7899,10 +8057,12 @@ export default function Home() {
               </article>
             ))
           ) : (
-            <div className="emptyCoachOffers">
-              <strong>No coaching offers yet.</strong>
-              <small>Coach profiles can publish the first training offer here.</small>
-            </div>
+            <AppStatePanel
+              actionHref="#profiles"
+              actionLabel="Find coach profiles"
+              detail="Coach profiles can publish the first training offer here."
+              title="No coaching offers yet"
+            />
           )}
         </div>
         {session && profile?.role.toLowerCase().includes("coach") && (
@@ -8144,10 +8304,12 @@ export default function Home() {
               </article>
             ))
           ) : (
-            <div className="emptyTeams">
-              <strong>No teams yet.</strong>
-              <small>Create the first Talent7 team, crew, clan, or fitness group.</small>
-            </div>
+            <AppStatePanel
+              actionLabel="Create the first team"
+              detail="Start a Talent7 sports team, dance crew, gaming clan, or fitness group."
+              onAction={() => document.querySelector<HTMLElement>(".teamForm")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              title="No teams yet"
+            />
           )}
         </div>
         {session && (
@@ -9659,10 +9821,12 @@ export default function Home() {
         {publicProfiles.length > 0 ? (
           <div className="profileGrid">
             {visibleProfiles.length === 0 && (
-              <div className="emptyProfiles">
-                <strong>No profiles found</strong>
-                <small>Try a different name, role, interest, or region.</small>
-              </div>
+              <AppStatePanel
+                actionLabel="Clear profile search"
+                detail="Try all profiles again, then filter by a different name, role, interest, or region."
+                onAction={() => setProfileSearch("")}
+                title="No profiles found"
+              />
             )}
             {visibleProfiles.map((item) => (
               <article key={item.user_id}>
@@ -9722,10 +9886,12 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="emptyState">
-            <strong>No public profiles yet.</strong>
-            <a href="#account">Create your profile</a>
-          </div>
+          <AppStatePanel
+            actionHref="#account"
+            actionLabel="Create your profile"
+            detail="Save a public Talent7 identity so people can discover and invite you."
+            title="No public profiles yet"
+          />
         )}
       </section>
 
@@ -10424,21 +10590,53 @@ export default function Home() {
             ))}
           </div>
         </details>
+        {challengeLoadError && (
+          <AppStatePanel
+            actionLabel="Retry loading rooms"
+            detail={`Talent7 could not refresh shared rooms: ${challengeLoadError}`}
+            onAction={() => setChallengeReloadKey((current) => current + 1)}
+            title="Challenge Rooms are temporarily unavailable"
+            tone="error"
+          />
+        )}
         {visibleChallenges.length > 1 && <p className="roomSwipeHint">Swipe sideways to browse {visibleChallenges.length} rooms.</p>}
         <div className="roomsGrid" aria-label={selectedStatus === "Completed" ? "Archived challenge rooms" : "Active challenge rooms"}>
           {visibleChallenges.length === 0 && (
-            <div className="emptyRooms">
-              <strong>
-                {selectedStatus === "Completed"
+            <AppStatePanel
+              actionHref={
+                selectedStatus !== "Completed" && !showRecommendedOnly && !roomSearch && selectedLane === "All" && !selectedActivityProfile
+                  ? "#create"
+                  : undefined
+              }
+              actionLabel={
+                selectedStatus === "Completed"
+                  ? "View active rooms"
+                  : showRecommendedOnly || roomSearch || selectedLane !== "All" || selectedActivityProfile
+                    ? "Clear room filters"
+                    : "Create the first room"
+              }
+              detail={
+                selectedStatus === "Completed"
+                  ? "Completed challenges will move here with their result and proof."
+                  : showRecommendedOnly
+                    ? "Create the first matching room or clear personalization to browse everything."
+                    : "Adjust the current filters or start a new challenge."
+              }
+              onAction={
+                selectedStatus === "Completed"
+                  ? () => setSelectedStatus("Open")
+                  : showRecommendedOnly || roomSearch || selectedLane !== "All" || selectedActivityProfile
+                    ? browseActiveRooms
+                    : undefined
+              }
+              title={
+                selectedStatus === "Completed"
                   ? "No archived rooms"
                   : showRecommendedOnly
                     ? `No active ${profile?.main_interest || "recommended"} rooms yet`
-                    : "No active rooms found"}
-              </strong>
-              <small>
-                {showRecommendedOnly ? "Create the first one or turn off the For you filter." : "Try changing the search or lane filter."}
-              </small>
-            </div>
+                    : "No active rooms found"
+              }
+            />
           )}
           {visibleChallenges.map((challenge) => {
             const proofAllowed = canManageTeamProof(challenge);
@@ -10508,7 +10706,7 @@ export default function Home() {
                   <button
                     className="dangerAction"
                     disabled={deletingChallengeId === challenge.id}
-                    onClick={() => deleteChallengeRoom(challenge)}
+                    onClick={() => confirmDeleteChallengeRoom(challenge)}
                     type="button"
                   >
                     {deletingChallengeId === challenge.id ? "Deleting..." : isOwnerReviewer ? "Discard room" : "Delete mistaken room"}
@@ -10803,7 +11001,7 @@ export default function Home() {
                             <button
                               className="dangerAction"
                               disabled={deletingProofId === proof.id}
-                              onClick={() => deleteProof(proof)}
+                              onClick={() => confirmDeleteProof(proof)}
                               type="button"
                             >
                               {deletingProofId === proof.id ? "Deleting..." : "Delete proof"}
