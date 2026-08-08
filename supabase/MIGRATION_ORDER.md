@@ -43,5 +43,8 @@ For a new project, run these files from top to bottom in the Supabase SQL editor
 39. `add-edit-content-policies.sql`
 40. `add-challenge-room-delete-policies.sql`
 41. `tighten-challenge-completion-and-proof-policies.sql`
+42. `add-shared-listen-rooms.sql`
+43. `add-notification-read-state.sql`
+44. `harden-production-user-actions.sql`
 
-Keep `tighten-challenge-completion-and-proof-policies.sql` last. It deliberately replaces earlier, broader row-level-security policies.
+Keep `tighten-challenge-completion-and-proof-policies.sql` after all challenge-related migrations. The shared listen-room migration is independent and can be applied after it.
