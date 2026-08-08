@@ -199,6 +199,19 @@ function noticeIcon(tone: NoticeTone) {
   return "i";
 }
 
+function readableAuthError(error: unknown, fallback: string) {
+  const message =
+    typeof error === "string"
+      ? error
+      : error && typeof error === "object" && "message" in error && typeof error.message === "string"
+        ? error.message
+        : "";
+  const normalized = message.trim();
+
+  if (!normalized || normalized === "{}" || normalized === "[object Object]") return fallback;
+  return normalized;
+}
+
 function AppToast({ notice, onDismiss }: { notice: AppNotice; onDismiss: (id: number) => void }) {
   const [paused, setPaused] = useState(false);
 
@@ -1356,6 +1369,7 @@ export default function Home() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [recoveryCancelling, setRecoveryCancelling] = useState(false);
   const [authEmailAction, setAuthEmailAction] = useState<"reset" | "resend" | null>(null);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
@@ -3928,27 +3942,65 @@ export default function Home() {
     }
 
     setAuthEmailAction("reset");
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${siteUrl("/")}#account`
-    });
-    setAuthEmailAction(null);
-    setMessage(error ? error.message : "Password reset email sent. Open its link on this device to choose a new password.");
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${siteUrl("/")}#account`
+      });
+
+      if (error) {
+        setMessage(readableAuthError(error, "Password reset email could not be sent. Please wait a moment and try again."), "error");
+      } else {
+        setMessage("Password reset email sent. Open its link on this device to choose a new password.", "success");
+      }
+    } catch (error) {
+      setMessage(readableAuthError(error, "Password reset email could not be sent. Check your connection and try again."), "error");
+    } finally {
+      setAuthEmailAction(null);
+    }
   }
 
   async function resendConfirmationEmail() {
     if (!supabase || !confirmationEmail) return;
     setAuthEmailAction("resend");
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: confirmationEmail,
-      options: { emailRedirectTo: `${siteUrl("/")}#account` }
-    });
-    setAuthEmailAction(null);
-    setMessage(error ? error.message : "Confirmation email sent again.");
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: confirmationEmail,
+        options: { emailRedirectTo: `${siteUrl("/")}#account` }
+      });
+
+      if (error) {
+        setMessage(readableAuthError(error, "Confirmation email could not be sent. Please wait a moment and try again."), "error");
+      } else {
+        setMessage("Confirmation email sent again.", "success");
+      }
+    } catch (error) {
+      setMessage(readableAuthError(error, "Confirmation email could not be sent. Check your connection and try again."), "error");
+    } finally {
+      setAuthEmailAction(null);
+    }
+  }
+
+  async function cancelPasswordRecovery() {
+    if (!supabase) return;
+    setRecoveryCancelling(true);
+
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      if (error) throw error;
+      setIsPasswordRecovery(false);
+      setAuthMode("Log in");
+      setMessage("Password recovery cancelled. You can log in or request a new reset link.", "info");
+    } catch (error) {
+      setMessage(readableAuthError(error, "Password recovery could not be cancelled. Close this page and try again."), "error");
+    } finally {
+      setRecoveryCancelling(false);
+    }
   }
 
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
 
     if (!supabase || !session) {
       setMessage("Log in before changing your password.");
@@ -3978,22 +4030,31 @@ export default function Home() {
     setUpdatingPassword(true);
     setMessage("");
 
-    const passwordUpdate = isPasswordRecovery
-      ? { password: newPassword }
-      : { current_password: currentPassword, password: newPassword };
-    const { error } = await supabase.auth.updateUser(passwordUpdate);
+    try {
+      const passwordUpdate = isPasswordRecovery
+        ? { password: newPassword }
+        : { current_password: currentPassword, password: newPassword };
+      const { error } = await supabase.auth.updateUser(passwordUpdate);
+      if (error) throw error;
 
-    if (error) {
-      setMessage(error.message);
-    } else {
-      event.currentTarget.reset();
+      formElement.reset();
       setShowCurrentPassword(false);
       setShowNewPassword(false);
-      setIsPasswordRecovery(false);
-      setMessage("Password updated.");
-    }
 
-    setUpdatingPassword(false);
+      if (isPasswordRecovery) {
+        const { error: signOutError } = await supabase.auth.signOut({ scope: "global" });
+        if (signOutError) throw signOutError;
+        setIsPasswordRecovery(false);
+        setAuthMode("Log in");
+        setMessage("Password reset complete. Log in with your new password.", "success");
+      } else {
+        setMessage("Password updated.", "success");
+      }
+    } catch (error) {
+      setMessage(readableAuthError(error, "Your password could not be updated. Please try again."), "error");
+    } finally {
+      setUpdatingPassword(false);
+    }
   }
 
   async function copyLaunchUpdate() {
@@ -7485,6 +7546,82 @@ export default function Home() {
   };
   const moreAttentionSections = Object.values(moreTabCounts).filter((count) => (count || 0) > 0).length;
 
+  if (isPasswordRecovery && session) {
+    return (
+      <main className="passwordRecoveryView">
+        <header className="passwordRecoveryHeader">
+          <strong>Talent7</strong>
+          <span>Secure account recovery</span>
+        </header>
+
+        {notices.length > 0 && (
+          <div className="appToastViewport" aria-label="Talent7 notifications">
+            {notices.map((notice) => (
+              <AppToast key={notice.id} notice={notice} onDismiss={dismissNotice} />
+            ))}
+          </div>
+        )}
+
+        <section aria-labelledby="password-recovery-title" className="passwordRecoverySection">
+          <div className="passwordRecoveryIntro">
+            <span>Verified recovery link</span>
+            <h1 id="password-recovery-title">Reset your password</h1>
+            <p>
+              Your email link was verified. Choose a new password to finish recovery. Normal Talent7 features stay hidden until recovery is complete.
+            </p>
+          </div>
+
+          <form className="passwordRecoveryForm" onSubmit={changePassword}>
+            <label className="passwordField">
+              New password
+              <span>
+                <input
+                  autoComplete="new-password"
+                  minLength={8}
+                  name="new_password"
+                  placeholder="At least 8 characters"
+                  required
+                  type={showNewPassword ? "text" : "password"}
+                />
+                <button type="button" onClick={() => setShowNewPassword((current) => !current)}>
+                  {showNewPassword ? "Hide" : "Show"}
+                </button>
+              </span>
+            </label>
+            <label className="passwordField">
+              Confirm new password
+              <input
+                autoComplete="new-password"
+                minLength={8}
+                name="confirm_password"
+                placeholder="Repeat new password"
+                required
+                type={showNewPassword ? "text" : "password"}
+              />
+            </label>
+            <div className="passwordRecoveryActions">
+              <button disabled={updatingPassword || recoveryCancelling} type="submit">
+                {updatingPassword ? "Saving new password..." : "Save new password"}
+              </button>
+              <button
+                className="secondary"
+                disabled={updatingPassword || recoveryCancelling}
+                onClick={() => void cancelPasswordRecovery()}
+                type="button"
+              >
+                {recoveryCancelling ? "Cancelling..." : "Cancel recovery"}
+              </button>
+            </div>
+          </form>
+
+          <p className="passwordRecoveryHelp">
+            Did not request this change? Cancel recovery, close this page, and secure your email account.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className={`appTab-${activeAppTab} appView-${activeSection}`} onClick={handleTabAwareNavigation}>
       <a className="skipLink" href={`#${activeSection}`} onClick={skipToCurrentWorkspace}>Skip to current workspace</a>
@@ -8007,30 +8144,24 @@ export default function Home() {
             <form className="passwordForm" onSubmit={changePassword}>
               <div>
                 <span>Password</span>
-                <strong>{isPasswordRecovery ? "Finish password recovery" : "Change your password"}</strong>
-                <small>
-                  {isPasswordRecovery
-                    ? "Choose a new password with at least 8 characters."
-                    : "Confirm your current password, then choose a new password with at least 8 characters."}
-                </small>
+                <strong>Change your password</strong>
+                <small>Confirm your current password, then choose a new password with at least 8 characters.</small>
               </div>
-              {!isPasswordRecovery && (
-                <label className="passwordField">
-                  Current password
-                  <span>
-                    <input
-                      autoComplete="current-password"
-                      name="current_password"
-                      placeholder="Current password"
-                      required
-                      type={showCurrentPassword ? "text" : "password"}
-                    />
-                    <button type="button" onClick={() => setShowCurrentPassword((current) => !current)}>
-                      {showCurrentPassword ? "Hide" : "Show"}
-                    </button>
-                  </span>
-                </label>
-              )}
+              <label className="passwordField">
+                Current password
+                <span>
+                  <input
+                    autoComplete="current-password"
+                    name="current_password"
+                    placeholder="Current password"
+                    required
+                    type={showCurrentPassword ? "text" : "password"}
+                  />
+                  <button type="button" onClick={() => setShowCurrentPassword((current) => !current)}>
+                    {showCurrentPassword ? "Hide" : "Show"}
+                  </button>
+                </span>
+              </label>
               <label className="passwordField">
                 New password
                 <span>
@@ -8047,7 +8178,7 @@ export default function Home() {
                 </span>
               </label>
               <button disabled={updatingPassword} type="submit">
-                {updatingPassword ? "Updating..." : isPasswordRecovery ? "Save new password" : "Update password"}
+                {updatingPassword ? "Updating..." : "Update password"}
               </button>
             </form>
             <form className="profileForm" key={profile?.updated_at || session.user.id} onSubmit={saveProfile}>
