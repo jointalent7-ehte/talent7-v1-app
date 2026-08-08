@@ -4,6 +4,7 @@
 
 - Run `npm ci` and `npm run check` from a clean checkout.
 - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` in Vercel.
+- Set `NEXT_PUBLIC_SENTRY_DSN` for Production and Preview, then follow `SENTRY_SETUP.md` to send one controlled verification event.
 - If R2 is enabled, set all five server-only `R2_` variables, verify the bucket CORS origins, and never expose its secret key as `NEXT_PUBLIC_`.
 - Confirm the production domain and HTTPS redirect work.
 - Confirm `/robots.txt`, `/sitemap.xml`, and `/manifest.webmanifest` use the production domain.
@@ -29,8 +30,8 @@
 - Review the Privacy, Support, Child Safety, Trust & Terms, and Delete Account pages with qualified legal/privacy reviewers for the launch regions.
 - Publish working support and safety contact addresses and define a response owner.
 - Document report review, content removal, account suspension, appeal, and evidence-retention procedures.
-- Add privacy-conscious error monitoring before launch; do not send proof media or sensitive profile data to monitoring tools.
-- Choose analytics only after defining consent and retention rules. Analytics and external error monitoring are not currently installed.
+- Verify privacy-conscious Sentry error monitoring; do not send proof media or sensitive profile data to monitoring tools.
+- Choose product analytics only after defining consent and retention rules; product analytics is not currently installed.
 - Test keyboard navigation, screen-reader labels, reduced motion, color contrast, and 200% zoom on the deployed site.
 
 ## Release verification

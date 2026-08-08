@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
@@ -20,4 +22,18 @@ const nextConfig = {
   }
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "talent7",
+  project: "javascript-nextjs",
+  silent: true,
+  telemetry: false,
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN
+  },
+  treeshake: {
+    removeDebugLogging: true,
+    excludeReplayIframe: true,
+    excludeReplayShadowDOM: true,
+    excludeReplayCompressionWorker: true
+  }
+});
