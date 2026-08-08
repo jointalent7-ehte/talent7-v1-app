@@ -2900,6 +2900,48 @@ export default function Home() {
       throw new Error("Supabase Storage is not connected yet.");
     }
 
+    if (session.access_token) {
+      const r2Response = await fetch("/api/media", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          kind: bucket,
+          folder,
+          fileName: file.name,
+          contentType: file.type,
+          size: file.size
+        })
+      });
+
+      if (r2Response.ok) {
+        const result = (await r2Response.json()) as { uploadUrl?: string; publicUrl?: string };
+        if (!result.uploadUrl || !result.publicUrl) throw new Error("R2 returned an incomplete upload address.");
+
+        const uploadResponse = await fetch(result.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type.toLowerCase() },
+          body: file
+        });
+        if (!uploadResponse.ok) {
+          throw new Error(
+            uploadResponse.status === 403
+              ? "R2 rejected the upload. Check the bucket CORS policy and API credentials."
+              : `R2 upload failed with status ${uploadResponse.status}.`
+          );
+        }
+
+        return result.publicUrl;
+      }
+
+      if (r2Response.status !== 503) {
+        const result = (await r2Response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(result?.error || "Could not prepare the R2 upload.");
+      }
+    }
+
     const path = `${session.user.id}/${folder}/${crypto.randomUUID()}-${cleanFileName(file.name)}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       cacheControl: "3600",
@@ -2911,6 +2953,26 @@ export default function Home() {
 
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
+  }
+
+  async function deleteR2MediaFile(mediaUrl: string) {
+    if (!session?.access_token || !mediaUrl) return { managed: false, deleted: false };
+
+    const response = await fetch("/api/media", {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ mediaUrl })
+    });
+
+    if (response.status === 503) return { managed: false, deleted: false };
+    const result = (await response.json().catch(() => null)) as
+      | { managed?: boolean; deleted?: boolean; error?: string }
+      | null;
+    if (!response.ok) throw new Error(result?.error || "Could not remove the R2 media file.");
+    return { managed: Boolean(result?.managed), deleted: Boolean(result?.deleted) };
   }
 
   function roomJoins(challengeId: string) {
@@ -5073,6 +5135,7 @@ export default function Home() {
       .single();
 
     if (error) {
+      if (mediaFile) await deleteR2MediaFile(mediaUrl).catch(() => null);
       setMessage(`Could not create showcase post: ${error.message}`);
     } else if (data) {
       setShowcasePosts((items) => [data as ShowcasePost, ...items]);
@@ -5580,11 +5643,18 @@ export default function Home() {
     if (error) {
       setMessage(`Could not delete showcase post: ${error.message}`);
     } else {
+      const mediaCleanupFailed = await deleteR2MediaFile(post.media_url)
+        .then(() => false)
+        .catch(() => true);
       setShowcasePosts((items) => items.filter((item) => item.id !== post.id));
       setShowcaseRatings((items) => items.filter((item) => item.post_id !== post.id));
       setShowcaseComments((items) => items.filter((item) => item.post_id !== post.id));
       setShowcaseReports((items) => items.filter((item) => item.post_id !== post.id));
-      setMessage("Showcase post deleted.");
+      setMessage(
+        mediaCleanupFailed
+          ? "Showcase post deleted, but its R2 media file needs manual cleanup."
+          : "Showcase post deleted."
+      );
     }
 
     setDeletingShowcasePostId(null);
@@ -5929,6 +5999,7 @@ export default function Home() {
       .single();
 
     if (error) {
+      if (proofFile) await deleteR2MediaFile(proofUrl).catch(() => null);
       setMessage(`Could not save proof: ${error.message}`);
     } else if (data) {
       setProofs((items) => [data as ChallengeProof, ...items]);
@@ -5972,9 +6043,12 @@ export default function Home() {
     if (error) {
       setMessage(`Could not delete proof: ${error.message}`);
     } else {
+      const mediaCleanupFailed = await deleteR2MediaFile(proof.proof_url)
+        .then(() => false)
+        .catch(() => true);
       setProofs((items) => items.filter((item) => item.id !== proof.id));
       setChallengeReports((items) => items.filter((item) => item.proof_id !== proof.id));
-      setMessage("Proof deleted.");
+      setMessage(mediaCleanupFailed ? "Proof deleted, but its R2 media file needs manual cleanup." : "Proof deleted.");
     }
 
     setDeletingProofId(null);

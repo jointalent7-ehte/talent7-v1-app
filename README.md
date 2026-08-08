@@ -27,6 +27,18 @@ NEXT_PUBLIC_SITE_URL=https://www.jointalent7.com
 
 `NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. Never commit `.env.local`, service-role keys, or other secrets.
 
+Optional Cloudflare R2 variables move new proof and showcase uploads out of Supabase Storage while retaining Supabase as a safe fallback:
+
+```text
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET_NAME
+R2_PUBLIC_BASE_URL
+```
+
+Follow [R2_SETUP.md](R2_SETUP.md). The access and secret keys are server-only and must never use the `NEXT_PUBLIC_` prefix.
+
 ## Database setup
 
 Run the SQL files in `supabase/` in the order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects should apply only migrations they have not already run, but must run `tighten-challenge-completion-and-proof-policies.sql` last. That migration replaces earlier broad completion and proof-upload policies with authenticated, role-aware policies.

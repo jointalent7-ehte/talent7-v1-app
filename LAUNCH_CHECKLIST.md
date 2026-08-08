@@ -4,6 +4,7 @@
 
 - Run `npm ci` and `npm run check` from a clean checkout.
 - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` in Vercel.
+- If R2 is enabled, set all five server-only `R2_` variables, verify the bucket CORS origins, and never expose its secret key as `NEXT_PUBLIC_`.
 - Confirm the production domain and HTTPS redirect work.
 - Confirm `/robots.txt`, `/sitemap.xml`, and `/manifest.webmanifest` use the production domain.
 - Regenerate the Play Store screenshots after the current tab and dashboard redesign; the existing assets may show older navigation.
@@ -19,6 +20,7 @@
 - Create the intended `app_admins` records and keep admin access limited.
 - Test room completion, proof upload, deletion, moderation, and invitations with at least two ordinary accounts plus one admin account.
 - Confirm storage bucket types and upload limits match the app's photo/video limits.
+- Upload and delete one proof and one showcase file in R2 using an ordinary production test account.
 - Enable database backups appropriate to the launch plan.
 - Review Supabase rate limits, bot protection, and CAPTCHA before opening public sign-up.
 
