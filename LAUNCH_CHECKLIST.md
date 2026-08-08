@@ -4,6 +4,7 @@
 
 - Run `npm ci` and `npm run check` from a clean checkout.
 - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` in Vercel.
+- Set the server-only `SUPABASE_SERVICE_ROLE_KEY` for Production before enabling admin account-deletion completion; never prefix it with `NEXT_PUBLIC_`.
 - Set `NEXT_PUBLIC_SENTRY_DSN` for Production and Preview, then follow `SENTRY_SETUP.md` to send one controlled verification event.
 - If R2 is enabled, set all five server-only `R2_` variables, verify the bucket CORS origins, and never expose its secret key as `NEXT_PUBLIC_`.
 - Confirm the production domain and HTTPS redirect work.
@@ -25,6 +26,7 @@
 - Upload and delete one proof and one showcase file in R2 using an ordinary production test account.
 - Enable database backups appropriate to the launch plan.
 - Review Supabase rate limits, bot protection, and CAPTCHA before opening public sign-up.
+- Run the authenticated request, cancellation, admin review, waiting-period, and completion tests in `ACCOUNT_DELETION_RUNBOOK.md`.
 
 ## Trust, safety, and operations
 

@@ -18,8 +18,8 @@ This document separates features that persist real multi-user data from previews
 | Safety | Connected workflow | Challenge, chat, showcase, and comment reports with admin review states | Define response times, account suspension, appeals, and evidence retention |
 | Plans | Interest collection only | Saves plan and founder-support interest | No money is charged; connect a payment provider before calling this checkout |
 | Feed | Connected aggregation | Combines challenge, profile, proof, team, showcase, and coaching activity | Add pagination before data volume grows |
-| Account deletion | Manual request | Public email-request page satisfies a manual deletion route | Add an authenticated deletion-request queue and operator completion workflow |
-| Error monitoring | Connected | Privacy-filtered Sentry reporting for browser, server, edge, route, and global rendering errors | Verify the controlled production event and configure alert ownership |
+| Account deletion | Connected workflow | Password-confirmed request, seven-day cancellation, admin review/reject, server-only completion, media cleanup, and redacted audit state | Apply the deletion migration, add the service-role secret, and complete the three-account runbook |
+| Error monitoring | Connected | Privacy-filtered Sentry reporting plus the production health endpoint, issue alerts, and uptime monitoring | Review alerts and monitor usage regularly |
 | Product analytics | Not installed | Basic Vercel traffic information only | Choose analytics only after defining consent and retention rules |
 
 ## Required SQL for this batch
@@ -29,6 +29,7 @@ Back up Supabase first, then apply these files in order:
 1. `supabase/add-shared-listen-rooms.sql`
 2. `supabase/add-notification-read-state.sql`
 3. `supabase/harden-production-user-actions.sql`
+4. `supabase/add-account-deletion-workflow.sql`
 
 The last migration removes duplicate per-user challenge joins if any exist, prevents future duplicates, locks completion transitions, constrains roles and usernames, and limits status updates to their intended columns.
 

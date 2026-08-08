@@ -23,9 +23,10 @@ Open `http://localhost:3000`. If Supabase is not configured, the interface uses 
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 NEXT_PUBLIC_SITE_URL=https://www.jointalent7.com
+SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
 ```
 
-`NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. Never commit `.env.local`, service-role keys, or other secrets.
+`NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. The service-role key is used only by the authenticated admin account-deletion endpoint. Add it to Vercel Production as a sensitive server-only value; never give it a `NEXT_PUBLIC_` prefix and never commit it.
 
 Optional Cloudflare R2 variables move new proof and showcase uploads out of Supabase Storage while retaining Supabase as a safe fallback:
 
@@ -65,3 +66,4 @@ npm run build
 6. Apply the Supabase migrations before accepting real users.
 
 Review [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) before making the site public.
+Follow [ACCOUNT_DELETION_RUNBOOK.md](ACCOUNT_DELETION_RUNBOOK.md) before enabling permanent account deletion in production.
