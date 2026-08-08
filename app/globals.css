@@ -1790,6 +1790,17 @@ textarea {
   line-height: 1.45;
 }
 
+.confirmEmailNotice button,
+.authTextAction {
+  justify-self: start;
+  padding: 0;
+  color: var(--teal);
+  background: transparent !important;
+  border: 0;
+  font-weight: 900;
+  text-decoration: underline;
+}
+
 .loginPrompt {
   display: flex;
   align-items: center;
@@ -1905,7 +1916,7 @@ textarea {
 
 .passwordForm {
   display: grid;
-  grid-template-columns: 1fr minmax(220px, 1fr) auto;
+  grid-template-columns: 1.2fr minmax(180px, 1fr) minmax(180px, 1fr) auto;
   gap: 12px;
   align-items: end;
   background: #f4f8f7;
@@ -7930,9 +7941,20 @@ textarea {
   border: 1px solid var(--line);
 }
 
+.listenOwnerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.listenOwnerActions button {
+  min-height: 42px;
+}
+
 .listenQueueForm {
   display: grid;
-  grid-template-columns: 1.1fr 1.3fr 0.8fr auto;
+  grid-template-columns: 1.1fr 1.3fr auto;
   gap: 10px;
   padding: 12px;
   border-radius: 8px;

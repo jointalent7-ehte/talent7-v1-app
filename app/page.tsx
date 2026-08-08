@@ -410,6 +410,7 @@ type ListenRoom = {
   love_count: number;
   vibe_count: number;
   created_by: string | null;
+  status?: "Open" | "Archived";
   created_at: string;
 };
 
@@ -468,6 +469,11 @@ const sampleListenRooms: ListenRoom[] = [
 const sampleListenTracks: ListenTrack[] = [];
 const listenRoomsStorageKey = "talent7-listen-rooms";
 const listenTracksStorageKey = "talent7-listen-tracks";
+
+function makeLocalListenId(prefix = "listen") {
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
 type Challenge = {
   id: string;
   title: string;
@@ -490,6 +496,10 @@ type Challenge = {
   booking_region?: string | null;
   created_at: string;
 };
+
+function isChallengeCompleted(challenge: Challenge) {
+  return challenge.status === "Completed";
+}
 
 type JoinRole = "Challenger" | "Audience";
 
@@ -1099,6 +1109,9 @@ export default function Home() {
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
   const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
   const [listenTrackDrafts, setListenTrackDrafts] = useState<Record<string, ListenTrackDraft>>({});
+  const [listenLoading, setListenLoading] = useState(hasSupabaseConfig);
+  const [listenLoadError, setListenLoadError] = useState("");
+  const [listenActionKey, setListenActionKey] = useState<string | null>(null);
 
   const closeConfirmationDialog = useCallback(() => {
     if (confirmationBusy) return;
@@ -1114,8 +1127,48 @@ export default function Home() {
     }, {});
   }, [listenTracks]);
 
+  const refreshListenRooms = useCallback(async (showLoading = false) => {
+    if (!supabase) return;
+    if (showLoading) setListenLoading(true);
+
+    const [roomsResult, tracksResult] = await Promise.all([
+      supabase.from("listen_rooms").select("*").eq("status", "Open").order("created_at", { ascending: false }),
+      supabase.from("listen_tracks").select("*").order("created_at", { ascending: false })
+    ]);
+
+    if (roomsResult.error || tracksResult.error) {
+      setListenRooms([]);
+      setListenTracks([]);
+      setListenLoadError("Shared listen rooms are not available yet. Apply the latest Supabase migration and try again.");
+    } else {
+      setListenRooms((roomsResult.data || []) as ListenRoom[]);
+      setListenTracks((tracksResult.data || []) as ListenTrack[]);
+      setListenLoadError("");
+    }
+
+    if (showLoading) setListenLoading(false);
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    if (supabase) {
+      const supabaseClient = supabase;
+      void refreshListenRooms(true);
+
+      const listenChannel = supabaseClient
+        .channel("talent7-shared-listen-rooms")
+        .on("postgres_changes", { event: "*", schema: "public", table: "listen_rooms" }, () => void refreshListenRooms())
+        .on("postgres_changes", { event: "*", schema: "public", table: "listen_tracks" }, () => void refreshListenRooms())
+        .on("postgres_changes", { event: "*", schema: "public", table: "listen_room_members" }, () => void refreshListenRooms())
+        .on("postgres_changes", { event: "*", schema: "public", table: "listen_room_reactions" }, () => void refreshListenRooms())
+        .subscribe();
+
+      return () => {
+        void supabaseClient.removeChannel(listenChannel);
+      };
+    }
+
     try {
       const savedRooms = window.localStorage.getItem(listenRoomsStorageKey);
       if (savedRooms) setListenRooms(JSON.parse(savedRooms));
@@ -1125,7 +1178,7 @@ export default function Home() {
       setListenRooms(sampleListenRooms);
       setListenTracks(sampleListenTracks);
     }
-  }, []);
+  }, [refreshListenRooms]);
 
   useEffect(() => {
     const syncTabWithHash = () => {
@@ -1214,12 +1267,12 @@ export default function Home() {
   }, [closeConfirmationDialog, confirmationBusy, confirmationRequest]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || hasSupabaseConfig) return;
     window.localStorage.setItem(listenRoomsStorageKey, JSON.stringify(listenRooms));
   }, [listenRooms]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || hasSupabaseConfig) return;
     window.localStorage.setItem(listenTracksStorageKey, JSON.stringify(listenTracks));
   }, [listenTracks]);
   const [profileSearch, setProfileSearch] = useState("");
@@ -1248,6 +1301,8 @@ export default function Home() {
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [authEmailAction, setAuthEmailAction] = useState<"reset" | "resend" | null>(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const [loginPrompt, setLoginPrompt] = useState("");
   const [session, setSession] = useState<Session | null>(null);
@@ -1614,8 +1669,8 @@ export default function Home() {
 
   const roomCollectionCounts = useMemo(
     () => ({
-      active: challenges.filter((challenge) => !isChallengeCompleted(challenge)).length,
-      archived: challenges.filter((challenge) => isChallengeCompleted(challenge)).length
+      active: challenges.filter((challenge) => challenge.status !== "Completed").length,
+      archived: challenges.filter((challenge) => challenge.status === "Completed").length
     }),
     [challenges]
   );
@@ -2723,7 +2778,7 @@ export default function Home() {
     }
 
     return priorities.slice(0, 4);
-  }, [myDashboard, onboardingSteps, profile?.main_interest, session, unreadNotifications]);
+  }, [myDashboard, onboardingSteps, profile, session, unreadNotifications]);
 
   const visibleNotifications = useMemo(() => {
     const readSet = new Set(readNotificationKeys);
@@ -2863,17 +2918,28 @@ export default function Home() {
     return `${notification.id}-${notification.createdAt}`;
   }
 
+  async function persistNotificationReads(keys: string[]) {
+    if (!supabase || !session?.user.id || keys.length === 0) return;
+    await supabase.from("user_notification_reads").upsert(
+      keys.map((notification_key) => ({ user_id: session.user.id, notification_key })),
+      { onConflict: "user_id,notification_key", ignoreDuplicates: true }
+    );
+  }
+
   function markNotificationRead(notification: AppNotification) {
     const key = notificationKey(notification);
     setReadNotificationKeys((items) => (items.includes(key) ? items : [...items, key]));
+    void persistNotificationReads([key]);
   }
 
   function markAllNotificationsRead() {
+    const keys = notifications.map(notificationKey);
     setReadNotificationKeys((items) => {
       const merged = new Set(items);
-      notifications.forEach((notification) => merged.add(notificationKey(notification)));
+      keys.forEach((key) => merged.add(key));
       return Array.from(merged);
     });
+    void persistNotificationReads(keys);
   }
 
   function validateUploadFile(file: File) {
@@ -3106,13 +3172,49 @@ export default function Home() {
       return;
     }
 
+    let localKeys: string[] = [];
     try {
       const saved = window.localStorage.getItem(notificationReadStorageKey);
-      setReadNotificationKeys(saved ? (JSON.parse(saved) as string[]) : []);
+      localKeys = saved ? (JSON.parse(saved) as string[]) : [];
     } catch {
-      setReadNotificationKeys([]);
+      localKeys = [];
     }
-  }, [notificationReadStorageKey]);
+
+    if (!supabase || !session?.user.id) {
+      setReadNotificationKeys(localKeys);
+      return;
+    }
+
+    let active = true;
+    const userId = session.user.id;
+    async function loadNotificationReadState() {
+      if (!supabase) return;
+      const { data, error } = await supabase
+        .from("user_notification_reads")
+        .select("notification_key")
+        .eq("user_id", userId);
+
+      if (!active) return;
+      if (error) {
+        setReadNotificationKeys(localKeys);
+        return;
+      }
+
+      const merged = Array.from(new Set([...localKeys, ...(data || []).map((item) => item.notification_key)]));
+      setReadNotificationKeys(merged);
+      if (localKeys.length > 0) {
+        await supabase.from("user_notification_reads").upsert(
+          localKeys.map((notification_key) => ({ user_id: userId, notification_key })),
+          { onConflict: "user_id,notification_key", ignoreDuplicates: true }
+        );
+      }
+    }
+
+    void loadNotificationReadState();
+    return () => {
+      active = false;
+    };
+  }, [notificationReadStorageKey, session]);
 
   useEffect(() => {
     if (!notificationReadStorageKey) return;
@@ -3258,9 +3360,16 @@ export default function Home() {
       setAuthHydrated(true);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       setAuthHydrated(true);
+      if (event === "PASSWORD_RECOVERY") {
+        setIsPasswordRecovery(true);
+        setMessage("Password recovery confirmed. Set a new password below.");
+        setActiveAppTab("account");
+        setActiveSection("account");
+        window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+      }
     });
 
     return () => {
@@ -3688,8 +3797,9 @@ export default function Home() {
     const email = String(form.get("email") || "").trim();
     const password = String(form.get("password") || "");
 
-    if (!email || password.length < 6) {
-      setMessage("Enter an email and a password with at least 6 characters.");
+    const requiredPasswordLength = authMode === "Sign up" ? 8 : 6;
+    if (!email || password.length < requiredPasswordLength) {
+      setMessage(`Enter an email and a password with at least ${requiredPasswordLength} characters.`);
       return;
     }
 
@@ -3699,7 +3809,11 @@ export default function Home() {
 
     const result =
       authMode === "Sign up"
-        ? await supabase.auth.signUp({ email, password })
+        ? await supabase.auth.signUp({
+            email,
+            password,
+            options: { emailRedirectTo: `${siteUrl("/")}#account` }
+          })
         : await supabase.auth.signInWithPassword({ email, password });
 
     if (result.error) {
@@ -3727,6 +3841,37 @@ export default function Home() {
     setMessage("Logged out.");
   }
 
+  async function requestPasswordReset(event: MouseEvent<HTMLButtonElement>) {
+    const email = String(new FormData(event.currentTarget.form || undefined).get("email") || "").trim();
+    if (!supabase) {
+      setMessage("Connect Supabase before requesting a password reset.");
+      return;
+    }
+    if (!email) {
+      setMessage("Enter your account email first, then select Forgot password.");
+      return;
+    }
+
+    setAuthEmailAction("reset");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl("/")}#account`
+    });
+    setAuthEmailAction(null);
+    setMessage(error ? error.message : "Password reset email sent. Open its link on this device to choose a new password.");
+  }
+
+  async function resendConfirmationEmail() {
+    if (!supabase || !confirmationEmail) return;
+    setAuthEmailAction("resend");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: confirmationEmail,
+      options: { emailRedirectTo: `${siteUrl("/")}#account` }
+    });
+    setAuthEmailAction(null);
+    setMessage(error ? error.message : "Confirmation email sent again.");
+  }
+
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -3737,9 +3882,15 @@ export default function Home() {
 
     const form = new FormData(event.currentTarget);
     const newPassword = String(form.get("new_password") || "");
+    const confirmPassword = String(form.get("confirm_password") || "");
 
-    if (newPassword.length < 6) {
-      setMessage("Enter a new password with at least 6 characters.");
+    if (newPassword.length < 8) {
+      setMessage("Enter a new password with at least 8 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setMessage("The two new-password fields do not match.");
       return;
     }
 
@@ -3753,6 +3904,7 @@ export default function Home() {
     } else {
       event.currentTarget.reset();
       setShowNewPassword(false);
+      setIsPasswordRecovery(false);
       setMessage("Password updated.");
     }
 
@@ -4000,10 +4152,6 @@ export default function Home() {
     return false;
   }
 
-  function makeLocalListenId(prefix = "listen") {
-    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  }
-
   function isPublicSongLink(value: string) {
     try {
       const url = new URL(value);
@@ -4029,7 +4177,7 @@ export default function Home() {
     }));
   }
 
-  function handleCreateListenRoom(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateListenRoom(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireProfile("create a listen room")) return;
 
@@ -4039,22 +4187,58 @@ export default function Home() {
       return;
     }
 
-    const room: ListenRoom = {
-      id: makeLocalListenId("listen-room"),
+    const roomPayload = {
       title: listenRoomDraft.title.trim() || "Untitled listen room",
       host_name: listenRoomDraft.host_name.trim() || profileName(),
       mood: listenRoomDraft.mood,
       room_note: listenRoomDraft.room_note.trim() || null,
       current_track_title: listenRoomDraft.current_track_title.trim() || "Open the first shared song",
       current_track_url: trackUrl || "https://www.youtube.com",
-      listener_count: 1,
-      love_count: 0,
-      vibe_count: 0,
-      created_by: session?.user.id || null,
-      created_at: new Date().toISOString()
+      created_by: session?.user.id || null
     };
 
-    setListenRooms((current) => [room, ...current]);
+    if (!supabase) {
+      const room: ListenRoom = {
+        id: makeLocalListenId("listen-room"),
+        ...roomPayload,
+        listener_count: 1,
+        love_count: 0,
+        vibe_count: 0,
+        status: "Open",
+        created_at: new Date().toISOString()
+      };
+      setListenRooms((current) => [room, ...current]);
+    } else {
+      setListenActionKey("create");
+      const { data, error } = await supabase.from("listen_rooms").insert(roomPayload).select("*").single();
+
+      if (error || !data) {
+        setMessage(error?.message || "Could not create the listen room.");
+        setListenActionKey(null);
+        return;
+      }
+
+      if (trackUrl && session?.user.id) {
+        const { error: trackError } = await supabase.from("listen_tracks").insert({
+          room_id: data.id,
+          user_id: session.user.id,
+          track_title: roomPayload.current_track_title,
+          track_url: trackUrl,
+          added_by: profileName()
+        });
+
+        if (trackError) {
+          await supabase.from("listen_rooms").delete().eq("id", data.id);
+          setMessage(trackError.message);
+          setListenActionKey(null);
+          return;
+        }
+      }
+
+      await refreshListenRooms();
+      setListenActionKey(null);
+    }
+
     setListenRoomDraft({ ...defaultListenDraft, host_name: profileName() });
     setMessage("Listen room created.");
     setActiveAppTab("listen");
@@ -4062,29 +4246,87 @@ export default function Home() {
     setTimeout(() => document.getElementById("listen-rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
-  function handleJoinListenRoom(roomId: string) {
+  async function handleJoinListenRoom(roomId: string) {
     if (!requireProfile("join a listen room")) return;
-    setListenRooms((current) =>
-      current.map((room) => (room.id === roomId ? { ...room, listener_count: room.listener_count + 1 } : room))
-    );
-    setMessage("Joined listen room.");
+
+    if (!supabase || !session?.user.id) {
+      setListenRooms((current) =>
+        current.map((room) => (room.id === roomId ? { ...room, listener_count: room.listener_count + 1 } : room))
+      );
+      setMessage("Joined listen room.");
+      return;
+    }
+
+    setListenActionKey(`join-${roomId}`);
+    const { error } = await supabase.from("listen_room_members").insert({
+      room_id: roomId,
+      user_id: session.user.id,
+      display_name: profileName()
+    });
+
+    if (error && error.code !== "23505") {
+      setMessage(error.message);
+      setListenActionKey(null);
+      return;
+    }
+
+    await refreshListenRooms();
+    setListenActionKey(null);
+    setMessage(error?.code === "23505" ? "You already joined this listen room." : "Joined listen room.");
   }
 
-  function handleReactListenRoom(roomId: string, reaction: "love" | "vibe") {
-    setListenRooms((current) =>
-      current.map((room) =>
-        room.id === roomId
-          ? {
-              ...room,
-              love_count: reaction === "love" ? room.love_count + 1 : room.love_count,
-              vibe_count: reaction === "vibe" ? room.vibe_count + 1 : room.vibe_count
-            }
-          : room
-      )
-    );
+  async function ensureListenMembership(roomId: string) {
+    if (!supabase || !session?.user.id) return true;
+    const { error } = await supabase.from("listen_room_members").insert({
+      room_id: roomId,
+      user_id: session.user.id,
+      display_name: profileName()
+    });
+    return !error || error.code === "23505";
   }
 
-  function handleAddListenTrack(event: FormEvent<HTMLFormElement>, roomId: string) {
+  async function handleReactListenRoom(roomId: string, reaction: "love" | "vibe") {
+    if (!requireProfile("react in a listen room")) return;
+
+    if (!supabase || !session?.user.id) {
+      setListenRooms((current) =>
+        current.map((room) =>
+          room.id === roomId
+            ? {
+                ...room,
+                love_count: reaction === "love" ? room.love_count + 1 : room.love_count,
+                vibe_count: reaction === "vibe" ? room.vibe_count + 1 : room.vibe_count
+              }
+            : room
+        )
+      );
+      return;
+    }
+
+    setListenActionKey(`${reaction}-${roomId}`);
+    const joined = await ensureListenMembership(roomId);
+    if (!joined) {
+      setMessage("Could not join this listen room.");
+      setListenActionKey(null);
+      return;
+    }
+
+    const { error } = await supabase.from("listen_room_reactions").insert({
+      room_id: roomId,
+      user_id: session.user.id,
+      reaction
+    });
+
+    if (error && error.code !== "23505") {
+      setMessage(error.message);
+    } else {
+      await refreshListenRooms();
+      setMessage(error?.code === "23505" ? `You already added this ${reaction} reaction.` : "Reaction added.");
+    }
+    setListenActionKey(null);
+  }
+
+  async function handleAddListenTrack(event: FormEvent<HTMLFormElement>, roomId: string) {
     event.preventDefault();
     if (!requireProfile("add a song")) return;
 
@@ -4095,32 +4337,89 @@ export default function Home() {
       return;
     }
 
-    const track: ListenTrack = {
-      id: makeLocalListenId("listen-track"),
-      room_id: roomId,
-      track_title: draft.track_title.trim() || "Shared song",
-      track_url: trackUrl,
-      added_by: draft.added_by.trim() || profileName(),
-      created_at: new Date().toISOString()
-    };
+    if (!supabase || !session?.user.id) {
+      const track: ListenTrack = {
+        id: makeLocalListenId("listen-track"),
+        room_id: roomId,
+        track_title: draft.track_title.trim() || "Shared song",
+        track_url: trackUrl,
+        added_by: draft.added_by.trim() || profileName(),
+        created_at: new Date().toISOString()
+      };
 
-    setListenTracks((current) => [track, ...current]);
-    setListenRooms((current) =>
-      current.map((room) =>
-        room.id === roomId
-          ? {
-              ...room,
-              current_track_title: track.track_title,
-              current_track_url: track.track_url
-            }
-          : room
-      )
-    );
+      setListenTracks((current) => [track, ...current]);
+      setListenRooms((current) =>
+        current.map((room) =>
+          room.id === roomId
+            ? { ...room, current_track_title: track.track_title, current_track_url: track.track_url }
+            : room
+        )
+      );
+    } else {
+      setListenActionKey(`track-${roomId}`);
+      const joined = await ensureListenMembership(roomId);
+      if (!joined) {
+        setMessage("Could not join this listen room.");
+        setListenActionKey(null);
+        return;
+      }
+
+      const { error } = await supabase.from("listen_tracks").insert({
+        room_id: roomId,
+        user_id: session.user.id,
+        track_title: draft.track_title.trim() || "Shared song",
+        track_url: trackUrl,
+        added_by: profileName()
+      });
+
+      if (error) {
+        setMessage(error.message);
+        setListenActionKey(null);
+        return;
+      }
+
+      await refreshListenRooms();
+      setListenActionKey(null);
+    }
+
     setListenTrackDrafts((current) => ({
       ...current,
       [roomId]: { track_title: "", track_url: "", added_by: profileName() }
     }));
     setMessage("Song added to the listen room.");
+  }
+
+  async function archiveListenRoom(room: ListenRoom) {
+    if (!supabase || !session?.user.id || room.created_by !== session.user.id) return;
+    setListenActionKey(`archive-${room.id}`);
+    const { error } = await supabase.from("listen_rooms").update({ status: "Archived" }).eq("id", room.id);
+    if (error) setMessage(error.message);
+    else {
+      await refreshListenRooms();
+      setMessage("Listen room closed and archived.");
+    }
+    setListenActionKey(null);
+  }
+
+  function confirmDeleteListenRoom(room: ListenRoom) {
+    requestConfirmation({
+      title: "Delete this listen room?",
+      detail: "The room, its queue, membership, and reactions will be permanently deleted.",
+      confirmLabel: "Delete room",
+      onConfirm: () => deleteListenRoom(room)
+    });
+  }
+
+  async function deleteListenRoom(room: ListenRoom) {
+    if (!supabase || !session?.user.id || room.created_by !== session.user.id) return;
+    setListenActionKey(`delete-${room.id}`);
+    const { error } = await supabase.from("listen_rooms").delete().eq("id", room.id);
+    if (error) setMessage(error.message);
+    else {
+      await refreshListenRooms();
+      setMessage("Listen room deleted.");
+    }
+    setListenActionKey(null);
   }
   async function recordPaymentInterest(
     intentType: PaymentInterest["intent_type"],
@@ -4404,10 +4703,6 @@ export default function Home() {
     setFeedbackActionKey(null);
   }
 
-  function isChallengeCompleted(challenge: Challenge) {
-    return challenge.status === "Completed";
-  }
-
   function linkedTeam(teamId?: string | null) {
     if (!teamId) return null;
     return teams.find((team) => team.id === teamId) || null;
@@ -4518,8 +4813,13 @@ export default function Home() {
     const displayName = String(form.get("display_name") || "").trim();
     const username = String(form.get("username") || "").trim().replace(/^@/, "").toLowerCase();
 
-    if (!displayName || !username) {
-      setMessage("Add both display name and username.");
+    if (displayName.length < 2 || displayName.length > 60) {
+      setMessage("Use a display name between 2 and 60 characters.");
+      return;
+    }
+
+    if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+      setMessage("Use 3 to 30 lowercase letters, numbers, or underscores for your username.");
       return;
     }
 
@@ -7533,7 +7833,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Account</p>
           <h2>Sign up or log in</h2>
-          <p>Use this first account layer before we lock joins, votes, proof, and results to real users.</p>
+          <p>Your account protects your profile, rooms, votes, proof uploads, teams, coaching requests, and safety reports.</p>
         </div>
         {session ? (
           <div className="profileStack">
@@ -7576,30 +7876,45 @@ export default function Home() {
             <form className="passwordForm" onSubmit={changePassword}>
               <div>
                 <span>Password</span>
-                <strong>Change your password</strong>
-                <small>Use at least 6 characters. Your password is never shown to Talent7.</small>
+                <strong>{isPasswordRecovery ? "Finish password recovery" : "Change your password"}</strong>
+                <small>Use at least 8 characters. Your password is never shown to Talent7.</small>
               </div>
               <label className="passwordField">
                 New password
                 <span>
-                  <input name="new_password" placeholder="New password" type={showNewPassword ? "text" : "password"} />
+                  <input autoComplete="new-password" minLength={8} name="new_password" placeholder="New password" required type={showNewPassword ? "text" : "password"} />
                   <button type="button" onClick={() => setShowNewPassword((current) => !current)}>
                     {showNewPassword ? "Hide" : "Show"}
                   </button>
                 </span>
               </label>
+              <label className="passwordField">
+                Confirm new password
+                <span>
+                  <input autoComplete="new-password" minLength={8} name="confirm_password" placeholder="Repeat new password" required type={showNewPassword ? "text" : "password"} />
+                </span>
+              </label>
               <button disabled={updatingPassword} type="submit">
-                {updatingPassword ? "Updating..." : "Update password"}
+                {updatingPassword ? "Updating..." : isPasswordRecovery ? "Save new password" : "Update password"}
               </button>
             </form>
             <form className="profileForm" key={profile?.updated_at || session.user.id} onSubmit={saveProfile}>
               <label>
                 Display name
-                <input name="display_name" defaultValue={profile?.display_name || ""} placeholder="Rahul Sharma" />
+                <input maxLength={60} minLength={2} name="display_name" defaultValue={profile?.display_name || ""} placeholder="Rahul Sharma" required />
               </label>
               <label>
                 Username
-                <input name="username" defaultValue={profile?.username || ""} placeholder="rahulbadminton" />
+                <input
+                  autoCapitalize="none"
+                  maxLength={30}
+                  minLength={3}
+                  name="username"
+                  pattern="[A-Za-z0-9_]+"
+                  defaultValue={profile?.username || ""}
+                  placeholder="rahulbadminton"
+                  required
+                />
               </label>
               <label>
                 Role
@@ -7667,16 +7982,26 @@ export default function Home() {
                 <strong>Check your email to finish signup</strong>
                 <span>We sent a confirmation link to {confirmationEmail}.</span>
                 <small>Open that email, confirm your account, then come back and log in.</small>
+                <button disabled={authEmailAction === "resend"} onClick={() => void resendConfirmationEmail()} type="button">
+                  {authEmailAction === "resend" ? "Sending..." : "Resend confirmation email"}
+                </button>
               </div>
             )}
             <label>
               Email
-              <input name="email" placeholder="you@example.com" type="email" />
+              <input autoComplete="email" name="email" placeholder="you@example.com" required type="email" />
             </label>
             <label>
               Password
               <span className="passwordField">
-                <input name="password" placeholder="At least 6 characters" type={showAuthPassword ? "text" : "password"} />
+                <input
+                  autoComplete={authMode === "Sign up" ? "new-password" : "current-password"}
+                  minLength={authMode === "Sign up" ? 8 : 6}
+                  name="password"
+                  placeholder={authMode === "Sign up" ? "At least 8 characters" : "Your password"}
+                  required
+                  type={showAuthPassword ? "text" : "password"}
+                />
                 <button type="button" onClick={() => setShowAuthPassword((current) => !current)}>
                   {showAuthPassword ? "Hide" : "Show"}
                 </button>
@@ -7685,6 +8010,16 @@ export default function Home() {
             <button disabled={authLoading} type="submit">
               {authLoading ? "Please wait..." : authMode}
             </button>
+            {authMode === "Log in" && (
+              <button
+                className="authTextAction"
+                disabled={authEmailAction === "reset"}
+                onClick={(event) => void requestPasswordReset(event)}
+                type="button"
+              >
+                {authEmailAction === "reset" ? "Sending reset email..." : "Forgot password?"}
+              </button>
+            )}
           </form>
         )}
       </section>
@@ -7958,10 +8293,31 @@ export default function Home() {
               />
             </label>
 
-            <button type="submit">Create listen room</button>
+            <button disabled={listenActionKey === "create"} type="submit">
+              {listenActionKey === "create" ? "Creating room..." : "Create listen room"}
+            </button>
           </form>
 
           <div className="listenRoomList">
+            {listenLoading && (
+              <AppStatePanel detail="Loading the shared room queue and reactions." title="Loading listen rooms..." />
+            )}
+            {!listenLoading && listenLoadError && (
+              <AppStatePanel
+                actionLabel="Try again"
+                detail={listenLoadError}
+                onAction={() => void refreshListenRooms(true)}
+                title="Listen rooms need attention"
+              />
+            )}
+            {!listenLoading && !listenLoadError && listenRooms.length === 0 && (
+              <AppStatePanel
+                actionLabel="Create the first room"
+                detail="Start a shared queue for friends, teammates, study buddies, or someone special."
+                onAction={() => document.querySelector<HTMLElement>(".listenCreateCard")?.scrollIntoView({ behavior: "smooth" })}
+                title="No open listen rooms yet"
+              />
+            )}
             {listenRooms.map((room) => {
               const draft = listenTrackDrafts[room.id] || { track_title: "", track_url: "", added_by: profileName() };
               const tracks = listenTracksByRoom[room.id] || [];
@@ -7987,16 +8343,48 @@ export default function Home() {
                   </div>
 
                   <div className="listenRoomActions">
-                    <button type="button" onClick={() => handleJoinListenRoom(room.id)}>
-                      Join room ({room.listener_count})
+                    <button
+                      disabled={listenActionKey === `join-${room.id}`}
+                      type="button"
+                      onClick={() => void handleJoinListenRoom(room.id)}
+                    >
+                      {listenActionKey === `join-${room.id}` ? "Joining..." : `Join room (${room.listener_count})`}
                     </button>
-                    <button type="button" onClick={() => handleReactListenRoom(room.id, "love")}>
+                    <button
+                      disabled={listenActionKey === `love-${room.id}`}
+                      type="button"
+                      onClick={() => void handleReactListenRoom(room.id, "love")}
+                    >
                       Love ({room.love_count})
                     </button>
-                    <button type="button" onClick={() => handleReactListenRoom(room.id, "vibe")}>
+                    <button
+                      disabled={listenActionKey === `vibe-${room.id}`}
+                      type="button"
+                      onClick={() => void handleReactListenRoom(room.id, "vibe")}
+                    >
                       Vibe ({room.vibe_count})
                     </button>
                   </div>
+
+                  {session?.user.id === room.created_by && supabase && (
+                    <div className="listenOwnerActions">
+                      <button
+                        disabled={listenActionKey === `archive-${room.id}`}
+                        onClick={() => void archiveListenRoom(room)}
+                        type="button"
+                      >
+                        {listenActionKey === `archive-${room.id}` ? "Closing..." : "Close and archive"}
+                      </button>
+                      <button
+                        className="dangerAction"
+                        disabled={listenActionKey === `delete-${room.id}`}
+                        onClick={() => confirmDeleteListenRoom(room)}
+                        type="button"
+                      >
+                        Delete room
+                      </button>
+                    </div>
+                  )}
 
                   <form className="listenQueueForm" onSubmit={(event) => handleAddListenTrack(event, room.id)}>
                     <input
@@ -8009,12 +8397,9 @@ export default function Home() {
                       onChange={(event) => updateListenTrackDraft(room.id, "track_url", event.target.value)}
                       placeholder="Paste public song link"
                     />
-                    <input
-                      value={draft.added_by}
-                      onChange={(event) => updateListenTrackDraft(room.id, "added_by", event.target.value)}
-                      placeholder="Your name"
-                    />
-                    <button type="submit">Add song</button>
+                    <button disabled={listenActionKey === `track-${room.id}`} type="submit">
+                      {listenActionKey === `track-${room.id}` ? "Adding..." : "Add song"}
+                    </button>
                   </form>
 
                   <div className="listenQueue">
