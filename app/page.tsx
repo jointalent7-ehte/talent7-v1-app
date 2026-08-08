@@ -1353,6 +1353,7 @@ export default function Home() {
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
   const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [authEmailAction, setAuthEmailAction] = useState<"reset" | "resend" | null>(null);
@@ -3955,8 +3956,14 @@ export default function Home() {
     }
 
     const form = new FormData(event.currentTarget);
+    const currentPassword = String(form.get("current_password") || "");
     const newPassword = String(form.get("new_password") || "");
     const confirmPassword = String(form.get("confirm_password") || "");
+
+    if (!isPasswordRecovery && !currentPassword) {
+      setMessage("Enter your current password before choosing a new one.");
+      return;
+    }
 
     if (newPassword.length < 8) {
       setMessage("Enter a new password with at least 8 characters.");
@@ -3971,12 +3978,16 @@ export default function Home() {
     setUpdatingPassword(true);
     setMessage("");
 
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const passwordUpdate = isPasswordRecovery
+      ? { password: newPassword }
+      : { current_password: currentPassword, password: newPassword };
+    const { error } = await supabase.auth.updateUser(passwordUpdate);
 
     if (error) {
       setMessage(error.message);
     } else {
       event.currentTarget.reset();
+      setShowCurrentPassword(false);
       setShowNewPassword(false);
       setIsPasswordRecovery(false);
       setMessage("Password updated.");
@@ -7997,8 +8008,29 @@ export default function Home() {
               <div>
                 <span>Password</span>
                 <strong>{isPasswordRecovery ? "Finish password recovery" : "Change your password"}</strong>
-                <small>Use at least 8 characters. Your password is never shown to Talent7.</small>
+                <small>
+                  {isPasswordRecovery
+                    ? "Choose a new password with at least 8 characters."
+                    : "Confirm your current password, then choose a new password with at least 8 characters."}
+                </small>
               </div>
+              {!isPasswordRecovery && (
+                <label className="passwordField">
+                  Current password
+                  <span>
+                    <input
+                      autoComplete="current-password"
+                      name="current_password"
+                      placeholder="Current password"
+                      required
+                      type={showCurrentPassword ? "text" : "password"}
+                    />
+                    <button type="button" onClick={() => setShowCurrentPassword((current) => !current)}>
+                      {showCurrentPassword ? "Hide" : "Show"}
+                    </button>
+                  </span>
+                </label>
+              )}
               <label className="passwordField">
                 New password
                 <span>
@@ -8127,9 +8159,6 @@ export default function Home() {
                 </button>
               </span>
             </label>
-            <button disabled={authLoading} type="submit">
-              {authLoading ? "Please wait..." : authMode}
-            </button>
             {authMode === "Log in" && (
               <button
                 className="authTextAction"
@@ -8140,6 +8169,9 @@ export default function Home() {
                 {authEmailAction === "reset" ? "Sending reset email..." : "Forgot password?"}
               </button>
             )}
+            <button disabled={authLoading} type="submit">
+              {authLoading ? "Please wait..." : authMode}
+            </button>
           </form>
         )}
       </section>

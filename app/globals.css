@@ -1864,12 +1864,17 @@ textarea {
 .confirmEmailNotice button,
 .authTextAction {
   justify-self: start;
-  padding: 0;
+  min-height: 44px;
+  padding: 8px 0;
   color: var(--teal);
   background: transparent !important;
   border: 0;
   font-weight: 900;
   text-decoration: underline;
+}
+
+.authForm > .authTextAction {
+  color: var(--teal);
 }
 
 .loginPrompt {
@@ -1987,10 +1992,14 @@ textarea {
 
 .passwordForm {
   display: grid;
-  grid-template-columns: 1.2fr minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  grid-template-columns: repeat(3, minmax(160px, 1fr)) auto;
   gap: 12px;
   align-items: end;
   background: #f4f8f7;
+}
+
+.passwordForm > div:first-child {
+  grid-column: 1 / -1;
 }
 
 .passwordForm > div {
