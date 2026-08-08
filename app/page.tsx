@@ -634,6 +634,21 @@ type ShowcaseReport = {
   created_at: string;
 };
 
+type AccountDeletionRequest = {
+  id: string;
+  user_id: string | null;
+  account_email: string | null;
+  reason: string | null;
+  status: "Pending" | "In review" | "Deleting" | "Completed" | "Cancelled" | "Rejected";
+  eligible_after: string;
+  reviewed_at: string | null;
+  cancelled_at: string | null;
+  completed_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type CoachOffer = {
   id: string;
   user_id: string;
@@ -1400,6 +1415,11 @@ export default function Home() {
   const [challengeMessages, setChallengeMessages] = useState<ChallengeMessage[]>([]);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
   const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
+  const [accountDeletionRequests, setAccountDeletionRequests] = useState<AccountDeletionRequest[]>([]);
+  const [accountDeletionActionId, setAccountDeletionActionId] = useState<string | null>(null);
+  const [savingAccountDeletion, setSavingAccountDeletion] = useState(false);
+  const [accountDeletionReloadKey, setAccountDeletionReloadKey] = useState(0);
+  const [accountDeletionClock, setAccountDeletionClock] = useState(0);
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
   const [paymentInterests, setPaymentInterests] = useState<PaymentInterest[]>([]);
@@ -1788,6 +1808,12 @@ export default function Home() {
   const latestContributionInterest = useMemo(() => {
     return paymentInterests.find((interest) => interest.intent_type === "Contribution") || null;
   }, [paymentInterests]);
+
+  const activeAccountDeletionRequest = useMemo(() => {
+    return accountDeletionRequests.find(
+      (request) => request.user_id === session?.user.id && ["Pending", "In review", "Deleting"].includes(request.status)
+    ) || null;
+  }, [accountDeletionRequests, session]);
 
   const myFirstWaveInterest = useMemo(() => {
     return firstWaveInterests.find((interest) => interest.user_id === session?.user.id) || null;
@@ -3835,6 +3861,40 @@ export default function Home() {
   }, [session]);
 
   useEffect(() => {
+    async function loadAccountDeletionRequests() {
+      if (!supabase || !session?.user.id) {
+        setAccountDeletionRequests([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("account_deletion_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        setAccountDeletionRequests([]);
+        return;
+      }
+      setAccountDeletionRequests((data || []) as AccountDeletionRequest[]);
+    }
+
+    loadAccountDeletionRequests();
+  }, [accountDeletionReloadKey, isOwnerReviewer, session]);
+
+  useEffect(() => {
+    if (!isOwnerReviewer) {
+      setAccountDeletionClock(0);
+      return;
+    }
+
+    const updateClock = () => setAccountDeletionClock(Date.now());
+    updateClock();
+    const interval = window.setInterval(updateClock, 60_000);
+    return () => window.clearInterval(interval);
+  }, [isOwnerReviewer]);
+
+  useEffect(() => {
     async function loadExpertHelpRequests() {
       if (!supabase || !session?.user.id) {
         setExpertHelpRequests([]);
@@ -4055,6 +4115,130 @@ export default function Home() {
     } finally {
       setUpdatingPassword(false);
     }
+  }
+
+  async function submitAccountDeletionRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    if (!session?.access_token) {
+      setMessage("Log in again before requesting account deletion.", "error");
+      return;
+    }
+
+    const form = new FormData(formElement);
+    setSavingAccountDeletion(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/account-deletion", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          password: String(form.get("deletion_password") || ""),
+          confirmation: String(form.get("deletion_confirmation") || ""),
+          reason: String(form.get("deletion_reason") || "")
+        })
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { request?: AccountDeletionRequest; error?: string }
+        | null;
+      if (!response.ok || !result?.request) throw new Error(result?.error || "The deletion request could not be saved.");
+
+      formElement.reset();
+      setAccountDeletionReloadKey((key) => key + 1);
+      setMessage("Account deletion requested. You can cancel during the seven-day waiting period.", "success");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The deletion request could not be saved.", "error");
+    } finally {
+      setSavingAccountDeletion(false);
+    }
+  }
+
+  function confirmCancelAccountDeletion(request: AccountDeletionRequest) {
+    requestConfirmation({
+      title: "Cancel account deletion?",
+      detail: "Your Talent7 account and content will remain active. You can submit a new request later.",
+      confirmLabel: "Keep my account",
+      onConfirm: () => cancelAccountDeletion(request)
+    });
+  }
+
+  async function cancelAccountDeletion(request: AccountDeletionRequest) {
+    if (!session?.access_token) return;
+    setAccountDeletionActionId(request.id);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/account-deletion", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ requestId: request.id })
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { request?: AccountDeletionRequest; error?: string }
+        | null;
+      if (!response.ok || !result?.request) throw new Error(result?.error || "The deletion request could not be cancelled.");
+
+      setAccountDeletionReloadKey((key) => key + 1);
+      setMessage("Account deletion cancelled. Your account will remain active.", "success");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The deletion request could not be cancelled.", "error");
+    } finally {
+      setAccountDeletionActionId(null);
+    }
+  }
+
+  async function runAccountDeletionAdminAction(
+    request: AccountDeletionRequest,
+    action: "review" | "reject" | "complete"
+  ) {
+    if (!session?.access_token || !isOwnerReviewer) return;
+    setAccountDeletionActionId(request.id);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/account-deletion", {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ requestId: request.id, action })
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { request?: AccountDeletionRequest; error?: string }
+        | null;
+      if (!response.ok || !result?.request) throw new Error(result?.error || "The deletion request could not be updated.");
+
+      setAccountDeletionReloadKey((key) => key + 1);
+      setMessage(
+        action === "complete"
+          ? "Account deletion completed and the request email was redacted."
+          : action === "reject"
+            ? "Account deletion request rejected."
+            : "Account deletion request moved into review.",
+        "success"
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The deletion request could not be updated.", "error");
+    } finally {
+      setAccountDeletionActionId(null);
+    }
+  }
+
+  function confirmCompleteAccountDeletion(request: AccountDeletionRequest) {
+    requestConfirmation({
+      title: "Permanently delete this account?",
+      detail: `This permanently removes ${request.account_email || "the requested account"}, its database records, and managed R2 media. This cannot be undone.`,
+      confirmLabel: "Permanently delete",
+      onConfirm: () => runAccountDeletionAdminAction(request, "complete")
+    });
   }
 
   async function copyLaunchUpdate() {
@@ -8137,9 +8321,59 @@ export default function Home() {
                 <small>Manage support questions and account deletion requests from public Play Store-ready pages.</small>
               </div>
               <a href="/privacy">Privacy Policy</a>
-              <a href="/delete-account">Delete account request</a>
+              <a href="#account-deletion">Delete account request</a>
               <a href="/support">Support</a>
               <a href="/child-safety">Child safety standards</a>
+            </div>
+            <div className="accountDeletionPanel" id="account-deletion">
+              <div>
+                <span>Account deletion</span>
+                <strong>{activeAccountDeletionRequest ? "Request in progress" : "Request permanent deletion"}</strong>
+                <small>
+                  {activeAccountDeletionRequest
+                    ? "Your account remains active during the seven-day cancellation window."
+                    : "Confirm your current password. A seven-day cancellation window starts when you submit."}
+                </small>
+              </div>
+              {activeAccountDeletionRequest ? (
+                <div className="accountDeletionStatus">
+                  <p><strong>{activeAccountDeletionRequest.status}</strong></p>
+                  <small>
+                    Requested {new Date(activeAccountDeletionRequest.created_at).toLocaleString()} · eligible after{" "}
+                    <time dateTime={activeAccountDeletionRequest.eligible_after}>
+                      {new Date(activeAccountDeletionRequest.eligible_after).toLocaleString()}
+                    </time>
+                  </small>
+                  {activeAccountDeletionRequest.reason && <p>{activeAccountDeletionRequest.reason}</p>}
+                  {activeAccountDeletionRequest.last_error && <p className="deletionError">{activeAccountDeletionRequest.last_error}</p>}
+                  <button
+                    disabled={accountDeletionActionId === activeAccountDeletionRequest.id || activeAccountDeletionRequest.status === "Deleting"}
+                    onClick={() => confirmCancelAccountDeletion(activeAccountDeletionRequest)}
+                    type="button"
+                  >
+                    {accountDeletionActionId === activeAccountDeletionRequest.id ? "Cancelling..." : "Cancel deletion and keep account"}
+                  </button>
+                </div>
+              ) : (
+                <form className="accountDeletionForm" onSubmit={submitAccountDeletionRequest}>
+                  <label>
+                    Reason (optional)
+                    <textarea maxLength={500} name="deletion_reason" placeholder="Tell us anything the reviewer should know." rows={3} />
+                  </label>
+                  <label>
+                    Current password
+                    <input autoComplete="current-password" name="deletion_password" placeholder="Current password" required type="password" />
+                  </label>
+                  <label>
+                    Type DELETE to confirm
+                    <input autoCapitalize="characters" autoComplete="off" name="deletion_confirmation" pattern="DELETE" placeholder="DELETE" required />
+                  </label>
+                  <button disabled={savingAccountDeletion} type="submit">
+                    {savingAccountDeletion ? "Submitting request..." : "Request account deletion"}
+                  </button>
+                  <small>Need help accessing the account? Use the <a href="/delete-account">public deletion page</a>.</small>
+                </form>
+              )}
             </div>
             <form className="passwordForm" onSubmit={changePassword}>
               <div>
@@ -9287,6 +9521,69 @@ export default function Home() {
                 </article>
               ))}
             </div>
+          </div>
+        )}
+        {isOwnerReviewer && (
+          <div className="adminDeletionPanel">
+            <div className="adminModerationHeader">
+              <div>
+                <p className="eyebrow">Privacy operations</p>
+                <h3>Account deletion queue</h3>
+                <small>Review requests, respect the cancellation window, then complete deletion from this server-only workflow.</small>
+              </div>
+              <strong>{accountDeletionRequests.filter((request) => ["Pending", "In review", "Deleting"].includes(request.status)).length} active</strong>
+            </div>
+            {accountDeletionRequests.length > 0 ? (
+              <div className="adminDeletionQueue">
+                {accountDeletionRequests.slice(0, 12).map((request) => {
+                  const waitingPeriodEnded = accountDeletionClock > 0 && new Date(request.eligible_after).getTime() <= accountDeletionClock;
+                  const actionRunning = accountDeletionActionId === request.id;
+                  return (
+                    <article key={request.id}>
+                      <div>
+                        <strong>{request.account_email || "Email redacted after completion"}</strong>
+                        <span>{request.status}</span>
+                      </div>
+                      <small>
+                        Requested {new Date(request.created_at).toLocaleString()} · eligible {new Date(request.eligible_after).toLocaleString()}
+                      </small>
+                      <p>{request.reason || "No reason provided."}</p>
+                      {request.last_error && <p className="deletionError">{request.last_error}</p>}
+                      {request.status === "Pending" && (
+                        <div className="ownerReportActions">
+                          <button disabled={actionRunning} onClick={() => runAccountDeletionAdminAction(request, "review")} type="button">
+                            Start review
+                          </button>
+                          <button disabled={actionRunning} onClick={() => runAccountDeletionAdminAction(request, "reject")} type="button">
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                      {request.status === "In review" && (
+                        <div className="ownerReportActions">
+                          <button
+                            disabled={actionRunning || !waitingPeriodEnded}
+                            onClick={() => confirmCompleteAccountDeletion(request)}
+                            title={waitingPeriodEnded ? "Permanently delete this account" : "Available after the seven-day cancellation window"}
+                            type="button"
+                          >
+                            {actionRunning ? "Working..." : waitingPeriodEnded ? "Complete deletion" : "Waiting period active"}
+                          </button>
+                          <button disabled={actionRunning} onClick={() => runAccountDeletionAdminAction(request, "reject")} type="button">
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="emptySafetyInbox">
+                <strong>No deletion requests.</strong>
+                <small>Authenticated user requests will appear here.</small>
+              </div>
+            )}
           </div>
         )}
         <div className="safetyInbox">
