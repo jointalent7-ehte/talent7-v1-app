@@ -2,9 +2,11 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import * as Sentry from "@sentry/nextjs";
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
+    Sentry.captureException(error);
     console.error("Talent7 route error", error);
   }, [error]);
 
