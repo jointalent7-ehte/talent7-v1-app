@@ -7,6 +7,7 @@
 - Set `NEXT_PUBLIC_SENTRY_DSN` for Production and Preview, then follow `SENTRY_SETUP.md` to send one controlled verification event.
 - If R2 is enabled, set all five server-only `R2_` variables, verify the bucket CORS origins, and never expose its secret key as `NEXT_PUBLIC_`.
 - Confirm the production domain and HTTPS redirect work.
+- Monitor `/api/health` from an external uptime service and alert the production owner when it becomes unavailable.
 - Confirm `/robots.txt`, `/sitemap.xml`, and `/manifest.webmanifest` use the production domain.
 - Regenerate the Play Store screenshots after the current tab and dashboard redesign; the existing assets may show older navigation.
 - Test the final production deployment at common phone, tablet, and desktop widths.
