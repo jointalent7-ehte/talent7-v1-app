@@ -22,9 +22,15 @@ export default function DeleteAccountPage() {
       <section className="legalCard legalHighlight">
         <h2>Fastest Method</h2>
         <p>
-          Email Talent7 from the same email address you used for your account. Include your username if you know it.
+          Log in to Talent7, open Account, and submit the verified deletion request. You can cancel it during the
+          seven-day waiting period.
         </p>
-        <a href={deletionEmail}>Email account deletion request</a>
+        <Link href="/#account-deletion">Open the deletion request form</Link>
+        <p>
+          If you cannot access the account, email Talent7 from the same address you used to sign up and include your
+          username if you know it.
+        </p>
+        <a href={deletionEmail}>Email support for account deletion</a>
       </section>
 
       <section className="legalGrid">
@@ -58,8 +64,8 @@ export default function DeleteAccountPage() {
         <article className="legalCard">
           <h2>Expected Timing</h2>
           <p>
-            Talent7 will review deletion requests as soon as reasonably possible. You may receive a reply asking
-            for confirmation before deletion is completed.
+            Authenticated requests have a seven-day cancellation period. After that, a Talent7 administrator can
+            permanently remove the account, account-linked database records, and managed uploaded media.
           </p>
         </article>
       </section>
