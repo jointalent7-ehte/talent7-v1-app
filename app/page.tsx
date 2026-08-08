@@ -7701,12 +7701,11 @@ export default function Home() {
 
       {notificationReturnContext && activeAppTab !== "notifications" && (
         <aside className="notificationReturnBar" aria-label="Return to notifications">
-          <div>
-            <span>Opened from Notifications</span>
-            <strong>{notificationReturnContext.notificationTitle}</strong>
-          </div>
-          <button onClick={returnToNotifications} type="button">
-            <span aria-hidden="true">←</span> Back to Notifications
+          <button aria-label={`Back to Notifications from ${notificationReturnContext.notificationTitle}`} onClick={returnToNotifications} type="button">
+            <span className="notificationReturnAction">
+              <span aria-hidden="true">←</span> Back to Notifications
+            </span>
+            <small>{notificationReturnContext.notificationTitle}</small>
           </button>
         </aside>
       )}

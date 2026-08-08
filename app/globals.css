@@ -877,80 +877,71 @@ form button {
 .notificationReturnBar {
   position: fixed;
   right: clamp(14px, 4vw, 48px);
-  bottom: 18px;
+  top: 132px;
   z-index: 58;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: min(520px, calc(100vw - 32px));
-  padding: 12px;
+  width: min(360px, calc(100vw - 32px));
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.notificationReturnBar > button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 14px;
   color: #fff;
-  background: rgba(20, 23, 25, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  box-shadow: 0 18px 48px rgba(20, 23, 25, 0.28);
+  text-align: left;
+  background: rgba(20, 23, 25, 0.97);
+  border: 2px solid var(--yellow);
+  border-radius: 12px;
+  box-shadow: 0 16px 42px rgba(20, 23, 25, 0.28);
+  opacity: 1;
+  visibility: visible;
+  cursor: pointer;
   backdrop-filter: blur(14px);
 }
 
-.notificationReturnBar > div {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 2px;
-  min-width: 0;
+.notificationReturnAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--yellow);
+  font-weight: 950;
 }
 
-.notificationReturnBar > div span {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.72rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.notificationReturnBar > div strong {
+.notificationReturnBar small {
   overflow: hidden;
-  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.78rem;
+  font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.notificationReturnBar button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  flex: 0 0 auto;
-  min-height: 44px;
-  padding: 10px 14px;
-  color: var(--ink);
-  background: var(--yellow);
-  border: 0;
-  border-radius: 10px;
-  font-weight: 950;
-  cursor: pointer;
+.notificationReturnBar > button:hover {
+  color: #fff;
+  background: #202526;
+  border-color: #ffd05a;
 }
 
-.notificationReturnBar button:hover {
-  background: #ffd05a;
-}
-
-.notificationReturnBar button:focus-visible {
-  outline: 3px solid #fff;
+.notificationReturnBar > button:focus-visible {
+  outline: 3px solid var(--blue);
   outline-offset: 3px;
 }
 
-@media (max-width: 620px) {
+@media (max-width: 760px) {
   .notificationReturnBar {
+    top: 66px;
     right: 12px;
-    bottom: 12px;
     left: 12px;
-    align-items: stretch;
     width: auto;
     max-width: none;
   }
 
-  .notificationReturnBar button {
-    padding-inline: 12px;
+  .notificationReturnBar > button {
+    padding: 10px 12px;
   }
 }
 
