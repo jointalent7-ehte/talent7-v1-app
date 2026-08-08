@@ -46,5 +46,6 @@ For a new project, run these files from top to bottom in the Supabase SQL editor
 42. `add-shared-listen-rooms.sql`
 43. `add-notification-read-state.sql`
 44. `harden-production-user-actions.sql`
+45. `add-account-deletion-workflow.sql`
 
 Keep `tighten-challenge-completion-and-proof-policies.sql` after all challenge-related migrations. The shared listen-room migration is independent and can be applied after it.
