@@ -774,6 +774,42 @@ type AppNotification = {
 
 type NotificationFilter = "All" | "Unread" | AppNotification["category"];
 
+type NotificationReturnContext = {
+  filter: NotificationFilter;
+  search: string;
+  scrollY: number;
+  notificationTitle: string;
+};
+
+type Talent7HistoryState = {
+  talent7NotificationReturn?: NotificationReturnContext;
+};
+
+const notificationFilterOptions: NotificationFilter[] = [
+  "All",
+  "Unread",
+  "Invites",
+  "Teams",
+  "Proof",
+  "Results",
+  "Reports",
+  "Showcase",
+  "Expert help",
+  "Feedback"
+];
+
+function notificationReturnFromHistoryState(state: unknown): NotificationReturnContext | null {
+  if (!state || typeof state !== "object") return null;
+
+  const candidate = (state as Talent7HistoryState).talent7NotificationReturn;
+  if (!candidate || typeof candidate !== "object") return null;
+  if (!notificationFilterOptions.includes(candidate.filter)) return null;
+  if (typeof candidate.search !== "string" || typeof candidate.notificationTitle !== "string") return null;
+  if (typeof candidate.scrollY !== "number" || !Number.isFinite(candidate.scrollY)) return null;
+
+  return candidate;
+}
+
 type TalentProfile = {
   user_id: string;
   display_name: string;
@@ -1098,6 +1134,7 @@ export default function Home() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [activeAppTab, setActiveAppTab] = useState<AppTabId>("challenges");
   const [activeSection, setActiveSection] = useState("rooms");
+  const [notificationReturnContext, setNotificationReturnContext] = useState<NotificationReturnContext | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLElement>(null);
@@ -1186,6 +1223,7 @@ export default function Home() {
       if (hashTab) setActiveAppTab(hashTab);
       const hashSection = sectionForHash(window.location.hash);
       if (hashSection) setActiveSection(hashSection);
+      setNotificationReturnContext(notificationReturnFromHistoryState(window.history.state));
     };
 
     syncTabWithHash();
@@ -2932,6 +2970,26 @@ export default function Home() {
     void persistNotificationReads([key]);
   }
 
+  function openNotificationTarget(event: MouseEvent<HTMLAnchorElement>, notification: AppNotification) {
+    event.preventDefault();
+    event.stopPropagation();
+    markNotificationRead(notification);
+
+    if (notification.challengeTitle) {
+      setRoomSearch(notification.challengeTitle);
+      setSelectedLane("All");
+    }
+
+    const returnContext: NotificationReturnContext = {
+      filter: selectedNotificationFilter,
+      search: notificationSearch,
+      scrollY: window.scrollY,
+      notificationTitle: notification.title
+    };
+
+    openSection(notification.href, true, { talent7NotificationReturn: returnContext });
+  }
+
   function markAllNotificationsRead() {
     const keys = notifications.map(notificationKey);
     setReadNotificationKeys((items) => {
@@ -3947,17 +4005,42 @@ export default function Home() {
     }
   }
 
-  function openSection(sectionId: string, updateHash = false) {
+  function openSection(sectionId: string, updateHash = false, historyState: Talent7HistoryState | null = null) {
     const tabId = tabForHash(sectionId);
     const section = sectionForHash(sectionId);
     if (tabId) setActiveAppTab(tabId);
     if (section) setActiveSection(section);
     setIsMoreOpen(false);
 
-    if (updateHash) window.history.pushState(null, "", `#${sectionId.replace(/^#/, "")}`);
+    if (updateHash) {
+      window.history.pushState(historyState, "", `#${sectionId.replace(/^#/, "")}`);
+      setNotificationReturnContext(notificationReturnFromHistoryState(historyState));
+    }
     window.setTimeout(() => {
       document.getElementById(sectionId.replace(/^#/, ""))?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
+  }
+
+  function returnToNotifications() {
+    const returnContext = notificationReturnContext;
+    if (returnContext) {
+      setSelectedNotificationFilter(returnContext.filter);
+      setNotificationSearch(returnContext.search);
+    }
+
+    if (notificationReturnFromHistoryState(window.history.state)) {
+      window.history.back();
+    } else {
+      openSection("notifications", true);
+    }
+
+    window.setTimeout(() => {
+      if (returnContext) {
+        window.scrollTo({ top: returnContext.scrollY, behavior: "smooth" });
+      } else {
+        document.getElementById("notifications")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 120);
   }
 
   function scrollToRoomShelf() {
@@ -7584,6 +7667,18 @@ export default function Home() {
         </nav>
       )}
 
+      {notificationReturnContext && activeAppTab !== "notifications" && (
+        <aside className="notificationReturnBar" aria-label="Return to notifications">
+          <div>
+            <span>Opened from Notifications</span>
+            <strong>{notificationReturnContext.notificationTitle}</strong>
+          </div>
+          <button onClick={returnToNotifications} type="button">
+            <span aria-hidden="true">←</span> Back to Notifications
+          </button>
+        </aside>
+      )}
+
       <section className="section firstWaveSection" id="first-wave">
         <div className="sectionHeader">
           <p className="eyebrow">Early access</p>
@@ -7795,13 +7890,7 @@ export default function Home() {
                     <article className={`notificationItem ${isRead ? "read" : "unread"}`} key={notification.id}>
                       <a
                         href={notification.href}
-                        onClick={() => {
-                          markNotificationRead(notification);
-                          if (notification.challengeTitle) {
-                            setRoomSearch(notification.challengeTitle);
-                            setSelectedLane("All");
-                          }
-                        }}
+                        onClick={(event) => openNotificationTarget(event, notification)}
                       >
                         <span>{notification.label}</span>
                         <strong>{notification.title}</strong>
