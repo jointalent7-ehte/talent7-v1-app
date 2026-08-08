@@ -397,6 +397,7 @@ function sectionForHash(hash: string): string | null {
 }
 
 type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
+type ListenRoomStatus = "Open" | "Archived";
 
 type ListenRoom = {
   id: string;
@@ -410,7 +411,7 @@ type ListenRoom = {
   love_count: number;
   vibe_count: number;
   created_by: string | null;
-  status?: "Open" | "Archived";
+  status: ListenRoomStatus;
   created_at: string;
 };
 
@@ -462,6 +463,7 @@ const sampleListenRooms: ListenRoom[] = [
     love_count: 12,
     vibe_count: 9,
     created_by: null,
+    status: "Open",
     created_at: "2026-07-17T00:00:00.000Z"
   }
 ];
@@ -1144,6 +1146,7 @@ export default function Home() {
   const confirmationReturnFocusRef = useRef<HTMLElement | null>(null);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
+  const [listenRoomStatus, setListenRoomStatus] = useState<ListenRoomStatus>("Open");
   const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
   const [listenTrackDrafts, setListenTrackDrafts] = useState<Record<string, ListenTrackDraft>>({});
   const [listenLoading, setListenLoading] = useState(hasSupabaseConfig);
@@ -1164,12 +1167,25 @@ export default function Home() {
     }, {});
   }, [listenTracks]);
 
+  const visibleListenRooms = useMemo(
+    () => listenRooms.filter((room) => (room.status || "Open") === listenRoomStatus),
+    [listenRoomStatus, listenRooms]
+  );
+
+  const listenRoomCounts = useMemo(
+    () => ({
+      open: listenRooms.filter((room) => (room.status || "Open") === "Open").length,
+      archived: listenRooms.filter((room) => room.status === "Archived").length
+    }),
+    [listenRooms]
+  );
+
   const refreshListenRooms = useCallback(async (showLoading = false) => {
     if (!supabase) return;
     if (showLoading) setListenLoading(true);
 
     const [roomsResult, tracksResult] = await Promise.all([
-      supabase.from("listen_rooms").select("*").eq("status", "Open").order("created_at", { ascending: false }),
+      supabase.from("listen_rooms").select("*").order("created_at", { ascending: false }),
       supabase.from("listen_tracks").select("*").order("created_at", { ascending: false })
     ]);
 
@@ -4323,6 +4339,7 @@ export default function Home() {
     }
 
     setListenRoomDraft({ ...defaultListenDraft, host_name: profileName() });
+    setListenRoomStatus("Open");
     setMessage("Listen room created.");
     setActiveAppTab("listen");
     setActiveSection("listen-rooms");
@@ -4479,16 +4496,31 @@ export default function Home() {
     if (error) setMessage(error.message);
     else {
       await refreshListenRooms();
+      setListenRoomStatus("Archived");
       setMessage("Listen room closed and archived.");
     }
     setListenActionKey(null);
   }
 
+  async function restoreListenRoom(room: ListenRoom) {
+    if (!supabase || !session?.user.id || room.created_by !== session.user.id) return;
+    setListenActionKey(`restore-${room.id}`);
+    const { error } = await supabase.from("listen_rooms").update({ status: "Open" }).eq("id", room.id);
+    if (error) setMessage(error.message);
+    else {
+      await refreshListenRooms();
+      setListenRoomStatus("Open");
+      setMessage("Listen room restored and open again.");
+    }
+    setListenActionKey(null);
+  }
+
   function confirmDeleteListenRoom(room: ListenRoom) {
+    const isArchived = room.status === "Archived";
     requestConfirmation({
-      title: "Delete this listen room?",
+      title: isArchived ? "Permanently delete this archived room?" : "Delete this listen room?",
       detail: "The room, its queue, membership, and reactions will be permanently deleted.",
-      confirmLabel: "Delete room",
+      confirmLabel: isArchived ? "Delete permanently" : "Delete room",
       onConfirm: () => deleteListenRoom(room)
     });
   }
@@ -8316,8 +8348,30 @@ export default function Home() {
           </p>
         </div>
 
+        <div className="listenRoomTabs" aria-label="Listen room views" role="tablist">
+          <button
+            aria-selected={listenRoomStatus === "Open"}
+            className={listenRoomStatus === "Open" ? "active" : ""}
+            onClick={() => setListenRoomStatus("Open")}
+            role="tab"
+            type="button"
+          >
+            Open rooms <span>{listenRoomCounts.open}</span>
+          </button>
+          <button
+            aria-selected={listenRoomStatus === "Archived"}
+            className={listenRoomStatus === "Archived" ? "active" : ""}
+            onClick={() => setListenRoomStatus("Archived")}
+            role="tab"
+            type="button"
+          >
+            Archive <span>{listenRoomCounts.archived}</span>
+          </button>
+        </div>
+
         <div className="listenLayout">
-          <form className="card listenCreateCard" onSubmit={handleCreateListenRoom}>
+          {listenRoomStatus === "Open" ? (
+            <form className="card listenCreateCard" onSubmit={handleCreateListenRoom}>
             <div>
               <span className="statusBadge">Public links only</span>
               <h3>Create a listen room</h3>
@@ -8385,7 +8439,19 @@ export default function Home() {
             <button disabled={listenActionKey === "create"} type="submit">
               {listenActionKey === "create" ? "Creating room..." : "Create listen room"}
             </button>
-          </form>
+            </form>
+          ) : (
+            <aside className="card listenArchiveInfo">
+              <span className="statusBadge">Your saved queues</span>
+              <h3>Listen room archive</h3>
+              <p>
+                Closing a room keeps its song links and queue here. Archived rooms are private to their creator and cannot
+                receive new joins, reactions, or songs.
+              </p>
+              <strong>{listenRoomCounts.archived} archived room{listenRoomCounts.archived === 1 ? "" : "s"}</strong>
+              <small>Restore a room to make it public and interactive again, or permanently delete it when you no longer need it.</small>
+            </aside>
+          )}
 
           <div className="listenRoomList">
             {listenLoading && (
@@ -8399,15 +8465,23 @@ export default function Home() {
                 title="Listen rooms need attention"
               />
             )}
-            {!listenLoading && !listenLoadError && listenRooms.length === 0 && (
+            {!listenLoading && !listenLoadError && visibleListenRooms.length === 0 && (
               <AppStatePanel
-                actionLabel="Create the first room"
-                detail="Start a shared queue for friends, teammates, study buddies, or someone special."
-                onAction={() => document.querySelector<HTMLElement>(".listenCreateCard")?.scrollIntoView({ behavior: "smooth" })}
-                title="No open listen rooms yet"
+                actionLabel={listenRoomStatus === "Open" ? "Create the first room" : undefined}
+                detail={
+                  listenRoomStatus === "Open"
+                    ? "Start a shared queue for friends, teammates, study buddies, or someone special."
+                    : "Rooms you close will keep their song links here until you restore or permanently delete them."
+                }
+                onAction={
+                  listenRoomStatus === "Open"
+                    ? () => document.querySelector<HTMLElement>(".listenCreateCard")?.scrollIntoView({ behavior: "smooth" })
+                    : undefined
+                }
+                title={listenRoomStatus === "Open" ? "No open listen rooms yet" : "Your archive is empty"}
               />
             )}
-            {listenRooms.map((room) => {
+            {visibleListenRooms.map((room) => {
               const draft = listenTrackDrafts[room.id] || { track_title: "", track_url: "", added_by: profileName() };
               const tracks = listenTracksByRoom[room.id] || [];
 
@@ -8419,7 +8493,7 @@ export default function Home() {
                       <h3>{room.title}</h3>
                       <p className="muted">Hosted by {room.host_name}</p>
                     </div>
-                    <span className="statusBadge">Shared link queue</span>
+                    <span className="statusBadge">{room.status === "Archived" ? "Archived queue" : "Shared link queue"}</span>
                   </div>
 
                   {room.room_note ? <p>{room.room_note}</p> : null}
@@ -8431,65 +8505,81 @@ export default function Home() {
                     </a>
                   </div>
 
-                  <div className="listenRoomActions">
-                    <button
-                      disabled={listenActionKey === `join-${room.id}`}
-                      type="button"
-                      onClick={() => void handleJoinListenRoom(room.id)}
-                    >
-                      {listenActionKey === `join-${room.id}` ? "Joining..." : `Join room (${room.listener_count})`}
-                    </button>
-                    <button
-                      disabled={listenActionKey === `love-${room.id}`}
-                      type="button"
-                      onClick={() => void handleReactListenRoom(room.id, "love")}
-                    >
-                      Love ({room.love_count})
-                    </button>
-                    <button
-                      disabled={listenActionKey === `vibe-${room.id}`}
-                      type="button"
-                      onClick={() => void handleReactListenRoom(room.id, "vibe")}
-                    >
-                      Vibe ({room.vibe_count})
-                    </button>
-                  </div>
+                  {room.status === "Open" ? (
+                    <div className="listenRoomActions">
+                      <button
+                        disabled={listenActionKey === `join-${room.id}`}
+                        type="button"
+                        onClick={() => void handleJoinListenRoom(room.id)}
+                      >
+                        {listenActionKey === `join-${room.id}` ? "Joining..." : `Join room (${room.listener_count})`}
+                      </button>
+                      <button
+                        disabled={listenActionKey === `love-${room.id}`}
+                        type="button"
+                        onClick={() => void handleReactListenRoom(room.id, "love")}
+                      >
+                        Love ({room.love_count})
+                      </button>
+                      <button
+                        disabled={listenActionKey === `vibe-${room.id}`}
+                        type="button"
+                        onClick={() => void handleReactListenRoom(room.id, "vibe")}
+                      >
+                        Vibe ({room.vibe_count})
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="listenArchivedNotice">Archived rooms are read-only. Restore this room to accept joins, reactions, or new songs.</p>
+                  )}
 
                   {session?.user.id === room.created_by && supabase && (
                     <div className="listenOwnerActions">
-                      <button
-                        disabled={listenActionKey === `archive-${room.id}`}
-                        onClick={() => void archiveListenRoom(room)}
-                        type="button"
-                      >
-                        {listenActionKey === `archive-${room.id}` ? "Closing..." : "Close and archive"}
-                      </button>
+                      {room.status === "Archived" ? (
+                        <button
+                          disabled={listenActionKey === `restore-${room.id}`}
+                          onClick={() => void restoreListenRoom(room)}
+                          type="button"
+                        >
+                          {listenActionKey === `restore-${room.id}` ? "Restoring..." : "Restore room"}
+                        </button>
+                      ) : (
+                        <button
+                          disabled={listenActionKey === `archive-${room.id}`}
+                          onClick={() => void archiveListenRoom(room)}
+                          type="button"
+                        >
+                          {listenActionKey === `archive-${room.id}` ? "Closing..." : "Close and archive"}
+                        </button>
+                      )}
                       <button
                         className="dangerAction"
                         disabled={listenActionKey === `delete-${room.id}`}
                         onClick={() => confirmDeleteListenRoom(room)}
                         type="button"
                       >
-                        Delete room
+                        {room.status === "Archived" ? "Delete permanently" : "Delete room"}
                       </button>
                     </div>
                   )}
 
-                  <form className="listenQueueForm" onSubmit={(event) => handleAddListenTrack(event, room.id)}>
-                    <input
-                      value={draft.track_title}
-                      onChange={(event) => updateListenTrackDraft(room.id, "track_title", event.target.value)}
-                      placeholder="Song title"
-                    />
-                    <input
-                      value={draft.track_url}
-                      onChange={(event) => updateListenTrackDraft(room.id, "track_url", event.target.value)}
-                      placeholder="Paste public song link"
-                    />
-                    <button disabled={listenActionKey === `track-${room.id}`} type="submit">
-                      {listenActionKey === `track-${room.id}` ? "Adding..." : "Add song"}
-                    </button>
-                  </form>
+                  {room.status === "Open" && (
+                    <form className="listenQueueForm" onSubmit={(event) => handleAddListenTrack(event, room.id)}>
+                      <input
+                        value={draft.track_title}
+                        onChange={(event) => updateListenTrackDraft(room.id, "track_title", event.target.value)}
+                        placeholder="Song title"
+                      />
+                      <input
+                        value={draft.track_url}
+                        onChange={(event) => updateListenTrackDraft(room.id, "track_url", event.target.value)}
+                        placeholder="Paste public song link"
+                      />
+                      <button disabled={listenActionKey === `track-${room.id}`} type="submit">
+                        {listenActionKey === `track-${room.id}` ? "Adding..." : "Add song"}
+                      </button>
+                    </form>
+                  )}
 
                   <div className="listenQueue">
                     <h4>Room queue</h4>

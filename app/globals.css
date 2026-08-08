@@ -7930,6 +7930,51 @@ textarea {
   background: #f6fbfb;
 }
 
+.listenRoomTabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.listenRoomTabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 15px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.listenRoomTabs button span {
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  padding: 0 6px;
+  background: #eef4f4;
+  border-radius: 999px;
+  font-size: 0.76rem;
+}
+
+.listenRoomTabs button.active {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.listenRoomTabs button.active span {
+  color: var(--ink);
+  background: var(--yellow);
+}
+
 .listenLayout {
   display: grid;
   grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
@@ -7945,6 +7990,30 @@ textarea {
 .listenCreateCard {
   display: grid;
   gap: 16px;
+}
+
+.listenArchiveInfo {
+  position: sticky;
+  top: 138px;
+  display: grid;
+  gap: 12px;
+  background: #fff8e7;
+  border-color: #e3bf63;
+}
+
+.listenArchiveInfo h3,
+.listenArchiveInfo p {
+  margin: 0;
+}
+
+.listenArchiveInfo strong {
+  font-size: 1.15rem;
+}
+
+.listenArchiveInfo small {
+  color: var(--muted);
+  line-height: 1.5;
+  font-weight: 800;
 }
 
 .listenFormGrid {
@@ -8021,6 +8090,17 @@ textarea {
   border: 1px solid var(--line);
 }
 
+.listenArchivedNotice {
+  margin: 0;
+  padding: 12px 14px;
+  color: #6c5323;
+  background: #fff8e7;
+  border: 1px solid #e3bf63;
+  border-radius: 8px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .listenOwnerActions {
   display: flex;
   flex-wrap: wrap;
@@ -8068,5 +8148,9 @@ textarea {
   .listenQueueForm,
   .listenQueue a {
     grid-template-columns: 1fr;
+  }
+
+  .listenArchiveInfo {
+    position: static;
   }
 }
