@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+
+.env*
+!.env.example
+!.env.local.example
+
+*.log
+*.tsbuildinfo
+.vercel/
+.DS_Store
+Thumbs.db
+
+# Local database exports can contain real user data and must never be committed.
+backups/
