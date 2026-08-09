@@ -6809,11 +6809,220 @@ textarea {
   font-size: 0.9rem;
 }
 
+.matchCoordinationPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #f7fbfa;
+  border: 1px solid #9bd5ce;
+  border-radius: 10px;
+}
+
+.matchCoordinationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.matchCoordinationHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.matchCoordinationHeader span,
+.scheduleSummary span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.matchCoordinationHeader strong {
+  font-size: 1.08rem;
+}
+
+.scheduleStatus {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #73510a;
+  background: #fff1c9;
+  border: 1px solid #e5c46c;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.scheduleStatus.confirmed {
+  color: #11635d;
+  background: #e1f5f1;
+  border-color: #86cdc4;
+}
+
+.scheduleStatus.changes-requested,
+.scheduleStatus.cancelled {
+  color: #8e2418;
+  background: #fff0ed;
+  border-color: #efb3aa;
+}
+
+.coordinationPrivacyNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.83rem;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.scheduleSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scheduleSummary > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 11px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.scheduleSummary strong,
+.scheduleSummary a {
+  overflow-wrap: anywhere;
+}
+
+.scheduleSummary small {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.scheduleSummary a {
+  color: var(--teal);
+  font-weight: 900;
+  text-decoration: underline;
+}
+
+.scheduleCallout {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border-radius: 8px;
+}
+
+.scheduleCallout small {
+  color: inherit;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.scheduleCallout.waiting {
+  color: #73510a;
+  background: #fff7df;
+  border: 1px solid #e7cc83;
+}
+
+.scheduleCallout.confirmed {
+  color: #11635d;
+  background: #e5f6f3;
+  border: 1px solid #91d1c8;
+}
+
+.scheduleCallout.changes,
+.scheduleCallout.cancelled {
+  color: #8e2418;
+  background: #fff0ed;
+  border: 1px solid #efb3aa;
+}
+
+.scheduleResponseActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scheduleResponseActions button,
+.scheduleEditor button {
+  min-height: 42px;
+  padding: 10px 14px;
+  color: #fff;
+  background: var(--teal);
+  border: 1px solid var(--teal);
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.scheduleResponseActions button.secondaryAction {
+  color: var(--ink);
+  background: #fff;
+  border-color: var(--line);
+}
+
+.scheduleEditor {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.scheduleEditor > summary {
+  padding: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.scheduleEditor form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.scheduleEditor label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.scheduleEditor label.wide {
+  grid-column: 1 / -1;
+}
+
+.scheduleEditor input,
+.scheduleEditor select,
+.scheduleEditor textarea {
+  width: 100%;
+  min-width: 0;
+  color: var(--ink);
+  background: #f7fafa;
+}
+
+.cancelScheduleButton {
+  width: fit-content;
+  min-height: 38px;
+  padding: 8px 11px;
+  color: #8e2418;
+  background: transparent;
+  border: 1px solid #efb3aa;
+  border-radius: 8px;
+  font-weight: 850;
+}
+
 .bookingPanel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
+  grid-template-columns: minmax(200px, 0.55fr) minmax(0, 1.45fr);
+  gap: 12px;
+  align-items: start;
   padding: 12px;
   background: #eef4f4;
   border: 1px solid var(--line);
@@ -6823,6 +7032,11 @@ textarea {
 .bookingPanel div {
   display: grid;
   gap: 4px;
+}
+
+.bookingPanelIntro {
+  align-content: start;
+  padding: 4px;
 }
 
 .bookingPanel small {
@@ -6843,26 +7057,75 @@ textarea {
 
 .bookingActions {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .bookingActions a {
   min-height: 40px;
   display: grid;
-  place-items: center;
+  align-content: center;
+  gap: 5px;
   padding: 10px 12px;
-  color: #fff;
-  background: var(--ink);
-  border-radius: 8px;
-  font-weight: 850;
-  text-align: center;
-}
-
-.bookingActions a:not(:first-child) {
   color: var(--ink);
   background: #fff;
   border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.bookingActions a > span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.bookingActions a small {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.bookingActions a em {
+  padding: 3px 6px;
+  color: #11635d;
+  background: #dff4f0;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.bookingActions a.recommendedBookingLink {
+  border-color: #73c6bc;
+  box-shadow: inset 0 0 0 1px rgba(15, 143, 140, 0.08);
+}
+
+.bookingActions a.customBookingLink {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.bookingActions a.customBookingLink span,
+.bookingActions a.customBookingLink strong,
+.bookingActions a.customBookingLink small {
+  color: #fff;
+}
+
+@media (max-width: 620px) {
+  .bookingActions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .roomStats strong {
@@ -8475,6 +8738,21 @@ textarea {
 
   .roomsGrid .appStatePanel {
     flex: 1 0 calc(100% - clamp(18px, 5vw, 72px));
+  }
+
+  .scheduleSummary,
+  .scheduleEditor form {
+    grid-template-columns: 1fr;
+  }
+
+  .scheduleEditor label.wide {
+    grid-column: auto;
+  }
+
+  .scheduleResponseActions button,
+  .scheduleEditor button,
+  .cancelScheduleButton {
+    width: 100%;
   }
 }
 

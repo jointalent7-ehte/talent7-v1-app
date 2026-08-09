@@ -522,8 +522,36 @@ type Challenge = {
   created_at: string;
 };
 
+type ChallengeScheduleStatus = "Proposed" | "Changes requested" | "Confirmed" | "Cancelled";
+type ChallengePlayMode = "In person" | "Online";
+
+type ChallengeSchedule = {
+  id: string;
+  challenge_id: string;
+  proposed_by: string;
+  scheduled_for: string;
+  timezone: string;
+  play_mode: ChallengePlayMode;
+  venue_name: string;
+  meeting_details: string;
+  session_url: string;
+  note: string;
+  status: ChallengeScheduleStatus;
+  confirmed_by?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 function isChallengeCompleted(challenge: Challenge) {
   return challenge.status === "Completed";
+}
+
+function localDateTimeValue(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localTime.toISOString().slice(0, 16);
 }
 
 type JoinRole = "Challenger" | "Audience";
@@ -1094,23 +1122,110 @@ const sampleChallenges: Challenge[] = [
   }
 ];
 
-function suggestedBookingLinks(challenge: Challenge) {
+type BookingShortcut = {
+  label: string;
+  url: string;
+  detail: string;
+  recommended?: boolean;
+};
+
+function suggestedBookingLinks(challenge: Challenge): BookingShortcut[] {
   const sport = challenge.sport_type || challenge.title || "sports venue";
   const region = challenge.booking_region || "near me";
   const query = encodeURIComponent(`${sport} booking ${region}`);
   const mapQuery = encodeURIComponent(`${sport} venue ${region}`);
+  const normalizedSport = sport.toLowerCase();
+  const normalizedRegion = region.toLowerCase();
+
+  const indiaLocations = [
+    "india",
+    "bengaluru",
+    "bangalore",
+    "mumbai",
+    "delhi",
+    "gurgaon",
+    "gurugram",
+    "noida",
+    "hyderabad",
+    "chennai",
+    "pune",
+    "kolkata",
+    "ahmedabad",
+    "jaipur",
+    "kochi",
+    "goa"
+  ];
+  const playoMarkets = ["india", "uae", "dubai", "qatar", "oman", "singapore", "sri lanka", "australia"];
+  const racketSports = ["badminton", "tennis", "padel", "pickleball", "squash", "table tennis", "racquet", "racket"];
+  const isIndia = indiaLocations.some((location) => normalizedRegion.includes(location));
+  const isPlayoMarket = playoMarkets.some((location) => normalizedRegion.includes(location));
+  const isRacketSport = racketSports.some((activity) => normalizedSport.includes(activity));
 
   if (challenge.lane === "Mobile gaming challenge" || sport.toLowerCase().includes("gaming")) {
     return [
-      { label: "Find match rooms", url: `https://www.google.com/search?q=${query}` },
-      { label: "Search tournament apps", url: `https://www.google.com/search?q=${encodeURIComponent(`${sport} tournament app ${region}`)}` }
+      {
+        label: "Find match rooms",
+        url: `https://www.google.com/search?q=${query}`,
+        detail: "Search public lobbies and community match rooms.",
+        recommended: true
+      },
+      {
+        label: "Search tournament apps",
+        url: `https://www.google.com/search?q=${encodeURIComponent(`${sport} tournament app ${region}`)}`,
+        detail: "Compare current tournament and matchmaking options."
+      }
     ];
   }
 
-  return [
-    { label: "Search booking apps", url: `https://www.google.com/search?q=${query}` },
-    { label: "Find nearby venues", url: `https://www.google.com/maps/search/${mapQuery}` }
-  ];
+  const shortcuts: BookingShortcut[] = [];
+
+  if (isIndia) {
+    shortcuts.push({
+      label: "Book with Hudle",
+      url: "https://www.hudle.in/",
+      detail: "India-focused sports venues, courts, turfs, pools, and community games.",
+      recommended: true
+    });
+  }
+
+  if (isPlayoMarket || normalizedRegion === "global" || normalizedRegion === "near me") {
+    shortcuts.push({
+      label: "Find on Playo",
+      url: "https://playo.co/",
+      detail: "Find venues, trainers, and players in supported Playo cities.",
+      recommended: !isIndia
+    });
+  }
+
+  if (isRacketSport || normalizedRegion === "global") {
+    shortcuts.push({
+      label: "Search Playtomic",
+      url: "https://playtomic.com/clubs",
+      detail: "Global court discovery, especially for padel, tennis, and other racket sports.",
+      recommended: !isIndia && isRacketSport
+    });
+  }
+
+  shortcuts.push(
+    {
+      label: "Find on Maps",
+      url: `https://www.google.com/maps/search/${mapQuery}`,
+      detail: `Search nearby ${sport} venues around ${region}.`,
+      recommended: shortcuts.length === 0
+    },
+    {
+      label: "Search all booking options",
+      url: `https://www.google.com/search?q=${query}`,
+      detail: "Compare local providers when a dedicated platform is unavailable."
+    },
+    {
+      label: "Set up with Planyo",
+      url: "https://www.planyo.com/",
+      detail: "For venue owners or organizers who need their own public booking page."
+    }
+  );
+
+  return shortcuts;
 }
 
 function selectedFile(form: FormData, fieldName: string) {
@@ -1514,6 +1629,8 @@ export default function Home() {
   const [votes, setVotes] = useState<ChallengeVote[]>([]);
   const [proofs, setProofs] = useState<ChallengeProof[]>([]);
   const [invites, setInvites] = useState<ChallengeInvite[]>([]);
+  const [challengeSchedules, setChallengeSchedules] = useState<ChallengeSchedule[]>([]);
+  const [scheduleActionId, setScheduleActionId] = useState<string | null>(null);
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
   const [challengeMessages, setChallengeMessages] = useState<ChallengeMessage[]>([]);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
@@ -3422,6 +3539,51 @@ export default function Home() {
     return joins.some((join) => join.challenge_id === challenge.id && join.user_id === session.user.id);
   }
 
+  function challengeSchedule(challengeId: string) {
+    return challengeSchedules.find((schedule) => schedule.challenge_id === challengeId) || null;
+  }
+
+  function canCoordinateChallenge(challenge: Challenge) {
+    if (!session?.user.id || isChallengeCompleted(challenge)) return false;
+    if (challenge.created_by === session.user.id) return true;
+
+    const acceptedInvite = invites.some(
+      (invite) =>
+        invite.challenge_id === challenge.id &&
+        invite.invited_user_id === session.user.id &&
+        invite.status === "Accepted"
+    );
+    const challengerJoin = joins.some(
+      (join) =>
+        join.challenge_id === challenge.id && join.user_id === session.user.id && join.role === "Challenger"
+    );
+
+    return acceptedInvite || challengerJoin;
+  }
+
+  function hasChallengeCoordinationPartner(challenge: Challenge) {
+    if (!session?.user.id) return false;
+    if (challenge.created_by !== session.user.id) return canCoordinateChallenge(challenge);
+
+    return (
+      invites.some((invite) => invite.challenge_id === challenge.id && invite.status === "Accepted") ||
+      joins.some(
+        (join) =>
+          join.challenge_id === challenge.id &&
+          join.role === "Challenger" &&
+          Boolean(join.user_id) &&
+          join.user_id !== session.user.id
+      )
+    );
+  }
+
+  function formatChallengeSchedule(schedule: ChallengeSchedule) {
+    return new Date(schedule.scheduled_for).toLocaleString([], {
+      dateStyle: "medium",
+      timeStyle: "short"
+    });
+  }
+
   function roomChatHint(challenge: Challenge) {
     if (!session) return "Log in to read and send room messages.";
     if (!canUseRoomChat(challenge)) return "Join this challenge first to send room messages.";
@@ -3955,6 +4117,25 @@ export default function Home() {
     }
 
     loadInvites();
+  }, [session]);
+
+  useEffect(() => {
+    async function loadChallengeSchedules() {
+      if (!supabase || !session?.user.id) {
+        setChallengeSchedules([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("challenge_schedules")
+        .select("*")
+        .order("updated_at", { ascending: false });
+
+      if (error) return;
+      setChallengeSchedules((data || []) as ChallengeSchedule[]);
+    }
+
+    loadChallengeSchedules();
   }, [session]);
 
   useEffect(() => {
@@ -6788,6 +6969,163 @@ export default function Home() {
     }
 
     setInviteActionId(null);
+  }
+
+  async function saveChallengeSchedule(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    if (!requireLogin("coordinate this challenge")) return;
+    if (!canCoordinateChallenge(challenge) || !hasChallengeCoordinationPartner(challenge)) {
+      setMessage("An accepted challenger is required before private scheduling can begin.");
+      return;
+    }
+
+    const existingSchedule = challengeSchedule(challenge.id);
+    const form = new FormData(event.currentTarget);
+    const scheduledForValue = String(form.get("scheduled_for") || "").trim();
+    const scheduledFor = new Date(scheduledForValue);
+    const playMode = String(form.get("play_mode") || "In person") as ChallengePlayMode;
+    const venueName = String(form.get("venue_name") || "").trim();
+    const meetingDetails = String(form.get("meeting_details") || "").trim();
+    const sessionUrl = String(form.get("session_url") || "").trim();
+    const note = String(form.get("note") || "").trim();
+
+    if (!scheduledForValue || Number.isNaN(scheduledFor.getTime())) {
+      setMessage("Choose a valid match date and time.");
+      return;
+    }
+    if (scheduledFor.getTime() <= new Date().getTime()) {
+      setMessage("Choose a match time in the future.");
+      return;
+    }
+    if (playMode === "In person" && !venueName) {
+      setMessage("Add the venue name for an in-person match.");
+      return;
+    }
+    if (playMode === "Online" && !sessionUrl) {
+      setMessage("Add the private lobby or session link for an online match.");
+      return;
+    }
+    if (sessionUrl && !/^https?:\/\//i.test(sessionUrl)) {
+      setMessage("The session link must begin with http:// or https://.");
+      return;
+    }
+
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const scheduleUpdate = {
+      scheduled_for: scheduledFor.toISOString(),
+      timezone,
+      play_mode: playMode,
+      venue_name: venueName,
+      meeting_details: meetingDetails,
+      session_url: sessionUrl,
+      note,
+      proposed_by: session?.user.id || "",
+      status: "Proposed" as ChallengeScheduleStatus,
+      confirmed_by: null,
+      updated_at: new Date().toISOString()
+    };
+    const actionId = existingSchedule?.id || challenge.id;
+
+    setScheduleActionId(actionId);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      const previewSchedule: ChallengeSchedule = existingSchedule
+        ? { ...existingSchedule, ...scheduleUpdate }
+        : {
+            id: `schedule-${crypto.randomUUID()}`,
+            challenge_id: challenge.id,
+            created_at: new Date().toISOString(),
+            ...scheduleUpdate
+          };
+      setChallengeSchedules((items) => [previewSchedule, ...items.filter((item) => item.challenge_id !== challenge.id)]);
+      setMessage("Schedule proposal saved in this preview.");
+      setScheduleActionId(null);
+      return;
+    }
+
+    const query = existingSchedule
+      ? supabase.from("challenge_schedules").update(scheduleUpdate).eq("id", existingSchedule.id)
+      : supabase.from("challenge_schedules").insert({ challenge_id: challenge.id, ...scheduleUpdate });
+    const { data, error } = await query.select("*").single();
+
+    if (error) {
+      setMessage(`Could not save the schedule: ${error.message}`);
+    } else if (data) {
+      const savedSchedule = data as ChallengeSchedule;
+      setChallengeSchedules((items) => [savedSchedule, ...items.filter((item) => item.challenge_id !== challenge.id)]);
+      setMessage("Schedule proposal sent. The other challenger must confirm it.");
+    }
+
+    setScheduleActionId(null);
+  }
+
+  async function respondToChallengeSchedule(
+    schedule: ChallengeSchedule,
+    status: "Confirmed" | "Changes requested"
+  ) {
+    if (!requireLogin("respond to this schedule")) return;
+    if (!supabase || !session?.user.id) return;
+    if (schedule.proposed_by === session.user.id) {
+      setMessage("The other challenger must respond to your proposal.");
+      return;
+    }
+
+    setScheduleActionId(`${schedule.id}-${status}`);
+    setMessage("");
+    const { data, error } = await supabase
+      .from("challenge_schedules")
+      .update({
+        status,
+        confirmed_by: status === "Confirmed" ? session.user.id : null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", schedule.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not update the schedule: ${error.message}`);
+    } else if (data) {
+      const savedSchedule = data as ChallengeSchedule;
+      setChallengeSchedules((items) => items.map((item) => (item.id === schedule.id ? savedSchedule : item)));
+      setMessage(status === "Confirmed" ? "Match schedule confirmed." : "Changes requested. Propose an updated schedule.");
+    }
+
+    setScheduleActionId(null);
+  }
+
+  function confirmCancelChallengeSchedule(schedule: ChallengeSchedule) {
+    requestConfirmation({
+      title: "Cancel this match schedule?",
+      detail: "The challenge room will remain open, but the current date, venue, or online-session agreement will be cancelled.",
+      confirmLabel: "Cancel schedule",
+      onConfirm: () => cancelChallengeSchedule(schedule)
+    });
+  }
+
+  async function cancelChallengeSchedule(schedule: ChallengeSchedule) {
+    if (!requireLogin("cancel this schedule")) return;
+    if (!supabase) return;
+
+    setScheduleActionId(`${schedule.id}-cancel`);
+    setMessage("");
+    const { data, error } = await supabase
+      .from("challenge_schedules")
+      .update({ status: "Cancelled", confirmed_by: null, updated_at: new Date().toISOString() })
+      .eq("id", schedule.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not cancel the schedule: ${error.message}`);
+    } else if (data) {
+      const savedSchedule = data as ChallengeSchedule;
+      setChallengeSchedules((items) => items.map((item) => (item.id === schedule.id ? savedSchedule : item)));
+      setMessage("Match schedule cancelled. The challenge room is still open.");
+    }
+
+    setScheduleActionId(null);
   }
 
   async function joinChallenge(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -12436,6 +12774,9 @@ export default function Home() {
             const resultAllowed = canManageTeamResult(challenge);
             const roleNotice = teamPermissionLabel(challenge);
             const messages = roomMessages[challenge.id] || [];
+            const schedule = challengeSchedule(challenge.id);
+            const canCoordinate = canCoordinateChallenge(challenge);
+            const hasCoordinationPartner = hasChallengeCoordinationPartner(challenge);
 
             return (
             <article
@@ -12606,25 +12947,229 @@ export default function Home() {
                 </div>
               </div>
               <p>{challenge.rules}</p>
+              {canCoordinate && (
+                <section className="matchCoordinationPanel" aria-label="Private match coordination">
+                  <div className="matchCoordinationHeader">
+                    <div>
+                      <span>Private coordination</span>
+                      <strong>Set the match time and place</strong>
+                    </div>
+                    {schedule && (
+                      <em className={`scheduleStatus ${schedule.status.toLowerCase().replace(" ", "-")}`}>
+                        {schedule.status}
+                      </em>
+                    )}
+                  </div>
+                  <p className="coordinationPrivacyNote">
+                    Only the room creator and accepted challenger can see these details. Exact addresses, meeting notes,
+                    and private lobby links are never shown to the audience.
+                  </p>
+
+                  {!hasCoordinationPartner ? (
+                    <div className="scheduleCallout waiting">
+                      <strong>Waiting for a challenger</strong>
+                      <small>Scheduling unlocks after someone accepts your invite or joins this room as a challenger.</small>
+                    </div>
+                  ) : (
+                    <>
+                      {schedule && (
+                        <div className="scheduleSummary">
+                          <div>
+                            <span>Date and time</span>
+                            <strong>{formatChallengeSchedule(schedule)}</strong>
+                            <small>{schedule.timezone}</small>
+                          </div>
+                          <div>
+                            <span>Format</span>
+                            <strong>{schedule.play_mode}</strong>
+                            <small>{schedule.venue_name || "Private online session"}</small>
+                          </div>
+                          {schedule.meeting_details && (
+                            <div>
+                              <span>Meeting details</span>
+                              <strong>{schedule.meeting_details}</strong>
+                            </div>
+                          )}
+                          {schedule.note && (
+                            <div>
+                              <span>Participant note</span>
+                              <strong>{schedule.note}</strong>
+                            </div>
+                          )}
+                          {schedule.session_url && (
+                            <div>
+                              <span>Private session</span>
+                              <a href={schedule.session_url} rel="noreferrer" target="_blank">
+                                Open session link
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {schedule?.status === "Proposed" && schedule.proposed_by === session?.user.id && (
+                        <div className="scheduleCallout waiting">
+                          <strong>Waiting for confirmation</strong>
+                          <small>The other challenger can confirm this proposal or request changes.</small>
+                        </div>
+                      )}
+                      {schedule?.status === "Proposed" && schedule.proposed_by !== session?.user.id && (
+                        <div className="scheduleResponseActions">
+                          <button
+                            disabled={scheduleActionId !== null}
+                            onClick={() => respondToChallengeSchedule(schedule, "Confirmed")}
+                            type="button"
+                          >
+                            {scheduleActionId === `${schedule.id}-Confirmed` ? "Confirming..." : "Confirm schedule"}
+                          </button>
+                          <button
+                            className="secondaryAction"
+                            disabled={scheduleActionId !== null}
+                            onClick={() => respondToChallengeSchedule(schedule, "Changes requested")}
+                            type="button"
+                          >
+                            {scheduleActionId === `${schedule.id}-Changes requested` ? "Sending..." : "Request changes"}
+                          </button>
+                        </div>
+                      )}
+                      {schedule?.status === "Confirmed" && (
+                        <div className="scheduleCallout confirmed">
+                          <strong>Schedule confirmed</strong>
+                          <small>Both sides have agreed to these match details.</small>
+                        </div>
+                      )}
+                      {schedule?.status === "Changes requested" && (
+                        <div className="scheduleCallout changes">
+                          <strong>Changes requested</strong>
+                          <small>Use the form below to send a revised date, venue, or session link.</small>
+                        </div>
+                      )}
+                      {schedule?.status === "Cancelled" && (
+                        <div className="scheduleCallout cancelled">
+                          <strong>Schedule cancelled</strong>
+                          <small>The room remains open. Either participant can propose a new schedule below.</small>
+                        </div>
+                      )}
+
+                      <details
+                        className="scheduleEditor"
+                        open={!schedule || schedule.status === "Changes requested" || schedule.status === "Cancelled"}
+                        key={schedule?.updated_at || challenge.id}
+                      >
+                        <summary>
+                          {schedule
+                            ? schedule.status === "Confirmed"
+                              ? "Propose a schedule change"
+                              : "Revise the proposal"
+                            : "Propose time and place"}
+                        </summary>
+                        <form onSubmit={(event) => saveChallengeSchedule(event, challenge)}>
+                          <label>
+                            Match date and time
+                            <input
+                              defaultValue={localDateTimeValue(schedule?.scheduled_for)}
+                              name="scheduled_for"
+                              required
+                              type="datetime-local"
+                            />
+                          </label>
+                          <label>
+                            Match format
+                            <select defaultValue={schedule?.play_mode || "In person"} name="play_mode">
+                              <option>In person</option>
+                              <option>Online</option>
+                            </select>
+                          </label>
+                          <label>
+                            Venue name
+                            <input
+                              defaultValue={schedule?.venue_name || ""}
+                              maxLength={160}
+                              name="venue_name"
+                              placeholder="Required for in-person matches"
+                            />
+                          </label>
+                          <label>
+                            Private lobby or session link
+                            <input
+                              defaultValue={schedule?.session_url || ""}
+                              maxLength={500}
+                              name="session_url"
+                              placeholder="Required for online matches"
+                              type="url"
+                            />
+                          </label>
+                          <label className="wide">
+                            Exact meeting details
+                            <input
+                              defaultValue={schedule?.meeting_details || ""}
+                              maxLength={300}
+                              name="meeting_details"
+                              placeholder="Court number, entrance, room code, or check-in instructions"
+                            />
+                          </label>
+                          <label className="wide">
+                            Note for the other challenger
+                            <textarea
+                              defaultValue={schedule?.note || ""}
+                              maxLength={500}
+                              name="note"
+                              placeholder="Equipment, arrival time, match format, or anything they should bring"
+                              rows={3}
+                            />
+                          </label>
+                          <button disabled={scheduleActionId !== null} type="submit">
+                            {scheduleActionId === (schedule?.id || challenge.id) ? "Sending proposal..." : "Send proposal"}
+                          </button>
+                        </form>
+                      </details>
+
+                      {schedule && schedule.status !== "Cancelled" && (
+                        <button
+                          className="cancelScheduleButton"
+                          disabled={scheduleActionId !== null}
+                          onClick={() => confirmCancelChallengeSchedule(schedule)}
+                          type="button"
+                        >
+                          {scheduleActionId === `${schedule.id}-cancel` ? "Cancelling..." : "Cancel schedule"}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </section>
+              )}
               {(challenge.venue_name || challenge.booking_url || challenge.sport_type || challenge.booking_region) && (
                 <div className="bookingPanel">
-                  <div>
+                  <div className="bookingPanelIntro">
                     <span>Venue / booking</span>
                     <strong>{challenge.venue_name || "Booking link available"}</strong>
                     <small>
                       {[challenge.sport_type, challenge.booking_region].filter(Boolean).join(" / ") ||
                         "Add sport and region for better suggestions"}
                     </small>
+                    <small>Availability and final prices are controlled by each external provider.</small>
                   </div>
                   <div className="bookingActions">
                     {challenge.booking_url && (
-                      <a href={challenge.booking_url} rel="noreferrer" target="_blank">
-                        Book venue
+                      <a className="customBookingLink" href={challenge.booking_url} rel="noreferrer" target="_blank">
+                        <span>Room booking link</span>
+                        <strong>Open the organizer&apos;s booking page</strong>
+                        <small>Exact link shared by the room creator</small>
                       </a>
                     )}
                     {suggestedBookingLinks(challenge).map((link) => (
-                      <a href={link.url} key={link.label} rel="noreferrer" target="_blank">
-                        {link.label}
+                      <a
+                        className={link.recommended ? "recommendedBookingLink" : undefined}
+                        href={link.url}
+                        key={link.label}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        <span>
+                          {link.label}
+                          {link.recommended && <em>Recommended</em>}
+                        </span>
+                        <small>{link.detail}</small>
                       </a>
                     ))}
                   </div>
