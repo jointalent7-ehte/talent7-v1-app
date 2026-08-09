@@ -1419,6 +1419,7 @@ export default function Home() {
   const [accountDeletionActionId, setAccountDeletionActionId] = useState<string | null>(null);
   const [savingAccountDeletion, setSavingAccountDeletion] = useState(false);
   const [accountDeletionReloadKey, setAccountDeletionReloadKey] = useState(0);
+  const [accountDeletionFormUserId, setAccountDeletionFormUserId] = useState<string | null>(null);
   const [accountDeletionClock, setAccountDeletionClock] = useState(0);
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
@@ -3987,6 +3988,7 @@ export default function Home() {
     await supabase.auth.signOut();
     setAuthMode("Log in");
     setLoginPrompt("");
+    setAccountDeletionFormUserId(null);
     setMessage("Logged out.");
   }
 
@@ -4148,6 +4150,7 @@ export default function Home() {
       if (!response.ok || !result?.request) throw new Error(result?.error || "The deletion request could not be saved.");
 
       formElement.reset();
+      setAccountDeletionFormUserId(null);
       setAccountDeletionReloadKey((key) => key + 1);
       setMessage("Account deletion requested. You can cancel during the seven-day waiting period.", "success");
     } catch (error) {
@@ -4185,6 +4188,7 @@ export default function Home() {
         | null;
       if (!response.ok || !result?.request) throw new Error(result?.error || "The deletion request could not be cancelled.");
 
+      setAccountDeletionFormUserId(null);
       setAccountDeletionReloadKey((key) => key + 1);
       setMessage("Account deletion cancelled. Your account will remain active.", "success");
     } catch (error) {
@@ -8321,60 +8325,72 @@ export default function Home() {
                 <small>Manage support questions and account deletion requests from public Play Store-ready pages.</small>
               </div>
               <a href="/privacy">Privacy Policy</a>
-              <a href="#account-deletion">Delete account request</a>
+              <button
+                onClick={() => setAccountDeletionFormUserId(session.user.id)}
+                type="button"
+              >
+                {activeAccountDeletionRequest ? "View deletion request" : "Request account deletion"}
+              </button>
               <a href="/support">Support</a>
               <a href="/child-safety">Child safety standards</a>
             </div>
-            <div className="accountDeletionPanel" id="account-deletion">
-              <div>
-                <span>Account deletion</span>
-                <strong>{activeAccountDeletionRequest ? "Request in progress" : "Request permanent deletion"}</strong>
-                <small>
-                  {activeAccountDeletionRequest
-                    ? "Your account remains active during the seven-day cancellation window."
-                    : "Confirm your current password. A seven-day cancellation window starts when you submit."}
-                </small>
-              </div>
-              {activeAccountDeletionRequest ? (
-                <div className="accountDeletionStatus">
-                  <p><strong>{activeAccountDeletionRequest.status}</strong></p>
-                  <small>
-                    Requested {new Date(activeAccountDeletionRequest.created_at).toLocaleString()} · eligible after{" "}
-                    <time dateTime={activeAccountDeletionRequest.eligible_after}>
-                      {new Date(activeAccountDeletionRequest.eligible_after).toLocaleString()}
-                    </time>
-                  </small>
-                  {activeAccountDeletionRequest.reason && <p>{activeAccountDeletionRequest.reason}</p>}
-                  {activeAccountDeletionRequest.last_error && <p className="deletionError">{activeAccountDeletionRequest.last_error}</p>}
-                  <button
-                    disabled={accountDeletionActionId === activeAccountDeletionRequest.id || activeAccountDeletionRequest.status === "Deleting"}
-                    onClick={() => confirmCancelAccountDeletion(activeAccountDeletionRequest)}
-                    type="button"
-                  >
-                    {accountDeletionActionId === activeAccountDeletionRequest.id ? "Cancelling..." : "Cancel deletion and keep account"}
-                  </button>
+            {(activeAccountDeletionRequest || accountDeletionFormUserId === session.user.id) && (
+              <div className="accountDeletionPanel">
+                <div className="accountDeletionPanelHeader">
+                  <div>
+                    <span>Account deletion</span>
+                    <strong>{activeAccountDeletionRequest ? "Request in progress" : "Request permanent deletion"}</strong>
+                    <small>
+                      {activeAccountDeletionRequest
+                        ? "Your account remains active during the seven-day cancellation window."
+                        : "Confirm your current password. A seven-day cancellation window starts when you submit."}
+                    </small>
+                  </div>
+                  {!activeAccountDeletionRequest && (
+                    <button onClick={() => setAccountDeletionFormUserId(null)} type="button">Close</button>
+                  )}
                 </div>
-              ) : (
-                <form className="accountDeletionForm" onSubmit={submitAccountDeletionRequest}>
-                  <label>
-                    Reason (optional)
-                    <textarea maxLength={500} name="deletion_reason" placeholder="Tell us anything the reviewer should know." rows={3} />
-                  </label>
-                  <label>
-                    Current password
-                    <input autoComplete="current-password" name="deletion_password" placeholder="Current password" required type="password" />
-                  </label>
-                  <label>
-                    Type DELETE to confirm
-                    <input autoCapitalize="characters" autoComplete="off" name="deletion_confirmation" pattern="DELETE" placeholder="DELETE" required />
-                  </label>
-                  <button disabled={savingAccountDeletion} type="submit">
-                    {savingAccountDeletion ? "Submitting request..." : "Request account deletion"}
-                  </button>
-                  <small>Need help accessing the account? Use the <a href="/delete-account">public deletion page</a>.</small>
-                </form>
-              )}
-            </div>
+                {activeAccountDeletionRequest ? (
+                  <div className="accountDeletionStatus">
+                    <p><strong>{activeAccountDeletionRequest.status}</strong></p>
+                    <small>
+                      Requested {new Date(activeAccountDeletionRequest.created_at).toLocaleString()} · eligible after{" "}
+                      <time dateTime={activeAccountDeletionRequest.eligible_after}>
+                        {new Date(activeAccountDeletionRequest.eligible_after).toLocaleString()}
+                      </time>
+                    </small>
+                    {activeAccountDeletionRequest.reason && <p>{activeAccountDeletionRequest.reason}</p>}
+                    {activeAccountDeletionRequest.last_error && <p className="deletionError">{activeAccountDeletionRequest.last_error}</p>}
+                    <button
+                      disabled={accountDeletionActionId === activeAccountDeletionRequest.id || activeAccountDeletionRequest.status === "Deleting"}
+                      onClick={() => confirmCancelAccountDeletion(activeAccountDeletionRequest)}
+                      type="button"
+                    >
+                      {accountDeletionActionId === activeAccountDeletionRequest.id ? "Cancelling..." : "Cancel deletion and keep account"}
+                    </button>
+                  </div>
+                ) : (
+                  <form className="accountDeletionForm" onSubmit={submitAccountDeletionRequest}>
+                    <label>
+                      Reason (optional)
+                      <textarea maxLength={500} name="deletion_reason" placeholder="Tell us anything the reviewer should know." rows={3} />
+                    </label>
+                    <label>
+                      Current password
+                      <input autoComplete="current-password" name="deletion_password" placeholder="Current password" required type="password" />
+                    </label>
+                    <label>
+                      Type DELETE to confirm
+                      <input autoCapitalize="characters" autoComplete="off" name="deletion_confirmation" pattern="DELETE" placeholder="DELETE" required />
+                    </label>
+                    <button disabled={savingAccountDeletion} type="submit">
+                      {savingAccountDeletion ? "Submitting request..." : "Request account deletion"}
+                    </button>
+                    <small>Need help accessing the account? Use the <a href="/delete-account">public deletion page</a>.</small>
+                  </form>
+                )}
+              </div>
+            )}
             <form className="passwordForm" onSubmit={changePassword}>
               <div>
                 <span>Password</span>
