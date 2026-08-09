@@ -25,7 +25,7 @@ export default function DeleteAccountPage() {
           Log in to Talent7, open Account, and submit the verified deletion request. You can cancel it during the
           seven-day waiting period.
         </p>
-        <Link href="/#account-deletion">Open the deletion request form</Link>
+        <Link href="/#account">Log in to request account deletion</Link>
         <p>
           If you cannot access the account, email Talent7 from the same address you used to sign up and include your
           username if you know it.
