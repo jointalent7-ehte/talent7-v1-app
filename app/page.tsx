@@ -494,6 +494,7 @@ const sampleListenRooms: ListenRoom[] = [
 const sampleListenTracks: ListenTrack[] = [];
 const listenRoomsStorageKey = "talent7-listen-rooms";
 const listenTracksStorageKey = "talent7-listen-tracks";
+const roomViewerStorageKey = "talent7-room-viewer-id";
 
 function makeLocalListenId(prefix = "listen") {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -1363,6 +1364,11 @@ function PaginationControls({
 
 export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
+  const [roomViewCounts, setRoomViewCounts] = useState<Record<string, number>>({});
+  const [liveRoomPresenceCounts, setLiveRoomPresenceCounts] = useState<Record<string, number>>({});
+  const [activePresenceChallengeId, setActivePresenceChallengeId] = useState<string | null>(null);
+  const [roomViewerToken, setRoomViewerToken] = useState("");
+  const recordedRoomViewsRef = useRef<Set<string>>(new Set());
   const [roomPage, setRoomPage] = useState(1);
   const [profilePage, setProfilePage] = useState(1);
   const [opponentPage, setOpponentPage] = useState(1);
@@ -1698,6 +1704,21 @@ export default function Home() {
 
   const dismissNotice = useCallback((id: number) => {
     setNotices((current) => current.filter((notice) => notice.id !== id));
+  }, []);
+
+  const refreshRoomViewCounts = useCallback(async () => {
+    if (!supabase) return;
+
+    const { data, error } = await supabase.rpc("get_challenge_room_view_counts");
+    if (error) return;
+
+    const nextCounts = ((data || []) as Array<{ challenge_id: string; unique_views: number | string }>).reduce<
+      Record<string, number>
+    >((counts, row) => {
+      counts[row.challenge_id] = Number(row.unique_views) || 0;
+      return counts;
+    }, {});
+    setRoomViewCounts(nextCounts);
   }, []);
 
   function setMessage(text: string, tone?: NoticeTone) {
@@ -3584,6 +3605,39 @@ export default function Home() {
     });
   }
 
+  async function recordChallengeRoomView(challenge: Challenge) {
+    if (recordedRoomViewsRef.current.has(challenge.id)) return;
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      recordedRoomViewsRef.current.add(challenge.id);
+      setRoomViewCounts((current) => ({ ...current, [challenge.id]: (current[challenge.id] || 0) + 1 }));
+      return;
+    }
+    if (!session?.user.id && !roomViewerToken) return;
+
+    const { data, error } = await supabase.rpc("record_challenge_room_view", {
+      target_challenge_id: challenge.id,
+      anonymous_viewer_token: session?.user.id ? null : roomViewerToken
+    });
+    if (error) return;
+
+    recordedRoomViewsRef.current.add(challenge.id);
+    const result = (data as Array<{ room_id: string; unique_views: number | string }> | null)?.[0];
+    if (result) {
+      setRoomViewCounts((current) => ({ ...current, [result.room_id]: Number(result.unique_views) || 0 }));
+    }
+  }
+
+  function handleRoomWorkspaceToggle(event: FormEvent<HTMLDetailsElement>, challenge: Challenge) {
+    if (event.currentTarget.open) {
+      setActivePresenceChallengeId(challenge.id);
+      void recordChallengeRoomView(challenge);
+      return;
+    }
+
+    setActivePresenceChallengeId((current) => (current === challenge.id ? null : current));
+  }
+
   function roomChatHint(challenge: Challenge) {
     if (!session) return "Log in to read and send room messages.";
     if (!canUseRoomChat(challenge)) return "Join this challenge first to send room messages.";
@@ -3689,6 +3743,63 @@ export default function Home() {
 
     return () => window.removeEventListener("scroll", updateBackToTop);
   }, []);
+
+  useEffect(() => {
+    let viewerToken = "";
+    try {
+      viewerToken = window.localStorage.getItem(roomViewerStorageKey) || "";
+      if (!/^[0-9a-f-]{36}$/i.test(viewerToken)) {
+        viewerToken = crypto.randomUUID();
+        window.localStorage.setItem(roomViewerStorageKey, viewerToken);
+      }
+    } catch {
+      viewerToken = crypto.randomUUID();
+    }
+    setRoomViewerToken(viewerToken);
+  }, []);
+
+  useEffect(() => {
+    void refreshRoomViewCounts();
+  }, [refreshRoomViewCounts]);
+
+  useEffect(() => {
+    const presenceKey = session?.user.id || roomViewerToken;
+    if (!supabase || !activePresenceChallengeId || !presenceKey) return;
+
+    const supabaseClient = supabase;
+    const challengeId = activePresenceChallengeId;
+    const presenceChannel = supabaseClient.channel(`talent7-challenge-room-${challengeId}`, {
+      config: { presence: { key: presenceKey } }
+    });
+
+    const updatePresenceCount = () => {
+      const presenceState = presenceChannel.presenceState();
+      setLiveRoomPresenceCounts((current) => ({
+        ...current,
+        [challengeId]: Object.keys(presenceState).length
+      }));
+    };
+
+    presenceChannel
+      .on("presence", { event: "sync" }, updatePresenceCount)
+      .on("presence", { event: "join" }, updatePresenceCount)
+      .on("presence", { event: "leave" }, updatePresenceCount)
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          void presenceChannel.track({
+            room_id: challengeId,
+            visitor_type: session?.user.id ? "signed-in" : "guest",
+            opened_at: new Date().toISOString()
+          });
+        }
+      });
+
+    return () => {
+      void presenceChannel.untrack();
+      void supabaseClient.removeChannel(presenceChannel);
+      setLiveRoomPresenceCounts((current) => ({ ...current, [challengeId]: 0 }));
+    };
+  }, [activePresenceChallengeId, roomViewerToken, session?.user.id]);
 
   useEffect(() => {
     if (!notificationReadStorageKey) {
@@ -12821,14 +12932,27 @@ export default function Home() {
                   <strong>{roomResults[challenge.id]?.ratingAverage || "0.0"}</strong>
                   <span>Rating / 7</span>
                 </div>
+                <div>
+                  <strong>{roomViewCounts[challenge.id] || 0}</strong>
+                  <span>Unique views</span>
+                </div>
+                <div className={liveRoomPresenceCounts[challenge.id] ? "liveAudienceStat active" : "liveAudienceStat"}>
+                  <strong aria-live="polite">
+                    <i aria-hidden="true" />
+                    {liveRoomPresenceCounts[challenge.id] || 0}
+                  </strong>
+                  <span>In room now</span>
+                </div>
               </div>
-              <details className="roomWorkspace">
+              <details className="roomWorkspace" onToggle={(event) => handleRoomWorkspaceToggle(event, challenge)}>
                 <summary>
                   <span>{isChallengeCompleted(challenge) ? "View archived room" : "Open room"}</span>
                   <small>
-                    {isChallengeCompleted(challenge)
-                      ? "Result, proof, chat, and participants"
-                      : "Join, vote, proof, chat, and room tools"}
+                    {liveRoomPresenceCounts[challenge.id]
+                      ? `${liveRoomPresenceCounts[challenge.id]} in this room now`
+                      : isChallengeCompleted(challenge)
+                        ? "Result, proof, chat, and participants"
+                        : "Join, vote, proof, chat, and room tools"}
                   </small>
                 </summary>
                 <div className="roomWorkspaceBody">

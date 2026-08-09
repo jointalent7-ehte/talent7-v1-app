@@ -6746,6 +6746,46 @@ textarea {
   line-height: 1.25;
 }
 
+.roomOverviewStats .liveAudienceStat strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.liveAudienceStat i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  background: #aeb8b8;
+  border-radius: 50%;
+}
+
+.roomOverviewStats .liveAudienceStat.active {
+  background: #e5f6f3;
+  border-color: #91d1c8;
+}
+
+.liveAudienceStat.active strong {
+  color: #11635d;
+}
+
+.liveAudienceStat.active i {
+  background: #18a66e;
+  box-shadow: 0 0 0 4px rgb(24 166 110 / 16%);
+  animation: liveAudiencePulse 1.8s ease-out infinite;
+}
+
+@keyframes liveAudiencePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgb(24 166 110 / 16%);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px rgb(24 166 110 / 4%);
+  }
+}
+
 .roomWorkspace {
   overflow: hidden;
   background: #fff;
