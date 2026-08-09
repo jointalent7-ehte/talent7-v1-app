@@ -40,6 +40,7 @@ export default function TurnstileWidget({ action, onToken, resetKey, siteKey }: 
   const widgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const previousResetKeyRef = useRef(resetKey);
   const [scriptReady, setScriptReady] = useState(false);
+  const [verified, setVerified] = useState(false);
 
   const renderWidget = useCallback(() => {
     if (!siteKey || !scriptReady || !containerRef.current || !window.turnstile || widgetIdRef.current) return;
@@ -49,9 +50,18 @@ export default function TurnstileWidget({ action, onToken, resetKey, siteKey }: 
       action,
       theme: "light",
       size: window.matchMedia("(max-width: 420px)").matches ? "compact" : "flexible",
-      callback: onToken,
-      "expired-callback": () => onToken(""),
-      "error-callback": () => onToken("")
+      callback: (token) => {
+        setVerified(true);
+        onToken(token);
+      },
+      "expired-callback": () => {
+        setVerified(false);
+        onToken("");
+      },
+      "error-callback": () => {
+        setVerified(false);
+        onToken("");
+      }
     });
   }, [action, onToken, scriptReady, siteKey]);
 
@@ -62,6 +72,7 @@ export default function TurnstileWidget({ action, onToken, resetKey, siteKey }: 
   useEffect(() => {
     if (previousResetKeyRef.current === resetKey) return;
     previousResetKeyRef.current = resetKey;
+    setVerified(false);
     onToken("");
     if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
   }, [onToken, resetKey]);
@@ -84,7 +95,9 @@ export default function TurnstileWidget({ action, onToken, resetKey, siteKey }: 
         strategy="afterInteractive"
       />
       <div aria-label="Security verification" className="turnstileWidget" ref={containerRef} />
-      <small>Complete the security check to continue.</small>
+      <small aria-live="polite">
+        {verified ? "Security check completed." : "Complete the security check to continue."}
+      </small>
     </div>
   );
 }
