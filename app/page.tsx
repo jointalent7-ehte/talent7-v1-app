@@ -120,6 +120,7 @@ type ConfirmationRequest = {
   title: string;
   detail: string;
   confirmLabel: string;
+  cancelLabel?: string;
   onConfirm: () => void | Promise<void>;
 };
 
@@ -4186,6 +4187,7 @@ export default function Home() {
       title: "Cancel account deletion?",
       detail: "Your Talent7 account and content will remain active. You can submit a new request later.",
       confirmLabel: "Keep my account",
+      cancelLabel: "Continue with deletion",
       onConfirm: () => cancelAccountDeletion(request)
     });
   }
@@ -7935,7 +7937,9 @@ export default function Home() {
             <h2 id="confirmation-dialog-title">{confirmationRequest.title}</h2>
             <p id="confirmation-dialog-detail">{confirmationRequest.detail}</p>
             <div className="appConfirmActions">
-              <button data-confirm-cancel disabled={confirmationBusy} onClick={closeConfirmationDialog} type="button">Keep it</button>
+              <button data-confirm-cancel disabled={confirmationBusy} onClick={closeConfirmationDialog} type="button">
+                {confirmationRequest.cancelLabel || "Keep it"}
+              </button>
               <button className="confirmDanger" disabled={confirmationBusy} onClick={runConfirmedAction} type="button">
                 {confirmationBusy ? "Working..." : confirmationRequest.confirmLabel}
               </button>
