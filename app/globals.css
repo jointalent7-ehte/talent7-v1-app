@@ -3048,6 +3048,57 @@ textarea {
   font-weight: 800;
 }
 
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  max-width: 980px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(20, 23, 25, 0.06);
+}
+
+.paginationBar > small {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.paginationBar > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.paginationBar span {
+  min-width: 96px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
+.paginationBar button {
+  min-height: 42px;
+  padding: 10px 14px;
+  color: #fff;
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.paginationBar button:disabled {
+  color: var(--muted);
+  background: #eef4f4;
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
 .emptyState {
   max-width: 760px;
 }
@@ -7513,6 +7564,24 @@ textarea {
 
   .siteFooter nav {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .paginationBar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .paginationBar > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .paginationBar button {
+    width: 100%;
+    padding-inline: 10px;
   }
 }
 

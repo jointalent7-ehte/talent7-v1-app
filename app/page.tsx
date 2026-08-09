@@ -42,6 +42,10 @@ const maxVideoUploadBytes = 50 * 1024 * 1024;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
 const videoMimeTypes = ["video/mp4", "video/quicktime"];
 const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || "";
+const roomPageSize = 6;
+const profilePageSize = 8;
+const feedPageSize = 8;
+const notificationPageSize = 10;
 const challengeActivityGroups = [
   {
     label: "Popular challenges",
@@ -1159,8 +1163,67 @@ function MediaPreview({
   );
 }
 
+function PaginationControls({
+  currentPage,
+  label,
+  onPageChange,
+  pageSize,
+  targetId,
+  totalItems
+}: {
+  currentPage: number;
+  label: string;
+  onPageChange: (page: number) => void;
+  pageSize: number;
+  targetId: string;
+  totalItems: number;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  if (totalItems <= pageSize) return null;
+
+  const firstItem = (currentPage - 1) * pageSize + 1;
+  const lastItem = Math.min(currentPage * pageSize, totalItems);
+  const changePage = (page: number) => {
+    onPageChange(page);
+    window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  return (
+    <nav aria-label={`${label} pagination`} className="paginationBar">
+      <small>
+        Showing {firstItem}-{lastItem} of {totalItems}
+      </small>
+      <div>
+        <button
+          disabled={currentPage <= 1}
+          onClick={() => changePage(currentPage - 1)}
+          type="button"
+        >
+          Previous
+        </button>
+        <span aria-live="polite">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          disabled={currentPage >= totalPages}
+          onClick={() => changePage(currentPage + 1)}
+          type="button"
+        >
+          Next
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
+  const [roomPage, setRoomPage] = useState(1);
+  const [profilePage, setProfilePage] = useState(1);
+  const [feedPage, setFeedPage] = useState(1);
+  const [notificationPage, setNotificationPage] = useState(1);
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("Open");
   const [roomSearch, setRoomSearch] = useState("");
@@ -1979,8 +2042,7 @@ export default function Home() {
       });
 
     return [...createdItems, ...joinedItems, ...proofItems, ...showcaseItems, ...completedItems]
-      .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
-      .slice(0, 12);
+      .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime());
   }, [challenges, follows, joins, proofs, publicProfiles, session, showcasePosts]);
 
   const myActivity = useMemo(() => {
@@ -2903,6 +2965,65 @@ export default function Home() {
       return filterMatches && searchMatches;
     });
   }, [notificationSearch, notifications, readNotificationKeys, selectedNotificationFilter]);
+
+  const pagedChallenges = useMemo(
+    () => visibleChallenges.slice((roomPage - 1) * roomPageSize, roomPage * roomPageSize),
+    [roomPage, visibleChallenges]
+  );
+
+  const pagedProfiles = useMemo(
+    () => visibleProfiles.slice((profilePage - 1) * profilePageSize, profilePage * profilePageSize),
+    [profilePage, visibleProfiles]
+  );
+
+  const pagedFollowingFeed = useMemo(
+    () => followingFeed.slice((feedPage - 1) * feedPageSize, feedPage * feedPageSize),
+    [feedPage, followingFeed]
+  );
+
+  const pagedNotifications = useMemo(
+    () => visibleNotifications.slice(
+      (notificationPage - 1) * notificationPageSize,
+      notificationPage * notificationPageSize
+    ),
+    [notificationPage, visibleNotifications]
+  );
+
+  useEffect(() => {
+    setRoomPage(1);
+  }, [roomSearch, selectedActivityProfile, selectedLane, selectedStatus, showRecommendedOnly]);
+
+  useEffect(() => {
+    setProfilePage(1);
+  }, [profileSearch]);
+
+  useEffect(() => {
+    setNotificationPage(1);
+  }, [notificationSearch, selectedNotificationFilter]);
+
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil(visibleChallenges.length / roomPageSize));
+    setRoomPage((current) => Math.min(current, lastPage));
+  }, [visibleChallenges.length]);
+
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil(visibleProfiles.length / profilePageSize));
+    setProfilePage((current) => Math.min(current, lastPage));
+  }, [visibleProfiles.length]);
+
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil(followingFeed.length / feedPageSize));
+    setFeedPage((current) => Math.min(current, lastPage));
+  }, [followingFeed.length]);
+
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil(visibleNotifications.length / notificationPageSize));
+    setNotificationPage((current) => Math.min(current, lastPage));
+  }, [visibleNotifications.length]);
+
+  useEffect(() => {
+    if (createdChallengeId) setRoomPage(1);
+  }, [createdChallengeId]);
 
   const selectedProfileActivity = useMemo(() => {
     if (!selectedActivityProfile) return null;
@@ -5210,8 +5331,7 @@ export default function Home() {
       const { data } = await supabase
         .from("profiles")
         .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(12);
+        .order("updated_at", { ascending: false });
 
       if (data) setPublicProfiles(data as TalentProfile[]);
     }
@@ -8318,7 +8438,7 @@ export default function Home() {
                     <small>Try another filter or clear the search box.</small>
                   </div>
                 )}
-                {visibleNotifications.map((notification) => {
+                {pagedNotifications.map((notification) => {
                   const isRead = readNotificationKeys.includes(notificationKey(notification));
 
                   return (
@@ -8338,6 +8458,14 @@ export default function Home() {
                   );
                 })}
               </div>
+              <PaginationControls
+                currentPage={notificationPage}
+                label="Notifications"
+                onPageChange={setNotificationPage}
+                pageSize={notificationPageSize}
+                targetId="notifications"
+                totalItems={visibleNotifications.length}
+              />
             </>
           ) : (
             <div className="emptyState">
@@ -11025,16 +11153,17 @@ export default function Home() {
           </div>
         )}
         {publicProfiles.length > 0 ? (
-          <div className="profileGrid">
-            {visibleProfiles.length === 0 && (
-              <AppStatePanel
-                actionLabel="Clear profile search"
-                detail="Try all profiles again, then filter by a different name, role, interest, or region."
-                onAction={() => setProfileSearch("")}
-                title="No profiles found"
-              />
-            )}
-            {visibleProfiles.map((item) => (
+          <>
+            <div className="profileGrid">
+              {visibleProfiles.length === 0 && (
+                <AppStatePanel
+                  actionLabel="Clear profile search"
+                  detail="Try all profiles again, then filter by a different name, role, interest, or region."
+                  onAction={() => setProfileSearch("")}
+                  title="No profiles found"
+                />
+              )}
+              {pagedProfiles.map((item) => (
               <article key={item.user_id}>
                 <strong>{item.display_name}</strong>
                 <span>@{item.username}</span>
@@ -11089,8 +11218,17 @@ export default function Home() {
                   )}
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
+            <PaginationControls
+              currentPage={profilePage}
+              label="Profiles"
+              onPageChange={setProfilePage}
+              pageSize={profilePageSize}
+              targetId="profiles"
+              totalItems={visibleProfiles.length}
+            />
+          </>
         ) : (
           <AppStatePanel
             actionHref="#account"
@@ -11333,23 +11471,33 @@ export default function Home() {
         </div>
         {session ? (
           followingFeed.length > 0 ? (
-            <div className="feedList">
-              {followingFeed.map((item) => (
-                <article key={item.id}>
-                  <span>{item.action}</span>
-                  <strong>{item.actor}</strong>
-                  <a
-                    href={item.challengeId ? "#rooms" : "#showcase"}
-                    onClick={() => {
-                      if (item.challengeId) setRoomSearch(item.title);
-                    }}
-                  >
-                    {item.title}
-                  </a>
-                  <small>{item.detail}</small>
-                </article>
-              ))}
-            </div>
+            <>
+              <div className="feedList">
+                {pagedFollowingFeed.map((item) => (
+                  <article key={item.id}>
+                    <span>{item.action}</span>
+                    <strong>{item.actor}</strong>
+                    <a
+                      href={item.challengeId ? "#rooms" : "#showcase"}
+                      onClick={() => {
+                        if (item.challengeId) setRoomSearch(item.title);
+                      }}
+                    >
+                      {item.title}
+                    </a>
+                    <small>{item.detail}</small>
+                  </article>
+                ))}
+              </div>
+              <PaginationControls
+                currentPage={feedPage}
+                label="Following feed"
+                onPageChange={setFeedPage}
+                pageSize={feedPageSize}
+                targetId="following-feed"
+                totalItems={followingFeed.length}
+              />
+            </>
           ) : (
             <div className="emptyState">
               <strong>No following activity yet.</strong>
@@ -11805,7 +11953,7 @@ export default function Home() {
             tone="error"
           />
         )}
-        {visibleChallenges.length > 1 && <p className="roomSwipeHint">Swipe sideways to browse {visibleChallenges.length} rooms.</p>}
+        {visibleChallenges.length > 1 && <p className="roomSwipeHint">Swipe sideways to browse the rooms on this page.</p>}
         <div className="roomsGrid" aria-label={selectedStatus === "Completed" ? "Archived challenge rooms" : "Active challenge rooms"}>
           {visibleChallenges.length === 0 && (
             <AppStatePanel
@@ -11844,7 +11992,7 @@ export default function Home() {
               }
             />
           )}
-          {visibleChallenges.map((challenge) => {
+          {pagedChallenges.map((challenge) => {
             const proofAllowed = canManageTeamProof(challenge);
             const resultAllowed = canManageTeamResult(challenge);
             const roleNotice = teamPermissionLabel(challenge);
@@ -12359,6 +12507,14 @@ export default function Home() {
             );
           })}
         </div>
+        <PaginationControls
+          currentPage={roomPage}
+          label="Challenge rooms"
+          onPageChange={setRoomPage}
+          pageSize={roomPageSize}
+          targetId="rooms"
+          totalItems={visibleChallenges.length}
+        />
       </section>
 
       <section className="section leaderboard" id="leaderboard">
