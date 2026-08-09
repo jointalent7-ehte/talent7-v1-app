@@ -81,6 +81,7 @@ export async function POST(request: Request) {
   if (!body) return jsonError("The deletion request was invalid.", 400);
 
   const password = String(body.password || "");
+  const captchaToken = String(body.captchaToken || "");
   const confirmation = String(body.confirmation || "").trim().toUpperCase();
   const reason = String(body.reason || "").trim();
   const email = authenticated.user.email;
@@ -94,7 +95,11 @@ export async function POST(request: Request) {
   const verificationClient = createClient(config.url, config.anonKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
-  const verification = await verificationClient.auth.signInWithPassword({ email, password });
+  const verification = await verificationClient.auth.signInWithPassword({
+    email,
+    password,
+    options: { captchaToken: captchaToken || undefined }
+  });
   if (verification.error || verification.data.user?.id !== authenticated.user.id) {
     return jsonError("Your current password was not accepted.", 403);
   }
