@@ -324,10 +324,7 @@ const primaryTabs: {
     id: "coaching",
     label: "Coaching",
     firstSection: "coaching",
-    links: [
-      { label: "Coaching", href: "#coaching" },
-      { label: "Live concept", href: "#live-preview" }
-    ]
+    links: [{ label: "Coaching", href: "#coaching" }]
   },
   {
     id: "guidance",
@@ -387,7 +384,6 @@ const sectionTabMap: Record<string, AppTabId> = {
   leaderboard: "challenges",
   showcase: "showcase",
   coaching: "coaching",
-  "live-preview": "coaching",
   "expert-help": "guidance",
   "listen-rooms": "listen",
   teams: "teams",
@@ -890,13 +886,56 @@ type SafetyReportItem = {
 type AppNotification = {
   id: string;
   label: string;
-  category: "Invites" | "Teams" | "Proof" | "Results" | "Reports" | "Showcase" | "Expert help" | "Feedback";
+  category: "Invites" | "Teams" | "Live" | "Voting" | "Proof" | "Results" | "Reports" | "Showcase" | "Expert help" | "Feedback";
   title: string;
   detail: string;
   createdAt: string;
   href: string;
   challengeTitle?: string;
 };
+
+type PushNotificationEvent = {
+  id: string;
+  category: "Challenge invite" | "Challenge update" | "Live room" | "Voting" | "Proof and result" | "Social";
+  title: string;
+  body: string;
+  href: string;
+  created_at: string;
+};
+
+type PushNotificationPreferences = {
+  push_enabled: boolean;
+  challenge_invites: boolean;
+  challenge_updates: boolean;
+  live_rooms: boolean;
+  voting_windows: boolean;
+  proof_results: boolean;
+  social_updates: boolean;
+};
+
+type Talent7PushBridge = {
+  requestPermissionAndToken: () => void;
+};
+
+declare global {
+  interface Window {
+    Talent7Push?: Talent7PushBridge;
+  }
+}
+
+const defaultPushNotificationPreferences: PushNotificationPreferences = {
+  push_enabled: true,
+  challenge_invites: true,
+  challenge_updates: true,
+  live_rooms: true,
+  voting_windows: true,
+  proof_results: true,
+  social_updates: false
+};
+
+// Keep the completed push work dormant until Firebase, the Supabase migration,
+// and the delivery webhook are deliberately enabled together.
+const pushNotificationsEnabled = false;
 
 type NotificationFilter = "All" | "Unread" | AppNotification["category"];
 
@@ -916,6 +955,8 @@ const notificationFilterOptions: NotificationFilter[] = [
   "Unread",
   "Invites",
   "Teams",
+  "Live",
+  "Voting",
   "Proof",
   "Results",
   "Reports",
@@ -1800,6 +1841,12 @@ export default function Home() {
   const [playStoreDoneKeys, setPlayStoreDoneKeys] = useState<string[]>([]);
   const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
   const [notificationSearch, setNotificationSearch] = useState("");
+  const [pushNotificationEvents, setPushNotificationEvents] = useState<PushNotificationEvent[]>([]);
+  const [pushPreferences, setPushPreferences] = useState<PushNotificationPreferences>(defaultPushNotificationPreferences);
+  const [pushDeviceConnected, setPushDeviceConnected] = useState(false);
+  const [nativePushAvailable, setNativePushAvailable] = useState(false);
+  const [pushPreferencesLoading, setPushPreferencesLoading] = useState(false);
+  const [savingPushPreferences, setSavingPushPreferences] = useState(false);
 
   const dismissNotice = useCallback((id: number) => {
     setNotices((current) => current.filter((notice) => notice.id !== id));
@@ -2965,6 +3012,18 @@ export default function Home() {
       expertProfiles.filter((expert) => expert.user_id === userId).map((expert) => expert.id)
     );
 
+    const realtimeRoomAlerts = pushNotificationEvents
+      .filter((event) => event.category === "Live room" || event.category === "Voting")
+      .map((event) => ({
+        id: `notification-push-${event.id}`,
+        label: event.category === "Live room" ? "Live now" : "Voting open",
+        category: (event.category === "Live room" ? "Live" : "Voting") as AppNotification["category"],
+        title: event.title,
+        detail: event.body,
+        createdAt: event.created_at,
+        href: event.href
+      }));
+
     const receivedInviteAlerts = inviteInbox.received.map((invite) => ({
       id: `notification-invite-${invite.id}`,
       label: invite.status === "Pending" ? "New invite" : "Invite updated",
@@ -3195,6 +3254,7 @@ export default function Home() {
       }));
 
     return [
+      ...realtimeRoomAlerts,
       ...receivedInviteAlerts,
       ...sentInviteAlerts,
       ...teamOwnerAlerts,
@@ -3224,6 +3284,7 @@ export default function Home() {
     isOwnerReviewer,
     joins,
     mySafetyReports,
+    pushNotificationEvents,
     proofs,
     session,
     showcaseComments,
@@ -3627,6 +3688,38 @@ export default function Home() {
       return Array.from(merged);
     });
     void persistNotificationReads(keys);
+  }
+
+  async function savePushNotificationPreferences() {
+    if (!supabase || !session) return;
+    setSavingPushPreferences(true);
+
+    const { error } = await supabase.from("notification_preferences").upsert(
+      {
+        user_id: session.user.id,
+        ...pushPreferences,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "user_id" }
+    );
+
+    if (error) {
+      setMessage(`Notification preferences were not saved: ${error.message}`, "error");
+      setSavingPushPreferences(false);
+      return;
+    }
+
+    await supabase
+      .from("push_devices")
+      .update({ enabled: pushPreferences.push_enabled, updated_at: new Date().toISOString() })
+      .eq("user_id", session.user.id);
+
+    if (pushPreferences.push_enabled) {
+      window.Talent7Push?.requestPermissionAndToken();
+    }
+
+    setMessage("Notification preferences saved.", "success");
+    setSavingPushPreferences(false);
   }
 
   function validateUploadFile(file: File) {
@@ -4228,6 +4321,120 @@ export default function Home() {
       void supabaseClient.removeChannel(presenceChannel);
     };
   }, [activePresenceChallengeId, roomViewerToken, session?.user.id]);
+
+  useEffect(() => {
+    if (!pushNotificationsEnabled || !supabase || !session?.user.id) {
+      setPushPreferences(defaultPushNotificationPreferences);
+      setPushDeviceConnected(false);
+      return;
+    }
+
+    const supabaseClient = supabase;
+    const userId = session.user.id;
+    let cancelled = false;
+    setNativePushAvailable(Boolean(window.Talent7Push));
+    setPushPreferencesLoading(true);
+
+    async function loadPushSettings() {
+      const [{ data: preferences }, { data: devices }] = await Promise.all([
+        supabaseClient.from("notification_preferences").select("*").eq("user_id", userId).maybeSingle(),
+        supabaseClient.from("push_devices").select("id").eq("user_id", userId).eq("enabled", true).limit(1)
+      ]);
+
+      if (cancelled) return;
+      const resolvedPreferences = preferences
+        ? {
+          push_enabled: preferences.push_enabled,
+          challenge_invites: preferences.challenge_invites,
+          challenge_updates: preferences.challenge_updates,
+          live_rooms: preferences.live_rooms,
+          voting_windows: preferences.voting_windows,
+          proof_results: preferences.proof_results,
+          social_updates: preferences.social_updates
+        }
+        : defaultPushNotificationPreferences;
+
+      setPushPreferences(resolvedPreferences);
+      if (resolvedPreferences.push_enabled) {
+        window.Talent7Push?.requestPermissionAndToken();
+      }
+      setPushDeviceConnected(Boolean(devices?.length));
+      setPushPreferencesLoading(false);
+    }
+
+    async function handleNativePushToken(event: Event) {
+      const detail = (event as CustomEvent<{ token?: string }>).detail;
+      const token = detail?.token?.trim() || "";
+      if (token.length < 32) return;
+
+      const { error } = await supabaseClient.rpc("register_push_device", {
+        target_token: token,
+        target_platform: "Android",
+        target_device_name: navigator.userAgent.slice(0, 120)
+      });
+
+      if (cancelled) return;
+      if (error) {
+        setPushDeviceConnected(false);
+        setMessage(`Push registration failed: ${error.message}`, "error");
+        return;
+      }
+      setPushDeviceConnected(true);
+      setMessage("This Android device is ready for Talent7 notifications.", "success");
+    }
+
+    window.addEventListener("talent7-native-push-token", handleNativePushToken);
+    void loadPushSettings();
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("talent7-native-push-token", handleNativePushToken);
+    };
+  }, [session?.user.id]);
+
+  useEffect(() => {
+    if (!pushNotificationsEnabled || !supabase || !session?.user.id) {
+      setPushNotificationEvents([]);
+      return;
+    }
+
+    const supabaseClient = supabase;
+    const userId = session.user.id;
+    let cancelled = false;
+
+    async function loadPushNotificationEvents() {
+      const { data } = await supabaseClient
+        .from("push_notification_events")
+        .select("id, category, title, body, href, created_at")
+        .eq("user_id", userId)
+        .in("category", ["Live room", "Voting"])
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      if (!cancelled) setPushNotificationEvents((data || []) as PushNotificationEvent[]);
+    }
+
+    const channel = supabaseClient
+      .channel(`talent7-push-events-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "push_notification_events", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const event = payload.new as PushNotificationEvent;
+          if (event.category !== "Live room" && event.category !== "Voting") return;
+          setPushNotificationEvents((items) => [event, ...items.filter((item) => item.id !== event.id)].slice(0, 30));
+          setMessage(event.title, "info");
+        }
+      )
+      .subscribe();
+
+    void loadPushNotificationEvents();
+
+    return () => {
+      cancelled = true;
+      void supabaseClient.removeChannel(channel);
+    };
+  }, [session?.user.id]);
 
   useEffect(() => {
     if (!notificationReadStorageKey) {
@@ -9543,10 +9750,61 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Notifications</p>
           <h2>What needs your attention</h2>
-          <p>See invites, team requests, proof uploads, completed challenges, report updates, expert help, and showcase comments in one place.</p>
+          <p>See invites, team requests, live rooms, voting windows, proof uploads, results, report updates, expert help, and showcase comments in one place.</p>
         </div>
         {session ? (
-          notifications.length > 0 ? (
+          <>
+            {pushNotificationsEnabled && <div className="pushPreferencesCard">
+              <div className="pushPreferencesHeader">
+                <div>
+                  <span>Android push notifications</span>
+                  <strong>{pushDeviceConnected ? "This device is connected" : "Connect the Talent7 Android app"}</strong>
+                  <small>
+                    {pushDeviceConnected
+                      ? "Important updates can reach this phone even when Talent7 is closed."
+                      : "Open this account in the updated Android app and allow notifications to connect the phone."}
+                  </small>
+                </div>
+                <span className={pushDeviceConnected ? "pushDeviceStatus connected" : "pushDeviceStatus"}>
+                  {pushPreferencesLoading ? "Checking..." : pushDeviceConnected ? "Connected" : "Not connected"}
+                </span>
+              </div>
+              <div className="pushPreferenceGrid">
+                {([
+                  ["push_enabled", "Allow push notifications"],
+                  ["challenge_invites", "Challenge invitations"],
+                  ["challenge_updates", "Accepted, declined, and completed challenges"],
+                  ["live_rooms", "Rooms going live"],
+                  ["voting_windows", "Voting windows opening"],
+                  ["proof_results", "Proof and result updates"],
+                  ["social_updates", "Social updates"]
+                ] as Array<[keyof PushNotificationPreferences, string]>).map(([key, label]) => (
+                  <label className={key !== "push_enabled" && !pushPreferences.push_enabled ? "disabled" : ""} key={key}>
+                    <input
+                      checked={pushPreferences[key]}
+                      disabled={key !== "push_enabled" && !pushPreferences.push_enabled}
+                      onChange={(event) =>
+                        setPushPreferences((current) => ({ ...current, [key]: event.target.checked }))
+                      }
+                      type="checkbox"
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="pushPreferencesActions">
+                <button disabled={savingPushPreferences || pushPreferencesLoading} onClick={savePushNotificationPreferences} type="button">
+                  {savingPushPreferences ? "Saving..." : "Save notification preferences"}
+                </button>
+                {pushPreferences.push_enabled && !pushDeviceConnected && nativePushAvailable && (
+                  <button className="secondary" onClick={() => window.Talent7Push?.requestPermissionAndToken()} type="button">
+                    Connect this phone
+                  </button>
+                )}
+              </div>
+              <small className="pushPrivacyNote">Device tokens are private, linked only to your signed-in account, and removed when the account is deleted.</small>
+            </div>}
+            {notifications.length > 0 ? (
             <>
               <div className="notificationToolbar">
                 <strong>
@@ -9566,7 +9824,7 @@ export default function Home() {
                 />
               </label>
               <div className="notificationFilters">
-                {(["All", "Unread", "Invites", "Teams", "Proof", "Results", "Reports", "Showcase", "Expert help"] as NotificationFilter[]).map(
+                {(["All", "Unread", "Invites", "Teams", "Live", "Voting", "Proof", "Results", "Reports", "Showcase", "Expert help"] as NotificationFilter[]).map(
                   (filter) => (
                     <button
                       className={selectedNotificationFilter === filter ? "active" : ""}
@@ -9620,7 +9878,8 @@ export default function Home() {
               <strong>No notifications yet.</strong>
               <small>Invites, team updates, proof uploads, expert help, reports, and comments will appear here.</small>
             </div>
-          )
+          )}
+          </>
         ) : (
           <div className="emptyState">
             <strong>Log in to see notifications.</strong>
@@ -10508,10 +10767,6 @@ export default function Home() {
           <article>
             <span>Coaching offers</span>
             <strong>{coachOffers.length}</strong>
-          </article>
-          <article>
-            <span>Payment status</span>
-            <strong>Placeholder</strong>
           </article>
         </div>
         <div className="coachOfferGrid">
@@ -11622,60 +11877,6 @@ export default function Home() {
               <a href="#account">Go to account</a>
             </div>
           )}
-        </div>
-      </section>
-
-      <section className="section livePreviewSection" id="live-preview">
-        <div className="sectionHeader">
-          <p className="eyebrow">Concept preview</p>
-          <h2>Explore the planned two-screen arena</h2>
-          <p>See how challengers, reactions, ratings, coaching, and expert guidance could work together in a live Talent7 experience.</p>
-        </div>
-        <div className="conceptNotice">
-          <strong>Design concept—not a live room</strong>
-          <span>The screens and controls below demonstrate the direction only. No camera, microphone, reaction, rating, or vote is submitted here.</span>
-        </div>
-        <div className="livePreviewGrid">
-          <div className="liveBattleMock">
-            <div className="liveStatus">
-              <span>Concept only</span>
-              <strong>Two-screen battle</strong>
-            </div>
-            <div className="liveScreens">
-              <article>
-                <span>Breakdance</span>
-                <strong>Arya</strong>
-                <small>Round 2 / 60 seconds</small>
-              </article>
-              <article>
-                <span>Calisthenics</span>
-                <strong>Mateo</strong>
-                <small>Round 2 / 60 seconds</small>
-              </article>
-            </div>
-            <div className="liveReactionBar">
-              <button disabled title="Concept preview" type="button">Love reaction</button>
-              <button disabled title="Concept preview" type="button">Rate 7 stars</button>
-              <button disabled title="Concept preview" type="button">Vote winner</button>
-            </div>
-          </div>
-          <div className="liveModules">
-            <article>
-              <span>Talent battles</span>
-              <strong>Two challengers, one screen</strong>
-              <p>Breakdance, calisthenics, singing, freestyle, or any talent format with both competitors visible side by side.</p>
-            </article>
-            <article>
-              <span>Sports coaching</span>
-              <strong>Coach watches live</strong>
-              <p>A planned view for instructors to observe form, give feedback, and connect sessions with uploaded coaching videos.</p>
-            </article>
-            <article>
-              <span>Expert help</span>
-              <strong>Guided video support</strong>
-              <p>A planned view for verified helpers to respond to non-life-threatening problems with safety rules and reporting tools.</p>
-            </article>
-          </div>
         </div>
       </section>
 

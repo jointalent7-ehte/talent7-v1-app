@@ -1105,7 +1105,6 @@ main.appTab-challenges > #create,
 main.appTab-challenges > #leaderboard,
 main.appTab-showcase > #showcase,
 main.appTab-coaching > #coaching,
-main.appTab-coaching > #live-preview,
 main.appTab-guidance > #expert-help,
 main.appTab-listen > #listen-rooms,
 main.appTab-teams > #teams,
@@ -1135,7 +1134,6 @@ main.appView-coaching > #coaching,
 main.appView-teams > #teams,
 main.appView-safety > #safety,
 main.appView-expert-help > #expert-help,
-main.appView-live-preview > #live-preview,
 main.appView-plans > #plans,
 main.appView-feedback > #feedback,
 main.appView-launch-control > #launch-control,
@@ -2879,6 +2877,147 @@ textarea {
   background: #f7fafa;
 }
 
+.pushPreferencesCard {
+  display: grid;
+  gap: 16px;
+  max-width: 980px;
+  margin-bottom: 18px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 14px 38px rgba(20, 23, 25, 0.07);
+}
+
+.pushPreferencesHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pushPreferencesHeader > div {
+  display: grid;
+  gap: 5px;
+}
+
+.pushPreferencesHeader > div > span {
+  color: var(--teal);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pushPreferencesHeader strong {
+  font-size: 1.2rem;
+}
+
+.pushPreferencesHeader small,
+.pushPrivacyNote {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.pushDeviceStatus {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  color: #825500;
+  background: #fff4ce;
+  border: 1px solid #eacb77;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.pushDeviceStatus.connected {
+  color: #075f43;
+  background: #ddf8ec;
+  border-color: #8ad5b7;
+}
+
+.pushPreferenceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pushPreferenceGrid label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 11px 12px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 820;
+  cursor: pointer;
+}
+
+.pushPreferenceGrid label.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pushPreferenceGrid input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--teal);
+}
+
+.pushPreferencesActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pushPreferencesActions button {
+  min-height: 44px;
+  padding: 11px 14px;
+  color: #fff;
+  background: var(--teal);
+  border: 1px solid var(--teal);
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pushPreferencesActions button.secondary {
+  color: var(--ink);
+  background: #fff;
+  border-color: var(--line);
+}
+
+.pushPreferencesActions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+@media (max-width: 700px) {
+  .pushPreferencesCard {
+    padding: 14px;
+  }
+
+  .pushPreferencesHeader {
+    display: grid;
+  }
+
+  .pushDeviceStatus {
+    width: fit-content;
+  }
+
+  .pushPreferenceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pushPreferencesActions,
+  .pushPreferencesActions button {
+    width: 100%;
+  }
+}
+
 .notificationList {
   display: grid;
   gap: 12px;
@@ -3543,7 +3682,7 @@ textarea {
 
 .coachStats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -5063,127 +5202,6 @@ textarea {
   color: var(--muted);
   background: #e8f0f0;
   cursor: not-allowed;
-}
-
-.livePreviewSection {
-  color: #fff;
-  background: var(--ink);
-}
-
-.livePreviewSection .sectionHeader p:not(.eyebrow) {
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.conceptNotice {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px 16px;
-  align-items: center;
-  margin-bottom: 14px;
-  padding: 14px 16px;
-  color: #fff;
-  background: rgba(242, 189, 69, 0.12);
-  border: 1px solid rgba(242, 189, 69, 0.6);
-  border-radius: 8px;
-}
-
-.conceptNotice strong {
-  color: var(--yellow);
-}
-
-.conceptNotice span {
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 750;
-  line-height: 1.5;
-}
-
-.liveReactionBar button:disabled {
-  cursor: not-allowed;
-  opacity: 0.58;
-}
-
-.livePreviewGrid {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 14px;
-}
-
-.liveBattleMock,
-.liveModules article {
-  display: grid;
-  gap: 14px;
-  padding: 18px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-}
-
-.liveStatus {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.liveStatus span,
-.liveModules span {
-  width: fit-content;
-  padding: 7px 9px;
-  color: var(--ink);
-  background: #fff;
-  border-radius: 8px;
-  font-size: 0.76rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.liveScreens {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.liveScreens article {
-  min-height: 260px;
-  display: grid;
-  align-content: end;
-  gap: 6px;
-  padding: 16px;
-  background:
-    linear-gradient(180deg, rgba(15, 143, 140, 0.16), rgba(239, 102, 84, 0.44)),
-    #263032;
-  border-radius: 8px;
-}
-
-.liveScreens strong {
-  font-size: 1.8rem;
-}
-
-.liveScreens small,
-.liveModules p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.74);
-  line-height: 1.5;
-}
-
-.liveReactionBar {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.liveReactionBar button {
-  min-height: 46px;
-  color: var(--ink);
-  background: #fff;
-  border: 0;
-  border-radius: 8px;
-  font-weight: 850;
-}
-
-.liveModules {
-  display: grid;
-  gap: 10px;
 }
 
 .plansSection {
@@ -8316,10 +8334,6 @@ textarea {
   .expertFilterPanel,
   .expertProfileGrid,
   .expertReputationGrid,
-  .livePreviewGrid,
-  .conceptNotice,
-  .liveScreens,
-  .liveReactionBar,
   .inviteGrid,
   .joinForm,
   .resultForm,
@@ -9170,7 +9184,6 @@ textarea {
   .expertHelpForm,
   .expertProfilePanel,
   .expertProfileForm,
-  .liveBattleMock,
   .plansGrid article,
   .contributionBox,
   .safetyInbox,
@@ -9257,11 +9270,6 @@ textarea {
     white-space: normal;
   }
 
-  .liveScreens article {
-    min-height: 210px;
-  }
-
-  .liveStatus,
   .safetyInboxHeader,
   .dashboardPanels article > div,
   .bookingPanel {
