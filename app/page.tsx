@@ -16,6 +16,7 @@ import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
 type ChallengeStatusFilter = "All" | "Open" | "Completed";
+type RoomDiscoveryMode = "Live" | "Trending" | "For you" | "Newest";
 type ExpertHelpType =
   | "Medical guidance"
   | "Fitness injury"
@@ -1376,6 +1377,8 @@ export default function Home() {
   const [notificationPage, setNotificationPage] = useState(1);
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
   const [selectedStatus, setSelectedStatus] = useState<ChallengeStatusFilter>("Open");
+  const [roomDiscoveryMode, setRoomDiscoveryMode] = useState<RoomDiscoveryMode>("Trending");
+  const [roomRankingTimestamp, setRoomRankingTimestamp] = useState(0);
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [activeAppTab, setActiveAppTab] = useState<AppTabId>("challenges");
@@ -1596,7 +1599,6 @@ export default function Home() {
   const [notices, setNotices] = useState<AppNotice[]>([]);
   const [authHydrated, setAuthHydrated] = useState(!hasSupabaseConfig);
   const [profileHydrated, setProfileHydrated] = useState(!hasSupabaseConfig);
-  const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
   const [challengeLoadError, setChallengeLoadError] = useState("");
   const [challengeReloadKey, setChallengeReloadKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -1906,6 +1908,26 @@ export default function Home() {
     }, {});
   }, [challenges, joinCounts, roomProofs, roomResults]);
 
+  const trendingScores = useMemo(() => {
+    return challenges.reduce<Record<string, number>>((scores, challenge) => {
+      const ageHours = roomRankingTimestamp
+        ? Math.max(0, (roomRankingTimestamp - new Date(challenge.created_at).getTime()) / 3_600_000)
+        : Number.POSITIVE_INFINITY;
+      const freshnessBoost = ageHours <= 24 ? 12 : ageHours <= 72 ? 8 : ageHours <= 168 ? 4 : 0;
+      const uniqueViewScore = Math.log2((roomViewCounts[challenge.id] || 0) + 1) * 3;
+      const liveAudienceScore = (liveRoomPresenceCounts[challenge.id] || 0) * 10;
+      const conversationScore = (roomMessages[challenge.id]?.length || 0) * 1.5;
+
+      scores[challenge.id] =
+        (activityScores[challenge.id] || 0) +
+        uniqueViewScore +
+        liveAudienceScore +
+        conversationScore +
+        freshnessBoost;
+      return scores;
+    }, {});
+  }, [activityScores, challenges, liveRoomPresenceCounts, roomMessages, roomRankingTimestamp, roomViewCounts]);
+
   const challengeMatchesProfileActivity = useCallback((challenge: Challenge, item: TalentProfile) => {
     const terms = [item.display_name, item.username, item.main_interest]
       .filter(Boolean)
@@ -1952,8 +1974,12 @@ export default function Home() {
       const statusMatches = selectedStatus === "All" || challenge.status === selectedStatus;
       const profileActivityMatches =
         !selectedActivityProfile || challengeMatchesProfileActivity(challenge, selectedActivityProfile);
-      const recommendationMatches =
-        !showRecommendedOnly || challengeInterestScore(challenge, savedInterest) > 0;
+      const discoveryMatches =
+        selectedStatus === "Completed" ||
+        roomDiscoveryMode === "Trending" ||
+        roomDiscoveryMode === "Newest" ||
+        (roomDiscoveryMode === "Live" && (liveRoomPresenceCounts[challenge.id] || 0) > 0) ||
+        (roomDiscoveryMode === "For you" && challengeInterestScore(challenge, savedInterest) > 0);
       const searchableText = [
         challenge.title,
         challenge.lane,
@@ -1967,45 +1993,57 @@ export default function Home() {
         .toLowerCase();
       const searchMatches = !search || searchableText.includes(search);
 
-      return laneMatches && statusMatches && profileActivityMatches && recommendationMatches && searchMatches;
+      return laneMatches && statusMatches && profileActivityMatches && discoveryMatches && searchMatches;
     });
 
     return [...filteredChallenges].sort((first, second) => {
-      const shouldPersonalize =
-        Boolean(savedInterest) &&
-        !search &&
-        selectedLane === "All" &&
-        selectedStatus === "Open" &&
-        !selectedActivityProfile;
+      if (selectedStatus === "Completed") {
+        const firstCompletedAt = new Date(first.completed_at || first.created_at).getTime();
+        const secondCompletedAt = new Date(second.completed_at || second.created_at).getTime();
+        return secondCompletedAt - firstCompletedAt;
+      }
 
-      if (shouldPersonalize) {
+      if (roomDiscoveryMode === "Live") {
+        const audienceDifference =
+          (liveRoomPresenceCounts[second.id] || 0) - (liveRoomPresenceCounts[first.id] || 0);
+        if (audienceDifference !== 0) return audienceDifference;
+      }
+
+      if (roomDiscoveryMode === "For you") {
         const interestDifference =
           challengeInterestScore(second, savedInterest) - challengeInterestScore(first, savedInterest);
         if (interestDifference !== 0) return interestDifference;
       }
 
-      const scoreDifference = (activityScores[second.id] || 0) - (activityScores[first.id] || 0);
-      if (scoreDifference !== 0) return scoreDifference;
+      if (roomDiscoveryMode !== "Newest") {
+        const scoreDifference = (trendingScores[second.id] || 0) - (trendingScores[first.id] || 0);
+        if (scoreDifference !== 0) return scoreDifference;
+      }
+
       return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
     });
   }, [
-    activityScores,
     challengeMatchesProfileActivity,
     challenges,
+    liveRoomPresenceCounts,
+    profile?.main_interest,
+    roomDiscoveryMode,
     roomSearch,
     selectedActivityProfile,
     selectedLane,
     selectedStatus,
-    profile?.main_interest,
-    showRecommendedOnly
+    trendingScores
   ]);
 
   const roomCollectionCounts = useMemo(
     () => ({
       active: challenges.filter((challenge) => challenge.status !== "Completed").length,
-      archived: challenges.filter((challenge) => challenge.status === "Completed").length
+      archived: challenges.filter((challenge) => challenge.status === "Completed").length,
+      live: challenges.filter(
+        (challenge) => challenge.status !== "Completed" && (liveRoomPresenceCounts[challenge.id] || 0) > 0
+      ).length
     }),
-    [challenges]
+    [challenges, liveRoomPresenceCounts]
   );
 
   const recommendedRoomCount = useMemo(
@@ -3211,7 +3249,7 @@ export default function Home() {
 
   useEffect(() => {
     setRoomPage(1);
-  }, [roomSearch, selectedActivityProfile, selectedLane, selectedStatus, showRecommendedOnly]);
+  }, [roomDiscoveryMode, roomSearch, selectedActivityProfile, selectedLane, selectedStatus]);
 
   useEffect(() => {
     setProfilePage(1);
@@ -3229,6 +3267,15 @@ export default function Home() {
     const lastPage = Math.max(1, Math.ceil(visibleChallenges.length / roomPageSize));
     setRoomPage((current) => Math.min(current, lastPage));
   }, [visibleChallenges.length]);
+
+  useEffect(() => {
+    if (!activePresenceChallengeId) return;
+
+    const roomIsVisible = visibleChallenges.some((challenge) => challenge.id === activePresenceChallengeId);
+    if (activeAppTab !== "challenges" || activeSection !== "rooms" || !roomIsVisible) {
+      setActivePresenceChallengeId(null);
+    }
+  }, [activeAppTab, activePresenceChallengeId, activeSection, visibleChallenges]);
 
   useEffect(() => {
     const lastPage = Math.max(1, Math.ceil(visibleProfiles.length / profilePageSize));
@@ -3745,6 +3792,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const updateRankingClock = () => setRoomRankingTimestamp(new Date().getTime());
+    updateRankingClock();
+    const intervalId = window.setInterval(updateRankingClock, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
     let viewerToken = "";
     try {
       viewerToken = window.localStorage.getItem(roomViewerStorageKey) || "";
@@ -3764,20 +3819,28 @@ export default function Home() {
 
   useEffect(() => {
     const presenceKey = session?.user.id || roomViewerToken;
-    if (!supabase || !activePresenceChallengeId || !presenceKey) return;
+    if (!supabase || !presenceKey) return;
 
     const supabaseClient = supabase;
-    const challengeId = activePresenceChallengeId;
-    const presenceChannel = supabaseClient.channel(`talent7-challenge-room-${challengeId}`, {
+    const presenceChannel = supabaseClient.channel("talent7-challenge-room-presence", {
       config: { presence: { key: presenceKey } }
     });
 
     const updatePresenceCount = () => {
       const presenceState = presenceChannel.presenceState();
-      setLiveRoomPresenceCounts((current) => ({
-        ...current,
-        [challengeId]: Object.keys(presenceState).length
-      }));
+      const nextCounts: Record<string, number> = {};
+
+      Object.values(presenceState).forEach((presenceEntries) => {
+        const roomsForVisitor = new Set<string>();
+        (presenceEntries as Array<{ challenge_id?: string }>).forEach((entry) => {
+          if (entry.challenge_id) roomsForVisitor.add(entry.challenge_id);
+        });
+        roomsForVisitor.forEach((challengeId) => {
+          nextCounts[challengeId] = (nextCounts[challengeId] || 0) + 1;
+        });
+      });
+
+      setLiveRoomPresenceCounts(nextCounts);
     };
 
     presenceChannel
@@ -3785,9 +3848,9 @@ export default function Home() {
       .on("presence", { event: "join" }, updatePresenceCount)
       .on("presence", { event: "leave" }, updatePresenceCount)
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
+        if (status === "SUBSCRIBED" && activePresenceChallengeId) {
           void presenceChannel.track({
-            room_id: challengeId,
+            challenge_id: activePresenceChallengeId,
             visitor_type: session?.user.id ? "signed-in" : "guest",
             opened_at: new Date().toISOString()
           });
@@ -3797,7 +3860,6 @@ export default function Home() {
     return () => {
       void presenceChannel.untrack();
       void supabaseClient.removeChannel(presenceChannel);
-      setLiveRoomPresenceCounts((current) => ({ ...current, [challengeId]: 0 }));
     };
   }, [activePresenceChallengeId, roomViewerToken, session?.user.id]);
 
@@ -3929,6 +3991,7 @@ export default function Home() {
       setActiveSection("rooms");
       setSelectedLane("All");
       setSelectedStatus(isChallengeCompleted(match) ? "Completed" : "Open");
+      setRoomDiscoveryMode(isChallengeCompleted(match) ? "Newest" : "Trending");
       setRoomSearch("");
       setHighlightedChallengeId(match.id);
       setTimeout(() => document.getElementById(roomHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
@@ -4927,7 +4990,7 @@ export default function Home() {
     setSelectedLane("All");
     setRoomSearch("");
     setSelectedActivityProfile(null);
-    setShowRecommendedOnly(false);
+    setRoomDiscoveryMode("Trending");
     scrollToRoomShelf();
   }
 
@@ -4938,7 +5001,7 @@ export default function Home() {
     setSelectedLane("All");
     setRoomSearch("");
     setSelectedActivityProfile(null);
-    setShowRecommendedOnly(true);
+    setRoomDiscoveryMode("For you");
     setMessage(
       recommendedRoomCount > 0
         ? `${recommendedRoomCount} room${recommendedRoomCount === 1 ? "" : "s"} match ${profile.main_interest}.`
@@ -5847,7 +5910,7 @@ export default function Home() {
 
         return [savedProfile, ...others];
       });
-      setShowRecommendedOnly(false);
+      setRoomDiscoveryMode("Trending");
       setMessage("Profile and challenge preferences saved.");
       window.setTimeout(() => openSection("rooms", true), 80);
     }
@@ -5986,6 +6049,7 @@ export default function Home() {
       setCreatedChallengeId(localChallenge.id);
       setSelectedLane(challenge.lane);
       setSelectedStatus("Open");
+      setRoomDiscoveryMode("Newest");
       setMessage("Preview mode: challenge added in this browser session.");
       setIsSaving(false);
       formElement.reset();
@@ -6012,6 +6076,7 @@ export default function Home() {
 
       setChallenges((items) => [savedChallenge, ...items]);
       setSelectedStatus("Open");
+      setRoomDiscoveryMode("Newest");
       setCreatedChallengeId(savedChallenge.id);
       setSelectedLane(savedChallenge.lane);
       setMessage(
@@ -6240,6 +6305,7 @@ export default function Home() {
     setRoomSearch("");
     setSelectedLane("All");
     setSelectedStatus("Open");
+    setRoomDiscoveryMode("Trending");
     setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
     setActiveAppTab("challenges");
     setActiveSection("rooms");
@@ -7072,6 +7138,7 @@ export default function Home() {
       if (status === "Accepted") {
         setSelectedLane("All");
         setSelectedStatus("Open");
+        setRoomDiscoveryMode("Trending");
         setRoomSearch("");
         setActiveAppTab("challenges");
         setActiveSection("rooms");
@@ -8475,6 +8542,7 @@ export default function Home() {
         items.map((item) => (item.id === challenge.id ? { ...item, ...challengeResult } : item))
       );
       setSelectedStatus("Completed");
+      setRoomDiscoveryMode("Newest");
       setMessage(`${challenge.title} completed and moved to Archive. Winner: ${winner}.`);
       formElement.reset();
       setCompletingChallengeId(null);
@@ -8493,6 +8561,7 @@ export default function Home() {
     } else if (data) {
       setChallenges((items) => items.map((item) => (item.id === challenge.id ? (data as Challenge) : item)));
       setSelectedStatus("Completed");
+      setRoomDiscoveryMode("Newest");
       setMessage(`${challenge.title} completed and moved to Archive. Winner: ${winner}.`);
       formElement.reset();
     }
@@ -12763,7 +12832,10 @@ export default function Home() {
           <button
             aria-selected={selectedStatus === "Open"}
             className={selectedStatus === "Open" ? "active" : ""}
-            onClick={() => setSelectedStatus("Open")}
+            onClick={() => {
+              setSelectedStatus("Open");
+              if (roomDiscoveryMode === "Newest") setRoomDiscoveryMode("Trending");
+            }}
             role="tab"
             type="button"
           >
@@ -12774,7 +12846,7 @@ export default function Home() {
             className={selectedStatus === "Completed" ? "active" : ""}
             onClick={() => {
               setSelectedStatus("Completed");
-              setShowRecommendedOnly(false);
+              setRoomDiscoveryMode("Newest");
             }}
             role="tab"
             type="button"
@@ -12782,34 +12854,52 @@ export default function Home() {
             Archive <span>{roomCollectionCounts.archived}</span>
           </button>
         </div>
+        {selectedStatus !== "Completed" && (
+          <div className="roomDiscoveryPanel">
+            <div aria-label="Discover challenge rooms" className="roomDiscoveryTabs" role="tablist">
+              {(["Live", "Trending", "For you", "Newest"] as RoomDiscoveryMode[]).map((mode) => {
+                const needsProfile = mode === "For you" && !profile?.main_interest;
+                const count = mode === "Live" ? roomCollectionCounts.live : mode === "For you" ? recommendedRoomCount : null;
+
+                return (
+                  <button
+                    aria-controls="challenge-room-list"
+                    aria-selected={roomDiscoveryMode === mode}
+                    className={`${roomDiscoveryMode === mode ? "active" : ""} ${mode === "Live" ? "live" : ""}`}
+                    disabled={needsProfile}
+                    key={mode}
+                    onClick={() => {
+                      setRoomDiscoveryMode(mode);
+                      setRoomPage(1);
+                    }}
+                    role="tab"
+                    title={needsProfile ? "Save a main interest in Account to unlock For you" : undefined}
+                    type="button"
+                  >
+                    {mode === "Live" && <i aria-hidden="true" />}
+                    {mode}
+                    {count !== null && <span>{count}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <p aria-live="polite">
+              {roomDiscoveryMode === "Live"
+                ? "Rooms with people inside right now, busiest first."
+                : roomDiscoveryMode === "Trending"
+                  ? "Recent views, joins, votes, ratings, proofs, chat, and live audience move rooms upward."
+                  : roomDiscoveryMode === "For you"
+                    ? `Matches for ${profile?.main_interest || "your saved interest"}, ranked by current activity.`
+                    : "The most recently created rooms appear first."}
+            </p>
+          </div>
+        )}
         <details className="roomFilterPanel">
           <summary>Search and filter rooms</summary>
-          {profile?.main_interest && (
-            <div className="personalizedRoomFilter">
-              <span>Based on your saved interest</span>
-              <button
-                aria-pressed={showRecommendedOnly}
-                className={showRecommendedOnly ? "active" : ""}
-                onClick={() => {
-                  if (showRecommendedOnly) {
-                    setShowRecommendedOnly(false);
-                  } else {
-                    showMyRecommendations();
-                  }
-                }}
-                type="button"
-              >
-                For you: {profile.main_interest} <small>{recommendedRoomCount}</small>
-              </button>
-            </div>
-          )}
           <label className="roomSearch">
             Search rooms
             <input
-              onChange={(event) => {
-                setRoomSearch(event.target.value);
-                setShowRecommendedOnly(false);
-              }}
+              onChange={(event) => setRoomSearch(event.target.value)}
               placeholder="Search badminton, PUBG, Rahul, breakdance..."
               type="search"
               value={roomSearch}
@@ -12821,10 +12911,7 @@ export default function Home() {
               <button
                 className={selectedLane === lane ? "active" : ""}
                 key={lane}
-                onClick={() => {
-                  setSelectedLane(lane);
-                  setShowRecommendedOnly(false);
-                }}
+                onClick={() => setSelectedLane(lane)}
                 type="button"
               >
                 {lane}
@@ -12842,41 +12929,45 @@ export default function Home() {
           />
         )}
         {visibleChallenges.length > 1 && <p className="roomSwipeHint">Swipe sideways to browse the rooms on this page.</p>}
-        <div className="roomsGrid" aria-label={selectedStatus === "Completed" ? "Archived challenge rooms" : "Active challenge rooms"}>
+        <div className="roomsGrid" id="challenge-room-list" aria-label={selectedStatus === "Completed" ? "Archived challenge rooms" : `${roomDiscoveryMode} challenge rooms`}>
           {visibleChallenges.length === 0 && (
             <AppStatePanel
               actionHref={
-                selectedStatus !== "Completed" && !showRecommendedOnly && !roomSearch && selectedLane === "All" && !selectedActivityProfile
+                selectedStatus !== "Completed" && roomDiscoveryMode === "Trending" && !roomSearch && selectedLane === "All" && !selectedActivityProfile
                   ? "#create"
                   : undefined
               }
               actionLabel={
                 selectedStatus === "Completed"
                   ? "View active rooms"
-                  : showRecommendedOnly || roomSearch || selectedLane !== "All" || selectedActivityProfile
+                  : roomDiscoveryMode !== "Trending" || roomSearch || selectedLane !== "All" || selectedActivityProfile
                     ? "Clear room filters"
                     : "Create the first room"
               }
               detail={
                 selectedStatus === "Completed"
                   ? "Completed challenges will move here with their result and proof."
-                  : showRecommendedOnly
-                    ? "Create the first matching room or clear personalization to browse everything."
-                    : "Adjust the current filters or start a new challenge."
+                  : roomDiscoveryMode === "Live"
+                    ? "A room appears here as soon as someone opens it. Browse Trending while you wait."
+                    : roomDiscoveryMode === "For you"
+                      ? "Create the first matching room or browse Trending to see every active challenge."
+                      : "Adjust the current filters or start a new challenge."
               }
               onAction={
                 selectedStatus === "Completed"
-                  ? () => setSelectedStatus("Open")
-                  : showRecommendedOnly || roomSearch || selectedLane !== "All" || selectedActivityProfile
+                  ? browseActiveRooms
+                  : roomDiscoveryMode !== "Trending" || roomSearch || selectedLane !== "All" || selectedActivityProfile
                     ? browseActiveRooms
                     : undefined
               }
               title={
                 selectedStatus === "Completed"
                   ? "No archived rooms"
-                  : showRecommendedOnly
-                    ? `No active ${profile?.main_interest || "recommended"} rooms yet`
-                    : "No active rooms found"
+                  : roomDiscoveryMode === "Live"
+                    ? "No rooms are live right now"
+                    : roomDiscoveryMode === "For you"
+                      ? `No active ${profile?.main_interest || "recommended"} rooms yet`
+                      : "No active rooms found"
               }
             />
           )}

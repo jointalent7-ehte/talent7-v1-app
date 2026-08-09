@@ -6292,6 +6292,88 @@ textarea {
   font-size: 0.78rem;
 }
 
+.roomDiscoveryPanel {
+  display: grid;
+  gap: 8px;
+  max-width: 900px;
+  margin-bottom: 14px;
+}
+
+.roomDiscoveryTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
+}
+
+.roomDiscoveryTabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 13px;
+  color: var(--ink);
+  white-space: nowrap;
+  background: #f4f8f8;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.roomDiscoveryTabs button:hover:not(:disabled) {
+  border-color: var(--teal);
+}
+
+.roomDiscoveryTabs button.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+  box-shadow: 0 8px 20px rgb(15 143 140 / 18%);
+}
+
+.roomDiscoveryTabs button:disabled {
+  color: #8b9395;
+  cursor: not-allowed;
+  background: #f1f3f3;
+  opacity: 0.78;
+}
+
+.roomDiscoveryTabs button > i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  background: #18a66e;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgb(24 166 110 / 14%);
+}
+
+.roomDiscoveryTabs button.active > i {
+  background: #fff;
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 18%);
+  animation: liveAudiencePulse 1.8s ease-out infinite;
+}
+
+.roomDiscoveryTabs button > span {
+  display: grid;
+  min-width: 22px;
+  min-height: 22px;
+  place-items: center;
+  padding-inline: 5px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+
+.roomDiscoveryPanel > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 780;
+  line-height: 1.45;
+}
+
 .roomFilterPanel {
   max-width: 900px;
   margin-bottom: 16px;
