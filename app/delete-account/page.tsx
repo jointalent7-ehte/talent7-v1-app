@@ -22,10 +22,10 @@ export default function DeleteAccountPage() {
       <section className="legalCard legalHighlight">
         <h2>Fastest Method</h2>
         <p>
-          Log in to Talent7, open Account, and submit the verified deletion request. You can cancel it during the
-          seven-day waiting period.
+          Open Talent7 and submit the verified deletion request from your Account. If you are signed out, Talent7 will
+          ask you to log in first. You can cancel during the seven-day waiting period.
         </p>
-        <Link href="/#account">Log in to request account deletion</Link>
+        <Link href="/?open=account-deletion#account">Open the account deletion form</Link>
         <p>
           If you cannot access the account, email Talent7 from the same address you used to sign up and include your
           username if you know it.

@@ -3494,6 +3494,27 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!session) return;
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("open") !== "account-deletion") return;
+
+    setAccountDeletionFormUserId(session.user.id);
+    setActiveAppTab("account");
+    setActiveSection("account");
+    url.searchParams.delete("open");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash || "#account"}`
+    );
+    window.setTimeout(
+      () => document.getElementById("account-deletion-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      80
+    );
+  }, [session]);
+
+  useEffect(() => {
     async function loadChallenges() {
       if (!supabase) {
         setChallengeLoadError("");
@@ -8335,7 +8356,7 @@ export default function Home() {
               <a href="/child-safety">Child safety standards</a>
             </div>
             {(activeAccountDeletionRequest || accountDeletionFormUserId === session.user.id) && (
-              <div className="accountDeletionPanel">
+              <div className="accountDeletionPanel" id="account-deletion-panel">
                 <div className="accountDeletionPanelHeader">
                   <div>
                     <span>Account deletion</span>
