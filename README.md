@@ -23,10 +23,13 @@ Open `http://localhost:3000`. If Supabase is not configured, the interface uses 
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 NEXT_PUBLIC_SITE_URL=https://www.jointalent7.com
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_public_cloudflare_turnstile_site_key
 SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
 ```
 
-`NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. The service-role key is used only by the authenticated admin account-deletion endpoint. Add it to Vercel Production as a sensitive server-only value; never give it a `NEXT_PUBLIC_` prefix and never commit it.
+`NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. The Turnstile site key is intentionally public; its matching secret key must be entered only in Supabase Authentication CAPTCHA settings. The service-role key is used only by the authenticated admin account-deletion endpoint. Add it to Vercel Production as a sensitive server-only value; never give it a `NEXT_PUBLIC_` prefix and never commit it.
+
+Follow [TURNSTILE_SETUP.md](TURNSTILE_SETUP.md) before enabling CAPTCHA enforcement in Supabase.
 
 Optional Cloudflare R2 variables move new proof and showcase uploads out of Supabase Storage while retaining Supabase as a safe fallback:
 
