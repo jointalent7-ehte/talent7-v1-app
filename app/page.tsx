@@ -544,6 +544,38 @@ type ChallengeSchedule = {
   updated_at: string;
 };
 
+type ChallengeLiveStatus = "Ready" | "Live" | "Ended";
+type LiveReactionName = "Fire" | "Applause" | "Wow" | "Strong" | "Love";
+
+type ChallengeLiveSession = {
+  id: string;
+  challenge_id: string;
+  youtube_video_id: string;
+  status: ChallengeLiveStatus;
+  created_by: string;
+  updated_by: string;
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ChallengeLiveReactionTotal = {
+  live_session_id: string;
+  challenge_id: string;
+  reaction: LiveReactionName;
+  reaction_count: number | string;
+  updated_at: string;
+};
+
+const liveReactionOptions: Array<{ name: LiveReactionName; emoji: string; label: string }> = [
+  { name: "Fire", emoji: "🔥", label: "Fire" },
+  { name: "Applause", emoji: "👏", label: "Applause" },
+  { name: "Wow", emoji: "😮", label: "Wow" },
+  { name: "Strong", emoji: "💪", label: "Strong" },
+  { name: "Love", emoji: "❤️", label: "Love" }
+];
+
 function isChallengeCompleted(challenge: Challenge) {
   return challenge.status === "Completed";
 }
@@ -1059,6 +1091,39 @@ function challengeInterestScore(challenge: Challenge, interest?: string | null) 
 
   if (interestWords.some((word) => challengeText.includes(word))) return 2;
   return challenge.lane === laneForInterest(interest) ? 1 : 0;
+}
+
+function youtubeVideoId(value: string) {
+  const candidate = value.trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(candidate)) return candidate;
+
+  try {
+    const parsed = new URL(/^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`);
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    let videoId = "";
+
+    if (hostname === "youtu.be") {
+      videoId = parsed.pathname.split("/").filter(Boolean)[0] || "";
+    } else if (hostname === "youtube.com" || hostname === "m.youtube.com" || hostname === "youtube-nocookie.com") {
+      videoId = parsed.searchParams.get("v") || "";
+      if (!videoId) {
+        const pathParts = parsed.pathname.split("/").filter(Boolean);
+        if (["embed", "live", "shorts"].includes(pathParts[0])) videoId = pathParts[1] || "";
+      }
+    }
+
+    return /^[A-Za-z0-9_-]{11}$/.test(videoId) ? videoId : "";
+  } catch {
+    return "";
+  }
+}
+
+function youtubeWatchUrl(videoId: string) {
+  return `https://www.youtube.com/watch?v=${videoId}`;
+}
+
+function youtubeEmbedUrl(videoId: string) {
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`;
 }
 
 const sampleChallenges: Challenge[] = [
@@ -1639,6 +1704,12 @@ export default function Home() {
   const [invites, setInvites] = useState<ChallengeInvite[]>([]);
   const [challengeSchedules, setChallengeSchedules] = useState<ChallengeSchedule[]>([]);
   const [scheduleActionId, setScheduleActionId] = useState<string | null>(null);
+  const [challengeLiveSessions, setChallengeLiveSessions] = useState<ChallengeLiveSession[]>([]);
+  const [challengeLiveReactionTotals, setChallengeLiveReactionTotals] = useState<ChallengeLiveReactionTotal[]>([]);
+  const [liveVideoDrafts, setLiveVideoDrafts] = useState<Record<string, string>>({});
+  const [liveSessionActionKey, setLiveSessionActionKey] = useState<string | null>(null);
+  const [liveReactionActionKey, setLiveReactionActionKey] = useState<string | null>(null);
+  const [challengeLiveLoadError, setChallengeLiveLoadError] = useState("");
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
   const [challengeMessages, setChallengeMessages] = useState<ChallengeMessage[]>([]);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
@@ -1868,6 +1939,24 @@ export default function Home() {
     }, {});
   }, [challengeMessages]);
 
+  const liveSessionsByRoom = useMemo(() => {
+    return challengeLiveSessions.reduce<Record<string, ChallengeLiveSession>>((sessions, liveSession) => {
+      sessions[liveSession.challenge_id] = liveSession;
+      return sessions;
+    }, {});
+  }, [challengeLiveSessions]);
+
+  const liveReactionTotalsByRoom = useMemo(() => {
+    return challengeLiveReactionTotals.reduce<Record<string, Partial<Record<LiveReactionName, number>>>>(
+      (totals, reactionTotal) => {
+        totals[reactionTotal.challenge_id] = totals[reactionTotal.challenge_id] || {};
+        totals[reactionTotal.challenge_id][reactionTotal.reaction] = Number(reactionTotal.reaction_count) || 0;
+        return totals;
+      },
+      {}
+    );
+  }, [challengeLiveReactionTotals]);
+
   const showcaseResults = useMemo(() => {
     return showcaseRatings.reduce<Record<string, { ratingAverage: string; ratingCount: number }>>((results, rating) => {
       const postRatings = showcaseRatings.filter((item) => item.post_id === rating.post_id);
@@ -1917,16 +2006,30 @@ export default function Home() {
       const uniqueViewScore = Math.log2((roomViewCounts[challenge.id] || 0) + 1) * 3;
       const liveAudienceScore = (liveRoomPresenceCounts[challenge.id] || 0) * 10;
       const conversationScore = (roomMessages[challenge.id]?.length || 0) * 1.5;
+      const reactionsTotal = Object.values(liveReactionTotalsByRoom[challenge.id] || {}).reduce(
+        (total, count) => total + (count || 0),
+        0
+      );
+      const reactionScore = Math.log2(reactionsTotal + 1) * 4;
 
       scores[challenge.id] =
         (activityScores[challenge.id] || 0) +
         uniqueViewScore +
         liveAudienceScore +
         conversationScore +
+        reactionScore +
         freshnessBoost;
       return scores;
     }, {});
-  }, [activityScores, challenges, liveRoomPresenceCounts, roomMessages, roomRankingTimestamp, roomViewCounts]);
+  }, [
+    activityScores,
+    challenges,
+    liveReactionTotalsByRoom,
+    liveRoomPresenceCounts,
+    roomMessages,
+    roomRankingTimestamp,
+    roomViewCounts
+  ]);
 
   const challengeMatchesProfileActivity = useCallback((challenge: Challenge, item: TalentProfile) => {
     const terms = [item.display_name, item.username, item.main_interest]
@@ -1978,7 +2081,9 @@ export default function Home() {
         selectedStatus === "Completed" ||
         roomDiscoveryMode === "Trending" ||
         roomDiscoveryMode === "Newest" ||
-        (roomDiscoveryMode === "Live" && (liveRoomPresenceCounts[challenge.id] || 0) > 0) ||
+        (roomDiscoveryMode === "Live" &&
+          (liveSessionsByRoom[challenge.id]?.status === "Live" ||
+            (liveRoomPresenceCounts[challenge.id] || 0) > 0)) ||
         (roomDiscoveryMode === "For you" && challengeInterestScore(challenge, savedInterest) > 0);
       const searchableText = [
         challenge.title,
@@ -2004,6 +2109,11 @@ export default function Home() {
       }
 
       if (roomDiscoveryMode === "Live") {
+        const broadcastDifference =
+          Number(liveSessionsByRoom[second.id]?.status === "Live") -
+          Number(liveSessionsByRoom[first.id]?.status === "Live");
+        if (broadcastDifference !== 0) return broadcastDifference;
+
         const audienceDifference =
           (liveRoomPresenceCounts[second.id] || 0) - (liveRoomPresenceCounts[first.id] || 0);
         if (audienceDifference !== 0) return audienceDifference;
@@ -2026,6 +2136,7 @@ export default function Home() {
     challengeMatchesProfileActivity,
     challenges,
     liveRoomPresenceCounts,
+    liveSessionsByRoom,
     profile?.main_interest,
     roomDiscoveryMode,
     roomSearch,
@@ -2040,10 +2151,13 @@ export default function Home() {
       active: challenges.filter((challenge) => challenge.status !== "Completed").length,
       archived: challenges.filter((challenge) => challenge.status === "Completed").length,
       live: challenges.filter(
-        (challenge) => challenge.status !== "Completed" && (liveRoomPresenceCounts[challenge.id] || 0) > 0
+        (challenge) =>
+          challenge.status !== "Completed" &&
+          (liveSessionsByRoom[challenge.id]?.status === "Live" ||
+            (liveRoomPresenceCounts[challenge.id] || 0) > 0)
       ).length
     }),
-    [challenges, liveRoomPresenceCounts]
+    [challenges, liveRoomPresenceCounts, liveSessionsByRoom]
   );
 
   const recommendedRoomCount = useMemo(
@@ -3770,6 +3884,166 @@ export default function Home() {
     return userTeamRoles(challenge).some((item) => resultManagerRoles.includes(item.role));
   }
 
+  function canManageChallengeLive(challenge: Challenge) {
+    if (isChallengeCompleted(challenge)) return false;
+    if (!hasSupabaseConfig) return true;
+    if (!session?.user.id) return false;
+    if (isOwnerReviewer || challenge.created_by === session.user.id) return true;
+
+    const isAcceptedOpponent = invites.some(
+      (invite) =>
+        invite.challenge_id === challenge.id &&
+        invite.invited_user_id === session.user.id &&
+        invite.status === "Accepted"
+    );
+    if (isAcceptedOpponent) return true;
+
+    return userTeamRoles(challenge).some((item) => resultManagerRoles.includes(item.role));
+  }
+
+  function liveVideoDraft(challengeId: string) {
+    if (Object.prototype.hasOwnProperty.call(liveVideoDrafts, challengeId)) {
+      return liveVideoDrafts[challengeId];
+    }
+
+    const liveSession = liveSessionsByRoom[challengeId];
+    return liveSession ? youtubeWatchUrl(liveSession.youtube_video_id) : "";
+  }
+
+  async function setChallengeLiveSession(challenge: Challenge, status: ChallengeLiveStatus) {
+    if (!canManageChallengeLive(challenge)) {
+      setMessage("Only the room creator, accepted opponent, authorized team manager, or Talent7 admin can manage this broadcast.", "error");
+      return;
+    }
+
+    const currentSession = liveSessionsByRoom[challenge.id];
+    if (status === "Ended" && currentSession?.status !== "Live") {
+      setMessage("Only a live broadcast can be ended.", "error");
+      return;
+    }
+
+    const videoId =
+      status === "Ended"
+        ? currentSession?.youtube_video_id || ""
+        : youtubeVideoId(liveVideoDraft(challenge.id));
+    if (!videoId) {
+      setMessage("Enter a valid public YouTube video, scheduled live, or livestream URL.", "error");
+      return;
+    }
+
+    const actionKey = `${challenge.id}-${status}`;
+    const shouldResetReactions =
+      Boolean(currentSession) &&
+      (currentSession?.youtube_video_id !== videoId || currentSession?.status === "Ended");
+    setLiveSessionActionKey(actionKey);
+
+    try {
+      if (!supabase) {
+        const now = new Date().toISOString();
+        const nextSession: ChallengeLiveSession = {
+          id: currentSession?.id || crypto.randomUUID(),
+          challenge_id: challenge.id,
+          youtube_video_id: videoId,
+          status,
+          created_by: currentSession?.created_by || session?.user.id || "preview-user",
+          updated_by: session?.user.id || "preview-user",
+          started_at:
+            status === "Live" ? currentSession?.started_at || now : status === "Ended" ? currentSession?.started_at || now : null,
+          ended_at: status === "Ended" ? now : null,
+          created_at: currentSession?.created_at || now,
+          updated_at: now
+        };
+
+        setChallengeLiveSessions((sessions) => [
+          nextSession,
+          ...sessions.filter((item) => item.challenge_id !== challenge.id)
+        ]);
+        if (shouldResetReactions) {
+          setChallengeLiveReactionTotals((totals) =>
+            totals.filter((item) => item.challenge_id !== challenge.id)
+          );
+        }
+      } else {
+        const { data, error } = await supabase.rpc("set_challenge_live_session", {
+          target_challenge_id: challenge.id,
+          target_youtube_video_id: videoId,
+          target_status: status
+        });
+        if (error) throw error;
+
+        const updatedSession = ((data || []) as ChallengeLiveSession[])[0];
+        if (updatedSession) {
+          setChallengeLiveSessions((sessions) => [
+            updatedSession,
+            ...sessions.filter((item) => item.challenge_id !== challenge.id)
+          ]);
+        }
+        if (shouldResetReactions) {
+          setChallengeLiveReactionTotals((totals) =>
+            totals.filter((item) => item.challenge_id !== challenge.id)
+          );
+        }
+      }
+
+      setLiveVideoDrafts((drafts) => ({ ...drafts, [challenge.id]: youtubeWatchUrl(videoId) }));
+      setMessage(
+        status === "Ready"
+          ? "YouTube broadcast link saved. Start the stream in YouTube Studio before going live in this room."
+          : status === "Live"
+            ? "Broadcast is now live in this challenge room."
+            : "Broadcast ended. The YouTube replay remains available in the room.",
+        "success"
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "The room broadcast could not be updated.",
+        "error"
+      );
+    } finally {
+      setLiveSessionActionKey(null);
+    }
+  }
+
+  async function sendChallengeLiveReaction(challenge: Challenge, reaction: LiveReactionName) {
+    if (!requireLogin("react to this live room")) return;
+
+    const liveSession = liveSessionsByRoom[challenge.id];
+    if (!liveSession || liveSession.status !== "Live") {
+      setMessage("This room is not live right now.", "warning");
+      return;
+    }
+
+    const actionKey = `${challenge.id}-${reaction}`;
+    setLiveReactionActionKey(actionKey);
+
+    try {
+      if (!supabase) return;
+      const { data, error } = await supabase.rpc("send_challenge_live_reaction", {
+        target_challenge_id: challenge.id,
+        target_reaction: reaction
+      });
+      if (error) throw error;
+
+      const updatedTotal = ((data || []) as ChallengeLiveReactionTotal[])[0];
+      if (updatedTotal) {
+        setChallengeLiveReactionTotals((totals) => [
+          updatedTotal,
+          ...totals.filter(
+            (item) =>
+              item.live_session_id !== updatedTotal.live_session_id || item.reaction !== updatedTotal.reaction
+          )
+        ]);
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Your live reaction could not be sent.",
+        "warning"
+      );
+    } finally {
+      setLiveReactionActionKey(null);
+    }
+  }
+
   function teamPermissionLabel(challenge: Challenge) {
     const ids = challengeTeamIds(challenge);
     if (ids.length === 0) return "";
@@ -4311,6 +4585,84 @@ export default function Home() {
 
     loadChallengeSchedules();
   }, [session]);
+
+  useEffect(() => {
+    async function loadChallengeLiveRooms() {
+      if (!supabase) return;
+
+      const [sessionsResult, totalsResult] = await Promise.all([
+        supabase.from("challenge_live_sessions").select("*").order("updated_at", { ascending: false }).limit(100),
+        supabase.from("challenge_live_reaction_totals").select("*").order("updated_at", { ascending: false }).limit(500)
+      ]);
+
+      const loadError = sessionsResult.error || totalsResult.error;
+      if (loadError) {
+        setChallengeLiveLoadError(loadError.message);
+        return;
+      }
+
+      setChallengeLiveLoadError("");
+      setChallengeLiveSessions((sessionsResult.data || []) as ChallengeLiveSession[]);
+      setChallengeLiveReactionTotals((totalsResult.data || []) as ChallengeLiveReactionTotal[]);
+    }
+
+    loadChallengeLiveRooms();
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    const supabaseClient = supabase;
+    const liveUpdatesChannel = supabaseClient
+      .channel("talent7-live-room-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "challenge_live_sessions" },
+        (payload) => {
+          const previous = payload.old as Partial<ChallengeLiveSession>;
+          if (payload.eventType === "DELETE") {
+            setChallengeLiveSessions((sessions) => sessions.filter((item) => item.id !== previous.id));
+            return;
+          }
+
+          const liveSession = payload.new as ChallengeLiveSession;
+          setChallengeLiveSessions((sessions) => [
+            liveSession,
+            ...sessions.filter((item) => item.id !== liveSession.id)
+          ]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "challenge_live_reaction_totals" },
+        (payload) => {
+          const previous = payload.old as Partial<ChallengeLiveReactionTotal>;
+          if (payload.eventType === "DELETE") {
+            setChallengeLiveReactionTotals((totals) =>
+              totals.filter(
+                (item) =>
+                  item.live_session_id !== previous.live_session_id || item.reaction !== previous.reaction
+              )
+            );
+            return;
+          }
+
+          const reactionTotal = payload.new as ChallengeLiveReactionTotal;
+          setChallengeLiveReactionTotals((totals) => [
+            reactionTotal,
+            ...totals.filter(
+              (item) =>
+                item.live_session_id !== reactionTotal.live_session_id || item.reaction !== reactionTotal.reaction
+            )
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabaseClient.removeChannel(liveUpdatesChannel);
+    };
+  }, []);
 
   useEffect(() => {
     async function loadFollows() {
@@ -12885,7 +13237,7 @@ export default function Home() {
             </div>
             <p aria-live="polite">
               {roomDiscoveryMode === "Live"
-                ? "Rooms with people inside right now, busiest first."
+                ? "Live YouTube broadcasts appear first, followed by rooms with people inside right now."
                 : roomDiscoveryMode === "Trending"
                   ? "Recent views, joins, votes, ratings, proofs, chat, and live audience move rooms upward."
                   : roomDiscoveryMode === "For you"
@@ -12928,6 +13280,13 @@ export default function Home() {
             tone="error"
           />
         )}
+        {challengeLiveLoadError && (
+          <AppStatePanel
+            detail={`Live broadcasts and reactions are unavailable until the latest database migration is applied: ${challengeLiveLoadError}`}
+            title="Live room tools need setup"
+            tone="error"
+          />
+        )}
         {visibleChallenges.length > 1 && <p className="roomSwipeHint">Swipe sideways to browse the rooms on this page.</p>}
         <div className="roomsGrid" id="challenge-room-list" aria-label={selectedStatus === "Completed" ? "Archived challenge rooms" : `${roomDiscoveryMode} challenge rooms`}>
           {visibleChallenges.length === 0 && (
@@ -12948,7 +13307,7 @@ export default function Home() {
                 selectedStatus === "Completed"
                   ? "Completed challenges will move here with their result and proof."
                   : roomDiscoveryMode === "Live"
-                    ? "A room appears here as soon as someone opens it. Browse Trending while you wait."
+                    ? "A room appears here when its broadcast starts or someone opens it. Browse Trending while you wait."
                     : roomDiscoveryMode === "For you"
                       ? "Create the first matching room or browse Trending to see every active challenge."
                       : "Adjust the current filters or start a new challenge."
@@ -12979,6 +13338,9 @@ export default function Home() {
             const schedule = challengeSchedule(challenge.id);
             const canCoordinate = canCoordinateChallenge(challenge);
             const hasCoordinationPartner = hasChallengeCoordinationPartner(challenge);
+            const liveSession = liveSessionsByRoom[challenge.id];
+            const liveReactionTotals = liveReactionTotalsByRoom[challenge.id] || {};
+            const canManageLive = canManageChallengeLive(challenge);
 
             return (
             <article
@@ -12993,6 +13355,13 @@ export default function Home() {
               {profile?.main_interest && challengeInterestScore(challenge, profile.main_interest) > 0 && (
                 <em className="personalizedRoomBadge">Matches your interest</em>
               )}
+              {liveSession?.status === "Live" && (
+                <em className="roomLiveBadge">
+                  <i aria-hidden="true" /> Live now
+                </em>
+              )}
+              {liveSession?.status === "Ready" && <em className="roomBroadcastBadge">Broadcast ready</em>}
+              {liveSession?.status === "Ended" && <em className="roomBroadcastBadge replay">Replay available</em>}
               <h3>{challenge.title}</h3>
               {challenge.status === "Completed" && (
                 <div className="winnerBanner">
@@ -13162,6 +13531,151 @@ export default function Home() {
                 </div>
               </div>
               <p>{challenge.rules}</p>
+              <section
+                className={`challengeLivePanel ${liveSession?.status.toLowerCase() || "offline"}`}
+                aria-label="YouTube live broadcast"
+              >
+                <div className="challengeLiveHeader">
+                  <div>
+                    <span>Live on Talent7</span>
+                    <strong>
+                      {liveSession?.status === "Live"
+                        ? "Watch and react together"
+                        : liveSession?.status === "Ready"
+                          ? "Broadcast prepared"
+                          : liveSession?.status === "Ended"
+                            ? "Watch the replay"
+                            : "No broadcast attached yet"}
+                    </strong>
+                  </div>
+                  <em className={`challengeLiveStatus ${liveSession?.status.toLowerCase() || "offline"}`}>
+                    {liveSession?.status === "Live" && <i aria-hidden="true" />}
+                    {liveSession?.status || "Offline"}
+                  </em>
+                </div>
+
+                {liveSession ? (
+                  <>
+                    <div className="youtubeLiveFrame">
+                      <iframe
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        loading="lazy"
+                        src={youtubeEmbedUrl(liveSession.youtube_video_id)}
+                        title={`${challenge.title} YouTube ${liveSession.status === "Live" ? "broadcast" : "video"}`}
+                      />
+                    </div>
+                    <div className="liveBroadcastMeta">
+                      <p>
+                        {liveSession.status === "Live"
+                          ? "This organizer-marked broadcast is live on YouTube. React below while you watch."
+                          : liveSession.status === "Ready"
+                            ? "The organizer has attached the broadcast. It will move to Live when they confirm the YouTube stream has started."
+                            : "The live reaction window is closed, but the YouTube replay remains available when the creator keeps it public."}
+                      </p>
+                      <a href={youtubeWatchUrl(liveSession.youtube_video_id)} rel="noreferrer" target="_blank">
+                        Open directly on YouTube
+                      </a>
+                    </div>
+
+                    {liveSession.status === "Live" && (
+                      <div className="liveReactionBar" aria-label="React to the live broadcast">
+                        <strong>Live reactions</strong>
+                        <div>
+                          {liveReactionOptions.map((option) => {
+                            const actionKey = `${challenge.id}-${option.name}`;
+                            return (
+                              <button
+                                aria-label={`${option.label}: ${liveReactionTotals[option.name] || 0}`}
+                                disabled={liveReactionActionKey !== null}
+                                key={option.name}
+                                onClick={() => sendChallengeLiveReaction(challenge, option.name)}
+                                type="button"
+                              >
+                                <span aria-hidden="true">{option.emoji}</span>
+                                <small>{option.label}</small>
+                                <b aria-live="polite">
+                                  {liveReactionActionKey === actionKey ? "…" : liveReactionTotals[option.name] || 0}
+                                </b>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {!session && <small>Log in to react. Watching remains public.</small>}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="liveBroadcastEmpty">
+                    <strong>Waiting for a broadcast</strong>
+                    <small>When an authorized organizer attaches a YouTube Live link, viewers can watch it here.</small>
+                  </div>
+                )}
+
+                {canManageLive && (
+                  <div className="liveManagerPanel">
+                    <div>
+                      <strong>Broadcast controls</strong>
+                      <p>
+                        Start your stream in YouTube Studio, then attach its public URL here. Never paste a YouTube stream key—Talent7 does not need or store it.
+                      </p>
+                    </div>
+                    {liveSession?.status === "Live" ? (
+                      <div className="liveManagerActions live">
+                        <a href="https://www.youtube.com/live_dashboard" rel="noreferrer" target="_blank">
+                          Open YouTube Live dashboard
+                        </a>
+                        <button
+                          className="dangerAction"
+                          disabled={liveSessionActionKey !== null}
+                          onClick={() => setChallengeLiveSession(challenge, "Ended")}
+                          type="button"
+                        >
+                          {liveSessionActionKey === `${challenge.id}-Ended` ? "Ending…" : "End broadcast"}
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <label>
+                          YouTube live, scheduled live, or replay URL
+                          <input
+                            inputMode="url"
+                            onChange={(event) =>
+                              setLiveVideoDrafts((drafts) => ({
+                                ...drafts,
+                                [challenge.id]: event.target.value
+                              }))
+                            }
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            type="url"
+                            value={liveVideoDraft(challenge.id)}
+                          />
+                        </label>
+                        <div className="liveManagerActions">
+                          <button
+                            className="secondaryAction"
+                            disabled={liveSessionActionKey !== null}
+                            onClick={() => setChallengeLiveSession(challenge, "Ready")}
+                            type="button"
+                          >
+                            {liveSessionActionKey === `${challenge.id}-Ready` ? "Saving…" : "Save link"}
+                          </button>
+                          <button
+                            disabled={liveSessionActionKey !== null}
+                            onClick={() => setChallengeLiveSession(challenge, "Live")}
+                            type="button"
+                          >
+                            {liveSessionActionKey === `${challenge.id}-Live` ? "Starting…" : "Go live in room"}
+                          </button>
+                          <a href="https://www.youtube.com/live_dashboard" rel="noreferrer" target="_blank">
+                            Open YouTube Studio
+                          </a>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </section>
               {canCoordinate && (
                 <section className="matchCoordinationPanel" aria-label="Private match coordination">
                   <div className="matchCoordinationHeader">

@@ -6705,6 +6705,38 @@ textarea {
   font-style: normal;
 }
 
+.roomCard .roomLiveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #fff;
+  background: #c8352b;
+  border-color: #c8352b;
+}
+
+.roomLiveBadge i,
+.challengeLiveStatus.live i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  background: currentColor;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 20%);
+  animation: liveAudiencePulse 1.8s ease-out infinite;
+}
+
+.roomCard .roomBroadcastBadge {
+  color: #73510a;
+  background: #fff4d8;
+  border-color: #efd28a;
+}
+
+.roomCard .roomBroadcastBadge.replay {
+  color: #375065;
+  background: #eef4f8;
+  border-color: #bdccd7;
+}
+
 .winnerBanner span {
   font-size: 0.76rem;
   font-weight: 850;
@@ -6929,6 +6961,277 @@ textarea {
   background: #f7fafa;
   border-radius: 8px;
   font-size: 0.9rem;
+}
+
+.challengeLivePanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #f6f8f8;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.challengeLivePanel.live {
+  background: #fff7f5;
+  border-color: #e9a59d;
+  box-shadow: inset 4px 0 0 #c8352b;
+}
+
+.challengeLivePanel.ready {
+  background: #fffaf0;
+  border-color: #e7cc83;
+}
+
+.challengeLivePanel.ended {
+  background: #f4f7f9;
+  border-color: #bdccd7;
+}
+
+.challengeLiveHeader,
+.liveBroadcastMeta,
+.liveManagerActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.challengeLiveHeader > div,
+.liveManagerPanel > div:first-child,
+.liveBroadcastEmpty {
+  display: grid;
+  gap: 4px;
+}
+
+.challengeLiveHeader span,
+.liveManagerPanel label {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.challengeLiveHeader strong {
+  font-size: 1.08rem;
+}
+
+.challengeLiveStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  padding: 7px 10px;
+  color: #4f5e62;
+  background: #e7eded;
+  border: 1px solid #c7d1d1;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.challengeLiveStatus.live {
+  color: #fff;
+  background: #c8352b;
+  border-color: #c8352b;
+}
+
+.challengeLiveStatus.ready {
+  color: #73510a;
+  background: #fff1c9;
+  border-color: #e5c46c;
+}
+
+.challengeLiveStatus.ended {
+  color: #375065;
+  background: #e8eff3;
+  border-color: #bdccd7;
+}
+
+.youtubeLiveFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #090b0c;
+  border-radius: 9px;
+  box-shadow: 0 12px 28px rgb(20 23 25 / 18%);
+}
+
+.youtubeLiveFrame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.liveBroadcastMeta {
+  align-items: flex-start;
+}
+
+.liveBroadcastMeta p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.liveBroadcastMeta a,
+.liveManagerActions a {
+  flex: 0 0 auto;
+  color: var(--teal);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-decoration: underline;
+}
+
+.liveBroadcastEmpty {
+  padding: 13px;
+  color: var(--muted);
+  background: #fff;
+  border: 1px dashed #b8c5c5;
+  border-radius: 8px;
+}
+
+.liveBroadcastEmpty strong {
+  color: var(--ink);
+}
+
+.liveBroadcastEmpty small {
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.challengeLivePanel .liveReactionBar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 12px;
+  background: #181b1d;
+  border-radius: 9px;
+}
+
+.challengeLivePanel .liveReactionBar > strong,
+.challengeLivePanel .liveReactionBar > small {
+  color: #fff;
+}
+
+.challengeLivePanel .liveReactionBar > small {
+  opacity: 0.72;
+  font-weight: 750;
+}
+
+.challengeLivePanel .liveReactionBar > div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.challengeLivePanel .liveReactionBar button {
+  min-width: 0;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 5px;
+  align-items: center;
+  padding: 8px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.challengeLivePanel .liveReactionBar button:hover:not(:disabled),
+.challengeLivePanel .liveReactionBar button:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgb(0 0 0 / 24%);
+}
+
+.challengeLivePanel .liveReactionBar button > span {
+  font-size: 1.18rem;
+}
+
+.challengeLivePanel .liveReactionBar button small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+}
+
+.challengeLivePanel .liveReactionBar button b {
+  font-size: 0.78rem;
+}
+
+.liveManagerPanel {
+  display: grid;
+  gap: 11px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.liveManagerPanel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.liveManagerPanel label {
+  display: grid;
+  gap: 6px;
+}
+
+.liveManagerPanel input {
+  width: 100%;
+  min-width: 0;
+  color: var(--ink);
+  background: #f7fafa;
+  text-transform: none;
+}
+
+.liveManagerActions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.liveManagerActions button {
+  min-height: 42px;
+  padding: 10px 14px;
+  color: #fff;
+  background: var(--teal);
+  border: 1px solid var(--teal);
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.liveManagerActions button.secondaryAction {
+  color: var(--ink);
+  background: #fff;
+  border-color: var(--line);
+}
+
+.liveManagerActions button.dangerAction {
+  color: #8e2418;
+  background: #fff0ed;
+  border-color: #efb3aa;
+}
+
+.liveManagerActions button:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 .matchCoordinationPanel {
@@ -9227,5 +9530,46 @@ textarea {
 
   .listenArchiveInfo {
     position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .challengeLiveHeader,
+  .liveBroadcastMeta,
+  .liveManagerActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .challengeLiveStatus,
+  .liveBroadcastMeta a,
+  .liveManagerActions a {
+    width: fit-content;
+  }
+
+  .challengeLivePanel .liveReactionBar > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .challengeLivePanel .liveReactionBar button {
+    grid-template-columns: 1fr auto;
+  }
+
+  .challengeLivePanel .liveReactionBar button > span {
+    grid-row: 1 / span 2;
+  }
+
+  .liveManagerActions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .challengeLivePanel {
+    padding: 11px;
+  }
+
+  .challengeLivePanel .liveReactionBar > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
