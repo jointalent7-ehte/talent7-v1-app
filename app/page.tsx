@@ -46,6 +46,7 @@ const roomPageSize = 6;
 const profilePageSize = 8;
 const feedPageSize = 8;
 const notificationPageSize = 10;
+const opponentPageSize = 8;
 const challengeActivityGroups = [
   {
     label: "Popular challenges",
@@ -306,6 +307,7 @@ const primaryTabs: {
     firstSection: "rooms",
     links: [
       { label: "Rooms", href: "#rooms" },
+      { label: "Find opponents", href: "#opponents" },
       { label: "Create", href: "#create" },
       { label: "Leaderboard", href: "#leaderboard" }
     ]
@@ -379,6 +381,7 @@ const sectionTabMap: Record<string, AppTabId> = {
   "my-talent7": "account",
   create: "challenges",
   rooms: "challenges",
+  opponents: "challenges",
   leaderboard: "challenges",
   showcase: "showcase",
   coaching: "coaching",
@@ -854,8 +857,33 @@ type TalentProfile = {
   role: string;
   main_interest: string;
   region: string;
+  challenge_availability?: ChallengeAvailability | null;
+  challenge_skill_level?: ChallengeSkillLevel | null;
+  challenge_mode?: ChallengeMode | null;
+  challenge_format?: ChallengeFormat | null;
+  challenge_activities?: string[] | null;
+  availability_note?: string | null;
   updated_at: string;
 };
+
+type ChallengeAvailability = "Open to everyone" | "People I follow" | "Unavailable";
+type ChallengeSkillLevel = "Open" | "Beginner" | "Intermediate" | "Advanced" | "Pro";
+type ChallengeMode = "Either" | "In person" | "Online";
+type ChallengeFormat = "Any" | "Singles" | "Doubles" | "Team";
+
+const challengeAvailabilityOptions: ChallengeAvailability[] = ["Open to everyone", "People I follow", "Unavailable"];
+const challengeSkillOptions: ChallengeSkillLevel[] = ["Open", "Beginner", "Intermediate", "Advanced", "Pro"];
+const challengeModeOptions: ChallengeMode[] = ["Either", "In person", "Online"];
+const challengeFormatOptions: ChallengeFormat[] = ["Any", "Singles", "Doubles", "Team"];
+
+function profileChallengeAvailability(item: TalentProfile): ChallengeAvailability {
+  return item.challenge_availability || "Open to everyone";
+}
+
+function profileChallengeActivities(item: TalentProfile) {
+  const activities = (item.challenge_activities || []).filter(Boolean);
+  return activities.length > 0 ? activities : [item.main_interest].filter(Boolean);
+}
 
 type ChallengeDraft = {
   title: string;
@@ -1222,6 +1250,7 @@ export default function Home() {
   const [challenges, setChallenges] = useState<Challenge[]>(sampleChallenges);
   const [roomPage, setRoomPage] = useState(1);
   const [profilePage, setProfilePage] = useState(1);
+  const [opponentPage, setOpponentPage] = useState(1);
   const [feedPage, setFeedPage] = useState(1);
   const [notificationPage, setNotificationPage] = useState(1);
   const [selectedLane, setSelectedLane] = useState<ChallengeLane | "All">("All");
@@ -1424,6 +1453,12 @@ export default function Home() {
     window.localStorage.setItem(listenTracksStorageKey, JSON.stringify(listenTracks));
   }, [listenTracks]);
   const [profileSearch, setProfileSearch] = useState("");
+  const [opponentSearch, setOpponentSearch] = useState("");
+  const [opponentActivity, setOpponentActivity] = useState("All");
+  const [opponentRegion, setOpponentRegion] = useState("");
+  const [opponentSkill, setOpponentSkill] = useState<ChallengeSkillLevel | "All">("All");
+  const [opponentMode, setOpponentMode] = useState<ChallengeMode | "All">("All");
+  const [opponentFormat, setOpponentFormat] = useState<ChallengeFormat | "All">("All");
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
   const [challengeCreateStep, setChallengeCreateStep] = useState<1 | 2 | 3>(1);
   const [challengeCreateMaxStep, setChallengeCreateMaxStep] = useState<1 | 2 | 3>(1);
@@ -1902,6 +1937,48 @@ export default function Home() {
         .includes(search)
     );
   }, [profileSearch, publicProfiles]);
+
+  const visibleOpponents = useMemo(() => {
+    const search = opponentSearch.trim().toLowerCase();
+    const region = opponentRegion.trim().toLowerCase();
+    const ownInterest = profile?.main_interest?.trim().toLowerCase();
+
+    return publicProfiles
+      .filter((item) => item.user_id !== session?.user.id)
+      .filter((item) => profileChallengeAvailability(item) !== "Unavailable")
+      .filter((item) => {
+        const activities = profileChallengeActivities(item);
+        const searchable = [
+          item.display_name,
+          item.username,
+          item.role,
+          item.main_interest,
+          item.region,
+          item.availability_note,
+          ...activities
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        const activityMatches = opponentActivity === "All" || activities.includes(opponentActivity);
+        const regionMatches = !region || item.region.toLowerCase().includes(region);
+        const skillMatches = opponentSkill === "All" || (item.challenge_skill_level || "Open") === opponentSkill;
+        const mode = item.challenge_mode || "Either";
+        const modeMatches = opponentMode === "All" || mode === "Either" || mode === opponentMode;
+        const format = item.challenge_format || "Any";
+        const formatMatches = opponentFormat === "All" || format === "Any" || format === opponentFormat;
+
+        return (!search || searchable.includes(search)) && activityMatches && regionMatches && skillMatches && modeMatches && formatMatches;
+      })
+      .sort((first, second) => {
+        const firstOpen = profileChallengeAvailability(first) === "Open to everyone" ? 1 : 0;
+        const secondOpen = profileChallengeAvailability(second) === "Open to everyone" ? 1 : 0;
+        const firstInterestMatch = ownInterest && profileChallengeActivities(first).some((item) => item.toLowerCase() === ownInterest) ? 1 : 0;
+        const secondInterestMatch = ownInterest && profileChallengeActivities(second).some((item) => item.toLowerCase() === ownInterest) ? 1 : 0;
+
+        return secondOpen - firstOpen || secondInterestMatch - firstInterestMatch || first.display_name.localeCompare(second.display_name);
+      });
+  }, [opponentActivity, opponentFormat, opponentMode, opponentRegion, opponentSearch, opponentSkill, profile, publicProfiles, session]);
 
   const followCounts = useMemo(() => {
     return follows.reduce<Record<string, { followers: number; following: number }>>((counts, follow) => {
@@ -2976,6 +3053,11 @@ export default function Home() {
     [profilePage, visibleProfiles]
   );
 
+  const pagedOpponents = useMemo(
+    () => visibleOpponents.slice((opponentPage - 1) * opponentPageSize, opponentPage * opponentPageSize),
+    [opponentPage, visibleOpponents]
+  );
+
   const pagedFollowingFeed = useMemo(
     () => followingFeed.slice((feedPage - 1) * feedPageSize, feedPage * feedPageSize),
     [feedPage, followingFeed]
@@ -2998,6 +3080,10 @@ export default function Home() {
   }, [profileSearch]);
 
   useEffect(() => {
+    setOpponentPage(1);
+  }, [opponentActivity, opponentFormat, opponentMode, opponentRegion, opponentSearch, opponentSkill]);
+
+  useEffect(() => {
     setNotificationPage(1);
   }, [notificationSearch, selectedNotificationFilter]);
 
@@ -3010,6 +3096,11 @@ export default function Home() {
     const lastPage = Math.max(1, Math.ceil(visibleProfiles.length / profilePageSize));
     setProfilePage((current) => Math.min(current, lastPage));
   }, [visibleProfiles.length]);
+
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil(visibleOpponents.length / opponentPageSize));
+    setOpponentPage((current) => Math.min(current, lastPage));
+  }, [visibleOpponents.length]);
 
   useEffect(() => {
     const lastPage = Math.max(1, Math.ceil(followingFeed.length / feedPageSize));
@@ -3136,6 +3227,33 @@ export default function Home() {
     if (hasVotes) badges.push("Trusted voter");
 
     return badges.slice(0, 6);
+  }
+
+  function targetAllowsChallenge(item: TalentProfile) {
+    if (!session?.user.id || item.user_id === session.user.id) return false;
+    const availability = profileChallengeAvailability(item);
+    if (availability === "Unavailable") return false;
+    if (availability === "Open to everyone") return true;
+
+    return follows.some(
+      (follow) => follow.follower_id === item.user_id && follow.following_id === session.user.id
+    );
+  }
+
+  function pendingChallengeInvite(item: TalentProfile) {
+    if (!session?.user.id) return null;
+    return invites.find(
+      (invite) =>
+        invite.from_user_id === session.user.id &&
+        invite.invited_user_id === item.user_id &&
+        invite.status === "Pending"
+    ) || null;
+  }
+
+  function opponentInviteLabel(item: TalentProfile) {
+    if (pendingChallengeInvite(item)) return "Invite pending";
+    if (profileChallengeAvailability(item) === "People I follow" && !targetAllowsChallenge(item)) return "Followers only";
+    return "Challenge";
   }
 
   function notificationKey(notification: AppNotification) {
@@ -5373,6 +5491,14 @@ export default function Home() {
     const form = new FormData(event.currentTarget);
     const displayName = String(form.get("display_name") || "").trim();
     const username = String(form.get("username") || "").trim().replace(/^@/, "").toLowerCase();
+    const mainInterest = String(form.get("main_interest") || "Badminton doubles");
+    const challengeActivities = Array.from(
+      new Set([
+        mainInterest,
+        ...form.getAll("challenge_activities").map((value) => String(value).trim()).filter(Boolean)
+      ])
+    );
+    const availabilityNote = String(form.get("availability_note") || "").trim();
 
     if (displayName.length < 2 || displayName.length > 60) {
       setMessage("Use a display name between 2 and 60 characters.");
@@ -5384,6 +5510,16 @@ export default function Home() {
       return;
     }
 
+    if (availabilityNote.length > 180) {
+      setMessage("Keep your challenge availability note under 180 characters.");
+      return;
+    }
+
+    if (challengeActivities.length > 12) {
+      setMessage("Choose no more than 12 challenge activities, including your main interest.");
+      return;
+    }
+
     setProfileLoading(true);
     setMessage("");
 
@@ -5392,8 +5528,14 @@ export default function Home() {
       display_name: displayName,
       username,
       role: String(form.get("role") || "Challenger"),
-      main_interest: String(form.get("main_interest") || "Badminton doubles"),
+      main_interest: mainInterest,
       region: String(form.get("region") || "").trim() || "Global",
+      challenge_availability: String(form.get("challenge_availability") || "Open to everyone") as ChallengeAvailability,
+      challenge_skill_level: String(form.get("challenge_skill_level") || "Open") as ChallengeSkillLevel,
+      challenge_mode: String(form.get("challenge_mode") || "Either") as ChallengeMode,
+      challenge_format: String(form.get("challenge_format") || "Any") as ChallengeFormat,
+      challenge_activities: challengeActivities,
+      availability_note: availabilityNote,
       updated_at: new Date().toISOString()
     };
 
@@ -5411,10 +5553,10 @@ export default function Home() {
         const savedProfile = data as TalentProfile;
         const others = items.filter((item) => item.user_id !== savedProfile.user_id);
 
-        return [savedProfile, ...others].slice(0, 12);
+        return [savedProfile, ...others];
       });
       setShowRecommendedOnly(false);
-      setMessage("Profile saved. Your Challenge Rooms are now personalized.");
+      setMessage("Profile and challenge preferences saved.");
       window.setTimeout(() => openSection("rooms", true), 80);
     }
 
@@ -5703,6 +5845,25 @@ export default function Home() {
   }
 
   function inviteProfileToChallenge(item: TalentProfile) {
+    if (!requireLogin("challenge another profile")) return;
+    if (!requireProfile("challenge another profile")) return;
+    if (item.user_id === session?.user.id) {
+      setMessage("Choose another profile to challenge.", "warning");
+      return;
+    }
+    if (profileChallengeAvailability(item) === "Unavailable") {
+      setMessage(`${item.display_name} is not accepting challenge invitations right now.`, "warning");
+      return;
+    }
+    if (!targetAllowsChallenge(item)) {
+      setMessage(`${item.display_name} only accepts invitations from people they follow.`, "warning");
+      return;
+    }
+    if (pendingChallengeInvite(item)) {
+      setMessage(`You already have a pending challenge invitation for ${item.display_name}.`, "warning");
+      return;
+    }
+
     const invitedName = item.display_name || `@${item.username}`;
     const interest = item.main_interest || "New challenge";
     const creatorName = profile?.display_name || (profile?.username ? `@${profile.username}` : "Open challenger");
@@ -8673,6 +8834,74 @@ export default function Home() {
                 Region
                 <input name="region" defaultValue={profile?.region || ""} placeholder="India, UAE, USA, Global..." />
               </label>
+              <fieldset className="challengePreferenceFields wide">
+                <legend>Challenge availability</legend>
+                <p>Control who can discover and invite you from Find opponents. You can change this at any time.</p>
+                <div className="challengePreferenceGrid">
+                  <label>
+                    Who can challenge you?
+                    <select name="challenge_availability" defaultValue={profile?.challenge_availability || "Open to everyone"}>
+                      {challengeAvailabilityOptions.map((option) => <option key={option}>{option}</option>)}
+                    </select>
+                    <small>“People I follow” means only profiles you follow can send an invitation.</small>
+                  </label>
+                  <label>
+                    Skill level
+                    <select name="challenge_skill_level" defaultValue={profile?.challenge_skill_level || "Open"}>
+                      {challengeSkillOptions.map((option) => <option key={option}>{option}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Play mode
+                    <select name="challenge_mode" defaultValue={profile?.challenge_mode || "Either"}>
+                      {challengeModeOptions.map((option) => <option key={option}>{option}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Preferred format
+                    <select name="challenge_format" defaultValue={profile?.challenge_format || "Any"}>
+                      {challengeFormatOptions.map((option) => <option key={option}>{option}</option>)}
+                    </select>
+                  </label>
+                </div>
+                <details className="challengeActivityPicker">
+                  <summary>Choose challenge activities</summary>
+                  <p>Your main interest is always included. Select up to 12 activities in total.</p>
+                  <div>
+                    {challengeActivityGroups.map((group) => (
+                      <fieldset key={group.label}>
+                        <legend>{group.label}</legend>
+                        {group.options.map((activity) => (
+                          <label key={activity}>
+                            <input
+                              defaultChecked={
+                                profile
+                                  ? profileChallengeActivities(profile).includes(activity)
+                                  : activity === "Badminton doubles"
+                              }
+                              name="challenge_activities"
+                              type="checkbox"
+                              value={activity}
+                            />
+                            <span>{activity}</span>
+                          </label>
+                        ))}
+                      </fieldset>
+                    ))}
+                  </div>
+                </details>
+                <label className="wide">
+                  Availability note
+                  <textarea
+                    defaultValue={profile?.availability_note || ""}
+                    maxLength={180}
+                    name="availability_note"
+                    placeholder="Example: Weekends in Bengaluru, evenings online, or looking for doubles partners."
+                    rows={3}
+                  />
+                  <small>Do not share a home address or private contact details.</small>
+                </label>
+              </fieldset>
               <button disabled={profileLoading} type="submit">
                 {profileLoading ? "Saving profile..." : "Save profile"}
               </button>
@@ -11077,8 +11306,12 @@ export default function Home() {
                     ? "Your profile"
                     : "Follow"}
               </button>
-              <button onClick={() => inviteProfileToChallenge(selectedProfile)} type="button">
-                Challenge profile
+              <button
+                disabled={Boolean(pendingChallengeInvite(selectedProfile)) || !profile || !targetAllowsChallenge(selectedProfile)}
+                onClick={() => inviteProfileToChallenge(selectedProfile)}
+                type="button"
+              >
+                {opponentInviteLabel(selectedProfile)}
               </button>
               <button onClick={() => viewProfileActivity(selectedProfile)} type="button">
                 View activity
@@ -11204,8 +11437,12 @@ export default function Home() {
                         ? "Your profile"
                         : "Follow"}
                   </button>
-                  <button onClick={() => inviteProfileToChallenge(item)} type="button">
-                    Invite to challenge
+                  <button
+                    disabled={Boolean(pendingChallengeInvite(item)) || !profile || !targetAllowsChallenge(item)}
+                    onClick={() => inviteProfileToChallenge(item)}
+                    type="button"
+                  >
+                    {opponentInviteLabel(item)}
                   </button>
                   <button onClick={() => viewProfileActivity(item)} type="button">
                     View rooms activity
@@ -11587,6 +11824,208 @@ export default function Home() {
             <strong>Log in to see challenge invites.</strong>
             <a href="#account">Go to account</a>
           </div>
+        )}
+      </section>
+
+      <section className="section opponentsSection" id="opponents">
+        <div className="sectionHeader opponentsHeader">
+          <div>
+            <p className="eyebrow">Find opponents</p>
+            <h2>Challenge people who want to play</h2>
+            <p>Search active Talent7 profiles by activity, location, skill, play mode, and format. An invitation stays pending until the other person accepts it.</p>
+          </div>
+          {session && <a href="#account">Manage my availability</a>}
+        </div>
+
+        {!session ? (
+          <AppStatePanel
+            actionHref="#account"
+            actionLabel="Log in to find opponents"
+            detail="Profiles are shared with signed-in Talent7 members. Log in to search people and send a challenge invitation."
+            title="Find opponents after logging in"
+          />
+        ) : (
+          <>
+            {!profile && (
+              <AppStatePanel
+                actionHref="#account"
+                actionLabel="Create your profile"
+                detail="You can browse the directory now, but you need a saved profile before sending an invitation."
+                title="Save your challenger identity"
+              />
+            )}
+
+            <div className="opponentFilters" role="search">
+              <label>
+                Search people
+                <input
+                  onChange={(event) => setOpponentSearch(event.target.value)}
+                  placeholder="Name, username, role, or note"
+                  type="search"
+                  value={opponentSearch}
+                />
+              </label>
+              <label>
+                Activity
+                <select onChange={(event) => setOpponentActivity(event.target.value)} value={opponentActivity}>
+                  <option>All</option>
+                  {challengeActivityGroups.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((activity) => <option key={activity}>{activity}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Region
+                <input
+                  onChange={(event) => setOpponentRegion(event.target.value)}
+                  placeholder="India, Bengaluru, Global..."
+                  value={opponentRegion}
+                />
+              </label>
+              <label>
+                Skill
+                <select onChange={(event) => setOpponentSkill(event.target.value as ChallengeSkillLevel | "All")} value={opponentSkill}>
+                  <option>All</option>
+                  {challengeSkillOptions.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label>
+                Play mode
+                <select onChange={(event) => setOpponentMode(event.target.value as ChallengeMode | "All")} value={opponentMode}>
+                  <option>All</option>
+                  {challengeModeOptions.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label>
+                Format
+                <select onChange={(event) => setOpponentFormat(event.target.value as ChallengeFormat | "All")} value={opponentFormat}>
+                  <option>All</option>
+                  {challengeFormatOptions.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </label>
+              <button
+                onClick={() => {
+                  setOpponentSearch("");
+                  setOpponentActivity("All");
+                  setOpponentRegion("");
+                  setOpponentSkill("All");
+                  setOpponentMode("All");
+                  setOpponentFormat("All");
+                }}
+                type="button"
+              >
+                Clear filters
+              </button>
+            </div>
+
+            <div className="opponentResultsHeader">
+              <strong>{visibleOpponents.length} available profile{visibleOpponents.length === 1 ? "" : "s"}</strong>
+              <small>Unavailable profiles are kept private from this list.</small>
+            </div>
+
+            {visibleOpponents.length > 0 ? (
+              <>
+                <div className="opponentGrid">
+                  {pagedOpponents.map((item) => {
+                    const availability = profileChallengeAvailability(item);
+                    const pendingInvite = pendingChallengeInvite(item);
+                    const canInvite = Boolean(profile) && targetAllowsChallenge(item) && !pendingInvite;
+                    const initials = item.display_name
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .map((part) => part[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase();
+
+                    return (
+                      <article className="opponentCard" key={item.user_id}>
+                        <div className="opponentIdentity">
+                          <span aria-hidden="true" className="opponentAvatar">{initials || "T7"}</span>
+                          <div>
+                            <strong>{item.display_name}</strong>
+                            <small>@{item.username}</small>
+                          </div>
+                          <span className={`availabilityBadge ${availability === "Open to everyone" ? "open" : "limited"}`}>
+                            {availability === "Open to everyone" ? "Open to challenges" : "Followers only"}
+                          </span>
+                        </div>
+                        <div className="opponentMeta">
+                          <span>{item.role}</span>
+                          <span>{item.region || "Global"}</span>
+                          <span>{item.challenge_skill_level || "Open"} level</span>
+                          <span>{item.challenge_mode || "Either"}</span>
+                          <span>{item.challenge_format || "Any"} format</span>
+                        </div>
+                        <div className="opponentActivities" aria-label="Challenge activities">
+                          {profileChallengeActivities(item).slice(0, 4).map((activity) => <span key={activity}>{activity}</span>)}
+                          {profileChallengeActivities(item).length > 4 && <small>+{profileChallengeActivities(item).length - 4} more</small>}
+                        </div>
+                        {item.availability_note && <p>{item.availability_note}</p>}
+                        <div className="trustBadgeRow compact">
+                          <span>{followCounts[item.user_id]?.followers || 0} followers</span>
+                          {profileTrustBadges(item).slice(0, 2).map((badge) => <span key={badge}>{badge}</span>)}
+                        </div>
+                        <div className="opponentActions">
+                          <button onClick={() => openProfileDetail(item)} type="button">View profile</button>
+                          <button
+                            disabled={followActionId === item.user_id}
+                            onClick={() => toggleFollow(item)}
+                            type="button"
+                          >
+                            {follows.some((follow) => follow.follower_id === session.user.id && follow.following_id === item.user_id)
+                              ? "Following"
+                              : "Follow"}
+                          </button>
+                          <button
+                            className="primary"
+                            disabled={!canInvite}
+                            onClick={() => inviteProfileToChallenge(item)}
+                            title={
+                              pendingInvite
+                                ? "This person already has your pending invitation."
+                                : !profile
+                                  ? "Save your profile before sending an invitation."
+                                  : !targetAllowsChallenge(item)
+                                    ? "This person only accepts invitations from profiles they follow."
+                                    : "Create a challenge invitation"
+                            }
+                            type="button"
+                          >
+                            {opponentInviteLabel(item)}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+                <PaginationControls
+                  currentPage={opponentPage}
+                  label="Opponents"
+                  onPageChange={setOpponentPage}
+                  pageSize={opponentPageSize}
+                  targetId="opponents"
+                  totalItems={visibleOpponents.length}
+                />
+              </>
+            ) : (
+              <AppStatePanel
+                actionLabel="Clear opponent filters"
+                detail="Try a wider region, another activity, or All for skill, mode, and format."
+                onAction={() => {
+                  setOpponentSearch("");
+                  setOpponentActivity("All");
+                  setOpponentRegion("");
+                  setOpponentSkill("All");
+                  setOpponentMode("All");
+                  setOpponentFormat("All");
+                }}
+                title="No matching opponents yet"
+              />
+            )}
+          </>
         )}
       </section>
 
