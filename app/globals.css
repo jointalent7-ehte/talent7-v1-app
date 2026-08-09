@@ -7234,6 +7234,142 @@ textarea {
   opacity: 0.6;
 }
 
+.votingWindowPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: #f4f7f7;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.votingWindowPanel.open {
+  background: #e9f7f5;
+  border-color: #86cdc4;
+  box-shadow: inset 4px 0 0 var(--teal);
+}
+
+.votingWindowHeader {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.votingWindowHeader > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.votingWindowHeader span,
+.votingWindowStats span,
+.votingManagerControls label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.votingWindowHeader small,
+.votingIntegrityNote {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.votingWindowHeader em {
+  flex: 0 0 auto;
+  width: fit-content;
+  padding: 7px 10px;
+  color: #4f5e62;
+  background: #e7eded;
+  border: 1px solid #c7d1d1;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.votingWindowHeader em.open {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+.votingWindowStats {
+  min-width: 96px;
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.votingWindowStats strong {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.votingManagerControls {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 9px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(97 120 120 / 20%);
+}
+
+.votingManagerControls label {
+  display: grid;
+  gap: 6px;
+}
+
+.votingManagerControls select,
+.votingManagerControls button {
+  min-height: 42px;
+  border-radius: 8px;
+}
+
+.votingManagerControls select {
+  min-width: 190px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.votingManagerControls button {
+  padding: 10px 14px;
+  color: #fff;
+  background: var(--teal);
+  border: 1px solid var(--teal);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.votingManagerControls button.closeVotingButton {
+  color: #8e2418;
+  background: #fff0ed;
+  border-color: #efb3aa;
+}
+
+.votingManagerControls button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.votingIntegrityNote {
+  grid-column: 1 / -1;
+  padding-top: 2px;
+  font-size: 0.76rem;
+}
+
 .matchCoordinationPanel {
   display: grid;
   gap: 12px;
@@ -9561,6 +9697,34 @@ textarea {
 
   .liveManagerActions button {
     width: 100%;
+  }
+
+  .votingWindowPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .votingWindowHeader {
+    flex-direction: column;
+  }
+
+  .votingWindowStats {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .votingManagerControls {
+    grid-column: auto;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .votingManagerControls select,
+  .votingManagerControls button {
+    width: 100%;
+  }
+
+  .votingIntegrityNote {
+    grid-column: auto;
   }
 }
 

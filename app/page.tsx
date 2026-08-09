@@ -17,6 +17,7 @@ import TurnstileWidget from "./turnstile-widget";
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
 type ChallengeStatusFilter = "All" | "Open" | "Completed";
 type RoomDiscoveryMode = "Live" | "Trending" | "For you" | "Newest";
+type ChallengeVotingStatus = "Closed" | "Open";
 type ExpertHelpType =
   | "Medical guidance"
   | "Fitness injury"
@@ -521,6 +522,11 @@ type Challenge = {
   booking_url?: string | null;
   sport_type?: string | null;
   booking_region?: string | null;
+  voting_status?: ChallengeVotingStatus;
+  voting_opened_at?: string | null;
+  voting_closes_at?: string | null;
+  voting_closed_at?: string | null;
+  voting_updated_by?: string | null;
   created_at: string;
 };
 
@@ -578,6 +584,24 @@ const liveReactionOptions: Array<{ name: LiveReactionName; emoji: string; label:
 
 function isChallengeCompleted(challenge: Challenge) {
   return challenge.status === "Completed";
+}
+
+function isChallengeVotingOpen(challenge: Challenge) {
+  if (isChallengeCompleted(challenge) || challenge.voting_status !== "Open") return false;
+  if (!challenge.voting_closes_at) return true;
+  return new Date(challenge.voting_closes_at).getTime() > Date.now();
+}
+
+function challengeVotingWindowDetail(challenge: Challenge) {
+  if (isChallengeCompleted(challenge)) return "Voting closed when this challenge was completed.";
+  if (challenge.voting_status === "Open" && challenge.voting_closes_at) {
+    const closeTime = new Date(challenge.voting_closes_at);
+    return closeTime.getTime() > Date.now()
+      ? `Closes automatically ${closeTime.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}.`
+      : "The timed voting window has expired.";
+  }
+  if (challenge.voting_status === "Open") return "Open until an authorized organizer closes it.";
+  return "An authorized organizer opens voting after viewers have enough context to decide.";
 }
 
 function localDateTimeValue(value?: string | null) {
@@ -1710,6 +1734,8 @@ export default function Home() {
   const [liveSessionActionKey, setLiveSessionActionKey] = useState<string | null>(null);
   const [liveReactionActionKey, setLiveReactionActionKey] = useState<string | null>(null);
   const [challengeLiveLoadError, setChallengeLiveLoadError] = useState("");
+  const [votingDurationDrafts, setVotingDurationDrafts] = useState<Record<string, string>>({});
+  const [votingWindowActionId, setVotingWindowActionId] = useState<string | null>(null);
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
   const [challengeMessages, setChallengeMessages] = useState<ChallengeMessage[]>([]);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
@@ -3901,6 +3927,10 @@ export default function Home() {
     return userTeamRoles(challenge).some((item) => resultManagerRoles.includes(item.role));
   }
 
+  function canManageChallengeVoting(challenge: Challenge) {
+    return canManageChallengeLive(challenge);
+  }
+
   function liveVideoDraft(challengeId: string) {
     if (Object.prototype.hasOwnProperty.call(liveVideoDrafts, challengeId)) {
       return liveVideoDrafts[challengeId];
@@ -4041,6 +4071,68 @@ export default function Home() {
       );
     } finally {
       setLiveReactionActionKey(null);
+    }
+  }
+
+  async function setChallengeVotingWindow(challenge: Challenge, action: "Open" | "Close") {
+    if (!canManageChallengeVoting(challenge)) {
+      setMessage("Only the room creator, accepted opponent, authorized team manager, or Talent7 admin can manage voting.", "error");
+      return;
+    }
+
+    const durationValue = votingDurationDrafts[challenge.id] || "15";
+    const durationMinutes = action === "Open" && durationValue !== "manual" ? Number(durationValue) : null;
+    if (action === "Open" && durationMinutes !== null && (!Number.isInteger(durationMinutes) || durationMinutes < 1)) {
+      setMessage("Choose a valid voting duration.", "error");
+      return;
+    }
+
+    setVotingWindowActionId(challenge.id);
+    try {
+      if (!supabase || challenge.id.startsWith("sample-")) {
+        const now = new Date();
+        const updatedChallenge: Challenge = {
+          ...challenge,
+          voting_status: action === "Open" ? "Open" : "Closed",
+          voting_opened_at: action === "Open" ? now.toISOString() : challenge.voting_opened_at || null,
+          voting_closes_at:
+            action === "Open" && durationMinutes !== null
+              ? new Date(now.getTime() + durationMinutes * 60_000).toISOString()
+              : action === "Open"
+                ? null
+                : challenge.voting_closes_at || null,
+          voting_closed_at: action === "Close" ? now.toISOString() : null,
+          voting_updated_by: session?.user.id || "preview-user"
+        };
+        setChallenges((items) => items.map((item) => (item.id === challenge.id ? updatedChallenge : item)));
+      } else {
+        const { data, error } = await supabase.rpc("set_challenge_voting_window", {
+          target_action: action,
+          target_challenge_id: challenge.id,
+          target_duration_minutes: durationMinutes
+        });
+        if (error) throw error;
+
+        const updatedChallenge = ((data || []) as Challenge[])[0];
+        if (updatedChallenge) {
+          setChallenges((items) =>
+            items.map((item) => (item.id === challenge.id ? updatedChallenge : item))
+          );
+        }
+      }
+
+      setMessage(
+        action === "Open"
+          ? durationMinutes === null
+            ? "Voting opened and will remain available until an organizer closes it."
+            : `Voting opened for ${durationMinutes} minutes.`
+          : "Voting closed. Existing totals remain visible.",
+        "success"
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The voting window could not be updated.", "error");
+    } finally {
+      setVotingWindowActionId(null);
     }
   }
 
@@ -4615,6 +4707,24 @@ export default function Home() {
     const supabaseClient = supabase;
     const liveUpdatesChannel = supabaseClient
       .channel("talent7-live-room-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "challenges" },
+        (payload) => {
+          const previous = payload.old as Partial<Challenge>;
+          if (payload.eventType === "DELETE") {
+            setChallenges((items) => items.filter((item) => item.id !== previous.id));
+            return;
+          }
+
+          const updatedChallenge = payload.new as Challenge;
+          setChallenges((items) =>
+            items.some((item) => item.id === updatedChallenge.id)
+              ? items.map((item) => (item.id === updatedChallenge.id ? updatedChallenge : item))
+              : [updatedChallenge, ...items]
+          );
+        }
+      )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "challenge_live_sessions" },
@@ -7770,6 +7880,11 @@ export default function Home() {
       return;
     }
 
+    if (!isChallengeVotingOpen(challenge)) {
+      setMessage("Voting is closed. Wait for an organizer to open the voting window.", "warning");
+      return;
+    }
+
     const challengeId = challenge.id;
 
     if (hasUserVoted(challengeId)) {
@@ -8883,7 +8998,9 @@ export default function Home() {
       winner,
       final_score: finalScore || null,
       completed_at: new Date().toISOString(),
-      completed_by: session?.user.id
+      completed_by: session?.user.id,
+      voting_status: "Closed" as ChallengeVotingStatus,
+      voting_closed_at: new Date().toISOString()
     };
 
     setCompletingChallengeId(challenge.id);
@@ -13341,6 +13458,10 @@ export default function Home() {
             const liveSession = liveSessionsByRoom[challenge.id];
             const liveReactionTotals = liveReactionTotalsByRoom[challenge.id] || {};
             const canManageLive = canManageChallengeLive(challenge);
+            const votingOpen = isChallengeVotingOpen(challenge);
+            const canManageVoting = canManageChallengeVoting(challenge);
+            const roomVoteCount =
+              (roomResults[challenge.id]?.teamAVotes || 0) + (roomResults[challenge.id]?.teamBVotes || 0);
 
             return (
             <article
@@ -14202,12 +14323,86 @@ export default function Home() {
                 </form>
               </details>
               {!isChallengeCompleted(challenge) && (
+                <section className={`votingWindowPanel ${votingOpen ? "open" : "closed"}`} aria-label="Voting window">
+                  <div className="votingWindowHeader">
+                    <div>
+                      <span>Audience voting</span>
+                      <strong>{votingOpen ? "Voting is open" : "Voting is closed"}</strong>
+                      <small>{challengeVotingWindowDetail(challenge)}</small>
+                    </div>
+                    <em className={votingOpen ? "open" : "closed"}>
+                      {votingOpen ? "Open now" : challenge.voting_status === "Open" ? "Expired" : "Closed"}
+                    </em>
+                  </div>
+                  <div className="votingWindowStats">
+                    <strong>{roomVoteCount}</strong>
+                    <span>{roomVoteCount === 1 ? "vote recorded" : "votes recorded"}</span>
+                  </div>
+                  {canManageVoting && (
+                    <div className="votingManagerControls">
+                      {votingOpen ? (
+                        <button
+                          className="closeVotingButton"
+                          disabled={votingWindowActionId !== null}
+                          onClick={() => setChallengeVotingWindow(challenge, "Close")}
+                          type="button"
+                        >
+                          {votingWindowActionId === challenge.id ? "Closing…" : "Close voting now"}
+                        </button>
+                      ) : (
+                        <>
+                          <label>
+                            Voting duration
+                            <select
+                              onChange={(event) =>
+                                setVotingDurationDrafts((drafts) => ({
+                                  ...drafts,
+                                  [challenge.id]: event.target.value
+                                }))
+                              }
+                              value={votingDurationDrafts[challenge.id] || "15"}
+                            >
+                              <option value="5">5 minutes</option>
+                              <option value="10">10 minutes</option>
+                              <option value="15">15 minutes</option>
+                              <option value="30">30 minutes</option>
+                              <option value="60">1 hour</option>
+                              <option value="manual">Until manually closed</option>
+                            </select>
+                          </label>
+                          <button
+                            disabled={votingWindowActionId !== null}
+                            onClick={() => setChallengeVotingWindow(challenge, "Open")}
+                            type="button"
+                          >
+                            {votingWindowActionId === challenge.id ? "Opening…" : "Open voting"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <small className="votingIntegrityNote">
+                    One vote per signed-in account. Opening or closing the window never changes votes already recorded.
+                  </small>
+                </section>
+              )}
+              {!isChallengeCompleted(challenge) && (
                 <div className="roomButtons">
-                  <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge, challenge.team_a)}>
-                    {hasUserVoted(challenge.id) ? "Voted" : "Vote A"}
+                  <button
+                    disabled={hasUserVoted(challenge.id) || !votingOpen}
+                    title={!votingOpen ? "Voting opens only when an organizer starts the window" : undefined}
+                    type="button"
+                    onClick={() => voteForWinner(challenge, challenge.team_a)}
+                  >
+                    {hasUserVoted(challenge.id) ? "Voted" : votingOpen ? "Vote A" : "Voting closed"}
                   </button>
-                  <button disabled={hasUserVoted(challenge.id)} type="button" onClick={() => voteForWinner(challenge, challenge.team_b)}>
-                    {hasUserVoted(challenge.id) ? "Voted" : "Vote B"}
+                  <button
+                    disabled={hasUserVoted(challenge.id) || !votingOpen}
+                    title={!votingOpen ? "Voting opens only when an organizer starts the window" : undefined}
+                    type="button"
+                    onClick={() => voteForWinner(challenge, challenge.team_b)}
+                  >
+                    {hasUserVoted(challenge.id) ? "Voted" : votingOpen ? "Vote B" : "Voting closed"}
                   </button>
                   <button disabled={hasUserRated(challenge.id)} type="button" onClick={() => rateChallenge(challenge, 7)}>
                     {hasUserRated(challenge.id) ? "Rated" : "Rate 7/7"}
