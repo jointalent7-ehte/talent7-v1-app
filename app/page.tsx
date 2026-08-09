@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
+import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
 type ChallengeStatusFilter = "All" | "Open" | "Completed";
@@ -40,6 +41,7 @@ const maxPhotoUploadBytes = 10 * 1024 * 1024;
 const maxVideoUploadBytes = 50 * 1024 * 1024;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
 const videoMimeTypes = ["video/mp4", "video/quicktime"];
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || "";
 const challengeActivityGroups = [
   {
     label: "Popular challenges",
@@ -1381,6 +1383,8 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
+  const [authCaptchaToken, setAuthCaptchaToken] = useState("");
+  const [authCaptchaResetKey, setAuthCaptchaResetKey] = useState(0);
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -1421,6 +1425,8 @@ export default function Home() {
   const [savingAccountDeletion, setSavingAccountDeletion] = useState(false);
   const [accountDeletionReloadKey, setAccountDeletionReloadKey] = useState(0);
   const [accountDeletionFormUserId, setAccountDeletionFormUserId] = useState<string | null>(null);
+  const [accountDeletionCaptchaToken, setAccountDeletionCaptchaToken] = useState("");
+  const [accountDeletionCaptchaResetKey, setAccountDeletionCaptchaResetKey] = useState(0);
   const [accountDeletionClock, setAccountDeletionClock] = useState(0);
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
@@ -3974,6 +3980,10 @@ export default function Home() {
       setMessage(`Enter an email and a password with at least ${requiredPasswordLength} characters.`);
       return;
     }
+    if (turnstileSiteKey && !authCaptchaToken) {
+      setMessage("Complete the security check before continuing.", "error");
+      return;
+    }
 
     setAuthLoading(true);
     setMessage("");
@@ -3984,9 +3994,19 @@ export default function Home() {
         ? await supabase.auth.signUp({
             email,
             password,
-            options: { emailRedirectTo: `${siteUrl("/")}#account` }
+            options: {
+              captchaToken: authCaptchaToken || undefined,
+              emailRedirectTo: `${siteUrl("/")}#account`
+            }
           })
-        : await supabase.auth.signInWithPassword({ email, password });
+        : await supabase.auth.signInWithPassword({
+            email,
+            password,
+            options: { captchaToken: authCaptchaToken || undefined }
+          });
+
+    setAuthCaptchaToken("");
+    setAuthCaptchaResetKey((key) => key + 1);
 
     if (result.error) {
       setMessage(result.error.message);
@@ -4024,10 +4044,15 @@ export default function Home() {
       setMessage("Enter your account email first, then select Forgot password.");
       return;
     }
+    if (turnstileSiteKey && !authCaptchaToken) {
+      setMessage("Complete the security check before requesting a password reset.", "error");
+      return;
+    }
 
     setAuthEmailAction("reset");
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        captchaToken: authCaptchaToken || undefined,
         redirectTo: `${siteUrl("/")}#account`
       });
 
@@ -4039,18 +4064,27 @@ export default function Home() {
     } catch (error) {
       setMessage(readableAuthError(error, "Password reset email could not be sent. Check your connection and try again."), "error");
     } finally {
+      setAuthCaptchaToken("");
+      setAuthCaptchaResetKey((key) => key + 1);
       setAuthEmailAction(null);
     }
   }
 
   async function resendConfirmationEmail() {
     if (!supabase || !confirmationEmail) return;
+    if (turnstileSiteKey && !authCaptchaToken) {
+      setMessage("Complete the security check before resending the confirmation email.", "error");
+      return;
+    }
     setAuthEmailAction("resend");
     try {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: confirmationEmail,
-        options: { emailRedirectTo: `${siteUrl("/")}#account` }
+        options: {
+          captchaToken: authCaptchaToken || undefined,
+          emailRedirectTo: `${siteUrl("/")}#account`
+        }
       });
 
       if (error) {
@@ -4061,6 +4095,8 @@ export default function Home() {
     } catch (error) {
       setMessage(readableAuthError(error, "Confirmation email could not be sent. Check your connection and try again."), "error");
     } finally {
+      setAuthCaptchaToken("");
+      setAuthCaptchaResetKey((key) => key + 1);
       setAuthEmailAction(null);
     }
   }
@@ -4150,6 +4186,10 @@ export default function Home() {
     }
 
     const form = new FormData(formElement);
+    if (turnstileSiteKey && !accountDeletionCaptchaToken) {
+      setMessage("Complete the security check before requesting account deletion.", "error");
+      return;
+    }
     setSavingAccountDeletion(true);
     setMessage("");
 
@@ -4163,7 +4203,8 @@ export default function Home() {
         body: JSON.stringify({
           password: String(form.get("deletion_password") || ""),
           confirmation: String(form.get("deletion_confirmation") || ""),
-          reason: String(form.get("deletion_reason") || "")
+          reason: String(form.get("deletion_reason") || ""),
+          captchaToken: accountDeletionCaptchaToken || undefined
         })
       });
       const result = (await response.json().catch(() => null)) as
@@ -4178,6 +4219,8 @@ export default function Home() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The deletion request could not be saved.", "error");
     } finally {
+      setAccountDeletionCaptchaToken("");
+      setAccountDeletionCaptchaResetKey((key) => key + 1);
       setSavingAccountDeletion(false);
     }
   }
@@ -8408,6 +8451,12 @@ export default function Home() {
                       Type DELETE to confirm
                       <input autoCapitalize="characters" autoComplete="off" name="deletion_confirmation" pattern="DELETE" placeholder="DELETE" required />
                     </label>
+                    <TurnstileWidget
+                      action="account_deletion"
+                      onToken={setAccountDeletionCaptchaToken}
+                      resetKey={accountDeletionCaptchaResetKey}
+                      siteKey={turnstileSiteKey}
+                    />
                     <button disabled={savingAccountDeletion} type="submit">
                       {savingAccountDeletion ? "Submitting request..." : "Request account deletion"}
                     </button>
@@ -8511,6 +8560,8 @@ export default function Home() {
                   onClick={() => {
                     setAuthMode(mode);
                     setLoginPrompt("");
+                    setAuthCaptchaToken("");
+                    setAuthCaptchaResetKey((key) => key + 1);
                     if (mode === "Log in") setConfirmationEmail("");
                   }}
                   type="button"
@@ -8565,6 +8616,12 @@ export default function Home() {
                 </button>
               </span>
             </label>
+            <TurnstileWidget
+              action="talent7_auth"
+              onToken={setAuthCaptchaToken}
+              resetKey={authCaptchaResetKey}
+              siteKey={turnstileSiteKey}
+            />
             {authMode === "Log in" && (
               <button
                 className="authTextAction"

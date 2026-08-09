@@ -1884,6 +1884,23 @@ textarea {
   gap: 14px;
 }
 
+.turnstileField {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.turnstileWidget {
+  min-height: 65px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.turnstileField small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .passwordField {
   display: grid;
   gap: 8px;
