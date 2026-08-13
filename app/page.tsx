@@ -3827,7 +3827,10 @@ export default function Home() {
 
   function participantGroup(challengeId: string, side: string, role?: JoinRole) {
     return roomJoins(challengeId).filter((join) => {
-      const sideMatches = join.side === side;
+      // Early versions stored "Open invite" as if it were a third side.
+      // It actually meant the open Team B slot, so keep those saved joins visible
+      // under Team B while all new joins use the canonical side names.
+      const sideMatches = join.side === side || (side === "Team B" && join.side === "Open invite");
       const roleMatches = !role || join.role === role;
 
       return sideMatches && roleMatches;
@@ -3926,14 +3929,14 @@ export default function Home() {
   }
 
   function joinChoice(challengeId: string) {
-    return joinChoices[challengeId] || { role: "Challenger" as JoinRole, side: "Open invite" };
+    return joinChoices[challengeId] || { role: "Challenger" as JoinRole, side: "Team A" };
   }
 
   function updateJoinChoice(challengeId: string, choice: Partial<{ role: JoinRole; side: string }>) {
     setJoinChoices((current) => ({
       ...current,
       [challengeId]: {
-        ...(current[challengeId] || { role: "Challenger" as JoinRole, side: "Open invite" }),
+        ...(current[challengeId] || { role: "Challenger" as JoinRole, side: "Team A" }),
         ...choice
       }
     }));
@@ -7989,12 +7992,14 @@ export default function Home() {
     const form = new FormData(formElement);
     const participantName = profileName();
 
+    const role = String(form.get("role") || "Challenger") as JoinRole;
+    const requestedSide = String(form.get("side") || "Team A");
     const join = {
       challenge_id: challenge.id,
       user_id: session?.user.id,
       participant_name: participantName,
-      role: String(form.get("role") || "Challenger") as JoinRole,
-      side: String(form.get("side") || "Open invite")
+      role,
+      side: role === "Audience" ? "Audience" : requestedSide === "Team B" ? "Team B" : "Team A"
     };
 
     setJoiningChallengeId(challenge.id);
@@ -14249,26 +14254,40 @@ export default function Home() {
                         <button
                           className={joinChoice(challenge.id).role === role ? "active" : ""}
                           key={role}
-                          onClick={() => updateJoinChoice(challenge.id, { role })}
+                          onClick={() =>
+                            updateJoinChoice(challenge.id, {
+                              role,
+                              side:
+                                role === "Audience"
+                                  ? "Audience"
+                                  : joinChoice(challenge.id).side === "Team B"
+                                    ? "Team B"
+                                    : "Team A"
+                            })
+                          }
                           type="button"
                         >
                           {role}
                         </button>
                       ))}
                     </div>
-                    <div className="joinPicker">
-                      <span>Side</span>
-                      {["Open invite", "Team A", "Team B"].map((side) => (
-                        <button
-                          className={joinChoice(challenge.id).side === side ? "active" : ""}
-                          key={side}
-                          onClick={() => updateJoinChoice(challenge.id, { side })}
-                          type="button"
-                        >
-                          {side}
-                        </button>
-                      ))}
-                    </div>
+                    {joinChoice(challenge.id).role === "Challenger" ? (
+                      <div className="joinPicker">
+                        <span>Side</span>
+                        {["Team A", "Team B"].map((side) => (
+                          <button
+                            className={joinChoice(challenge.id).side === side ? "active" : ""}
+                            key={side}
+                            onClick={() => updateJoinChoice(challenge.id, { side })}
+                            type="button"
+                          >
+                            {side}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <small className="formHint">Audience members watch and react without joining either side.</small>
+                    )}
                     <button disabled={joiningChallengeId === challenge.id} type="submit">
                       {joiningChallengeId === challenge.id ? "Joining..." : "Join"}
                     </button>
@@ -14473,7 +14492,6 @@ export default function Home() {
                   {[
                     { title: "Team A", people: participantGroup(challenge.id, "Team A", "Challenger") },
                     { title: "Team B", people: participantGroup(challenge.id, "Team B", "Challenger") },
-                    { title: "Open invite", people: participantGroup(challenge.id, "Open invite", "Challenger") },
                     {
                       title: "Audience",
                       people: roomJoins(challenge.id).filter((join) => join.role === "Audience")
