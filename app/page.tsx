@@ -4647,7 +4647,7 @@ export default function Home() {
       }
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Your live reaction could not be sent.",
+        readableAuthError(error, "Your live reaction could not be sent."),
         "warning"
       );
     } finally {
