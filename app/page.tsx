@@ -14054,6 +14054,10 @@ export default function Home() {
             const schedulePlayMode = availableSchedulePlayModes.includes(preferredSchedulePlayMode)
               ? preferredSchedulePlayMode
               : availableSchedulePlayModes[0];
+            const bookingShortcuts = suggestedBookingLinks(challenge);
+            const coordinationBookingShortcuts = bookingShortcuts.filter(
+              (link) => link.label !== "Set up with Planyo"
+            );
             const canCoordinate = canCoordinateChallenge(challenge);
             const liveSession = liveSessionsByRoom[challenge.id];
             const liveReactionTotals = liveReactionTotalsByRoom[challenge.id] || {};
@@ -14577,15 +14581,39 @@ export default function Home() {
                             </small>
                           </label>
                           {schedulePlayMode === "In person" && (
-                            <label>
-                              Venue name
-                              <input
-                                defaultValue={schedule?.venue_name || ""}
-                                maxLength={160}
-                                name="venue_name"
-                                placeholder="Required for in-person matches"
-                              />
-                            </label>
+                            <>
+                              <label>
+                                Venue name
+                                <input
+                                  defaultValue={schedule?.venue_name || ""}
+                                  maxLength={160}
+                                  name="venue_name"
+                                  placeholder="Required for in-person matches"
+                                />
+                              </label>
+                              <div className="coordinationBookingShortcuts wide">
+                                <div>
+                                  <strong>Find and book a venue</strong>
+                                  <small>
+                                    These open external services for {challenge.booking_region || "your region"}. Return here and enter the venue you agree on.
+                                  </small>
+                                </div>
+                                <div className="coordinationBookingLinks">
+                                  {coordinationBookingShortcuts.map((link) => (
+                                    <a
+                                      className={link.recommended ? "recommendedBookingLink" : undefined}
+                                      href={link.url}
+                                      key={`coordinate-${link.label}`}
+                                      rel="noreferrer"
+                                      target="_blank"
+                                    >
+                                      {link.label}
+                                      {link.recommended && <em>Recommended</em>}
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
                           )}
                           {schedulePlayMode === "Online" && (
                             <label>
@@ -14661,7 +14689,7 @@ export default function Home() {
                         <small>Exact link shared by the room creator</small>
                       </a>
                     )}
-                    {suggestedBookingLinks(challenge).map((link) => (
+                    {bookingShortcuts.map((link) => (
                       <a
                         className={link.recommended ? "recommendedBookingLink" : undefined}
                         href={link.url}

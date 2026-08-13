@@ -7697,6 +7697,68 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.coordinationBookingShortcuts {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: #eef8f6;
+  border: 1px solid #b8ded9;
+  border-radius: 8px;
+}
+
+.coordinationBookingShortcuts > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.coordinationBookingShortcuts strong {
+  font-size: 0.88rem;
+}
+
+.coordinationBookingShortcuts small {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.coordinationBookingLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.coordinationBookingLinks a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.coordinationBookingLinks a.recommendedBookingLink {
+  border-color: #73c6bc;
+  box-shadow: inset 0 0 0 1px rgba(15, 143, 140, 0.08);
+}
+
+.coordinationBookingLinks em {
+  padding: 2px 5px;
+  color: #11635d;
+  background: #dff4f0;
+  border-radius: 999px;
+  font-size: 0.56rem;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
 .scheduleEditor input,
 .scheduleEditor select,
 .scheduleEditor textarea {
@@ -7824,6 +7886,17 @@ textarea {
 @media (max-width: 620px) {
   .bookingActions {
     grid-template-columns: 1fr;
+  }
+
+  .coordinationBookingLinks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coordinationBookingLinks a {
+    justify-content: center;
+    border-radius: 8px;
+    text-align: center;
   }
 }
 
