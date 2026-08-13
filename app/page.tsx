@@ -1195,9 +1195,7 @@ const defaultPushNotificationPreferences: PushNotificationPreferences = {
   social_updates: false
 };
 
-// Keep the completed push work dormant until Firebase, the Supabase migration,
-// and the delivery webhook are deliberately enabled together.
-const pushNotificationsEnabled = false;
+const pushNotificationsEnabled = true;
 
 type NotificationFilter = "All" | "Unread" | AppNotification["category"];
 
@@ -4848,9 +4846,6 @@ export default function Home() {
         : defaultPushNotificationPreferences;
 
       setPushPreferences(resolvedPreferences);
-      if (resolvedPreferences.push_enabled) {
-        window.Talent7Push?.requestPermissionAndToken();
-      }
       setPushDeviceConnected(Boolean(devices?.length));
       setPushPreferencesLoading(false);
     }
