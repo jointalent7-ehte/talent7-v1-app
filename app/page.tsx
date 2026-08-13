@@ -49,6 +49,35 @@ const profilePageSize = 8;
 const feedPageSize = 8;
 const notificationPageSize = 10;
 const opponentPageSize = 8;
+const athleticsIndividualEvents = [
+  "100 m sprint",
+  "200 m sprint",
+  "400 m sprint",
+  "800 m run",
+  "1200 m run (youth)",
+  "1500 m run",
+  "3000 m run",
+  "5000 m run",
+  "10,000 m run",
+  "100 m hurdles",
+  "110 m hurdles",
+  "400 m hurdles",
+  "3000 m steeplechase",
+  "3 km road race",
+  "5 km road race",
+  "10 km road race",
+  "Half marathon – 21.0975 km",
+  "Marathon – 42.195 km",
+  "Shot put",
+  "Javelin throw",
+  "Discus throw",
+  "Hammer throw",
+  "High jump",
+  "Long jump",
+  "Triple jump",
+  "Pole vault"
+];
+const athleticsRelayEvents = ["4 × 100 m relay", "4 × 400 m relay"];
 const challengeActivityGroups = [
   {
     label: "Popular challenges",
@@ -62,8 +91,6 @@ const challengeActivityGroups = [
       "Football match",
       "Cricket match",
       "Basketball match",
-      "Running race",
-      "Athletics challenge",
       "Skating challenge",
       "Arm wrestling",
       "Karate sparring",
@@ -78,6 +105,15 @@ const challengeActivityGroups = [
       "Cycling challenge",
       "Parkour challenge",
       "Yoga challenge"
+    ]
+  },
+  {
+    label: "Athletics events",
+    options: [
+      ...athleticsIndividualEvents,
+      ...athleticsRelayEvents,
+      "Running race",
+      "Athletics challenge"
     ]
   },
   {
@@ -558,6 +594,8 @@ function activityMatchConfig(activity: string): ActivityMatchConfig {
   if (normalized.includes("basketball")) return fixed("Team", 5);
   if (normalized.includes("pubg squad")) return fixed("Team", 4);
   if (normalized.includes("mech arena")) return fixed("Team", 5);
+  if (normalized.includes("relay")) return fixed("Team", 4);
+  if (athleticsIndividualEvents.some((event) => event.toLowerCase() === normalized)) return fixed("Singles", 1);
   if (normalized.includes("team tournament")) return flexible(["Team"], "Team", 4);
 
   if (normalized.includes("table tennis") || normalized.includes("tennis")) {
@@ -623,6 +661,8 @@ function validRosterSizeForActivity(activity: string, format: MatchFormat, roste
 
 function matchFormatLabel(format: MatchFormat, activity: string) {
   const normalized = activity.toLowerCase();
+  if (normalized.includes("relay")) return "Relay team";
+  if (athleticsIndividualEvents.some((event) => event.toLowerCase() === normalized)) return "Individual";
   if (normalized.includes("pubg") || normalized.includes("gaming")) {
     if (format === "Singles") return "Solo";
     if (format === "Doubles") return "Duo";
@@ -1301,6 +1341,28 @@ function laneForInterest(interest: string): ChallengeLane {
 function rulesForActivity(activity: string) {
   const normalized = activity.toLowerCase();
 
+  if (normalized.includes("relay")) {
+    return `${activity}: use four registered runners per side, agree the track, lane allocation, baton exchange rules, and timing method, then upload the official time and finish proof.`;
+  }
+
+  if (
+    normalized.includes("shot put") ||
+    normalized.includes("javelin") ||
+    normalized.includes("discus") ||
+    normalized.includes("hammer throw")
+  ) {
+    return `${activity}: agree the implement specification and number of valid attempts. Rank the best legal measured throw and upload the result sheet or measurement proof.`;
+  }
+
+  if (
+    normalized.includes("high jump") ||
+    normalized.includes("long jump") ||
+    normalized.includes("triple jump") ||
+    normalized.includes("pole vault")
+  ) {
+    return `${activity}: agree the competition rules and number of attempts. Rank the best legal height or distance and upload the result sheet or measurement proof.`;
+  }
+
   if (normalized.includes("badminton")) {
     return "Best of 3 games, 21 points each. Upload the final score and victory proof after the match.";
   }
@@ -1346,6 +1408,16 @@ function rulesForActivity(activity: string) {
 
 function venueForActivity(activity: string) {
   const normalized = activity.toLowerCase();
+
+  if (
+    athleticsIndividualEvents.some((event) => event.toLowerCase() === normalized) ||
+    athleticsRelayEvents.some((event) => event.toLowerCase() === normalized) ||
+    normalized.includes("athletics")
+  ) {
+    return normalized.includes("road race") || normalized.includes("marathon")
+      ? "Measured road course or certified race event"
+      : "Athletics track-and-field venue";
+  }
 
   if (normalized.includes("pubg") || normalized.includes("mech arena") || normalized.includes("gaming") || normalized.includes("chess")) {
     return "Online lobby or agreed venue";
