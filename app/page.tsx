@@ -9616,7 +9616,6 @@ export default function Home() {
           </div>
           <div className="navActions">
             <span>{session ? profileName() : "Guest mode"}</span>
-            <a href="https://www.jointalent7.com">Public site</a>
           </div>
         </nav>
         {showLandingHero && (
