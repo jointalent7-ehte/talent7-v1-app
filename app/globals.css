@@ -7890,13 +7890,13 @@ textarea {
 
   .coordinationBookingLinks {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .coordinationBookingLinks a {
-    justify-content: center;
+    justify-content: space-between;
     border-radius: 8px;
-    text-align: center;
+    text-align: left;
   }
 }
 

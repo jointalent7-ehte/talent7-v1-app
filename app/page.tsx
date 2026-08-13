@@ -1371,9 +1371,9 @@ type BookingShortcut = {
   recommended?: boolean;
 };
 
-function suggestedBookingLinks(challenge: Challenge): BookingShortcut[] {
+function suggestedBookingLinks(challenge: Challenge, fallbackRegion?: string | null): BookingShortcut[] {
   const sport = challenge.sport_type || challenge.title || "sports venue";
-  const region = challenge.booking_region || "near me";
+  const region = challenge.booking_region?.trim() || fallbackRegion?.trim() || "near me";
   const query = encodeURIComponent(`${sport} booking ${region}`);
   const mapQuery = encodeURIComponent(`${sport} venue ${region}`);
   const normalizedSport = sport.toLowerCase();
@@ -1425,8 +1425,7 @@ function suggestedBookingLinks(challenge: Challenge): BookingShortcut[] {
     shortcuts.push({
       label: "Book with Hudle",
       url: "https://www.hudle.in/",
-      detail: "India-focused sports venues, courts, turfs, pools, and community games.",
-      recommended: true
+      detail: "India-focused sports venues, courts, turfs, pools, and community games."
     });
   }
 
@@ -1434,8 +1433,7 @@ function suggestedBookingLinks(challenge: Challenge): BookingShortcut[] {
     shortcuts.push({
       label: "Find on Playo",
       url: "https://playo.co/",
-      detail: "Find venues, trainers, and players in supported Playo cities.",
-      recommended: !isIndia
+      detail: "Find venues, trainers, and players in supported Playo cities."
     });
   }
 
@@ -1443,8 +1441,7 @@ function suggestedBookingLinks(challenge: Challenge): BookingShortcut[] {
     shortcuts.push({
       label: "Search Playtomic",
       url: "https://playtomic.com/clubs",
-      detail: "Global court discovery, especially for padel, tennis, and other racket sports.",
-      recommended: !isIndia && isRacketSport
+      detail: "Global court discovery, especially for padel, tennis, and other racket sports."
     });
   }
 
@@ -1452,8 +1449,7 @@ function suggestedBookingLinks(challenge: Challenge): BookingShortcut[] {
     {
       label: "Find on Maps",
       url: `https://www.google.com/maps/search/${mapQuery}`,
-      detail: `Search nearby ${sport} venues around ${region}.`,
-      recommended: shortcuts.length === 0
+      detail: `Search nearby ${sport} venues around ${region}.`
     },
     {
       label: "Search all booking options",
@@ -1467,7 +1463,18 @@ function suggestedBookingLinks(challenge: Challenge): BookingShortcut[] {
     }
   );
 
-  return shortcuts;
+  const recommendedLabel = isIndia
+    ? "Book with Hudle"
+    : isRacketSport && !isPlayoMarket
+      ? "Search Playtomic"
+      : isPlayoMarket || normalizedRegion === "global" || normalizedRegion === "near me"
+        ? "Find on Playo"
+        : "Find on Maps";
+
+  return shortcuts.map((shortcut) => ({
+    ...shortcut,
+    recommended: shortcut.label === recommendedLabel
+  }));
 }
 
 function selectedFile(form: FormData, fieldName: string) {
@@ -14054,7 +14061,8 @@ export default function Home() {
             const schedulePlayMode = availableSchedulePlayModes.includes(preferredSchedulePlayMode)
               ? preferredSchedulePlayMode
               : availableSchedulePlayModes[0];
-            const bookingShortcuts = suggestedBookingLinks(challenge);
+            const effectiveBookingRegion = challenge.booking_region?.trim() || profile?.region?.trim() || "Near me";
+            const bookingShortcuts = suggestedBookingLinks(challenge, profile?.region);
             const coordinationBookingShortcuts = bookingShortcuts.filter(
               (link) => link.label !== "Set up with Planyo"
             );
@@ -14595,7 +14603,7 @@ export default function Home() {
                                 <div>
                                   <strong>Find and book a venue</strong>
                                   <small>
-                                    These open external services for {challenge.booking_region || "your region"}. Return here and enter the venue you agree on.
+                                    These open external services for {effectiveBookingRegion}. Return here and enter the venue you agree on.
                                   </small>
                                 </div>
                                 <div className="coordinationBookingLinks">
@@ -14676,7 +14684,7 @@ export default function Home() {
                     <span>Venue / booking</span>
                     <strong>{challenge.venue_name || "Booking link available"}</strong>
                     <small>
-                      {[challenge.sport_type, challenge.booking_region].filter(Boolean).join(" / ") ||
+                      {[challenge.sport_type, effectiveBookingRegion].filter(Boolean).join(" / ") ||
                         "Add sport and region for better suggestions"}
                     </small>
                     <small>Availability and final prices are controlled by each external provider.</small>
