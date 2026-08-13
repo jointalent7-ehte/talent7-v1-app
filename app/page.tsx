@@ -1857,6 +1857,75 @@ export default function Home() {
   const [privateListenRoomCode, setPrivateListenRoomCode] = useState("");
   const [privateListenRoomPasscode, setPrivateListenRoomPasscode] = useState("");
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const root = document.documentElement;
+    const viewport = window.visualViewport;
+    let keyboardOpen = false;
+    let largestViewportHeight = viewport?.height || window.innerHeight;
+    let focusTimer: number | undefined;
+
+    const keepFocusedControlVisible = () => {
+      const focused = document.activeElement;
+      if (!(focused instanceof HTMLElement) || !focused.matches("input, textarea, select, [contenteditable='true']")) return;
+
+      window.clearTimeout(focusTimer);
+      focusTimer = window.setTimeout(() => {
+        focused.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      }, 120);
+    };
+
+    const setKeyboardOpen = (nextOpen: boolean) => {
+      if (keyboardOpen === nextOpen) return;
+      keyboardOpen = nextOpen;
+      root.classList.toggle("talent7KeyboardOpen", nextOpen);
+      if (nextOpen) {
+        setIsMoreOpen(false);
+        keepFocusedControlVisible();
+      }
+    };
+
+    const detectKeyboardFromViewport = () => {
+      const currentHeight = viewport?.height || window.innerHeight;
+      if (!keyboardOpen) largestViewportHeight = Math.max(largestViewportHeight, currentHeight);
+      const heightLoss = largestViewportHeight - currentHeight;
+      const focused = document.activeElement;
+      const editing = focused instanceof HTMLElement
+        && focused.matches("input, textarea, select, [contenteditable='true']");
+      setKeyboardOpen(editing && heightLoss > Math.max(120, largestViewportHeight * 0.18));
+    };
+
+    const handleNativeKeyboard = (event: Event) => {
+      const detail = (event as CustomEvent<{ visible?: boolean }>).detail;
+      setKeyboardOpen(Boolean(detail?.visible));
+    };
+
+    const handleFocusIn = () => {
+      window.setTimeout(detectKeyboardFromViewport, 80);
+      if (keyboardOpen) keepFocusedControlVisible();
+    };
+    const handleFocusOut = () => window.setTimeout(detectKeyboardFromViewport, 80);
+
+    viewport?.addEventListener("resize", detectKeyboardFromViewport);
+    viewport?.addEventListener("scroll", detectKeyboardFromViewport);
+    window.addEventListener("resize", detectKeyboardFromViewport);
+    window.addEventListener("talent7-keyboard-visibility", handleNativeKeyboard);
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      root.classList.remove("talent7KeyboardOpen");
+      viewport?.removeEventListener("resize", detectKeyboardFromViewport);
+      viewport?.removeEventListener("scroll", detectKeyboardFromViewport);
+      window.removeEventListener("resize", detectKeyboardFromViewport);
+      window.removeEventListener("talent7-keyboard-visibility", handleNativeKeyboard);
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
+    };
+  }, []);
+
   const closeConfirmationDialog = useCallback(() => {
     if (confirmationBusy) return;
     setConfirmationRequest(null);

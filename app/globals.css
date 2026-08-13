@@ -9160,6 +9160,19 @@ textarea {
     padding-bottom: 74px;
   }
 
+  html.talent7KeyboardOpen body {
+    padding-bottom: 0;
+  }
+
+  html.talent7KeyboardOpen .appTabs,
+  html.talent7KeyboardOpen .mobileAppTabs,
+  html.talent7KeyboardOpen .backToTopButton,
+  html.talent7KeyboardOpen .notificationReturnBar,
+  html.talent7KeyboardOpen .mobileMoreBackdrop,
+  html.talent7KeyboardOpen .mobileMoreSheet {
+    display: none !important;
+  }
+
   .appTabs {
     top: auto;
     bottom: 0;
