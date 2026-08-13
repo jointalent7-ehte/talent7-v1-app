@@ -3900,6 +3900,18 @@ export default function Home() {
   useEffect(() => {
     if (!activePresenceChallengeId) return;
 
+    const activeRoomIndex = visibleChallenges.findIndex(
+      (challenge) => challenge.id === activePresenceChallengeId
+    );
+    if (activeRoomIndex < 0) return;
+
+    const activeRoomPage = Math.floor(activeRoomIndex / roomPageSize) + 1;
+    setRoomPage((current) => (current === activeRoomPage ? current : activeRoomPage));
+  }, [activePresenceChallengeId, visibleChallenges]);
+
+  useEffect(() => {
+    if (!activePresenceChallengeId) return;
+
     const roomIsVisible = visibleChallenges.some((challenge) => challenge.id === activePresenceChallengeId);
     if (activeAppTab !== "challenges" || activeSection !== "rooms" || !roomIsVisible) {
       setActivePresenceChallengeId(null);
@@ -14680,7 +14692,11 @@ export default function Home() {
                   <span>In room now</span>
                 </div>
               </div>
-              <details className="roomWorkspace" onToggle={(event) => handleRoomWorkspaceToggle(event, challenge)}>
+              <details
+                className="roomWorkspace"
+                onToggle={(event) => handleRoomWorkspaceToggle(event, challenge)}
+                open={activePresenceChallengeId === challenge.id}
+              >
                 <summary>
                   <span>{isChallengeCompleted(challenge) ? "View archived room" : "Open room"}</span>
                   <small>
