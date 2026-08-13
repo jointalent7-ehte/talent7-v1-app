@@ -2248,6 +2248,7 @@ export default function Home() {
   const [pushNotificationEvents, setPushNotificationEvents] = useState<PushNotificationEvent[]>([]);
   const [pushPreferences, setPushPreferences] = useState<PushNotificationPreferences>(defaultPushNotificationPreferences);
   const [pushDeviceConnected, setPushDeviceConnected] = useState(false);
+  const lastRegisteredPushTokenRef = useRef<string | null>(null);
   const [nativePushAvailable, setNativePushAvailable] = useState(false);
   const [pushPreferencesLoading, setPushPreferencesLoading] = useState(false);
   const [savingPushPreferences, setSavingPushPreferences] = useState(false);
@@ -4817,6 +4818,7 @@ export default function Home() {
     if (!pushNotificationsEnabled || !supabase || !session?.user.id) {
       setPushPreferences(defaultPushNotificationPreferences);
       setPushDeviceConnected(false);
+      lastRegisteredPushTokenRef.current = null;
       return;
     }
 
@@ -4855,6 +4857,10 @@ export default function Home() {
       const token = detail?.token?.trim() || "";
       if (token.length < 32) return;
 
+      const registrationKey = `${userId}:${token}`;
+      if (lastRegisteredPushTokenRef.current === registrationKey) return;
+      lastRegisteredPushTokenRef.current = registrationKey;
+
       const { error } = await supabaseClient.rpc("register_push_device", {
         target_token: token,
         target_platform: "Android",
@@ -4863,12 +4869,12 @@ export default function Home() {
 
       if (cancelled) return;
       if (error) {
+        lastRegisteredPushTokenRef.current = null;
         setPushDeviceConnected(false);
         setMessage(`Push registration failed: ${error.message}`, "error");
         return;
       }
       setPushDeviceConnected(true);
-      setMessage("This Android device is ready for Talent7 notifications.", "success");
     }
 
     window.addEventListener("talent7-native-push-token", handleNativePushToken);
