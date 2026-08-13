@@ -1475,6 +1475,40 @@ main.appView-leaderboard > #leaderboard {
   line-height: 1.45;
 }
 
+.openOpponentOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 14px;
+  background: #f2fbf9;
+  border: 1px solid #9bd5ce;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.openOpponentOption input {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--teal);
+}
+
+.openOpponentOption span {
+  display: grid;
+  gap: 3px;
+}
+
+.openOpponentOption strong {
+  color: var(--ink);
+}
+
+.openOpponentOption small {
+  color: #657178;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .challengeTypeControls {
   display: grid;
   gap: 8px;

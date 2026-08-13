@@ -1293,6 +1293,7 @@ type ChallengeDraft = {
   lane: ChallengeLane;
   team_a: string;
   team_b: string;
+  openOpponent: boolean;
   team_a_id: string;
   team_b_id: string;
   rules: string;
@@ -1310,8 +1311,9 @@ type ChallengeDraft = {
 const defaultChallengeDraft: ChallengeDraft = {
   title: "Badminton doubles",
   lane: "Sports challenge",
-  team_a: "Team A",
-  team_b: "Open invite",
+  team_a: "",
+  team_b: "",
+  openOpponent: true,
   team_a_id: "",
   team_b_id: "",
   rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
@@ -3265,6 +3267,18 @@ export default function Home() {
 
     return { owned, accepted, pending, challenges: teamChallenges };
   }, [challenges, session, teamRequests, teams]);
+
+  const challengeLinkableTeams = useMemo(() => {
+    const connectedTeams = [
+      ...myTeamDashboard.owned,
+      ...myTeamDashboard.accepted.flatMap((request) => (request.team ? [request.team] : [])),
+      ...teams.filter((team) => team.id === challengeDraft.team_a_id || team.id === challengeDraft.team_b_id)
+    ];
+
+    return connectedTeams.filter(
+      (team, index, items) => items.findIndex((candidate) => candidate.id === team.id) === index
+    );
+  }, [challengeDraft.team_a_id, challengeDraft.team_b_id, myTeamDashboard, teams]);
 
   const inviteInbox = useMemo(() => {
     if (!session?.user.id) {
@@ -6153,7 +6167,8 @@ export default function Home() {
       title: activity,
       lane: laneForInterest(activity),
       team_a: profileName(),
-      team_b: "Open invite",
+      team_b: "",
+      openOpponent: true,
       team_a_id: "",
       team_b_id: "",
       rules: rulesForActivity(activity),
@@ -7114,6 +7129,11 @@ export default function Home() {
       : "";
   }
 
+  function challengeCheckboxChecked(formElement: HTMLFormElement, name: string) {
+    const control = formElement.elements.namedItem(name);
+    return control instanceof HTMLInputElement && control.type === "checkbox" && control.checked;
+  }
+
   function focusChallengeField(formElement: HTMLFormElement, name: string) {
     window.setTimeout(() => {
       const control = formElement.elements.namedItem(name);
@@ -7131,9 +7151,7 @@ export default function Home() {
         { name: "lane", label: "category" }
       ],
       2: [
-        { name: "match_format", label: "match format" },
-        { name: "team_a", label: "team or challenger A" },
-        { name: "team_b", label: "team or challenger B" }
+        { name: "match_format", label: "match format" }
       ],
       3: [{ name: "rules", label: "challenge rules" }]
     };
@@ -7149,6 +7167,19 @@ export default function Home() {
       const activity = challengeFieldValue(formElement, "sport_type");
       const format = challengeFieldValue(formElement, "match_format") as MatchFormat;
       const rosterSize = Number(challengeFieldValue(formElement, "roster_size"));
+      const teamAId = challengeFieldValue(formElement, "team_a_id");
+      const teamBId = challengeFieldValue(formElement, "team_b_id");
+      const openOpponent = challengeCheckboxChecked(formElement, "open_opponent");
+      if (!challengeFieldValue(formElement, "team_a") && !teamAId) {
+        setChallengeStepError("Add your name or team for side A before continuing.");
+        focusChallengeField(formElement, "team_a");
+        return false;
+      }
+      if (!openOpponent && !challengeFieldValue(formElement, "team_b") && !teamBId) {
+        setChallengeStepError("Add an opponent for side B, or choose Leave opponent open.");
+        focusChallengeField(formElement, "team_b");
+        return false;
+      }
       if (!validMatchFormatForActivity(activity, format)) {
         setChallengeStepError(`${matchFormatLabel(format, activity)} is not a valid format for ${activity}.`);
         focusChallengeField(formElement, "match_format");
@@ -7186,12 +7217,17 @@ export default function Home() {
   }
 
   function updateChallengeReview(formElement: HTMLFormElement) {
+    const teamAId = challengeFieldValue(formElement, "team_a_id");
+    const teamBId = challengeFieldValue(formElement, "team_b_id");
+    const openOpponent = challengeCheckboxChecked(formElement, "open_opponent");
     setChallengeReview({
       activity: challengeFieldValue(formElement, "sport_type"),
       title: challengeFieldValue(formElement, "title"),
       lane: challengeFieldValue(formElement, "lane") as ChallengeLane,
-      teamA: challengeFieldValue(formElement, "team_a"),
-      teamB: challengeFieldValue(formElement, "team_b")
+      teamA: challengeFieldValue(formElement, "team_a") || linkedTeam(teamAId)?.name || "Your side",
+      teamB: openOpponent
+        ? "Open invite"
+        : challengeFieldValue(formElement, "team_b") || linkedTeam(teamBId)?.name || "Opponent"
     });
   }
 
@@ -7232,6 +7268,7 @@ export default function Home() {
       matchFormat === "Singles" ? 1 : matchFormat === "Doubles" ? 2 : Number(form.get("roster_size"));
     const teamAId = String(form.get("team_a_id") || "");
     const teamBId = String(form.get("team_b_id") || "");
+    const openOpponent = form.get("open_opponent") === "on";
     const teamA = linkedTeam(teamAId);
     const teamB = linkedTeam(teamBId);
     if (!Number.isInteger(rosterSize) || rosterSize < 1 || rosterSize > 50) {
@@ -7242,10 +7279,10 @@ export default function Home() {
     const challenge = {
       title: String(form.get("title") || "Untitled challenge"),
       lane: String(form.get("lane") || "Sports challenge") as ChallengeLane,
-      team_a: String(form.get("team_a") || teamA?.name || "Open challenger"),
-      team_b: String(form.get("team_b") || teamB?.name || "Open invite"),
+      team_a: String(form.get("team_a") || teamA?.name || "Challenger").trim(),
+      team_b: openOpponent ? "Open invite" : String(form.get("team_b") || teamB?.name || "Opponent").trim(),
       team_a_id: teamAId || null,
-      team_b_id: teamBId || null,
+      team_b_id: openOpponent ? null : teamBId || null,
       rules: String(form.get("rules") || "Upload proof after the challenge."),
       venue_name: String(form.get("venue_name") || "").trim() || null,
       booking_url: bookingUrl || null,
@@ -7539,6 +7576,7 @@ export default function Home() {
       lane: laneForInterest(interest),
       team_a: creatorName,
       team_b: invitedName,
+      openOpponent: false,
       team_a_id: currentDraft.team_a_id || "",
       team_b_id: currentDraft.team_b_id || "",
       rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
@@ -7577,7 +7615,7 @@ export default function Home() {
     const activity = team.main_activity || "Team challenge";
     const matchSetup = inferredMatchSetup(activity);
     const region = team.region || profile?.region || "Global";
-    const opponentName = isOwnTeam ? "Open invite" : team.name;
+    const opponentName = isOwnTeam ? "" : team.name;
 
     setChallengeCreateStep(1);
     setChallengeCreateMaxStep(1);
@@ -7587,6 +7625,7 @@ export default function Home() {
       lane: laneForInterest(activity),
       team_a: ownedTeam?.name || profileName(),
       team_b: opponentName,
+      openOpponent: isOwnTeam,
       team_a_id: ownedTeam?.id || "",
       team_b_id: isOwnTeam ? "" : team.id,
       rules: `${activity} team challenge. Upload proof after the match.`,
@@ -14103,6 +14142,9 @@ export default function Home() {
                   ...currentDraft,
                   invitedProfile: "",
                   invitedUserId: "",
+                  team_b: "",
+                  team_b_id: "",
+                  openOpponent: true,
                   version: currentDraft.version + 1
                 }));
               }}
@@ -14245,39 +14287,98 @@ export default function Home() {
             </label>
             <label>
               Team or challenger A
-              <input name="team_a" defaultValue={challengeDraft.team_a} />
+              <input
+                name="team_a"
+                onChange={(event) => setChallengeDraft((current) => ({ ...current, team_a: event.currentTarget.value }))}
+                placeholder="Your name or team"
+                value={
+                  challengeDraft.team_a ||
+                  profile?.display_name ||
+                  (profile?.username ? `@${profile.username}` : "")
+                }
+              />
+              <small className="fieldHint">This is your side. Your saved profile name is used automatically when available.</small>
             </label>
             <label>
               Team or challenger B
-              <input name="team_b" defaultValue={challengeDraft.team_b} />
+              <input
+                disabled={challengeDraft.openOpponent}
+                name="team_b"
+                onChange={(event) => setChallengeDraft((current) => ({ ...current, team_b: event.currentTarget.value }))}
+                placeholder={challengeDraft.openOpponent ? "Open for anyone eligible to join" : "Opponent name or team"}
+                value={challengeDraft.team_b}
+              />
             </label>
-            <details className="teamLinkOptions wide">
-              <summary>Advanced: connect saved Talent7 teams</summary>
+            <label className="openOpponentOption wide">
+              <input
+                checked={challengeDraft.openOpponent}
+                name="open_opponent"
+                onChange={(event) =>
+                  setChallengeDraft((current) => ({
+                    ...current,
+                    openOpponent: event.currentTarget.checked,
+                    team_b: event.currentTarget.checked ? "" : current.team_b,
+                    team_b_id: event.currentTarget.checked ? "" : current.team_b_id
+                  }))
+                }
+                type="checkbox"
+              />
+              <span>
+                <strong>Leave opponent open</strong>
+                <small>Publish the room without choosing side B. An eligible challenger can join later.</small>
+              </span>
+            </label>
+            {challengeLinkableTeams.length > 0 && <details className="teamLinkOptions wide">
+              <summary>Link existing Talent7 teams (optional)</summary>
               <p>
-                Use this only when a side is an existing team from the Teams tab. It connects the room to that team and its member roles.
-                For individuals or one-off teams, leave these blank.
+                This connects a side to a team you own or have joined, so Talent7 can apply its saved membership roles.
+                Individual challengers and one-off groups do not need this.
               </p>
               <div className="teamLinkGrid">
                 <label>
                   Saved team for side A
-                  <select name="team_a_id" defaultValue={challengeDraft.team_a_id}>
+                  <select
+                    name="team_a_id"
+                    onChange={(event) => {
+                      const selected = linkedTeam(event.currentTarget.value);
+                      setChallengeDraft((current) => ({
+                        ...current,
+                        team_a_id: event.currentTarget.value,
+                        team_a: selected?.name || current.team_a
+                      }));
+                    }}
+                    value={challengeDraft.team_a_id}
+                  >
                     <option value="">No saved team</option>
-                    {teams.map((team) => (
+                    {challengeLinkableTeams.map((team) => (
                       <option key={team.id} value={team.id}>{team.name} / {team.main_activity}</option>
                     ))}
                   </select>
                 </label>
                 <label>
                   Saved team for side B
-                  <select name="team_b_id" defaultValue={challengeDraft.team_b_id}>
+                  <select
+                    disabled={challengeDraft.openOpponent}
+                    name="team_b_id"
+                    onChange={(event) => {
+                      const selected = linkedTeam(event.currentTarget.value);
+                      setChallengeDraft((current) => ({
+                        ...current,
+                        team_b_id: event.currentTarget.value,
+                        team_b: selected?.name || current.team_b,
+                        openOpponent: false
+                      }));
+                    }}
+                    value={challengeDraft.team_b_id}
+                  >
                     <option value="">No saved team</option>
-                    {teams.map((team) => (
+                    {challengeLinkableTeams.map((team) => (
                       <option key={team.id} value={team.id}>{team.name} / {team.main_activity}</option>
                     ))}
                   </select>
                 </label>
               </div>
-            </details>
+            </details>}
             <div className="challengeWizardActions wide">
               <button className="back" onClick={(event) => moveChallengeCreateStep(1, event.currentTarget.form)} type="button">Back</button>
               <span>Step 2 of 3</span>
