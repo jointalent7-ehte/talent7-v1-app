@@ -583,6 +583,22 @@ type ChallengeSchedule = {
   updated_at: string;
 };
 
+function defaultPlayModeForChallenge(challenge: Challenge): ChallengePlayMode {
+  const challengeType = `${challenge.lane} ${challenge.title} ${challenge.sport_type || ""}`.toLowerCase();
+
+  if (
+    challenge.lane === "Mobile gaming challenge" ||
+    challengeType.includes("pubg") ||
+    challengeType.includes("mech arena") ||
+    challengeType.includes("gaming") ||
+    challengeType.includes("chess")
+  ) {
+    return "Online";
+  }
+
+  return "In person";
+}
+
 type ChallengeLiveStatus = "Ready" | "Live" | "Ended";
 type LiveReactionName = "Fire" | "Applause" | "Wow" | "Strong" | "Love";
 
@@ -1830,6 +1846,7 @@ export default function Home() {
   const [invites, setInvites] = useState<ChallengeInvite[]>([]);
   const [challengeSchedules, setChallengeSchedules] = useState<ChallengeSchedule[]>([]);
   const [scheduleActionId, setScheduleActionId] = useState<string | null>(null);
+  const [schedulePlayModes, setSchedulePlayModes] = useState<Record<string, ChallengePlayMode>>({});
   const [challengeLiveSessions, setChallengeLiveSessions] = useState<ChallengeLiveSession[]>([]);
   const [challengeLiveReactionTotals, setChallengeLiveReactionTotals] = useState<ChallengeLiveReactionTotal[]>([]);
   const [liveVideoDrafts, setLiveVideoDrafts] = useState<Record<string, string>>({});
@@ -13894,6 +13911,8 @@ export default function Home() {
             const roleNotice = teamPermissionLabel(challenge);
             const messages = roomMessages[challenge.id] || [];
             const schedule = challengeSchedule(challenge.id);
+            const schedulePlayMode =
+              schedulePlayModes[challenge.id] || schedule?.play_mode || defaultPlayModeForChallenge(challenge);
             const canCoordinate = canCoordinateChallenge(challenge);
             const hasCoordinationPartner = hasChallengeCoordinationPartner(challenge);
             const liveSession = liveSessionsByRoom[challenge.id];
@@ -14386,13 +14405,27 @@ export default function Home() {
                             />
                           </label>
                           <label>
-                            Match format
-                            <select defaultValue={schedule?.play_mode || "In person"} name="play_mode">
+                            Play mode
+                            <select
+                              name="play_mode"
+                              onChange={(event) =>
+                                setSchedulePlayModes((current) => ({
+                                  ...current,
+                                  [challenge.id]: event.currentTarget.value as ChallengePlayMode
+                                }))
+                              }
+                              value={schedulePlayMode}
+                            >
                               <option>In person</option>
                               <option>Online</option>
                             </select>
+                            <small>
+                              {schedulePlayMode === "Online"
+                                ? "Compete through a private lobby, video session, or remote submission."
+                                : "Meet at an agreed physical venue."}
+                            </small>
                           </label>
-                          <label>
+                          <label hidden={schedulePlayMode !== "In person"}>
                             Venue name
                             <input
                               defaultValue={schedule?.venue_name || ""}
@@ -14401,7 +14434,7 @@ export default function Home() {
                               placeholder="Required for in-person matches"
                             />
                           </label>
-                          <label>
+                          <label hidden={schedulePlayMode !== "Online"}>
                             Private lobby or session link
                             <input
                               defaultValue={schedule?.session_url || ""}
@@ -14412,12 +14445,16 @@ export default function Home() {
                             />
                           </label>
                           <label className="wide">
-                            Exact meeting details
+                            {schedulePlayMode === "Online" ? "Online access details" : "Exact meeting details"}
                             <input
                               defaultValue={schedule?.meeting_details || ""}
                               maxLength={300}
                               name="meeting_details"
-                              placeholder="Court number, entrance, room code, or check-in instructions"
+                              placeholder={
+                                schedulePlayMode === "Online"
+                                  ? "Room code, game server, submission method, or joining instructions"
+                                  : "Court number, entrance, arrival point, or check-in instructions"
+                              }
                             />
                           </label>
                           <label className="wide">
