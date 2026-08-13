@@ -9846,6 +9846,20 @@ textarea {
   align-items: start;
 }
 
+.listenLayout > .listenCreateCard,
+.listenLayout > .listenArchiveInfo {
+  grid-column: 1;
+}
+
+.listenLayout > .privateListenJoinForm {
+  grid-column: 1;
+}
+
+.listenLayout > .listenRoomList {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
 .listenCreateCard,
 .listenRoomCard {
   border-radius: 8px;
@@ -9896,6 +9910,7 @@ textarea {
 .listenCreateCard input,
 .listenCreateCard select,
 .listenCreateCard textarea,
+.privateListenJoinForm input,
 .listenQueueForm input {
   width: 100%;
   border: 1px solid var(--line);
@@ -9909,6 +9924,102 @@ textarea {
 .listenCreateCard textarea {
   min-height: 110px;
   resize: vertical;
+}
+
+.listenVisibilityPicker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.listenVisibilityPicker legend {
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+  font-weight: 950;
+}
+
+.listenVisibilityPicker label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 9px;
+  align-items: start;
+  padding: 13px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.listenVisibilityPicker label.active {
+  background: #e9f7f5;
+  border-color: var(--teal);
+  box-shadow: inset 0 0 0 1px var(--teal);
+}
+
+.listenVisibilityPicker input {
+  width: auto;
+  margin: 3px 0 0;
+  padding: 0;
+}
+
+.listenVisibilityPicker span {
+  color: var(--ink);
+  font-weight: 950;
+}
+
+.listenVisibilityPicker small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.77rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.privateListenJoinForm {
+  display: grid;
+  gap: 10px;
+}
+
+.privateListenJoinForm > div {
+  display: grid;
+  gap: 3px;
+}
+
+.privateListenJoinForm small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.privateListenRoomCode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  align-items: center;
+  padding: 12px 14px;
+  color: #5d460c;
+  background: #fff8df;
+  border: 1px solid #efd17c;
+  border-radius: 8px;
+}
+
+.privateListenRoomCode strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+}
+
+.privateListenRoomCode button {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+
+.privateListenRoomCode small {
+  width: 100%;
+  color: #6c5323;
+  font-weight: 700;
 }
 
 .listenRoomList {
@@ -10005,8 +10116,17 @@ textarea {
 }
 
 @media (max-width: 900px) {
+  .listenLayout > .listenCreateCard,
+  .listenLayout > .listenArchiveInfo,
+  .listenLayout > .privateListenJoinForm,
+  .listenLayout > .listenRoomList {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   .listenLayout,
   .listenFormGrid,
+  .listenVisibilityPicker,
   .listenRoomTop,
   .listenRoomActions,
   .listenQueueForm,

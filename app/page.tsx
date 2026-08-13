@@ -455,6 +455,7 @@ function sectionForHash(hash: string): string | null {
 
 type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
 type ListenRoomStatus = "Open" | "Archived";
+type ListenRoomVisibility = "Public" | "Private";
 
 type ListenRoom = {
   id: string;
@@ -469,6 +470,9 @@ type ListenRoom = {
   vibe_count: number;
   created_by: string | null;
   status: ListenRoomStatus;
+  visibility?: ListenRoomVisibility;
+  room_code?: string | null;
+  requires_passcode?: boolean;
   created_at: string;
 };
 
@@ -488,6 +492,8 @@ type ListenRoomDraft = {
   room_note: string;
   current_track_title: string;
   current_track_url: string;
+  visibility: ListenRoomVisibility;
+  passcode: string;
 };
 
 type ListenTrackDraft = {
@@ -504,7 +510,9 @@ const defaultListenDraft: ListenRoomDraft = {
   mood: "Chill",
   room_note: "",
   current_track_title: "",
-  current_track_url: ""
+  current_track_url: "",
+  visibility: "Public",
+  passcode: ""
 };
 
 const sampleListenRooms: ListenRoom[] = [
@@ -528,6 +536,8 @@ const sampleListenRooms: ListenRoom[] = [
 const sampleListenTracks: ListenTrack[] = [];
 const listenRoomsStorageKey = "talent7-listen-rooms";
 const listenTracksStorageKey = "talent7-listen-tracks";
+const listenRoomPublicColumns =
+  "id,created_by,title,host_name,mood,room_note,current_track_title,current_track_url,listener_count,love_count,vibe_count,status,visibility,room_code,requires_passcode,created_at,updated_at";
 const roomViewerStorageKey = "talent7-room-viewer-id";
 
 function makeLocalListenId(prefix = "listen") {
@@ -1840,6 +1850,8 @@ export default function Home() {
   const [listenLoading, setListenLoading] = useState(hasSupabaseConfig);
   const [listenLoadError, setListenLoadError] = useState("");
   const [listenActionKey, setListenActionKey] = useState<string | null>(null);
+  const [privateListenRoomCode, setPrivateListenRoomCode] = useState("");
+  const [privateListenRoomPasscode, setPrivateListenRoomPasscode] = useState("");
 
   const closeConfirmationDialog = useCallback(() => {
     if (confirmationBusy) return;
@@ -1873,7 +1885,7 @@ export default function Home() {
     if (showLoading) setListenLoading(true);
 
     const [roomsResult, tracksResult] = await Promise.all([
-      supabase.from("listen_rooms").select("*").order("created_at", { ascending: false }),
+      supabase.from("listen_rooms").select(listenRoomPublicColumns).order("created_at", { ascending: false }),
       supabase.from("listen_tracks").select("*").order("created_at", { ascending: false })
     ]);
 
@@ -6228,6 +6240,16 @@ export default function Home() {
       return;
     }
 
+    const passcode = listenRoomDraft.passcode.trim();
+    if (listenRoomDraft.visibility === "Private" && (passcode.length < 4 || passcode.length > 32)) {
+      setMessage("Private room passcodes must be between 4 and 32 characters.");
+      return;
+    }
+    if (listenRoomDraft.visibility === "Private" && !supabase) {
+      setMessage("Private listen rooms require the live Talent7 service.");
+      return;
+    }
+
     const roomPayload = {
       title: listenRoomDraft.title.trim() || "Untitled listen room",
       host_name: listenRoomDraft.host_name.trim() || profileName(),
@@ -6235,7 +6257,8 @@ export default function Home() {
       room_note: listenRoomDraft.room_note.trim() || null,
       current_track_title: listenRoomDraft.current_track_title.trim() || "Open the first shared song",
       current_track_url: trackUrl || "https://www.youtube.com",
-      created_by: session?.user.id || null
+      created_by: session?.user.id || null,
+      visibility: listenRoomDraft.visibility
     };
 
     if (!supabase) {
@@ -6251,7 +6274,16 @@ export default function Home() {
       setListenRooms((current) => [room, ...current]);
     } else {
       setListenActionKey("create");
-      const { data, error } = await supabase.from("listen_rooms").insert(roomPayload).select("*").single();
+      const { data, error } = await supabase.rpc("create_listen_room", {
+        room_title: roomPayload.title,
+        room_host_name: roomPayload.host_name,
+        room_mood: roomPayload.mood,
+        room_note_value: roomPayload.room_note,
+        room_track_title: roomPayload.current_track_title,
+        room_track_url: roomPayload.current_track_url,
+        room_visibility: roomPayload.visibility,
+        room_passcode: roomPayload.visibility === "Private" ? passcode : null
+      });
 
       if (error || !data) {
         setMessage(error?.message || "Could not create the listen room.");
@@ -6261,7 +6293,7 @@ export default function Home() {
 
       if (trackUrl && session?.user.id) {
         const { error: trackError } = await supabase.from("listen_tracks").insert({
-          room_id: data.id,
+          room_id: data,
           user_id: session.user.id,
           track_title: roomPayload.current_track_title,
           track_url: trackUrl,
@@ -6269,7 +6301,7 @@ export default function Home() {
         });
 
         if (trackError) {
-          await supabase.from("listen_rooms").delete().eq("id", data.id);
+          await supabase.from("listen_rooms").delete().eq("id", data);
           setMessage(trackError.message);
           setListenActionKey(null);
           return;
@@ -6282,7 +6314,11 @@ export default function Home() {
 
     setListenRoomDraft({ ...defaultListenDraft, host_name: profileName() });
     setListenRoomStatus("Open");
-    setMessage("Listen room created.");
+    setMessage(
+      listenRoomDraft.visibility === "Private"
+        ? "Private listen room created. Share its room code and passcode only with invited people."
+        : "Public listen room created."
+    );
     setActiveAppTab("listen");
     setActiveSection("listen-rooms");
     setTimeout(() => document.getElementById("listen-rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
@@ -6300,10 +6336,9 @@ export default function Home() {
     }
 
     setListenActionKey(`join-${roomId}`);
-    const { error } = await supabase.from("listen_room_members").insert({
-      room_id: roomId,
-      user_id: session.user.id,
-      display_name: profileName()
+    const { error } = await supabase.rpc("join_public_listen_room", {
+      target_room_id: roomId,
+      member_display_name: profileName()
     });
 
     if (error && error.code !== "23505") {
@@ -6317,12 +6352,45 @@ export default function Home() {
     setMessage(error?.code === "23505" ? "You already joined this listen room." : "Joined listen room.");
   }
 
+  async function handleJoinPrivateListenRoom() {
+    if (!requireProfile("join a private listen room")) return;
+    if (!supabase || !session?.user.id) {
+      setMessage("Private listen rooms require the live Talent7 service.");
+      return;
+    }
+
+    const roomCode = privateListenRoomCode.trim().toUpperCase();
+    const passcode = privateListenRoomPasscode.trim();
+    if (!roomCode || !passcode) {
+      setMessage("Enter both the private room code and passcode.");
+      return;
+    }
+
+    setListenActionKey("join-private");
+    const { error } = await supabase.rpc("join_private_listen_room", {
+      requested_room_code: roomCode,
+      requested_passcode: passcode,
+      member_display_name: profileName()
+    });
+
+    if (error) {
+      setMessage(error.message.includes("Invalid room code or passcode") ? "Invalid private room code or passcode." : error.message);
+    } else {
+      setPrivateListenRoomCode("");
+      setPrivateListenRoomPasscode("");
+      await refreshListenRooms();
+      setMessage("Joined private listen room.");
+    }
+    setListenActionKey(null);
+  }
+
   async function ensureListenMembership(roomId: string) {
     if (!supabase || !session?.user.id) return true;
-    const { error } = await supabase.from("listen_room_members").insert({
-      room_id: roomId,
-      user_id: session.user.id,
-      display_name: profileName()
+    const room = listenRooms.find((item) => item.id === roomId);
+    if (room?.visibility === "Private") return true;
+    const { error } = await supabase.rpc("join_public_listen_room", {
+      target_room_id: roomId,
+      member_display_name: profileName()
     });
     return !error || error.code === "23505";
   }
@@ -11074,12 +11142,54 @@ export default function Home() {
 
         <div className="listenLayout">
           {listenRoomStatus === "Open" ? (
+            <>
             <form className="card listenCreateCard" onSubmit={handleCreateListenRoom}>
             <div>
               <span className="statusBadge">Public links only</span>
               <h3>Create a listen room</h3>
-              <p className="muted">Use YouTube, Spotify, or another public song link. Talent7 is not storing copyrighted songs.</p>
+              <p className="muted">Choose who can enter, then use YouTube, Spotify, or another public song link. Talent7 does not store or rebroadcast songs.</p>
             </div>
+
+            <fieldset className="listenVisibilityPicker">
+              <legend>Who can enter?</legend>
+              <label className={listenRoomDraft.visibility === "Public" ? "active" : ""}>
+                <input
+                  checked={listenRoomDraft.visibility === "Public"}
+                  name="listen_visibility"
+                  onChange={() => updateListenRoomDraft("visibility", "Public")}
+                  type="radio"
+                />
+                <span>Public room</span>
+                <small>Shown in Open rooms. Any signed-in Talent7 member can join.</small>
+              </label>
+              <label className={listenRoomDraft.visibility === "Private" ? "active" : ""}>
+                <input
+                  checked={listenRoomDraft.visibility === "Private"}
+                  name="listen_visibility"
+                  onChange={() => updateListenRoomDraft("visibility", "Private")}
+                  type="radio"
+                />
+                <span>Private room</span>
+                <small>Hidden from discovery. People need both its room code and passcode.</small>
+              </label>
+            </fieldset>
+
+            {listenRoomDraft.visibility === "Private" && (
+              <label>
+                Room passcode
+                <input
+                  autoComplete="new-password"
+                  maxLength={32}
+                  minLength={4}
+                  onChange={(event) => updateListenRoomDraft("passcode", event.target.value)}
+                  placeholder="4–32 characters"
+                  required
+                  type="password"
+                  value={listenRoomDraft.passcode}
+                />
+                <small className="fieldHint">Talent7 stores only a secure hash. Share the passcode privately.</small>
+              </label>
+            )}
 
             <div className="listenFormGrid">
               <label>
@@ -11143,6 +11253,42 @@ export default function Home() {
               {listenActionKey === "create" ? "Creating room..." : "Create listen room"}
             </button>
             </form>
+            <form
+              className="card privateListenJoinForm"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleJoinPrivateListenRoom();
+              }}
+            >
+              <div>
+                <strong>Enter a private room</strong>
+                <small>Ask the host for both values.</small>
+              </div>
+              <input
+                aria-label="Private room code"
+                autoCapitalize="characters"
+                maxLength={12}
+                onChange={(event) => setPrivateListenRoomCode(event.target.value.toUpperCase())}
+                placeholder="Room code"
+                value={privateListenRoomCode}
+              />
+              <input
+                aria-label="Private room passcode"
+                autoComplete="current-password"
+                maxLength={32}
+                onChange={(event) => setPrivateListenRoomPasscode(event.target.value)}
+                placeholder="Passcode"
+                type="password"
+                value={privateListenRoomPasscode}
+              />
+              <button
+                disabled={listenActionKey === "join-private"}
+                type="submit"
+              >
+                {listenActionKey === "join-private" ? "Entering..." : "Enter private room"}
+              </button>
+            </form>
+            </>
           ) : (
             <aside className="card listenArchiveInfo">
               <span className="statusBadge">Your saved queues</span>
@@ -11152,7 +11298,7 @@ export default function Home() {
                 receive new joins, reactions, or songs.
               </p>
               <strong>{listenRoomCounts.archived} archived room{listenRoomCounts.archived === 1 ? "" : "s"}</strong>
-              <small>Restore a room to make it public and interactive again, or permanently delete it when you no longer need it.</small>
+              <small>Restore a room to reopen it with its original privacy setting, or permanently delete it when you no longer need it.</small>
             </aside>
           )}
 
@@ -11196,8 +11342,21 @@ export default function Home() {
                       <h3>{room.title}</h3>
                       <p className="muted">Hosted by {room.host_name}</p>
                     </div>
-                    <span className="statusBadge">{room.status === "Archived" ? "Archived queue" : "Shared link queue"}</span>
-                  </div>
+                      <span className="statusBadge">
+                        {room.status === "Archived" ? "Archived queue" : room.visibility === "Private" ? "Private room" : "Public room"}
+                      </span>
+                    </div>
+
+                  {room.visibility === "Private" && room.room_code && (
+                    <div className="privateListenRoomCode">
+                      <span>Private room code</span>
+                      <strong>{room.room_code}</strong>
+                      <button onClick={() => void copyShareText("Private room code", room.room_code || "")} type="button">
+                        Copy code
+                      </button>
+                      <small>Members still need the passcode chosen by the host.</small>
+                    </div>
+                  )}
 
                   {room.room_note ? <p>{room.room_note}</p> : null}
 
@@ -11210,13 +11369,17 @@ export default function Home() {
 
                   {room.status === "Open" ? (
                     <div className="listenRoomActions">
-                      <button
-                        disabled={listenActionKey === `join-${room.id}`}
-                        type="button"
-                        onClick={() => void handleJoinListenRoom(room.id)}
-                      >
-                        {listenActionKey === `join-${room.id}` ? "Joining..." : `Join room (${room.listener_count})`}
-                      </button>
+                      {room.visibility === "Private" ? (
+                        <button disabled type="button">Private member ({room.listener_count})</button>
+                      ) : (
+                        <button
+                          disabled={listenActionKey === `join-${room.id}`}
+                          type="button"
+                          onClick={() => void handleJoinListenRoom(room.id)}
+                        >
+                          {listenActionKey === `join-${room.id}` ? "Joining..." : `Join room (${room.listener_count})`}
+                        </button>
+                      )}
                       <button
                         disabled={listenActionKey === `love-${room.id}`}
                         type="button"
