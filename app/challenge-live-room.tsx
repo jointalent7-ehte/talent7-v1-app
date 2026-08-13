@@ -57,6 +57,7 @@ export default function ChallengeLiveRoom({
 }: ChallengeLiveRoomProps) {
   const [credentials, setCredentials] = useState<JoinCredentials | null>(null);
   const [joined, setJoined] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [error, setError] = useState("");
   const [retryKey, setRetryKey] = useState(0);
 
@@ -66,6 +67,7 @@ export default function ChallengeLiveRoom({
     async function joinRoom() {
       setCredentials(null);
       setJoined(false);
+      setConnected(false);
       setError("");
 
       try {
@@ -116,11 +118,11 @@ export default function ChallengeLiveRoom({
         <strong>{credentials.can_publish ? "You can join the broadcast" : "The Talent7 room is live"}</strong>
         <small>
           {credentials.can_publish
-            ? "Camera and microphone permission is requested only after you choose Join with camera."
+            ? "Enter first, then turn on camera and microphone separately using the broadcast controls."
             : "You will enter as audience with your camera and microphone off."}
         </small>
         <button onClick={() => setJoined(true)} type="button">
-          {credentials.can_publish ? "Join with camera" : "Watch live"}
+          {credentials.can_publish ? "Enter broadcast" : "Watch live"}
         </button>
       </div>
     );
@@ -128,14 +130,20 @@ export default function ChallengeLiveRoom({
 
   return (
     <LiveKitRoom
-      audio={credentials.can_publish}
+      audio={false}
       connect
       data-lk-theme="default"
-      onDisconnected={() => setJoined(false)}
-      onError={(roomError: Error) => setError(roomError.message)}
+      onConnected={() => setConnected(true)}
+      onDisconnected={() => {
+        setConnected(false);
+        setJoined(false);
+      }}
+      onError={(roomError: Error) => {
+        if (!connected) setError(roomError.message);
+      }}
       serverUrl={credentials.server_url}
       token={credentials.participant_token}
-      video={credentials.can_publish}
+      video={false}
     >
       <Talent7VideoStage canPublish={credentials.can_publish} />
     </LiveKitRoom>
