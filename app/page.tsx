@@ -4006,22 +4006,6 @@ export default function Home() {
     return acceptedInvite || challengerJoin;
   }
 
-  function hasChallengeCoordinationPartner(challenge: Challenge) {
-    if (!session?.user.id) return false;
-    if (challenge.created_by !== session.user.id) return canCoordinateChallenge(challenge);
-
-    return (
-      invites.some((invite) => invite.challenge_id === challenge.id && invite.status === "Accepted") ||
-      joins.some(
-        (join) =>
-          join.challenge_id === challenge.id &&
-          join.role === "Challenger" &&
-          Boolean(join.user_id) &&
-          join.user_id !== session.user.id
-      )
-    );
-  }
-
   function formatChallengeSchedule(schedule: ChallengeSchedule) {
     return new Date(schedule.scheduled_for).toLocaleString([], {
       dateStyle: "medium",
@@ -8057,8 +8041,11 @@ export default function Home() {
   async function saveChallengeSchedule(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("coordinate this challenge")) return;
-    if (!canCoordinateChallenge(challenge) || !hasChallengeCoordinationPartner(challenge)) {
-      setMessage("An accepted challenger is required before private scheduling can begin.");
+    const roster = challengeRosterState(challenge);
+    if (!canCoordinateChallenge(challenge) || roster.teamA < 1 || roster.teamB < 1) {
+      setMessage(
+        `A registered challenger is required on both sides before scheduling. Team A ${roster.teamA}; Team B ${roster.teamB}.`
+      );
       return;
     }
 
@@ -13964,7 +13951,6 @@ export default function Home() {
               ? preferredSchedulePlayMode
               : availableSchedulePlayModes[0];
             const canCoordinate = canCoordinateChallenge(challenge);
-            const hasCoordinationPartner = hasChallengeCoordinationPartner(challenge);
             const liveSession = liveSessionsByRoom[challenge.id];
             const liveReactionTotals = liveReactionTotalsByRoom[challenge.id] || {};
             const canManageLive = canManageChallengeLive(challenge);
@@ -13973,6 +13959,7 @@ export default function Home() {
             const roomVoteCount =
               (roomResults[challenge.id]?.teamAVotes || 0) + (roomResults[challenge.id]?.teamBVotes || 0);
             const roster = challengeRosterState(challenge);
+            const scheduleParticipantsReady = roster.teamA > 0 && roster.teamB > 0;
             const teamADisplay = challengeSideDisplay(challenge, "Team A");
             const teamBDisplay = challengeSideDisplay(challenge, "Team B");
 
@@ -14342,14 +14329,16 @@ export default function Home() {
                     )}
                   </div>
                   <p className="coordinationPrivacyNote">
-                    Only the room creator and accepted challenger can see these details. Exact addresses, meeting notes,
-                    and private lobby links are never shown to the audience.
+                    Only the room creator and registered challengers can see these details. Exact addresses, meeting
+                    notes, and private lobby links are never shown to the audience.
                   </p>
 
-                  {!hasCoordinationPartner ? (
+                  {!scheduleParticipantsReady ? (
                     <div className="scheduleCallout waiting">
-                      <strong>Waiting for a challenger</strong>
-                      <small>Scheduling unlocks after someone accepts your invite or joins this room as a challenger.</small>
+                      <strong>Waiting for an opponent</strong>
+                      <small>
+                        Scheduling unlocks after at least one challenger has registered on each side. {challengeRosterMessage(challenge)}.
+                      </small>
                     </div>
                   ) : (
                     <>
@@ -14391,7 +14380,7 @@ export default function Home() {
                       {schedule?.status === "Proposed" && schedule.proposed_by === session?.user.id && (
                         <div className="scheduleCallout waiting">
                           <strong>Waiting for confirmation</strong>
-                          <small>The other challenger can confirm this proposal or request changes.</small>
+                          <small>A registered challenger from the other side can confirm this proposal or request changes.</small>
                         </div>
                       )}
                       {schedule?.status === "Proposed" && schedule.proposed_by !== session?.user.id && (
