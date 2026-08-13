@@ -82,7 +82,7 @@ const challengeActivityGroups = [
   },
   {
     label: "Gaming and strategy",
-    options: ["Mech Arena challenge", "Mobile gaming", "Chess match"]
+    options: ["Mech Arena challenge", "PUBG gaming", "Chess match"]
   },
   {
     label: "Performance and creative",
@@ -1007,9 +1007,23 @@ function profileChallengeAvailability(item: TalentProfile): ChallengeAvailabilit
   return item.challenge_availability || "Open to everyone";
 }
 
+function canonicalChallengeActivity(activity: string) {
+  return activity === "Mobile gaming" ? "PUBG gaming" : activity;
+}
+
 function profileChallengeActivities(item: TalentProfile) {
-  const activities = (item.challenge_activities || []).filter(Boolean);
-  return activities.length > 0 ? activities : [item.main_interest].filter(Boolean);
+  const activities = (item.challenge_activities || []).filter(Boolean).map(canonicalChallengeActivity);
+  return Array.from(
+    new Set(activities.length > 0 ? activities : [canonicalChallengeActivity(item.main_interest)].filter(Boolean))
+  );
+}
+
+function canonicalTalentProfile(item: TalentProfile): TalentProfile {
+  return {
+    ...item,
+    main_interest: canonicalChallengeActivity(item.main_interest),
+    challenge_activities: profileChallengeActivities(item)
+  };
 }
 
 type ChallengeDraft = {
@@ -6478,7 +6492,7 @@ export default function Home() {
         .select("*")
         .order("updated_at", { ascending: false });
 
-      if (data) setPublicProfiles(data as TalentProfile[]);
+      if (data) setPublicProfiles((data as TalentProfile[]).map(canonicalTalentProfile));
     }
 
     loadPublicProfiles();
@@ -6500,7 +6514,7 @@ export default function Home() {
           .eq("user_id", session.user.id)
           .maybeSingle();
 
-        setProfile((data as TalentProfile | null) || null);
+        setProfile(data ? canonicalTalentProfile(data as TalentProfile) : null);
       } finally {
         setProfileHydrated(true);
       }
@@ -6575,9 +6589,9 @@ export default function Home() {
     if (error) {
       setMessage(error.code === "23505" ? "That username is already taken." : `Could not save profile: ${error.message}`);
     } else if (data) {
-      setProfile(data as TalentProfile);
+      setProfile(canonicalTalentProfile(data as TalentProfile));
       setPublicProfiles((items) => {
-        const savedProfile = data as TalentProfile;
+        const savedProfile = canonicalTalentProfile(data as TalentProfile);
         const others = items.filter((item) => item.user_id !== savedProfile.user_id);
 
         return [savedProfile, ...others];
