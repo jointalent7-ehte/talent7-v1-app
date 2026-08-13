@@ -6790,6 +6790,54 @@ textarea {
   color: var(--coral);
 }
 
+.rosterSummary {
+  align-items: center;
+  background: #f4f8f8;
+  border: 1px solid #d7e2e2;
+  border-radius: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px 12px;
+}
+
+.rosterSummary strong,
+.rosterSummary span,
+.rosterSummary em {
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-style: normal;
+  padding: 6px 9px;
+}
+
+.rosterSummary strong {
+  background: #159a96;
+  color: white;
+}
+
+.rosterSummary span {
+  background: white;
+  border: 1px solid #d7e2e2;
+}
+
+.rosterSummary em {
+  background: #fff0c7;
+  color: #775307;
+}
+
+.rosterSummary.ready em {
+  background: #dff5eb;
+  color: #176448;
+}
+
+.openRosterSlot {
+  border: 1px dashed #9ab0b0;
+  border-radius: 8px;
+  color: #637777;
+  padding: 5px 7px;
+}
+
 .linkedTeams {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

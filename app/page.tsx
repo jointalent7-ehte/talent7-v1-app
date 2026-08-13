@@ -518,6 +518,8 @@ type Challenge = {
   booking_url?: string | null;
   sport_type?: string | null;
   booking_region?: string | null;
+  match_format?: MatchFormat | null;
+  roster_size?: number | null;
   voting_status?: ChallengeVotingStatus;
   voting_opened_at?: string | null;
   voting_closes_at?: string | null;
@@ -525,6 +527,41 @@ type Challenge = {
   voting_updated_by?: string | null;
   created_at: string;
 };
+
+type MatchFormat = "Singles" | "Doubles" | "Team";
+
+function inferredMatchSetup(activity: string) {
+  const normalized = activity.toLowerCase();
+
+  if (normalized.includes("doubles")) return { format: "Doubles" as MatchFormat, rosterSize: 2 };
+  if (normalized.includes("singles")) return { format: "Singles" as MatchFormat, rosterSize: 1 };
+  if (normalized.includes("football") || normalized.includes("cricket")) {
+    return { format: "Team" as MatchFormat, rosterSize: 11 };
+  }
+  if (normalized.includes("volleyball")) return { format: "Team" as MatchFormat, rosterSize: 6 };
+  if (normalized.includes("basketball")) return { format: "Team" as MatchFormat, rosterSize: 5 };
+  if (normalized.includes("pubg") || normalized.includes("squad")) {
+    return { format: "Team" as MatchFormat, rosterSize: 4 };
+  }
+  if (normalized.includes("team") || normalized.includes("crew")) {
+    return { format: "Team" as MatchFormat, rosterSize: 2 };
+  }
+
+  return { format: "Singles" as MatchFormat, rosterSize: 1 };
+}
+
+function challengeMatchFormat(challenge: Challenge): MatchFormat {
+  if (challenge.match_format === "Singles" || challenge.match_format === "Doubles" || challenge.match_format === "Team") {
+    return challenge.match_format;
+  }
+  return inferredMatchSetup(`${challenge.title} ${challenge.sport_type || ""}`).format;
+}
+
+function challengeRosterSize(challenge: Challenge) {
+  const savedSize = Number(challenge.roster_size);
+  if (Number.isInteger(savedSize) && savedSize > 0) return savedSize;
+  return inferredMatchSetup(`${challenge.title} ${challenge.sport_type || ""}`).rosterSize;
+}
 
 type ChallengeScheduleStatus = "Proposed" | "Changes requested" | "Confirmed" | "Cancelled";
 type ChallengePlayMode = "In person" | "Online";
@@ -1038,6 +1075,8 @@ type ChallengeDraft = {
   booking_url: string;
   sport_type: string;
   booking_region: string;
+  match_format: MatchFormat;
+  roster_size: number;
   invitedProfile: string;
   invitedUserId: string;
   version: number;
@@ -1046,7 +1085,7 @@ type ChallengeDraft = {
 const defaultChallengeDraft: ChallengeDraft = {
   title: "Badminton doubles",
   lane: "Sports challenge",
-  team_a: "Rohan + Dev",
+  team_a: "Team A",
   team_b: "Open invite",
   team_a_id: "",
   team_b_id: "",
@@ -1055,6 +1094,8 @@ const defaultChallengeDraft: ChallengeDraft = {
   booking_url: "",
   sport_type: "Badminton doubles",
   booking_region: "India",
+  match_format: "Doubles",
+  roster_size: 2,
   invitedProfile: "",
   invitedUserId: "",
   version: 0
@@ -1224,6 +1265,8 @@ const sampleChallenges: Challenge[] = [
     booking_url: "",
     sport_type: "Badminton",
     booking_region: "India",
+    match_format: "Doubles",
+    roster_size: 2,
     created_at: new Date().toISOString()
   },
   {
@@ -1244,6 +1287,8 @@ const sampleChallenges: Challenge[] = [
     booking_url: "",
     sport_type: "Dance studio",
     booking_region: "Global",
+    match_format: "Singles",
+    roster_size: 1,
     created_at: new Date().toISOString()
   },
   {
@@ -1264,6 +1309,8 @@ const sampleChallenges: Challenge[] = [
     booking_url: "",
     sport_type: "Mobile gaming",
     booking_region: "Online",
+    match_format: "Team",
+    roster_size: 4,
     created_at: new Date().toISOString()
   }
 ];
@@ -3851,6 +3898,31 @@ export default function Home() {
     });
   }
 
+  function challengeSideRoster(challenge: Challenge, side: "Team A" | "Team B") {
+    return participantGroup(challenge.id, side, "Challenger");
+  }
+
+  function challengeSideDisplay(challenge: Challenge, side: "Team A" | "Team B") {
+    const roster = challengeSideRoster(challenge, side);
+    if (roster.length > 0) return roster.map((join) => join.participant_name).join(" + ");
+
+    const linkedTeamId = side === "Team A" ? challenge.team_a_id : challenge.team_b_id;
+    if (linkedTeamId) return side === "Team A" ? challenge.team_a : challenge.team_b;
+    return `Open ${side}`;
+  }
+
+  function challengeRosterState(challenge: Challenge) {
+    const required = challengeRosterSize(challenge);
+    const teamA = challengeSideRoster(challenge, "Team A").length;
+    const teamB = challengeSideRoster(challenge, "Team B").length;
+    return { required, teamA, teamB, ready: teamA >= required && teamB >= required };
+  }
+
+  function challengeRosterMessage(challenge: Challenge) {
+    const roster = challengeRosterState(challenge);
+    return `${challengeMatchFormat(challenge)} · Team A ${roster.teamA}/${roster.required} · Team B ${roster.teamB}/${roster.required}`;
+  }
+
   function canUseRoomChat(challenge: Challenge) {
     if (!session?.user.id) return false;
     if (challenge.created_by === session.user.id) return true;
@@ -4056,6 +4128,11 @@ export default function Home() {
       return;
     }
 
+    if (status === "Live" && !challengeRosterState(challenge).ready) {
+      setMessage(`The registered roster is not full yet. ${challengeRosterMessage(challenge)}.`, "warning");
+      return;
+    }
+
     const currentSession = liveSessionsByRoom[challenge.id];
     if (status === "Ended" && currentSession?.status !== "Live") {
       setMessage("Only a live broadcast can be ended.", "error");
@@ -4187,6 +4264,11 @@ export default function Home() {
   async function setChallengeVotingWindow(challenge: Challenge, action: "Open" | "Close") {
     if (!canManageChallengeVoting(challenge)) {
       setMessage("Only the room creator, accepted opponent, authorized team manager, or Talent7 admin can manage voting.", "error");
+      return;
+    }
+
+    if (action === "Open" && !challengeRosterState(challenge).ready) {
+      setMessage(`Voting cannot open until both rosters are full. ${challengeRosterMessage(challenge)}.`, "warning");
       return;
     }
 
@@ -5700,6 +5782,7 @@ export default function Home() {
     if (!profile?.main_interest) return;
 
     const activity = profile.main_interest;
+    const matchSetup = inferredMatchSetup(activity);
     setChallengeCreateStep(1);
     setChallengeCreateMaxStep(1);
     setChallengeStepError("");
@@ -5715,6 +5798,8 @@ export default function Home() {
       venue_name: venueForActivity(activity),
       sport_type: activity,
       booking_region: profile.region || current.booking_region || "Global",
+      match_format: matchSetup.format,
+      roster_size: matchSetup.rosterSize,
       invitedProfile: "",
       invitedUserId: "",
       version: current.version + 1
@@ -6628,6 +6713,7 @@ export default function Home() {
         { name: "lane", label: "category" }
       ],
       2: [
+        { name: "match_format", label: "match format" },
         { name: "team_a", label: "team or challenger A" },
         { name: "team_b", label: "team or challenger B" }
       ],
@@ -6639,6 +6725,21 @@ export default function Home() {
       setChallengeStepError(`Add ${missing.label} before continuing.`);
       focusChallengeField(formElement, missing.name);
       return false;
+    }
+
+    if (step === 2) {
+      const format = challengeFieldValue(formElement, "match_format") as MatchFormat;
+      const rosterSize = Number(challengeFieldValue(formElement, "roster_size"));
+      if (!Number.isInteger(rosterSize) || rosterSize < 1 || rosterSize > 50) {
+        setChallengeStepError("Choose between 1 and 50 registered players per side.");
+        focusChallengeField(formElement, "roster_size");
+        return false;
+      }
+      if ((format === "Singles" && rosterSize !== 1) || (format === "Doubles" && rosterSize !== 2)) {
+        setChallengeStepError(`${format} must use ${format === "Singles" ? 1 : 2} registered player${format === "Singles" ? "" : "s"} per side.`);
+        focusChallengeField(formElement, "match_format");
+        return false;
+      }
     }
 
     if (step === 3) {
@@ -6701,10 +6802,18 @@ export default function Home() {
 
     const form = new FormData(formElement);
     const bookingUrl = String(form.get("booking_url") || "").trim();
+    const matchFormat = String(form.get("match_format") || "Singles") as MatchFormat;
+    const rosterSize =
+      matchFormat === "Singles" ? 1 : matchFormat === "Doubles" ? 2 : Number(form.get("roster_size"));
     const teamAId = String(form.get("team_a_id") || "");
     const teamBId = String(form.get("team_b_id") || "");
     const teamA = linkedTeam(teamAId);
     const teamB = linkedTeam(teamBId);
+    if (!Number.isInteger(rosterSize) || rosterSize < 1 || rosterSize > 50) {
+      setMessage("Choose a valid number of registered players per side.");
+      setIsSaving(false);
+      return;
+    }
     const challenge = {
       title: String(form.get("title") || "Untitled challenge"),
       lane: String(form.get("lane") || "Sports challenge") as ChallengeLane,
@@ -6717,6 +6826,8 @@ export default function Home() {
       booking_url: bookingUrl || null,
       sport_type: String(form.get("sport_type") || "").trim() || null,
       booking_region: String(form.get("booking_region") || "").trim() || null,
+      match_format: matchFormat,
+      roster_size: rosterSize,
       status: "Open",
       created_by: session?.user.id
     };
@@ -6732,6 +6843,20 @@ export default function Home() {
         ...challenge
       };
       setChallenges((items) => [localChallenge, ...items]);
+      if (session?.user.id) {
+        setJoins((items) => [
+          {
+            id: crypto.randomUUID(),
+            challenge_id: localChallenge.id,
+            user_id: session.user.id,
+            participant_name: profileName(),
+            role: "Challenger",
+            side: "Team A",
+            created_at: new Date().toISOString()
+          },
+          ...items
+        ]);
+      }
       setCreatedChallengeId(localChallenge.id);
       setSelectedLane(challenge.lane);
       setSelectedStatus("Open");
@@ -6759,8 +6884,20 @@ export default function Home() {
     } else if (data) {
       const savedChallenge = data as Challenge;
       const inviteMessage = await sendInviteForChallenge(savedChallenge);
+      const { data: creatorJoinData } = await supabase
+        .from("challenge_joins")
+        .select("*")
+        .eq("challenge_id", savedChallenge.id)
+        .eq("user_id", session?.user.id || "")
+        .maybeSingle();
 
       setChallenges((items) => [savedChallenge, ...items]);
+      if (creatorJoinData) {
+        setJoins((items) => [
+          creatorJoinData as ChallengeJoin,
+          ...items.filter((item) => item.id !== (creatorJoinData as ChallengeJoin).id)
+        ]);
+      }
       setSelectedStatus("Open");
       setRoomDiscoveryMode("Newest");
       setCreatedChallengeId(savedChallenge.id);
@@ -6784,6 +6921,7 @@ export default function Home() {
     const lane = laneForInterest(activity);
     const rules = rulesForActivity(activity);
     const venueName = venueForActivity(activity);
+    const matchSetup = inferredMatchSetup(activity);
 
     const setControlValue = (name: string, value: string) => {
       const control = formElement?.elements.namedItem(name);
@@ -6798,6 +6936,8 @@ export default function Home() {
     setControlValue("lane", lane);
     setControlValue("rules", rules);
     setControlValue("venue_name", venueName);
+    setControlValue("match_format", matchSetup.format);
+    setControlValue("roster_size", String(matchSetup.rosterSize));
 
     setChallengeDraft((currentDraft) => ({
       ...currentDraft,
@@ -6805,8 +6945,17 @@ export default function Home() {
       lane,
       rules,
       venue_name: venueName,
-      sport_type: activity
+      sport_type: activity,
+      match_format: matchSetup.format,
+      roster_size: matchSetup.rosterSize
     }));
+  }
+
+  function applyMatchFormat(format: MatchFormat, formElement: HTMLFormElement | null) {
+    const rosterSize = format === "Singles" ? 1 : format === "Doubles" ? 2 : 4;
+    const rosterControl = formElement?.elements.namedItem("roster_size");
+    if (rosterControl instanceof HTMLInputElement) rosterControl.value = String(rosterSize);
+    setChallengeDraft((current) => ({ ...current, match_format: format, roster_size: rosterSize }));
   }
 
   async function updateChallengeDetails(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -6819,6 +6968,13 @@ export default function Home() {
     }
 
     const form = new FormData(event.currentTarget);
+    const updatedMatchFormat = String(form.get("match_format") || challengeMatchFormat(challenge)) as MatchFormat;
+    const updatedRosterSize =
+      updatedMatchFormat === "Singles"
+        ? 1
+        : updatedMatchFormat === "Doubles"
+          ? 2
+          : Number(form.get("roster_size") || challengeRosterSize(challenge));
     const update = {
       title: String(form.get("title") || challenge.title).trim() || challenge.title,
       lane: String(form.get("lane") || challenge.lane) as ChallengeLane,
@@ -6828,7 +6984,9 @@ export default function Home() {
       venue_name: String(form.get("venue_name") || "").trim() || null,
       booking_url: String(form.get("booking_url") || "").trim() || null,
       sport_type: String(form.get("sport_type") || "").trim() || null,
-      booking_region: String(form.get("booking_region") || "").trim() || null
+      booking_region: String(form.get("booking_region") || "").trim() || null,
+      match_format: updatedMatchFormat,
+      roster_size: updatedRosterSize
     };
 
     setEditingChallengeId(challenge.id);
@@ -6909,6 +7067,7 @@ export default function Home() {
 
     const invitedName = item.display_name || `@${item.username}`;
     const interest = item.main_interest || "New challenge";
+    const matchSetup = inferredMatchSetup(interest);
     const creatorName = profile?.display_name || (profile?.username ? `@${profile.username}` : "Open challenger");
 
     setChallengeCreateStep(1);
@@ -6926,6 +7085,8 @@ export default function Home() {
       booking_url: currentDraft.booking_url || "",
       sport_type: interest,
       booking_region: currentDraft.booking_region || profile?.region || "Global",
+      match_format: matchSetup.format,
+      roster_size: matchSetup.rosterSize,
       invitedProfile: invitedName,
       invitedUserId: item.user_id,
       version: currentDraft.version + 1
@@ -6953,6 +7114,7 @@ export default function Home() {
     const isOwnTeam = team.owner_user_id === session?.user.id;
     const ownedTeam = isOwnTeam ? team : teams.find((item) => item.owner_user_id === session?.user.id);
     const activity = team.main_activity || "Team challenge";
+    const matchSetup = inferredMatchSetup(activity);
     const region = team.region || profile?.region || "Global";
     const opponentName = isOwnTeam ? "Open invite" : team.name;
 
@@ -6971,6 +7133,8 @@ export default function Home() {
       booking_url: currentDraft.booking_url || "",
       sport_type: activity,
       booking_region: region,
+      match_format: "Team",
+      roster_size: Math.max(2, matchSetup.rosterSize),
       invitedProfile: "",
       invitedUserId: "",
       version: currentDraft.version + 1
@@ -8002,18 +8166,30 @@ export default function Home() {
       return;
     }
 
+    if (joins.some((join) => join.challenge_id === challenge.id && join.user_id === session?.user.id)) {
+      setMessage("You already joined this room. One account can occupy only one room role.");
+      return;
+    }
+
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const participantName = profileName();
 
     const role = String(form.get("role") || "Challenger") as JoinRole;
     const requestedSide = String(form.get("side") || "Team A");
+    const normalizedSide = requestedSide === "Team B" ? "Team B" : "Team A";
+    const roster = challengeRosterState(challenge);
+    const selectedSideCount = normalizedSide === "Team A" ? roster.teamA : roster.teamB;
+    if (role === "Challenger" && selectedSideCount >= roster.required) {
+      setMessage(`${normalizedSide} is full for this ${challengeMatchFormat(challenge).toLowerCase()} room. Choose the other side or join the audience.`);
+      return;
+    }
     const join = {
       challenge_id: challenge.id,
       user_id: session?.user.id,
       participant_name: participantName,
       role,
-      side: role === "Audience" ? "Audience" : requestedSide === "Team B" ? "Team B" : "Team A"
+      side: role === "Audience" ? "Audience" : normalizedSide
     };
 
     setJoiningChallengeId(challenge.id);
@@ -9206,6 +9382,12 @@ export default function Home() {
 
     if (!canManageTeamResult(challenge)) {
       setMessage("Only a team captain, organizer, or challenge creator can mark this team challenge completed.");
+      return;
+    }
+
+
+    if (!challengeRosterState(challenge).ready) {
+      setMessage(`This challenge cannot finish until both registered rosters are full. ${challengeRosterMessage(challenge)}.`);
       return;
     }
 
@@ -13358,6 +13540,31 @@ export default function Home() {
               </div>
             </div>
             <label>
+              Match format
+              <select
+                name="match_format"
+                defaultValue={challengeDraft.match_format}
+                onChange={(event) => applyMatchFormat(event.currentTarget.value as MatchFormat, event.currentTarget.form)}
+              >
+                <option>Singles</option>
+                <option>Doubles</option>
+                <option>Team</option>
+              </select>
+              <small className="fieldHint">This controls how many registered accounts each side needs.</small>
+            </label>
+            <label>
+              Registered players per side
+              <input
+                defaultValue={challengeDraft.roster_size}
+                max={50}
+                min={1}
+                name="roster_size"
+                readOnly={challengeDraft.match_format !== "Team"}
+                type="number"
+              />
+              <small className="fieldHint">Singles uses 1, doubles uses 2. Team rooms can choose their roster size.</small>
+            </label>
+            <label>
               Team or challenger A
               <input name="team_a" defaultValue={challengeDraft.team_a} />
             </label>
@@ -13682,6 +13889,9 @@ export default function Home() {
             const canManageVoting = canManageChallengeVoting(challenge);
             const roomVoteCount =
               (roomResults[challenge.id]?.teamAVotes || 0) + (roomResults[challenge.id]?.teamBVotes || 0);
+            const roster = challengeRosterState(challenge);
+            const teamADisplay = challengeSideDisplay(challenge, "Team A");
+            const teamBDisplay = challengeSideDisplay(challenge, "Team B");
 
             return (
             <article
@@ -13712,14 +13922,20 @@ export default function Home() {
                 </div>
               )}
               <div className="versus">
-                <strong>{challenge.team_a}</strong>
+                <strong>{teamADisplay}</strong>
                 <b>vs</b>
-                <strong>{challenge.team_b}</strong>
+                <strong>{teamBDisplay}</strong>
+              </div>
+              <div className={`rosterSummary ${roster.ready ? "ready" : "waiting"}`}>
+                <strong>{challengeMatchFormat(challenge)}</strong>
+                <span>Team A {roster.teamA}/{roster.required}</span>
+                <span>Team B {roster.teamB}/{roster.required}</span>
+                <em>{roster.ready ? "Roster ready" : "Waiting for registered players"}</em>
               </div>
               <div className="roomOverviewStats" aria-label="Room activity summary">
                 <div>
-                  <strong>{joinCounts[challenge.id]?.challengers || 0}</strong>
-                  <span>Challengers</span>
+                  <strong>{joinCounts[challenge.id]?.challengers || 0}/{roster.required * 2}</strong>
+                  <span>Registered players</span>
                 </div>
                 <div>
                   <strong>{joinCounts[challenge.id]?.audience || 0}</strong>
@@ -13821,6 +14037,18 @@ export default function Home() {
                           <option key={interest}>{interest}</option>
                         ))}
                       </select>
+                    </label>
+                    <label>
+                      Match format
+                      <select name="match_format" defaultValue={challengeMatchFormat(challenge)}>
+                        <option>Singles</option>
+                        <option>Doubles</option>
+                        <option>Team</option>
+                      </select>
+                    </label>
+                    <label>
+                      Registered players per side
+                      <input defaultValue={challengeRosterSize(challenge)} max={50} min={1} name="roster_size" type="number" />
                     </label>
                     <label>
                       Booking region
@@ -14291,18 +14519,32 @@ export default function Home() {
                         {["Team A", "Team B"].map((side) => (
                           <button
                             className={joinChoice(challenge.id).side === side ? "active" : ""}
+                            disabled={
+                              side === "Team A"
+                                ? roster.teamA >= roster.required
+                                : roster.teamB >= roster.required
+                            }
                             key={side}
                             onClick={() => updateJoinChoice(challenge.id, { side })}
                             type="button"
                           >
-                            {side}
+                            {side} ({side === "Team A" ? roster.teamA : roster.teamB}/{roster.required})
                           </button>
                         ))}
                       </div>
                     ) : (
                       <small className="formHint">Audience members watch and react without joining either side.</small>
                     )}
-                    <button disabled={joiningChallengeId === challenge.id} type="submit">
+                    <button
+                      disabled={
+                        joiningChallengeId === challenge.id ||
+                        (joinChoice(challenge.id).role === "Challenger" &&
+                          (joinChoice(challenge.id).side === "Team B"
+                            ? roster.teamB >= roster.required
+                            : roster.teamA >= roster.required))
+                      }
+                      type="submit"
+                    >
                       {joiningChallengeId === challenge.id ? "Joining..." : "Join"}
                     </button>
                   </form>
@@ -14371,9 +14613,11 @@ export default function Home() {
                         <option value={challenge.team_b}>{challenge.team_b}</option>
                       </select>
                       <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
-                      <button disabled={completingChallengeId === challenge.id || !resultAllowed} type="submit">
+                      <button disabled={completingChallengeId === challenge.id || !resultAllowed || !roster.ready} type="submit">
                         {!resultAllowed
                           ? "Captain/organizer required"
+                          : !roster.ready
+                            ? "Fill rosters first"
                           : completingChallengeId === challenge.id
                             ? "Saving result..."
                             : "Mark completed"}
@@ -14512,14 +14756,23 @@ export default function Home() {
                     }
                   ].map((group) => (
                     <div className="participantList" key={group.title}>
-                      <strong>{group.title}</strong>
+                      <strong>
+                        {group.title}
+                        {group.title !== "Audience" && ` (${group.people.length}/${roster.required})`}
+                      </strong>
                       {group.people.length > 0 ? (
                         group.people.slice(0, 5).map((join) => (
                           <small key={join.id}>{join.participant_name}</small>
                         ))
                       ) : (
-                        <small>No one yet.</small>
+                        <small>{group.title === "Audience" ? "No one yet." : "Open registered-player slot."}</small>
                       )}
+                      {group.title !== "Audience" &&
+                        group.people.length > 0 &&
+                        group.people.length < roster.required &&
+                        Array.from({ length: roster.required - group.people.length }).map((_, index) => (
+                          <small className="openRosterSlot" key={`${group.title}-open-${index}`}>Open player slot</small>
+                        ))}
                     </div>
                   ))}
                 </div>
@@ -14604,11 +14857,15 @@ export default function Home() {
                             </select>
                           </label>
                           <button
-                            disabled={votingWindowActionId !== null}
+                            disabled={votingWindowActionId !== null || !roster.ready}
                             onClick={() => setChallengeVotingWindow(challenge, "Open")}
                             type="button"
                           >
-                            {votingWindowActionId === challenge.id ? "Opening…" : "Open voting"}
+                            {votingWindowActionId === challenge.id
+                              ? "Opening…"
+                              : roster.ready
+                                ? "Open voting"
+                                : "Fill rosters first"}
                           </button>
                         </>
                       )}
