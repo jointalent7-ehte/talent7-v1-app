@@ -14037,19 +14037,34 @@ export default function Home() {
               Rules
               <textarea name="rules" rows={4} defaultValue={challengeDraft.rules} />
             </label>
-            <label>
-              Venue or booking note
-              <input name="venue_name" defaultValue={challengeDraft.venue_name} placeholder="Badminton court, pool, gym, online lobby..." />
-            </label>
-            <label>
-              Booking link
-              <input name="booking_url" defaultValue={challengeDraft.booking_url} inputMode="url" placeholder="https://venue-or-event-link.com" />
-              <small className="fieldHint">Optional. Use a complete public link.</small>
-            </label>
-            <label>
-              Booking region
-              <input name="booking_region" defaultValue={challengeDraft.booking_region} placeholder="India, Dubai, London, Online..." />
-            </label>
+            <details className="arrangedVenueDetails wide">
+              <summary>
+                <span>Already arranged a venue?</span>
+                <small>Optional. Add public venue information now, or coordinate privately after an opponent joins.</small>
+              </summary>
+              <div className="arrangedVenueFields">
+                <label>
+                  Public venue name or note
+                  <input name="venue_name" defaultValue={challengeDraft.venue_name} placeholder="Badminton court, pool, gym, event venue..." />
+                </label>
+                <label>
+                  Public venue or event link (optional)
+                  <input name="booking_url" defaultValue={challengeDraft.booking_url} inputMode="url" placeholder="https://venue-or-event-link.com" />
+                  <small className="fieldHint">Use a complete public http:// or https:// link.</small>
+                </label>
+                <label>
+                  Venue region
+                  <input name="booking_region" defaultValue={challengeDraft.booking_region} placeholder="India, Dubai, London..." />
+                </label>
+                <aside className="publicVenuePrivacyNote">
+                  <strong>Visible to everyone</strong>
+                  <small>
+                    Do not add receipts, private booking confirmations, access codes, phone numbers, or private lobby links here.
+                    Share those only in Private coordination after another challenger joins.
+                  </small>
+                </aside>
+              </div>
+            </details>
             <div className="challengeWizardActions wide">
               <button className="back" onClick={(event) => moveChallengeCreateStep(2, event.currentTarget.form)} type="button">Back</button>
               <span>Step 3 of 3</span>
@@ -14471,12 +14486,13 @@ export default function Home() {
                       <textarea name="rules" defaultValue={challenge.rules} rows={3} />
                     </label>
                     <label>
-                      Venue or booking note
+                      Public venue name or note
                       <input name="venue_name" defaultValue={challenge.venue_name || ""} />
                     </label>
                     <label>
-                      Booking link
+                      Public venue or event link
                       <input name="booking_url" defaultValue={challenge.booking_url || ""} />
+                      <small className="fieldHint">Visible in the room. Keep private booking details in Private coordination.</small>
                     </label>
                     <label>
                       Sport / venue type

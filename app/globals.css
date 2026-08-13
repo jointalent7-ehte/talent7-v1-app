@@ -1728,6 +1728,79 @@ main.appView-leaderboard > #leaderboard {
   color: var(--yellow);
 }
 
+.arrangedVenueDetails {
+  overflow: hidden;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.arrangedVenueDetails > summary {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.arrangedVenueDetails > summary::-webkit-details-marker {
+  display: none;
+}
+
+.arrangedVenueDetails > summary::after {
+  flex: 0 0 auto;
+  content: "+";
+  color: var(--teal-dark);
+  font-size: 1.2rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.arrangedVenueDetails[open] > summary::after {
+  content: "−";
+}
+
+.arrangedVenueDetails > summary span {
+  color: var(--ink);
+  font-weight: 950;
+}
+
+.arrangedVenueDetails > summary small {
+  max-width: 620px;
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.arrangedVenueFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 16px 16px;
+}
+
+.publicVenuePrivacyNote {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 12px;
+  color: #704d00;
+  background: #fff8df;
+  border: 1px solid #efd17c;
+  border-radius: 8px;
+}
+
+.publicVenuePrivacyNote small {
+  color: #704d00;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .inviteNotice {
   display: flex;
   align-items: center;
@@ -9518,6 +9591,19 @@ textarea {
   .joinForm,
   .resultForm {
     gap: 10px;
+  }
+
+  .arrangedVenueDetails > summary {
+    flex-wrap: wrap;
+  }
+
+  .arrangedVenueDetails > summary small {
+    order: 3;
+    width: 100%;
+  }
+
+  .arrangedVenueFields {
+    grid-template-columns: 1fr;
   }
 
   .proofList > a,
