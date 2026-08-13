@@ -291,7 +291,7 @@ begin
     1,
     now()
   )
-  on conflict (live_session_id, user_id, reaction) do update
+  on conflict on constraint one_live_reaction_counter_per_user do update
   set reaction_count = challenge_live_reactions.reaction_count + 1,
       last_reacted_at = now();
 
@@ -308,7 +308,7 @@ begin
     1,
     now()
   )
-  on conflict (live_session_id, reaction) do update
+  on conflict on constraint challenge_live_reaction_totals_pkey do update
   set reaction_count = challenge_live_reaction_totals.reaction_count + 1,
       updated_at = now();
 

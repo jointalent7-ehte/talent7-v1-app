@@ -62,5 +62,6 @@ For a new project, run these files from top to bottom in the Supabase SQL editor
 58. `add-athletics-events.sql`
 59. `add-private-listen-rooms.sql`
 60. `add-native-livekit-rooms.sql`
+61. `fix-challenge-live-reactions.sql`
 
 Keep `tighten-challenge-completion-and-proof-policies.sql` after all challenge-related migrations. The shared listen-room migration is independent and can be applied after it.
