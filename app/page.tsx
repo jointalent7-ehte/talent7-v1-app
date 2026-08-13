@@ -9464,8 +9464,9 @@ export default function Home() {
   const activeSectionLink = activeSectionLinks.find((link) => link.href === `#${activeSection}`);
   const activeWorkspaceTitle =
     activeSectionLink?.label || activeMoreConfig?.label || activePrimaryConfig?.label || "Talent7";
-  const showLandingHero =
-    activeAppTab === "challenges" && activeSection === "rooms" && authHydrated && !session;
+  const isRoomsWorkspace = activeAppTab === "challenges" && activeSection === "rooms";
+  const showLandingHero = isRoomsWorkspace && authHydrated && !session;
+  const showRoomsHero = isRoomsWorkspace && authHydrated && Boolean(session);
   const moreTabCounts: Partial<Record<MoreTabId, number>> = {
     teams: myDashboard.pendingTeamRequests,
     notifications: unreadNotifications.length,
@@ -9555,7 +9556,9 @@ export default function Home() {
   return (
     <main className={`appTab-${activeAppTab} appView-${activeSection}`} onClick={handleTabAwareNavigation}>
       <a className="skipLink" href={`#${activeSection}`} onClick={skipToCurrentWorkspace}>Skip to current workspace</a>
-      <header className={`hero ${showLandingHero ? "heroLanding" : "heroCompact"}`}>
+      <header
+        className={`hero ${showLandingHero ? "heroLanding" : showRoomsHero ? "heroRoomsBanner" : "heroCompact"}`}
+      >
         <nav>
           <div className="brandBlock">
             <strong>Talent7</strong>
@@ -9616,6 +9619,17 @@ export default function Home() {
             </div>
           </details>
         </section>
+        )}
+        {showRoomsHero && (
+          <section className="roomsHeroContent">
+            <p className="eyebrow">Challenge rooms</p>
+            <h2>Compete, watch, and react live.</h2>
+            <p>Find an opponent, enter a room, or follow the matchups getting attention now.</p>
+            <div className="heroActions">
+              <a href="#create" className="primary">Create a challenge</a>
+              <a href="#profiles" className="secondary">Find opponents</a>
+            </div>
+          </section>
         )}
       </header>
 
