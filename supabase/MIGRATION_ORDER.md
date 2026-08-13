@@ -58,5 +58,6 @@ For a new project, run these files from top to bottom in the Supabase SQL editor
 54. `harden-challenge-scheduling-rosters.sql`
 55. `enable-challenge-roster-realtime.sql`
 56. `add-challenge-self-leave.sql`
+57. `enforce-activity-match-formats.sql`
 
 Keep `tighten-challenge-completion-and-proof-policies.sql` after all challenge-related migrations. The shared listen-room migration is independent and can be applied after it.
