@@ -599,6 +599,12 @@ function defaultPlayModeForChallenge(challenge: Challenge): ChallengePlayMode {
   return "In person";
 }
 
+function availablePlayModesForChallenge(challenge: Challenge): ChallengePlayMode[] {
+  if (challenge.lane === "Mobile gaming challenge") return ["Online"];
+  if (challenge.lane === "Sports challenge") return ["In person"];
+  return ["In person", "Online"];
+}
+
 type ChallengeLiveStatus = "Ready" | "Live" | "Ended";
 type LiveReactionName = "Fire" | "Applause" | "Wow" | "Strong" | "Love";
 
@@ -8042,6 +8048,14 @@ export default function Home() {
       setMessage("Choose a match time in the future.");
       return;
     }
+    if (!availablePlayModesForChallenge(challenge).includes(playMode)) {
+      setMessage(
+        challenge.lane === "Mobile gaming challenge"
+          ? "Mobile gaming challenges must use Online play mode."
+          : "Sports challenges must use In person play mode."
+      );
+      return;
+    }
     if (playMode === "In person" && !venueName) {
       setMessage("Add the venue name for an in-person match.");
       return;
@@ -13911,8 +13925,12 @@ export default function Home() {
             const roleNotice = teamPermissionLabel(challenge);
             const messages = roomMessages[challenge.id] || [];
             const schedule = challengeSchedule(challenge.id);
-            const schedulePlayMode =
+            const availableSchedulePlayModes = availablePlayModesForChallenge(challenge);
+            const preferredSchedulePlayMode =
               schedulePlayModes[challenge.id] || schedule?.play_mode || defaultPlayModeForChallenge(challenge);
+            const schedulePlayMode = availableSchedulePlayModes.includes(preferredSchedulePlayMode)
+              ? preferredSchedulePlayMode
+              : availableSchedulePlayModes[0];
             const canCoordinate = canCoordinateChallenge(challenge);
             const hasCoordinationPartner = hasChallengeCoordinationPartner(challenge);
             const liveSession = liveSessionsByRoom[challenge.id];
@@ -14416,34 +14434,43 @@ export default function Home() {
                               }
                               value={schedulePlayMode}
                             >
-                              <option>In person</option>
-                              <option>Online</option>
+                              {availableSchedulePlayModes.map((mode) => (
+                                <option key={mode}>{mode}</option>
+                              ))}
                             </select>
                             <small>
-                              {schedulePlayMode === "Online"
+                              {challenge.lane === "Sports challenge"
+                                ? "Sports challenges are played at an agreed physical venue."
+                                : challenge.lane === "Mobile gaming challenge"
+                                  ? "Mobile gaming challenges use a private online lobby."
+                                  : schedulePlayMode === "Online"
                                 ? "Compete through a private lobby, video session, or remote submission."
                                 : "Meet at an agreed physical venue."}
                             </small>
                           </label>
-                          <label hidden={schedulePlayMode !== "In person"}>
-                            Venue name
-                            <input
-                              defaultValue={schedule?.venue_name || ""}
-                              maxLength={160}
-                              name="venue_name"
-                              placeholder="Required for in-person matches"
-                            />
-                          </label>
-                          <label hidden={schedulePlayMode !== "Online"}>
-                            Private lobby or session link
-                            <input
-                              defaultValue={schedule?.session_url || ""}
-                              maxLength={500}
-                              name="session_url"
-                              placeholder="Required for online matches"
-                              type="url"
-                            />
-                          </label>
+                          {schedulePlayMode === "In person" && (
+                            <label>
+                              Venue name
+                              <input
+                                defaultValue={schedule?.venue_name || ""}
+                                maxLength={160}
+                                name="venue_name"
+                                placeholder="Required for in-person matches"
+                              />
+                            </label>
+                          )}
+                          {schedulePlayMode === "Online" && (
+                            <label>
+                              Private lobby or session link
+                              <input
+                                defaultValue={schedule?.session_url || ""}
+                                maxLength={500}
+                                name="session_url"
+                                placeholder="Required for online matches"
+                                type="url"
+                              />
+                            </label>
+                          )}
                           <label className="wide">
                             {schedulePlayMode === "Online" ? "Online access details" : "Exact meeting details"}
                             <input
