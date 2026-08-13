@@ -530,37 +530,159 @@ type Challenge = {
 
 type MatchFormat = "Singles" | "Doubles" | "Team";
 
+type ActivityMatchConfig = {
+  formats: MatchFormat[];
+  defaultFormat: MatchFormat;
+  defaultRosterSize: number;
+  teamRosterFlexible: boolean;
+};
+
+function activityMatchConfig(activity: string): ActivityMatchConfig {
+  const normalized = activity.toLowerCase().trim();
+  const fixed = (defaultFormat: MatchFormat, defaultRosterSize: number): ActivityMatchConfig => ({
+    formats: [defaultFormat],
+    defaultFormat,
+    defaultRosterSize,
+    teamRosterFlexible: false
+  });
+  const flexible = (
+    formats: MatchFormat[],
+    defaultFormat: MatchFormat,
+    defaultRosterSize: number
+  ): ActivityMatchConfig => ({ formats, defaultFormat, defaultRosterSize, teamRosterFlexible: formats.includes("Team") });
+
+  if (normalized.includes("badminton doubles")) return fixed("Doubles", 2);
+  if (normalized.includes("badminton singles")) return fixed("Singles", 1);
+  if (normalized.includes("volleyball")) return fixed("Team", 6);
+  if (normalized.includes("football") || normalized.includes("cricket")) return fixed("Team", 11);
+  if (normalized.includes("basketball")) return fixed("Team", 5);
+  if (normalized.includes("pubg squad")) return fixed("Team", 4);
+  if (normalized.includes("mech arena")) return fixed("Team", 5);
+  if (normalized.includes("team tournament")) return flexible(["Team"], "Team", 4);
+
+  if (normalized.includes("table tennis") || normalized.includes("tennis")) {
+    return flexible(["Singles", "Doubles"], "Singles", 1);
+  }
+  if (normalized.includes("pubg") || normalized.includes("gaming")) {
+    return flexible(["Singles", "Doubles", "Team"], "Team", 4);
+  }
+  if (normalized.includes("chess")) return flexible(["Singles", "Team"], "Singles", 1);
+
+  if (
+    normalized.includes("breakdance") ||
+    normalized.includes("dance battle") ||
+    normalized.includes("rap") ||
+    normalized.includes("singing") ||
+    normalized.includes("music performance") ||
+    normalized.includes("art challenge") ||
+    normalized.includes("other talent")
+  ) {
+    return flexible(["Singles", "Team"], "Singles", 1);
+  }
+
+  if (
+    normalized.includes("swimming") ||
+    normalized.includes("running") ||
+    normalized.includes("athletics") ||
+    normalized.includes("skating") ||
+    normalized.includes("cycling") ||
+    normalized.includes("bouldering") ||
+    normalized.includes("calisthenics") ||
+    normalized.includes("gym / fitness") ||
+    normalized.includes("parkour") ||
+    normalized.includes("yoga") ||
+    normalized.includes("sports coaching")
+  ) {
+    return flexible(["Singles", "Team"], "Singles", 1);
+  }
+
+  return fixed("Singles", 1);
+}
+
 function inferredMatchSetup(activity: string) {
+  const config = activityMatchConfig(activity);
+  return { format: config.defaultFormat, rosterSize: config.defaultRosterSize };
+}
+
+function validMatchFormatForActivity(activity: string, format: MatchFormat) {
+  return activityMatchConfig(activity).formats.includes(format);
+}
+
+function rosterSizeForFormat(activity: string, format: MatchFormat) {
+  if (format === "Singles") return 1;
+  if (format === "Doubles") return 2;
+  return Math.max(2, activityMatchConfig(activity).defaultRosterSize);
+}
+
+function validRosterSizeForActivity(activity: string, format: MatchFormat, rosterSize: number) {
+  const config = activityMatchConfig(activity);
+  if (!Number.isInteger(rosterSize) || rosterSize < 1 || rosterSize > 50) return false;
+  if (format === "Team" && config.teamRosterFlexible) return rosterSize >= 2;
+  return rosterSize === rosterSizeForFormat(activity, format);
+}
+
+function matchFormatLabel(format: MatchFormat, activity: string) {
   const normalized = activity.toLowerCase();
-
-  if (normalized.includes("doubles")) return { format: "Doubles" as MatchFormat, rosterSize: 2 };
-  if (normalized.includes("singles")) return { format: "Singles" as MatchFormat, rosterSize: 1 };
-  if (normalized.includes("football") || normalized.includes("cricket")) {
-    return { format: "Team" as MatchFormat, rosterSize: 11 };
+  if (normalized.includes("pubg") || normalized.includes("gaming")) {
+    if (format === "Singles") return "Solo";
+    if (format === "Doubles") return "Duo";
+    return "Squad";
   }
-  if (normalized.includes("volleyball")) return { format: "Team" as MatchFormat, rosterSize: 6 };
-  if (normalized.includes("basketball")) return { format: "Team" as MatchFormat, rosterSize: 5 };
-  if (normalized.includes("pubg") || normalized.includes("squad")) {
-    return { format: "Team" as MatchFormat, rosterSize: 4 };
+  if (normalized.includes("chess")) return format === "Singles" ? "1 vs 1" : "Team";
+  if (
+    normalized.includes("race") ||
+    normalized.includes("swimming") ||
+    normalized.includes("running") ||
+    normalized.includes("athletics") ||
+    normalized.includes("skating") ||
+    normalized.includes("cycling")
+  ) {
+    return format === "Singles" ? "Individual" : "Relay / team";
   }
-  if (normalized.includes("team") || normalized.includes("crew")) {
-    return { format: "Team" as MatchFormat, rosterSize: 2 };
+  if (
+    normalized.includes("dance") ||
+    normalized.includes("break") ||
+    normalized.includes("rap") ||
+    normalized.includes("singing") ||
+    normalized.includes("music") ||
+    normalized.includes("art") ||
+    normalized.includes("fitness") ||
+    normalized.includes("calisthenics") ||
+    normalized.includes("yoga") ||
+    normalized.includes("parkour") ||
+    normalized.includes("bouldering")
+  ) {
+    return format === "Singles" ? "Solo" : "Group / team";
   }
-
-  return { format: "Singles" as MatchFormat, rosterSize: 1 };
+  if (
+    normalized.includes("wrestling") ||
+    normalized.includes("karate") ||
+    normalized.includes("boxing") ||
+    normalized.includes("kickboxing") ||
+    normalized.includes("martial arts")
+  ) {
+    return "1 vs 1";
+  }
+  return format;
 }
 
 function challengeMatchFormat(challenge: Challenge): MatchFormat {
-  if (challenge.match_format === "Singles" || challenge.match_format === "Doubles" || challenge.match_format === "Team") {
+  const activity = `${challenge.sport_type || challenge.title}`;
+  if (
+    (challenge.match_format === "Singles" || challenge.match_format === "Doubles" || challenge.match_format === "Team") &&
+    validMatchFormatForActivity(activity, challenge.match_format)
+  ) {
     return challenge.match_format;
   }
-  return inferredMatchSetup(`${challenge.title} ${challenge.sport_type || ""}`).format;
+  return inferredMatchSetup(activity).format;
 }
 
 function challengeRosterSize(challenge: Challenge) {
+  const activity = `${challenge.sport_type || challenge.title}`;
+  const format = challengeMatchFormat(challenge);
   const savedSize = Number(challenge.roster_size);
-  if (Number.isInteger(savedSize) && savedSize > 0) return savedSize;
-  return inferredMatchSetup(`${challenge.title} ${challenge.sport_type || ""}`).rosterSize;
+  if (validRosterSizeForActivity(activity, format, savedSize)) return savedSize;
+  return rosterSizeForFormat(activity, format);
 }
 
 type ChallengeScheduleStatus = "Proposed" | "Changes requested" | "Confirmed" | "Cancelled";
@@ -1831,6 +1953,9 @@ export default function Home() {
   const [opponentMode, setOpponentMode] = useState<ChallengeMode | "All">("All");
   const [opponentFormat, setOpponentFormat] = useState<ChallengeFormat | "All">("All");
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
+  const [challengeEditSetups, setChallengeEditSetups] = useState<
+    Record<string, { activity: string; format: MatchFormat; rosterSize: number }>
+  >({});
   const [challengeCreateStep, setChallengeCreateStep] = useState<1 | 2 | 3>(1);
   const [challengeCreateMaxStep, setChallengeCreateMaxStep] = useState<1 | 2 | 3>(1);
   const [challengeStepError, setChallengeStepError] = useState("");
@@ -6782,15 +6907,22 @@ export default function Home() {
     }
 
     if (step === 2) {
+      const activity = challengeFieldValue(formElement, "sport_type");
       const format = challengeFieldValue(formElement, "match_format") as MatchFormat;
       const rosterSize = Number(challengeFieldValue(formElement, "roster_size"));
+      if (!validMatchFormatForActivity(activity, format)) {
+        setChallengeStepError(`${matchFormatLabel(format, activity)} is not a valid format for ${activity}.`);
+        focusChallengeField(formElement, "match_format");
+        return false;
+      }
       if (!Number.isInteger(rosterSize) || rosterSize < 1 || rosterSize > 50) {
         setChallengeStepError("Choose between 1 and 50 registered players per side.");
         focusChallengeField(formElement, "roster_size");
         return false;
       }
-      if ((format === "Singles" && rosterSize !== 1) || (format === "Doubles" && rosterSize !== 2)) {
-        setChallengeStepError(`${format} must use ${format === "Singles" ? 1 : 2} registered player${format === "Singles" ? "" : "s"} per side.`);
+      if (!validRosterSizeForActivity(activity, format, rosterSize)) {
+        const requiredSize = rosterSizeForFormat(activity, format);
+        setChallengeStepError(`${matchFormatLabel(format, activity)} must use ${requiredSize} registered player${requiredSize === 1 ? "" : "s"} per side.`);
         focusChallengeField(formElement, "match_format");
         return false;
       }
@@ -7006,10 +7138,34 @@ export default function Home() {
   }
 
   function applyMatchFormat(format: MatchFormat, formElement: HTMLFormElement | null) {
-    const rosterSize = format === "Singles" ? 1 : format === "Doubles" ? 2 : 4;
+    const activityControl = formElement?.elements.namedItem("sport_type");
+    const activity =
+      activityControl instanceof HTMLSelectElement || activityControl instanceof HTMLInputElement
+        ? activityControl.value.trim()
+        : challengeDraft.sport_type;
+    const rosterSize = rosterSizeForFormat(activity, format);
     const rosterControl = formElement?.elements.namedItem("roster_size");
     if (rosterControl instanceof HTMLInputElement) rosterControl.value = String(rosterSize);
     setChallengeDraft((current) => ({ ...current, match_format: format, roster_size: rosterSize }));
+  }
+
+  function applyChallengeEditActivity(challenge: Challenge, activity: string) {
+    const config = activityMatchConfig(activity);
+    setChallengeEditSetups((current) => ({
+      ...current,
+      [challenge.id]: { activity, format: config.defaultFormat, rosterSize: config.defaultRosterSize }
+    }));
+  }
+
+  function applyChallengeEditFormat(challenge: Challenge, activity: string, format: MatchFormat) {
+    setChallengeEditSetups((current) => ({
+      ...current,
+      [challenge.id]: {
+        activity,
+        format,
+        rosterSize: rosterSizeForFormat(activity, format)
+      }
+    }));
   }
 
   async function updateChallengeDetails(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -7022,13 +7178,25 @@ export default function Home() {
     }
 
     const form = new FormData(event.currentTarget);
+    const updatedActivity = String(form.get("sport_type") || challenge.sport_type || challenge.title).trim();
     const updatedMatchFormat = String(form.get("match_format") || challengeMatchFormat(challenge)) as MatchFormat;
+    if (!validMatchFormatForActivity(updatedActivity, updatedMatchFormat)) {
+      setMessage(`${matchFormatLabel(updatedMatchFormat, updatedActivity)} is not a valid format for ${updatedActivity}.`);
+      return;
+    }
     const updatedRosterSize =
       updatedMatchFormat === "Singles"
         ? 1
         : updatedMatchFormat === "Doubles"
           ? 2
           : Number(form.get("roster_size") || challengeRosterSize(challenge));
+    if (!validRosterSizeForActivity(updatedActivity, updatedMatchFormat, updatedRosterSize)) {
+      const requiredSize = rosterSizeForFormat(updatedActivity, updatedMatchFormat);
+      setMessage(
+        `${matchFormatLabel(updatedMatchFormat, updatedActivity)} must use ${requiredSize} registered player${requiredSize === 1 ? "" : "s"} per side.`
+      );
+      return;
+    }
     const update = {
       title: String(form.get("title") || challenge.title).trim() || challenge.title,
       lane: String(form.get("lane") || challenge.lane) as ChallengeLane,
@@ -7037,7 +7205,7 @@ export default function Home() {
       rules: String(form.get("rules") || challenge.rules).trim() || challenge.rules,
       venue_name: String(form.get("venue_name") || "").trim() || null,
       booking_url: String(form.get("booking_url") || "").trim() || null,
-      sport_type: String(form.get("sport_type") || "").trim() || null,
+      sport_type: updatedActivity || null,
       booking_region: String(form.get("booking_region") || "").trim() || null,
       match_format: updatedMatchFormat,
       roster_size: updatedRosterSize
@@ -13708,26 +13876,38 @@ export default function Home() {
               Match format
               <select
                 name="match_format"
-                defaultValue={challengeDraft.match_format}
+                value={challengeDraft.match_format}
                 onChange={(event) => applyMatchFormat(event.currentTarget.value as MatchFormat, event.currentTarget.form)}
               >
-                <option>Singles</option>
-                <option>Doubles</option>
-                <option>Team</option>
+                {activityMatchConfig(challengeDraft.sport_type).formats.map((format) => (
+                  <option key={format} value={format}>{matchFormatLabel(format, challengeDraft.sport_type)}</option>
+                ))}
               </select>
-              <small className="fieldHint">This controls how many registered accounts each side needs.</small>
+              <small className="fieldHint">
+                Only formats supported by {challengeDraft.sport_type} are available.
+              </small>
             </label>
             <label>
               Registered players per side
               <input
-                defaultValue={challengeDraft.roster_size}
+                onChange={(event) =>
+                  setChallengeDraft((current) => ({ ...current, roster_size: Number(event.currentTarget.value) }))
+                }
                 max={50}
                 min={1}
                 name="roster_size"
-                readOnly={challengeDraft.match_format !== "Team"}
+                readOnly={
+                  challengeDraft.match_format !== "Team" ||
+                  !activityMatchConfig(challengeDraft.sport_type).teamRosterFlexible
+                }
                 type="number"
+                value={challengeDraft.roster_size}
               />
-              <small className="fieldHint">Singles uses 1, doubles uses 2. Team rooms can choose their roster size.</small>
+              <small className="fieldHint">
+                {activityMatchConfig(challengeDraft.sport_type).teamRosterFlexible && challengeDraft.match_format === "Team"
+                  ? "Adjust the registered players required on each side."
+                  : `${matchFormatLabel(challengeDraft.match_format, challengeDraft.sport_type)} uses ${challengeDraft.roster_size} registered player${challengeDraft.roster_size === 1 ? "" : "s"} per side.`}
+              </small>
             </label>
             <label>
               Team or challenger A
@@ -14081,6 +14261,13 @@ export default function Home() {
             const scheduleParticipantsReady = roster.teamA > 0 && roster.teamB > 0;
             const teamADisplay = challengeSideDisplay(challenge, "Team A");
             const teamBDisplay = challengeSideDisplay(challenge, "Team B");
+            const savedEditActivity = challenge.sport_type || challenge.title || "Badminton doubles";
+            const editSetup = challengeEditSetups[challenge.id] || {
+              activity: savedEditActivity,
+              format: challengeMatchFormat(challenge),
+              rosterSize: challengeRosterSize(challenge)
+            };
+            const editMatchConfig = activityMatchConfig(editSetup.activity);
 
             return (
             <article
@@ -14221,7 +14408,11 @@ export default function Home() {
                     </label>
                     <label>
                       Sport / venue type
-                      <select name="sport_type" defaultValue={challenge.sport_type || "Badminton doubles"}>
+                      <select
+                        name="sport_type"
+                        onChange={(event) => applyChallengeEditActivity(challenge, event.currentTarget.value)}
+                        value={editSetup.activity}
+                      >
                         {challengeActivityOptions.map((interest) => (
                           <option key={interest}>{interest}</option>
                         ))}
@@ -14229,15 +14420,34 @@ export default function Home() {
                     </label>
                     <label>
                       Match format
-                      <select name="match_format" defaultValue={challengeMatchFormat(challenge)}>
-                        <option>Singles</option>
-                        <option>Doubles</option>
-                        <option>Team</option>
+                      <select
+                        name="match_format"
+                        onChange={(event) =>
+                          applyChallengeEditFormat(challenge, editSetup.activity, event.currentTarget.value as MatchFormat)
+                        }
+                        value={editSetup.format}
+                      >
+                        {editMatchConfig.formats.map((format) => (
+                          <option key={format} value={format}>{matchFormatLabel(format, editSetup.activity)}</option>
+                        ))}
                       </select>
                     </label>
                     <label>
                       Registered players per side
-                      <input defaultValue={challengeRosterSize(challenge)} max={50} min={1} name="roster_size" type="number" />
+                      <input
+                        max={50}
+                        min={1}
+                        name="roster_size"
+                        onChange={(event) =>
+                          setChallengeEditSetups((current) => ({
+                            ...current,
+                            [challenge.id]: { ...editSetup, rosterSize: Number(event.currentTarget.value) }
+                          }))
+                        }
+                        readOnly={editSetup.format !== "Team" || !editMatchConfig.teamRosterFlexible}
+                        type="number"
+                        value={editSetup.rosterSize}
+                      />
                     </label>
                     <label>
                       Booking region
