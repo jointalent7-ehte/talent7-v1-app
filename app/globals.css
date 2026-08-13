@@ -7281,6 +7281,87 @@ textarea {
   border: 0;
 }
 
+.nativeLiveStage {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(250px, 1fr) auto;
+  width: 100%;
+  min-height: 360px;
+  max-height: min(72vh, 720px);
+  overflow: hidden;
+  color: #fff;
+  background: #090b0c;
+  border-radius: 9px;
+  box-shadow: 0 12px 28px rgb(20 23 25 / 18%);
+  --lk-bg: #090b0c;
+  --lk-bg2: #171b1d;
+  --lk-fg: #fff;
+  --lk-accent-bg: var(--teal);
+  --lk-control-bg: #202527;
+}
+
+.nativeLiveStage .lk-grid-layout {
+  min-height: 250px;
+  padding: 8px;
+}
+
+.nativeLiveStage .lk-participant-tile {
+  border-radius: 8px;
+}
+
+.nativeLiveStage .lk-control-bar {
+  z-index: 2;
+  width: 100%;
+  border-top: 1px solid rgb(255 255 255 / 13%);
+}
+
+.nativeAudienceLabel {
+  padding: 10px 14px;
+  color: #dce5e6;
+  background: #181b1d;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-align: center;
+}
+
+.nativeLiveState {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  padding: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #0d2827, #111719 70%);
+  border: 1px solid #325a58;
+  border-radius: 9px;
+}
+
+.nativeLiveState strong {
+  font-size: 1rem;
+}
+
+.nativeLiveState small {
+  color: #c9d8d8;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.nativeLiveState button {
+  min-height: 42px;
+  margin-top: 4px;
+  padding: 10px 15px;
+  color: #fff;
+  background: var(--teal);
+  border: 1px solid #70d3cc;
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.nativeLiveState.error {
+  background: #391b18;
+  border-color: #b95f55;
+}
+
 .liveBroadcastMeta {
   align-items: flex-start;
 }
@@ -7404,7 +7485,8 @@ textarea {
   gap: 6px;
 }
 
-.liveManagerPanel input {
+.liveManagerPanel input,
+.liveManagerPanel select {
   width: 100%;
   min-width: 0;
   color: var(--ink);
@@ -10167,6 +10249,17 @@ textarea {
 
   .liveManagerActions button {
     width: 100%;
+  }
+
+  .nativeLiveStage {
+    grid-template-rows: minmax(210px, 58vh) auto;
+    min-height: 310px;
+    max-height: 70vh;
+  }
+
+  .nativeLiveStage .lk-control-bar {
+    flex-wrap: wrap;
+    padding: 7px;
   }
 
   .votingWindowPanel {

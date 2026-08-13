@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
+import ChallengeLiveRoom from "./challenge-live-room";
 import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
@@ -778,12 +779,15 @@ function availablePlayModesForChallenge(challenge: Challenge): ChallengePlayMode
 }
 
 type ChallengeLiveStatus = "Ready" | "Live" | "Ended";
+type ChallengeLiveProvider = "YouTube" | "LiveKit";
 type LiveReactionName = "Fire" | "Applause" | "Wow" | "Strong" | "Love";
 
 type ChallengeLiveSession = {
   id: string;
   challenge_id: string;
-  youtube_video_id: string;
+  youtube_video_id: string | null;
+  provider?: ChallengeLiveProvider;
+  livekit_room_name?: string | null;
   status: ChallengeLiveStatus;
   created_by: string;
   updated_by: string;
@@ -2101,6 +2105,7 @@ export default function Home() {
   const [challengeLiveSessions, setChallengeLiveSessions] = useState<ChallengeLiveSession[]>([]);
   const [challengeLiveReactionTotals, setChallengeLiveReactionTotals] = useState<ChallengeLiveReactionTotal[]>([]);
   const [liveVideoDrafts, setLiveVideoDrafts] = useState<Record<string, string>>({});
+  const [liveProviderDrafts, setLiveProviderDrafts] = useState<Record<string, ChallengeLiveProvider>>({});
   const [liveSessionActionKey, setLiveSessionActionKey] = useState<string | null>(null);
   const [liveReactionActionKey, setLiveReactionActionKey] = useState<string | null>(null);
   const [challengeLiveLoadError, setChallengeLiveLoadError] = useState("");
@@ -4400,7 +4405,11 @@ export default function Home() {
     }
 
     const liveSession = liveSessionsByRoom[challengeId];
-    return liveSession ? youtubeWatchUrl(liveSession.youtube_video_id) : "";
+    return liveSession?.youtube_video_id ? youtubeWatchUrl(liveSession.youtube_video_id) : "";
+  }
+
+  function liveProviderDraft(challengeId: string): ChallengeLiveProvider {
+    return liveProviderDrafts[challengeId] || liveSessionsByRoom[challengeId]?.provider || "LiveKit";
   }
 
   async function setChallengeLiveSession(challenge: Challenge, status: ChallengeLiveStatus) {
@@ -4415,16 +4424,18 @@ export default function Home() {
     }
 
     const currentSession = liveSessionsByRoom[challenge.id];
+    const provider = status === "Ended" ? currentSession?.provider || "LiveKit" : liveProviderDraft(challenge.id);
     if (status === "Ended" && currentSession?.status !== "Live") {
       setMessage("Only a live broadcast can be ended.", "error");
       return;
     }
 
-    const videoId =
-      status === "Ended"
+    const videoId = provider === "YouTube"
+      ? status === "Ended"
         ? currentSession?.youtube_video_id || ""
-        : youtubeVideoId(liveVideoDraft(challenge.id));
-    if (!videoId) {
+        : youtubeVideoId(liveVideoDraft(challenge.id))
+      : "";
+    if (provider === "YouTube" && !videoId) {
       setMessage("Enter a valid public YouTube video, scheduled live, or livestream URL.", "error");
       return;
     }
@@ -4432,7 +4443,7 @@ export default function Home() {
     const actionKey = `${challenge.id}-${status}`;
     const shouldResetReactions =
       Boolean(currentSession) &&
-      (currentSession?.youtube_video_id !== videoId || currentSession?.status === "Ended");
+      (currentSession?.provider !== provider || currentSession?.youtube_video_id !== (videoId || null) || currentSession?.status === "Ended");
     setLiveSessionActionKey(actionKey);
 
     try {
@@ -4441,7 +4452,9 @@ export default function Home() {
         const nextSession: ChallengeLiveSession = {
           id: currentSession?.id || crypto.randomUUID(),
           challenge_id: challenge.id,
-          youtube_video_id: videoId,
+          youtube_video_id: videoId || null,
+          provider,
+          livekit_room_name: provider === "LiveKit" ? `talent7-challenge-${challenge.id}` : null,
           status,
           created_by: currentSession?.created_by || session?.user.id || "preview-user",
           updated_by: session?.user.id || "preview-user",
@@ -4464,8 +4477,9 @@ export default function Home() {
       } else {
         const { data, error } = await supabase.rpc("set_challenge_live_session", {
           target_challenge_id: challenge.id,
-          target_youtube_video_id: videoId,
-          target_status: status
+          target_youtube_video_id: videoId || null,
+          target_status: status,
+          target_provider: provider
         });
         if (error) throw error;
 
@@ -4483,13 +4497,17 @@ export default function Home() {
         }
       }
 
-      setLiveVideoDrafts((drafts) => ({ ...drafts, [challenge.id]: youtubeWatchUrl(videoId) }));
+      if (videoId) setLiveVideoDrafts((drafts) => ({ ...drafts, [challenge.id]: youtubeWatchUrl(videoId) }));
       setMessage(
         status === "Ready"
-          ? "YouTube broadcast link saved. Start the stream in YouTube Studio before going live in this room."
+          ? provider === "LiveKit"
+            ? "Native Talent7 live room prepared. Start it when both challengers are ready."
+            : "YouTube broadcast link saved. Start the stream in YouTube Studio before going live in this room."
           : status === "Live"
             ? "Broadcast is now live in this challenge room."
-            : "Broadcast ended. The YouTube replay remains available in the room.",
+            : provider === "YouTube"
+              ? "Broadcast ended. The YouTube replay remains available in the room."
+              : "Native broadcast ended and camera access is closed.",
         "success"
       );
     } catch (error) {
@@ -14386,7 +14404,7 @@ export default function Home() {
             </div>
             <p aria-live="polite">
               {roomDiscoveryMode === "Live"
-                ? "Live YouTube broadcasts appear first, followed by rooms with people inside right now."
+                ? "Live Talent7 camera or YouTube broadcasts appear first, followed by rooms with people inside right now."
                 : roomDiscoveryMode === "Trending"
                   ? "Recent views, joins, votes, ratings, proofs, chat, and live audience move rooms upward."
                   : roomDiscoveryMode === "For you"
@@ -14508,6 +14526,8 @@ export default function Home() {
             const currentUserMembership = session?.user.id
               ? joins.find((join) => join.challenge_id === challenge.id && join.user_id === session.user.id) || null
               : null;
+            const liveProvider = liveSession?.provider || "YouTube";
+            const canPublishNativeLive = canManageLive || currentUserMembership?.role === "Challenger";
             const scheduleParticipantsReady = roster.teamA > 0 && roster.teamB > 0;
             const teamADisplay = challengeSideDisplay(challenge, "Team A");
             const teamBDisplay = challengeSideDisplay(challenge, "Team B");
@@ -14538,7 +14558,11 @@ export default function Home() {
                 </em>
               )}
               {liveSession?.status === "Ready" && <em className="roomBroadcastBadge">Broadcast ready</em>}
-              {liveSession?.status === "Ended" && <em className="roomBroadcastBadge replay">Replay available</em>}
+              {liveSession?.status === "Ended" && (
+                <em className="roomBroadcastBadge replay">
+                  {liveProvider === "YouTube" ? "Replay available" : "Broadcast ended"}
+                </em>
+              )}
               <h3>{challenge.title}</h3>
               {challenge.status === "Completed" && (
                 <div className="winnerBanner">
@@ -14752,7 +14776,7 @@ export default function Home() {
               <p>{challenge.rules}</p>
               <section
                 className={`challengeLivePanel ${liveSession?.status.toLowerCase() || "offline"}`}
-                aria-label="YouTube live broadcast"
+                aria-label="Challenge live broadcast"
               >
                 <div className="challengeLiveHeader">
                   <div>
@@ -14763,8 +14787,8 @@ export default function Home() {
                         : liveSession?.status === "Ready"
                           ? "Broadcast prepared"
                           : liveSession?.status === "Ended"
-                            ? "Watch the replay"
-                            : "No broadcast attached yet"}
+                            ? liveProvider === "YouTube" ? "Watch the replay" : "Broadcast finished"
+                            : "No broadcast started yet"}
                     </strong>
                   </div>
                   <em className={`challengeLiveStatus ${liveSession?.status.toLowerCase() || "offline"}`}>
@@ -14773,7 +14797,41 @@ export default function Home() {
                   </em>
                 </div>
 
-                {liveSession ? (
+                {!liveSession && (
+                  <div className="liveBroadcastEmpty">
+                    <strong>Waiting for a broadcast</strong>
+                    <small>An organizer can start a Talent7 camera room or attach a YouTube broadcast.</small>
+                  </div>
+                )}
+
+                {liveSession && liveProvider === "LiveKit" && liveSession.status === "Live" && (
+                  session?.access_token ? (
+                    <ChallengeLiveRoom
+                      accessToken={session.access_token}
+                      challengeId={challenge.id}
+                      requestedPublisher={canPublishNativeLive}
+                    />
+                  ) : (
+                    <div className="nativeLiveState">
+                      <strong>Log in to watch this Talent7 live room</strong>
+                      <small>Native rooms use your Talent7 account to keep camera access limited to registered players.</small>
+                      <button onClick={() => openSection("account", true)} type="button">Log in</button>
+                    </div>
+                  )
+                )}
+
+                {liveSession && liveProvider === "LiveKit" && liveSession.status !== "Live" && (
+                  <div className="liveBroadcastEmpty">
+                    <strong>{liveSession.status === "Ready" ? "Native room prepared" : "Native broadcast ended"}</strong>
+                    <small>
+                      {liveSession.status === "Ready"
+                        ? "The camera room will open when an organizer selects Go live in room."
+                        : "This camera session is closed. Native video is not recorded by Talent7."}
+                    </small>
+                  </div>
+                )}
+
+                {liveSession && liveProvider === "YouTube" && liveSession.youtube_video_id && (
                   <>
                     <div className="youtubeLiveFrame">
                       <iframe
@@ -14789,45 +14847,40 @@ export default function Home() {
                         {liveSession.status === "Live"
                           ? "This organizer-marked broadcast is live on YouTube. React below while you watch."
                           : liveSession.status === "Ready"
-                            ? "The organizer has attached the broadcast. It will move to Live when they confirm the YouTube stream has started."
-                            : "The live reaction window is closed, but the YouTube replay remains available when the creator keeps it public."}
+                            ? "The broadcast is attached and will be marked Live after the YouTube stream starts."
+                            : "The reaction window is closed, but the replay remains available while its creator keeps it public."}
                       </p>
                       <a href={youtubeWatchUrl(liveSession.youtube_video_id)} rel="noreferrer" target="_blank">
                         Open directly on YouTube
                       </a>
                     </div>
-
-                    {liveSession.status === "Live" && (
-                      <div className="liveReactionBar" aria-label="React to the live broadcast">
-                        <strong>Live reactions</strong>
-                        <div>
-                          {liveReactionOptions.map((option) => {
-                            const actionKey = `${challenge.id}-${option.name}`;
-                            return (
-                              <button
-                                aria-label={`${option.label}: ${liveReactionTotals[option.name] || 0}`}
-                                disabled={liveReactionActionKey !== null}
-                                key={option.name}
-                                onClick={() => sendChallengeLiveReaction(challenge, option.name)}
-                                type="button"
-                              >
-                                <span aria-hidden="true">{option.emoji}</span>
-                                <small>{option.label}</small>
-                                <b aria-live="polite">
-                                  {liveReactionActionKey === actionKey ? "…" : liveReactionTotals[option.name] || 0}
-                                </b>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {!session && <small>Log in to react. Watching remains public.</small>}
-                      </div>
-                    )}
                   </>
-                ) : (
-                  <div className="liveBroadcastEmpty">
-                    <strong>Waiting for a broadcast</strong>
-                    <small>When an authorized organizer attaches a YouTube Live link, viewers can watch it here.</small>
+                )}
+
+                {liveSession?.status === "Live" && (
+                  <div className="liveReactionBar" aria-label="React to the live broadcast">
+                    <strong>Live reactions</strong>
+                    <div>
+                      {liveReactionOptions.map((option) => {
+                        const actionKey = `${challenge.id}-${option.name}`;
+                        return (
+                          <button
+                            aria-label={`${option.label}: ${liveReactionTotals[option.name] || 0}`}
+                            disabled={liveReactionActionKey !== null}
+                            key={option.name}
+                            onClick={() => sendChallengeLiveReaction(challenge, option.name)}
+                            type="button"
+                          >
+                            <span aria-hidden="true">{option.emoji}</span>
+                            <small>{option.label}</small>
+                            <b aria-live="polite">
+                              {liveReactionActionKey === actionKey ? "…" : liveReactionTotals[option.name] || 0}
+                            </b>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!session && <small>Log in to react.</small>}
                   </div>
                 )}
 
@@ -14836,14 +14889,20 @@ export default function Home() {
                     <div>
                       <strong>Broadcast controls</strong>
                       <p>
-                        Start your stream in YouTube Studio, then attach its public URL here. Never paste a YouTube stream key—Talent7 does not need or store it.
+                        {liveSession?.status === "Live" && liveProvider === "LiveKit"
+                          ? "The native camera room is open. Registered challengers can join with camera; everyone else is watch-only."
+                          : liveProviderDraft(challenge.id) === "LiveKit"
+                            ? "Use Talent7 camera for a native live room with no YouTube subscriber requirement."
+                            : "Attach a public YouTube broadcast URL. Never paste a stream key—Talent7 does not need or store it."}
                       </p>
                     </div>
                     {liveSession?.status === "Live" ? (
                       <div className="liveManagerActions live">
-                        <a href="https://www.youtube.com/live_dashboard" rel="noreferrer" target="_blank">
-                          Open YouTube Live dashboard
-                        </a>
+                        {liveProvider === "YouTube" && (
+                          <a href="https://www.youtube.com/live_dashboard" rel="noreferrer" target="_blank">
+                            Open YouTube Live dashboard
+                          </a>
+                        )}
                         <button
                           className="dangerAction"
                           disabled={liveSessionActionKey !== null}
@@ -14855,21 +14914,38 @@ export default function Home() {
                       </div>
                     ) : (
                       <>
-                        <label>
-                          YouTube live, scheduled live, or replay URL
-                          <input
-                            inputMode="url"
+                        <label className="liveProviderChoice">
+                          Broadcast method
+                          <select
                             onChange={(event) =>
-                              setLiveVideoDrafts((drafts) => ({
+                              setLiveProviderDrafts((drafts) => ({
                                 ...drafts,
-                                [challenge.id]: event.target.value
+                                [challenge.id]: event.target.value as ChallengeLiveProvider
                               }))
                             }
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            type="url"
-                            value={liveVideoDraft(challenge.id)}
-                          />
+                            value={liveProviderDraft(challenge.id)}
+                          >
+                            <option value="LiveKit">Talent7 camera (recommended)</option>
+                            <option value="YouTube">YouTube broadcast link</option>
+                          </select>
                         </label>
+                        {liveProviderDraft(challenge.id) === "YouTube" && (
+                          <label>
+                            YouTube live, scheduled live, or replay URL
+                            <input
+                              inputMode="url"
+                              onChange={(event) =>
+                                setLiveVideoDrafts((drafts) => ({
+                                  ...drafts,
+                                  [challenge.id]: event.target.value
+                                }))
+                              }
+                              placeholder="https://www.youtube.com/watch?v=..."
+                              type="url"
+                              value={liveVideoDraft(challenge.id)}
+                            />
+                          </label>
+                        )}
                         <div className="liveManagerActions">
                           <button
                             className="secondaryAction"
@@ -14877,7 +14953,9 @@ export default function Home() {
                             onClick={() => setChallengeLiveSession(challenge, "Ready")}
                             type="button"
                           >
-                            {liveSessionActionKey === `${challenge.id}-Ready` ? "Saving…" : "Save link"}
+                            {liveSessionActionKey === `${challenge.id}-Ready`
+                              ? "Saving…"
+                              : liveProviderDraft(challenge.id) === "LiveKit" ? "Prepare camera room" : "Save link"}
                           </button>
                           <button
                             disabled={liveSessionActionKey !== null}
@@ -14886,9 +14964,11 @@ export default function Home() {
                           >
                             {liveSessionActionKey === `${challenge.id}-Live` ? "Starting…" : "Go live in room"}
                           </button>
-                          <a href="https://www.youtube.com/live_dashboard" rel="noreferrer" target="_blank">
-                            Open YouTube Studio
-                          </a>
+                          {liveProviderDraft(challenge.id) === "YouTube" && (
+                            <a href="https://www.youtube.com/live_dashboard" rel="noreferrer" target="_blank">
+                              Open YouTube Studio
+                            </a>
+                          )}
                         </div>
                       </>
                     )}

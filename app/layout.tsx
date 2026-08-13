@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import "@livekit/components-styles";
 import "./globals.css";
 
 const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.jointalent7.com";
