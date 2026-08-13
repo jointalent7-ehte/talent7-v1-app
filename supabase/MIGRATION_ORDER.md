@@ -60,5 +60,6 @@ For a new project, run these files from top to bottom in the Supabase SQL editor
 56. `add-challenge-self-leave.sql`
 57. `enforce-activity-match-formats.sql`
 58. `add-athletics-events.sql`
+59. `add-private-listen-rooms.sql`
 
 Keep `tighten-challenge-completion-and-proof-policies.sql` after all challenge-related migrations. The shared listen-room migration is independent and can be applied after it.
