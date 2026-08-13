@@ -25,9 +25,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 NEXT_PUBLIC_SITE_URL=https://www.jointalent7.com
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_public_cloudflare_turnstile_site_key
 SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your_server_only_livekit_api_key
+LIVEKIT_API_SECRET=your_server_only_livekit_api_secret
 ```
 
 `NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. The Turnstile site key is intentionally public; its matching secret key must be entered only in Supabase Authentication CAPTCHA settings. The service-role key is used only by the authenticated admin account-deletion endpoint. Add it to Vercel Production as a sensitive server-only value; never give it a `NEXT_PUBLIC_` prefix and never commit it.
+
+The three LiveKit values enable native Talent7 camera broadcasts in challenge rooms. Create a LiveKit Cloud project, copy its WebSocket URL and API credentials into Vercel Production, and keep the API key and secret server-only. YouTube remains available in the app as a fallback broadcast method.
+
+Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadcasts, including the current Android-wrapper limitation.
 
 Follow [TURNSTILE_SETUP.md](TURNSTILE_SETUP.md) before enabling CAPTCHA enforcement in Supabase.
 
