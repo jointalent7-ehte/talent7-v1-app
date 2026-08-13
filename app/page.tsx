@@ -1823,6 +1823,7 @@ export default function Home() {
   const [roomViewCounts, setRoomViewCounts] = useState<Record<string, number>>({});
   const [liveRoomPresenceCounts, setLiveRoomPresenceCounts] = useState<Record<string, number>>({});
   const [activePresenceChallengeId, setActivePresenceChallengeId] = useState<string | null>(null);
+  const [lockedRoomPageIds, setLockedRoomPageIds] = useState<string[] | null>(null);
   const [roomViewerToken, setRoomViewerToken] = useState("");
   const recordedRoomViewsRef = useRef<Set<string>>(new Set());
   const [roomPage, setRoomPage] = useState(1);
@@ -3848,10 +3849,16 @@ export default function Home() {
     });
   }, [notificationSearch, notifications, readNotificationKeys, selectedNotificationFilter]);
 
-  const pagedChallenges = useMemo(
-    () => visibleChallenges.slice((roomPage - 1) * roomPageSize, roomPage * roomPageSize),
-    [roomPage, visibleChallenges]
-  );
+  const pagedChallenges = useMemo(() => {
+    if (lockedRoomPageIds) {
+      const visibleById = new Map(visibleChallenges.map((challenge) => [challenge.id, challenge]));
+      return lockedRoomPageIds
+        .map((challengeId) => visibleById.get(challengeId))
+        .filter((challenge): challenge is Challenge => Boolean(challenge));
+    }
+
+    return visibleChallenges.slice((roomPage - 1) * roomPageSize, roomPage * roomPageSize);
+  }, [lockedRoomPageIds, roomPage, visibleChallenges]);
 
   const pagedProfiles = useMemo(
     () => visibleProfiles.slice((profilePage - 1) * profilePageSize, profilePage * profilePageSize),
@@ -3900,21 +3907,10 @@ export default function Home() {
   useEffect(() => {
     if (!activePresenceChallengeId) return;
 
-    const activeRoomIndex = visibleChallenges.findIndex(
-      (challenge) => challenge.id === activePresenceChallengeId
-    );
-    if (activeRoomIndex < 0) return;
-
-    const activeRoomPage = Math.floor(activeRoomIndex / roomPageSize) + 1;
-    setRoomPage((current) => (current === activeRoomPage ? current : activeRoomPage));
-  }, [activePresenceChallengeId, visibleChallenges]);
-
-  useEffect(() => {
-    if (!activePresenceChallengeId) return;
-
     const roomIsVisible = visibleChallenges.some((challenge) => challenge.id === activePresenceChallengeId);
     if (activeAppTab !== "challenges" || activeSection !== "rooms" || !roomIsVisible) {
       setActivePresenceChallengeId(null);
+      setLockedRoomPageIds(null);
     }
   }, [activeAppTab, activePresenceChallengeId, activeSection, visibleChallenges]);
 
@@ -4366,12 +4362,16 @@ export default function Home() {
 
   function handleRoomWorkspaceToggle(event: FormEvent<HTMLDetailsElement>, challenge: Challenge) {
     if (event.currentTarget.open) {
+      setLockedRoomPageIds(pagedChallenges.map((room) => room.id));
       setActivePresenceChallengeId(challenge.id);
       void recordChallengeRoomView(challenge);
       return;
     }
 
-    setActivePresenceChallengeId((current) => (current === challenge.id ? null : current));
+    if (activePresenceChallengeId === challenge.id) {
+      setActivePresenceChallengeId(null);
+      setLockedRoomPageIds(null);
+    }
   }
 
   function roomChatHint(challenge: Challenge) {
@@ -15817,7 +15817,11 @@ export default function Home() {
         <PaginationControls
           currentPage={roomPage}
           label="Challenge rooms"
-          onPageChange={setRoomPage}
+          onPageChange={(page) => {
+            setActivePresenceChallengeId(null);
+            setLockedRoomPageIds(null);
+            setRoomPage(page);
+          }}
           pageSize={roomPageSize}
           targetId="rooms"
           totalItems={visibleChallenges.length}
