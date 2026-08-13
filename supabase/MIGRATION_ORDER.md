@@ -53,5 +53,7 @@ For a new project, run these files from top to bottom in the Supabase SQL editor
 49. `add-challenge-room-views.sql`
 50. `add-challenge-live-streams.sql`
 51. `add-challenge-voting-windows.sql`
+52. `add-push-notifications.sql`
+53. `add-challenge-rosters.sql`
 
 Keep `tighten-challenge-completion-and-proof-policies.sql` after all challenge-related migrations. The shared listen-room migration is independent and can be applied after it.
