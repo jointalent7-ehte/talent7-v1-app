@@ -1841,6 +1841,7 @@ export default function Home() {
   const [profileHydrated, setProfileHydrated] = useState(!hasSupabaseConfig);
   const [challengeLoadError, setChallengeLoadError] = useState("");
   const [challengeReloadKey, setChallengeReloadKey] = useState(0);
+  const [refreshingChallengeRooms, setRefreshingChallengeRooms] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
@@ -1976,6 +1977,30 @@ export default function Home() {
       return counts;
     }, {});
     setRoomViewCounts(nextCounts);
+  }, []);
+
+  const refreshChallengeRooms = useCallback(async (showFeedback = false) => {
+    if (!supabase) return;
+
+    if (showFeedback) setRefreshingChallengeRooms(true);
+
+    const [challengeResult, joinResult] = await Promise.all([
+      supabase.from("challenges").select("*").order("created_at", { ascending: false }),
+      supabase.from("challenge_joins").select("*").order("created_at", { ascending: false })
+    ]);
+    const refreshError = challengeResult.error || joinResult.error;
+
+    if (refreshError) {
+      setChallengeLoadError(refreshError.message);
+      if (showFeedback) setMessage(`Could not refresh challenge rooms: ${refreshError.message}`);
+    } else {
+      setChallenges((challengeResult.data || []) as Challenge[]);
+      setJoins((joinResult.data || []) as ChallengeJoin[]);
+      setChallengeLoadError("");
+      if (showFeedback) setMessage("Challenge rooms refreshed.");
+    }
+
+    if (showFeedback) setRefreshingChallengeRooms(false);
   }, []);
 
   function setMessage(text: string, tone?: NoticeTone) {
@@ -4808,49 +4833,13 @@ export default function Home() {
   }, [session]);
 
   useEffect(() => {
-    async function loadChallenges() {
-      if (!supabase) {
-        setChallengeLoadError("");
-        return;
-      }
-
+    if (!supabase) {
       setChallengeLoadError("");
-
-      const { data, error } = await supabase
-        .from("challenges")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        setChallengeLoadError(error.message);
-        setMessage(`Could not load challenges: ${error.message}`);
-        return;
-      }
-
-      if (data) {
-        setChallenges(data as Challenge[]);
-        setChallengeLoadError("");
-      }
+      return;
     }
 
-    loadChallenges();
-  }, [challengeReloadKey]);
-
-  useEffect(() => {
-    async function loadJoins() {
-      if (!supabase) return;
-
-      const { data, error } = await supabase
-        .from("challenge_joins")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) return;
-      if (data) setJoins(data as ChallengeJoin[]);
-    }
-
-    loadJoins();
-  }, []);
+    void refreshChallengeRooms();
+  }, [challengeReloadKey, refreshChallengeRooms]);
 
   useEffect(() => {
     async function loadResults() {
@@ -5067,6 +5056,24 @@ export default function Home() {
             items.some((item) => item.id === updatedChallenge.id)
               ? items.map((item) => (item.id === updatedChallenge.id ? updatedChallenge : item))
               : [updatedChallenge, ...items]
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "challenge_joins" },
+        (payload) => {
+          const previous = payload.old as Partial<ChallengeJoin>;
+          if (payload.eventType === "DELETE") {
+            setJoins((items) => items.filter((item) => item.id !== previous.id));
+            return;
+          }
+
+          const updatedJoin = payload.new as ChallengeJoin;
+          setJoins((items) =>
+            items.some((item) => item.id === updatedJoin.id)
+              ? items.map((item) => (item.id === updatedJoin.id ? updatedJoin : item))
+              : [updatedJoin, ...items]
           );
         }
       )
@@ -8022,7 +8029,12 @@ export default function Home() {
       setMessage(`Could not update invite: ${error.message}`);
     } else if (data) {
       setInvites((items) => items.map((item) => (item.id === invite.id ? (data as ChallengeInvite) : item)));
-      if (joinedRoom) setJoins((items) => [joinedRoom as ChallengeJoin, ...items]);
+      if (joinedRoom) {
+        setJoins((items) => [
+          joinedRoom as ChallengeJoin,
+          ...items.filter((item) => item.id !== (joinedRoom as ChallengeJoin).id)
+        ]);
+      }
       setMessage(status === "Accepted" ? "Invite accepted. You joined the challenge." : "Invite declined.");
       if (status === "Accepted") {
         setSelectedLane("All");
@@ -8268,7 +8280,10 @@ export default function Home() {
     if (error) {
       setMessage(`Could not join yet: ${error.message}`);
     } else if (data) {
-      setJoins((items) => [data as ChallengeJoin, ...items]);
+      setJoins((items) => [
+        data as ChallengeJoin,
+        ...items.filter((item) => item.id !== (data as ChallengeJoin).id)
+      ]);
       setMessage(`${participantName} joined ${challenge.title} as ${join.role.toLowerCase()}.`);
       formElement.reset();
     }
@@ -13787,30 +13802,40 @@ export default function Home() {
             </div>
           </div>
         )}
-        <div className="roomShelfTabs" aria-label="Room collections" role="tablist">
+        <div className="roomShelfToolbar">
+          <div className="roomShelfTabs" aria-label="Room collections" role="tablist">
+            <button
+              aria-selected={selectedStatus === "Open"}
+              className={selectedStatus === "Open" ? "active" : ""}
+              onClick={() => {
+                setSelectedStatus("Open");
+                if (roomDiscoveryMode === "Newest") setRoomDiscoveryMode("Trending");
+              }}
+              role="tab"
+              type="button"
+            >
+              Active rooms <span>{roomCollectionCounts.active}</span>
+            </button>
+            <button
+              aria-selected={selectedStatus === "Completed"}
+              className={selectedStatus === "Completed" ? "active" : ""}
+              onClick={() => {
+                setSelectedStatus("Completed");
+                setRoomDiscoveryMode("Newest");
+              }}
+              role="tab"
+              type="button"
+            >
+              Archive <span>{roomCollectionCounts.archived}</span>
+            </button>
+          </div>
           <button
-            aria-selected={selectedStatus === "Open"}
-            className={selectedStatus === "Open" ? "active" : ""}
-            onClick={() => {
-              setSelectedStatus("Open");
-              if (roomDiscoveryMode === "Newest") setRoomDiscoveryMode("Trending");
-            }}
-            role="tab"
+            className="roomRefreshButton"
+            disabled={refreshingChallengeRooms}
+            onClick={() => void refreshChallengeRooms(true)}
             type="button"
           >
-            Active rooms <span>{roomCollectionCounts.active}</span>
-          </button>
-          <button
-            aria-selected={selectedStatus === "Completed"}
-            className={selectedStatus === "Completed" ? "active" : ""}
-            onClick={() => {
-              setSelectedStatus("Completed");
-              setRoomDiscoveryMode("Newest");
-            }}
-            role="tab"
-            type="button"
-          >
-            Archive <span>{roomCollectionCounts.archived}</span>
+            {refreshingChallengeRooms ? "Refreshing…" : "Refresh rooms"}
           </button>
         </div>
         {selectedStatus !== "Completed" && (

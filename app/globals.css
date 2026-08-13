@@ -6334,6 +6334,40 @@ textarea {
   font-size: 0.78rem;
 }
 
+.roomShelfToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 900px;
+  margin-bottom: 14px;
+}
+
+.roomShelfToolbar .roomShelfTabs {
+  margin-bottom: 0;
+}
+
+.roomRefreshButton {
+  min-height: 42px;
+  padding: 9px 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.roomRefreshButton:hover:not(:disabled) {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.roomRefreshButton:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .roomDiscoveryPanel {
   display: grid;
   gap: 8px;
@@ -6414,6 +6448,20 @@ textarea {
   font-size: 0.82rem;
   font-weight: 780;
   line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .roomShelfToolbar {
+    align-items: stretch;
+  }
+
+  .roomShelfToolbar .roomShelfTabs {
+    width: 100%;
+  }
+
+  .roomRefreshButton {
+    width: 100%;
+  }
 }
 
 .roomFilterPanel {
