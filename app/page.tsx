@@ -1861,6 +1861,7 @@ export default function Home() {
   const [publicProfiles, setPublicProfiles] = useState<TalentProfile[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
+  const [leavingChallengeId, setLeavingChallengeId] = useState<string | null>(null);
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const [highlightedChallengeId, setHighlightedChallengeId] = useState<string | null>(null);
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
@@ -8291,6 +8292,85 @@ export default function Home() {
     setJoiningChallengeId(null);
   }
 
+  function confirmLeaveChallenge(challenge: Challenge, membership: ChallengeJoin) {
+    requestConfirmation({
+      title: membership.role === "Audience" ? "Leave this audience?" : "Leave this challenge team?",
+      detail:
+        membership.role === "Audience"
+          ? `You will stop appearing in the audience for “${challenge.title}”. You can join again while the room is active.`
+          : `You will leave ${challengeSideControlLabel(challenge, membership.side === "Team B" ? "Team B" : "Team A")} in “${challenge.title}”. If one side becomes empty, the current match schedule will be cancelled.`,
+      confirmLabel: "Leave room",
+      onConfirm: () => leaveChallenge(challenge, membership)
+    });
+  }
+
+  async function leaveChallenge(challenge: Challenge, membership: ChallengeJoin) {
+    if (!requireLogin("leave this challenge room")) return;
+    const currentUserId = session?.user.id;
+    if (!currentUserId) return;
+    if (membership.user_id !== currentUserId) {
+      setMessage("You can remove only your own room membership.");
+      return;
+    }
+    if (challenge.created_by === currentUserId) {
+      setMessage("Room creators cannot leave their own room. Delete a mistaken room before activity begins instead.");
+      return;
+    }
+    if (isChallengeCompleted(challenge)) {
+      setMessage("Completed challenge memberships cannot be changed.");
+      return;
+    }
+    if (membership.role === "Challenger" && isChallengeVotingOpen(challenge)) {
+      setMessage("Close the active voting window before leaving a challenge team.");
+      return;
+    }
+    if (membership.role === "Challenger" && liveSessionsByRoom[challenge.id]?.status === "Live") {
+      setMessage("End the live broadcast before leaving a challenge team.");
+      return;
+    }
+
+    setLeavingChallengeId(challenge.id);
+    setMessage("");
+
+    if (supabase && !challenge.id.startsWith("sample-")) {
+      const { error } = await supabase.from("challenge_joins").delete().eq("id", membership.id);
+      if (error) {
+        setMessage(`Could not leave the room: ${error.message}`);
+        setLeavingChallengeId(null);
+        return;
+      }
+    }
+
+    setJoins((items) => items.filter((item) => item.id !== membership.id));
+    if (membership.role === "Challenger") {
+      const remainingOpposingPlayers = joins.some(
+        (join) =>
+          join.challenge_id === challenge.id &&
+          join.id !== membership.id &&
+          join.role === "Challenger" &&
+          join.side !== membership.side
+      );
+      const remainingSameSidePlayers = joins.some(
+        (join) =>
+          join.challenge_id === challenge.id &&
+          join.id !== membership.id &&
+          join.role === "Challenger" &&
+          join.side === membership.side
+      );
+      if (!remainingOpposingPlayers || !remainingSameSidePlayers) {
+        setChallengeSchedules((items) =>
+          items.map((schedule) =>
+            schedule.challenge_id === challenge.id && schedule.status !== "Cancelled"
+              ? { ...schedule, status: "Cancelled", confirmed_by: null, updated_at: new Date().toISOString() }
+              : schedule
+          )
+        );
+      }
+    }
+    setMessage(`You left ${challenge.title}.`);
+    setLeavingChallengeId(null);
+  }
+
   async function rateChallenge(challenge: Challenge, rating: number) {
     if (!requireLogin("rate a challenge")) return;
 
@@ -13983,6 +14063,9 @@ export default function Home() {
             const roomVoteCount =
               (roomResults[challenge.id]?.teamAVotes || 0) + (roomResults[challenge.id]?.teamBVotes || 0);
             const roster = challengeRosterState(challenge);
+            const currentUserMembership = session?.user.id
+              ? joins.find((join) => join.challenge_id === challenge.id && join.user_id === session.user.id) || null
+              : null;
             const scheduleParticipantsReady = roster.teamA > 0 && roster.teamB > 0;
             const teamADisplay = challengeSideDisplay(challenge, "Team A");
             const teamBDisplay = challengeSideDisplay(challenge, "Team B");
@@ -14605,6 +14688,36 @@ export default function Home() {
                 <details className="roomActionPanel roomDisclosure">
                   <summary>Join, add proof, or finish</summary>
                   <div className="roomActionPanelBody">
+                  {currentUserMembership ? (
+                    <div className="joinedRoomMembership">
+                      <div>
+                        <span>Your room role</span>
+                        <strong>
+                          {currentUserMembership.role === "Audience"
+                            ? "Audience"
+                            : challengeSideControlLabel(
+                                challenge,
+                                currentUserMembership.side === "Team B" ? "Team B" : "Team A"
+                              )}
+                        </strong>
+                        <small>
+                          {challenge.created_by === session?.user.id
+                            ? "You created this room, so this membership stays attached to it."
+                            : "Joined by mistake or no longer participating? You can leave while the room is active."}
+                        </small>
+                      </div>
+                      {challenge.created_by !== session?.user.id && (
+                        <button
+                          className="leaveRoomButton"
+                          disabled={leavingChallengeId === challenge.id}
+                          onClick={() => confirmLeaveChallenge(challenge, currentUserMembership)}
+                          type="button"
+                        >
+                          {leavingChallengeId === challenge.id ? "Leaving…" : "Leave room"}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
                   <form className="joinForm" onSubmit={(event) => joinChallenge(event, challenge)}>
                     <input
                       name="participant_name"
@@ -14673,6 +14786,7 @@ export default function Home() {
                       {joiningChallengeId === challenge.id ? "Joining..." : "Join"}
                     </button>
                   </form>
+                  )}
                   <form className="proofForm" onSubmit={(event) => submitProof(event, challenge)}>
                     <strong>Victory proof</strong>
                     <input name="proof_type" type="hidden" value={selectedProofType(challenge.id)} />
