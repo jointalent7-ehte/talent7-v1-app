@@ -679,6 +679,33 @@ type ChallengeJoin = {
   created_at: string;
 };
 
+function resolvedChallengeSideName(
+  challenge: Challenge,
+  side: "Team A" | "Team B",
+  challengeJoins: ChallengeJoin[]
+) {
+  const roster = challengeJoins.filter((join) => {
+    const canonicalSide = join.side === side || (side === "Team B" && join.side === "Open invite");
+    return join.challenge_id === challenge.id && join.role === "Challenger" && canonicalSide;
+  });
+
+  if (roster.length > 0) return roster.map((join) => join.participant_name).join(" + ");
+  const linkedTeamId = side === "Team A" ? challenge.team_a_id : challenge.team_b_id;
+  if (linkedTeamId) return side === "Team A" ? challenge.team_a : challenge.team_b;
+  return `Open ${side}`;
+}
+
+function resolvedChallengeWinnerName(
+  challenge: Challenge,
+  challengeJoins: ChallengeJoin[],
+  winner = challenge.winner
+) {
+  if (!winner) return "Winner declared";
+  if (winner === challenge.team_a) return resolvedChallengeSideName(challenge, "Team A", challengeJoins);
+  if (winner === challenge.team_b) return resolvedChallengeSideName(challenge, "Team B", challengeJoins);
+  return winner;
+}
+
 type ChallengeRating = {
   id: string;
   challenge_id: string;
@@ -2559,7 +2586,7 @@ export default function Home() {
           actor: actor?.display_name || "Followed profile",
           action: "completed a challenge",
           title: challenge.title,
-          detail: challenge.winner ? `Winner: ${challenge.winner}` : "Winner declared",
+          detail: challenge.winner ? `Winner: ${resolvedChallengeWinnerName(challenge, joins)}` : "Winner declared",
           createdAt: challenge.completed_at || challenge.created_at,
           challengeId: challenge.id
         };
@@ -2954,7 +2981,7 @@ export default function Home() {
       roomMap.set(challenge.id, {
         challenge,
         label: "Created",
-        detail: challenge.status === "Completed" ? `Completed: ${challenge.winner || "Winner declared"}` : "Open room"
+        detail: challenge.status === "Completed" ? `Completed: ${resolvedChallengeWinnerName(challenge, joins)}` : "Open room"
       });
     });
 
@@ -2973,7 +3000,7 @@ export default function Home() {
       roomMap.set(challenge.id, {
         challenge,
         label: "Completed",
-        detail: `${challenge.winner || "Winner"} won${challenge.final_score ? ` ${challenge.final_score}` : ""}`
+        detail: `${resolvedChallengeWinnerName(challenge, joins)} won${challenge.final_score ? ` ${challenge.final_score}` : ""}`
       });
     });
 
@@ -3000,6 +3027,7 @@ export default function Home() {
     challengeReports,
     challenges,
     inviteInbox.received,
+    joins,
     myActivity,
     mySafetyReports,
     myTeamDashboard.accepted.length,
@@ -3180,7 +3208,7 @@ export default function Home() {
         label: "Challenge completed",
         category: "Results" as const,
         title: challenge.title,
-        detail: challenge.winner ? `Winner: ${challenge.winner}` : "Winner declared.",
+        detail: challenge.winner ? `Winner: ${resolvedChallengeWinnerName(challenge, joins)}` : "Winner declared.",
         createdAt: challenge.completed_at || challenge.created_at,
         href: "#rooms",
         challengeTitle: challenge.title
@@ -3926,12 +3954,16 @@ export default function Home() {
   }
 
   function challengeSideDisplay(challenge: Challenge, side: "Team A" | "Team B") {
-    const roster = challengeSideRoster(challenge, side);
-    if (roster.length > 0) return roster.map((join) => join.participant_name).join(" + ");
+    return resolvedChallengeSideName(challenge, side, joins);
+  }
 
-    const linkedTeamId = side === "Team A" ? challenge.team_a_id : challenge.team_b_id;
-    if (linkedTeamId) return side === "Team A" ? challenge.team_a : challenge.team_b;
-    return `Open ${side}`;
+  function challengeWinnerDisplay(challenge: Challenge, winner = challenge.winner) {
+    return resolvedChallengeWinnerName(challenge, joins, winner);
+  }
+
+  function challengeSideControlLabel(challenge: Challenge, side: "Team A" | "Team B") {
+    const display = challengeSideDisplay(challenge, side);
+    return display === `Open ${side}` ? side : display;
   }
 
   function challengeRosterState(challenge: Challenge) {
@@ -9451,7 +9483,7 @@ export default function Home() {
       );
       setSelectedStatus("Completed");
       setRoomDiscoveryMode("Newest");
-      setMessage(`${challenge.title} completed and moved to Archive. Winner: ${winner}.`);
+      setMessage(`${challenge.title} completed and moved to Archive. Winner: ${challengeWinnerDisplay(challenge, winner)}.`);
       formElement.reset();
       setCompletingChallengeId(null);
       return;
@@ -9470,7 +9502,7 @@ export default function Home() {
       setChallenges((items) => items.map((item) => (item.id === challenge.id ? (data as Challenge) : item)));
       setSelectedStatus("Completed");
       setRoomDiscoveryMode("Newest");
-      setMessage(`${challenge.title} completed and moved to Archive. Winner: ${winner}.`);
+      setMessage(`${challenge.title} completed and moved to Archive. Winner: ${challengeWinnerDisplay(challenge, winner)}.`);
       formElement.reset();
     }
 
@@ -11227,7 +11259,7 @@ export default function Home() {
                         <strong>{challenge.title}</strong>
                         <small>
                           {challenge.status}
-                          {challenge.winner ? ` / Winner: ${challenge.winner}` : ""}
+                          {challenge.winner ? ` / Winner: ${challengeWinnerDisplay(challenge)}` : ""}
                         </small>
                         <button type="button" onClick={() => viewTeamChallenge(challenge)}>
                           View room
@@ -12775,7 +12807,7 @@ export default function Home() {
                   selectedProfileSummary.challenges.map((challenge) => (
                     <button key={challenge.id} onClick={() => viewTeamChallenge(challenge)} type="button">
                       <strong>{challenge.title}</strong>
-                      <small>{challenge.status}{challenge.winner ? ` / Winner: ${challenge.winner}` : ""}</small>
+                      <small>{challenge.status}{challenge.winner ? ` / Winner: ${challengeWinnerDisplay(challenge)}` : ""}</small>
                     </button>
                   ))
                 ) : (
@@ -12787,7 +12819,7 @@ export default function Home() {
                 {selectedProfileSummary.wins.length > 0 ? (
                   selectedProfileSummary.wins.map((challenge) => (
                     <button key={challenge.id} onClick={() => viewTeamChallenge(challenge)} type="button">
-                      <strong>{challenge.winner}</strong>
+                      <strong>{challengeWinnerDisplay(challenge)}</strong>
                       <small>{challenge.title}{challenge.final_score ? ` / ${challenge.final_score}` : ""}</small>
                     </button>
                   ))
@@ -13968,7 +14000,7 @@ export default function Home() {
               {challenge.status === "Completed" && (
                 <div className="winnerBanner">
                   <span>Winner</span>
-                  <strong>{challenge.winner || "Winner declared"}</strong>
+                  <strong>{challengeWinnerDisplay(challenge)}</strong>
                   {challenge.final_score && <small>Final score: {challenge.final_score}</small>}
                 </div>
               )}
@@ -13979,8 +14011,8 @@ export default function Home() {
               </div>
               <div className={`rosterSummary ${roster.ready ? "ready" : "waiting"}`}>
                 <strong>{challengeMatchFormat(challenge)}</strong>
-                <span>Team A {roster.teamA}/{roster.required}</span>
-                <span>Team B {roster.teamB}/{roster.required}</span>
+                <span>{challengeSideControlLabel(challenge, "Team A")} {roster.teamA}/{roster.required}</span>
+                <span>{challengeSideControlLabel(challenge, "Team B")} {roster.teamB}/{roster.required}</span>
                 <em>{roster.ready ? "Roster ready" : "Waiting for registered players"}</em>
               </div>
               <div className="roomOverviewStats" aria-label="Room activity summary">
@@ -14138,8 +14170,8 @@ export default function Home() {
                 <div>
                   <span>Votes</span>
                   <strong>
-                    A {roomResults[challenge.id]?.teamAVotes || 0} / B{" "}
-                    {roomResults[challenge.id]?.teamBVotes || 0}
+                    {challengeSideControlLabel(challenge, "Team A")} {roomResults[challenge.id]?.teamAVotes || 0} /{" "}
+                    {challengeSideControlLabel(challenge, "Team B")} {roomResults[challenge.id]?.teamBVotes || 0}
                   </strong>
                 </div>
                 <div>
@@ -14606,7 +14638,9 @@ export default function Home() {
                             onClick={() => updateJoinChoice(challenge.id, { side })}
                             type="button"
                           >
-                            {side} ({side === "Team A" ? roster.teamA : roster.teamB}/{roster.required})
+                            {challengeSideControlLabel(challenge, side as "Team A" | "Team B")} ({
+                              side === "Team A" ? roster.teamA : roster.teamB
+                            }/{roster.required})
                           </button>
                         ))}
                       </div>
@@ -14687,8 +14721,8 @@ export default function Home() {
                       <strong>Finish challenge</strong>
                       <select name="winner" defaultValue="">
                         <option value="">Choose winner</option>
-                        <option value={challenge.team_a}>{challenge.team_a}</option>
-                        <option value={challenge.team_b}>{challenge.team_b}</option>
+                        <option value={challenge.team_a}>{teamADisplay}</option>
+                        <option value={challenge.team_b}>{teamBDisplay}</option>
                       </select>
                       <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
                       <button disabled={completingChallengeId === challenge.id || !resultAllowed || !roster.ready} type="submit">
@@ -14813,7 +14847,7 @@ export default function Home() {
                   </div>
                   <div>
                     <span>Winner</span>
-                    <strong>{challenge.winner || "Not decided"}</strong>
+                    <strong>{challenge.winner ? challengeWinnerDisplay(challenge) : "Not decided"}</strong>
                   </div>
                   <div>
                     <span>Proofs</span>
@@ -14826,8 +14860,8 @@ export default function Home() {
                 </div>
                 <div className="participantGrid">
                   {[
-                    { title: "Team A", people: participantGroup(challenge.id, "Team A", "Challenger") },
-                    { title: "Team B", people: participantGroup(challenge.id, "Team B", "Challenger") },
+                    { title: teamADisplay, people: participantGroup(challenge.id, "Team A", "Challenger") },
+                    { title: teamBDisplay, people: participantGroup(challenge.id, "Team B", "Challenger") },
                     {
                       title: "Audience",
                       people: roomJoins(challenge.id).filter((join) => join.role === "Audience")
@@ -14962,7 +14996,11 @@ export default function Home() {
                     type="button"
                     onClick={() => voteForWinner(challenge, challenge.team_a)}
                   >
-                    {hasUserVoted(challenge.id) ? "Voted" : votingOpen ? "Vote A" : "Voting closed"}
+                    {hasUserVoted(challenge.id)
+                      ? "Voted"
+                      : votingOpen
+                        ? `Vote ${challengeSideControlLabel(challenge, "Team A")}`
+                        : "Voting closed"}
                   </button>
                   <button
                     disabled={hasUserVoted(challenge.id) || !votingOpen}
@@ -14970,7 +15008,11 @@ export default function Home() {
                     type="button"
                     onClick={() => voteForWinner(challenge, challenge.team_b)}
                   >
-                    {hasUserVoted(challenge.id) ? "Voted" : votingOpen ? "Vote B" : "Voting closed"}
+                    {hasUserVoted(challenge.id)
+                      ? "Voted"
+                      : votingOpen
+                        ? `Vote ${challengeSideControlLabel(challenge, "Team B")}`
+                        : "Voting closed"}
                   </button>
                   <button disabled={hasUserRated(challenge.id)} type="button" onClick={() => rateChallenge(challenge, 7)}>
                     {hasUserRated(challenge.id) ? "Rated" : "Rate 7/7"}
