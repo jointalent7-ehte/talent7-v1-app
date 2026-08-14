@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import {
   ControlBar,
   GridLayout,
@@ -17,13 +19,52 @@ type JoinCredentials = {
   can_publish: boolean;
 };
 
+type LiveReactionName = "Fire" | "Applause" | "Wow" | "Strong" | "Love";
+
+type LiveReactionOption = {
+  name: LiveReactionName;
+  emoji: string;
+  label: string;
+};
+
+type FloatingReaction = LiveReactionOption & {
+  id: number;
+  lane: number;
+};
+
 type ChallengeLiveRoomProps = {
   accessToken: string;
   challengeId: string;
   requestedPublisher: boolean;
+  title: string;
+  sideLabels: [string, string];
+  reactionOptions: LiveReactionOption[];
+  reactionTotals: Partial<Record<LiveReactionName, number>>;
+  reactionActionKey: string | null;
+  onReact: (reaction: LiveReactionName) => void;
 };
 
-function Talent7VideoStage({ canPublish }: { canPublish: boolean }) {
+type Talent7VideoStageProps = Pick<
+  ChallengeLiveRoomProps,
+  "challengeId" | "title" | "sideLabels" | "reactionOptions" | "reactionTotals" | "reactionActionKey" | "onReact"
+> & {
+  canPublish: boolean;
+};
+
+function Talent7VideoStage({
+  canPublish,
+  challengeId,
+  title,
+  sideLabels,
+  reactionOptions,
+  reactionTotals,
+  reactionActionKey,
+  onReact
+}: Talent7VideoStageProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
+  const previousTotalsRef = useRef<Partial<Record<LiveReactionName, number>> | null>(null);
+  const reactionIdRef = useRef(0);
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -32,28 +73,156 @@ function Talent7VideoStage({ canPublish }: { canPublish: boolean }) {
     { onlySubscribed: false }
   );
 
-  return (
-    <div className="nativeLiveStage">
-      <GridLayout tracks={tracks}>
-        <ParticipantTile />
-      </GridLayout>
-      <RoomAudioRenderer />
-      {canPublish ? (
-        <ControlBar
-          controls={{ camera: true, microphone: true, screenShare: false, chat: false, leave: true }}
-          variation="minimal"
-        />
-      ) : (
-        <div className="nativeAudienceLabel">Watching as audience · camera and microphone are off</div>
+  useEffect(() => {
+    const previousTotals = previousTotalsRef.current;
+    previousTotalsRef.current = { ...reactionTotals };
+    if (!previousTotals) return;
+
+    const incoming: FloatingReaction[] = [];
+    reactionOptions.forEach((option) => {
+      const previousCount = previousTotals[option.name] || 0;
+      const nextCount = reactionTotals[option.name] || 0;
+      const visibleBurstCount = Math.min(Math.max(nextCount - previousCount, 0), 5);
+
+      for (let index = 0; index < visibleBurstCount; index += 1) {
+        reactionIdRef.current += 1;
+        incoming.push({
+          ...option,
+          id: reactionIdRef.current,
+          lane: (reactionIdRef.current + index) % 7
+        });
+      }
+    });
+
+    if (incoming.length > 0) {
+      setFloatingReactions((current) => [...current.slice(-18), ...incoming]);
+    }
+  }, [reactionOptions, reactionTotals]);
+
+  useEffect(() => {
+    if (!expanded) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [expanded]);
+
+  const stage = (
+    <section
+      aria-label={expanded ? `${title} expanded live stage` : `${title} live video`}
+      aria-modal={expanded ? "true" : undefined}
+      className={`nativeLiveStage${expanded ? " expanded" : ""}`}
+      role={expanded ? "dialog" : undefined}
+    >
+      {expanded && (
+        <header className="expandedLiveHeader">
+          <div>
+            <span className="expandedLiveBadge"><i aria-hidden="true" /> Live on Talent7</span>
+            <strong>{title}</strong>
+            <small>{sideLabels[0]} <b>vs</b> {sideLabels[1]}</small>
+          </div>
+          <button aria-label="Close expanded live stage" onClick={() => setExpanded(false)} type="button">
+            <span aria-hidden="true">×</span> Close stage
+          </button>
+        </header>
       )}
-    </div>
+
+      <div className="nativeLiveVideoCanvas">
+        <GridLayout tracks={tracks}>
+          <ParticipantTile />
+        </GridLayout>
+
+        <div aria-hidden="true" className="floatingReactionLayer">
+          {floatingReactions.map((reaction) => (
+            <span
+              className="floatingLiveReaction"
+              key={reaction.id}
+              onAnimationEnd={() => {
+                setFloatingReactions((current) => current.filter((item) => item.id !== reaction.id));
+              }}
+              style={{ "--reaction-left": `${7 + reaction.lane * 13}%` } as CSSProperties}
+            >
+              <b>{reaction.emoji}</b>
+              <small>{reaction.label}</small>
+            </span>
+          ))}
+        </div>
+
+        {!expanded && (
+          <button className="expandLiveStageButton" onClick={() => setExpanded(true)} type="button">
+            <span aria-hidden="true">↗</span> Expand live stage
+          </button>
+        )}
+      </div>
+
+      <RoomAudioRenderer />
+      <div className="nativeLiveControls">
+        {canPublish ? (
+          <ControlBar
+            controls={{ camera: true, microphone: true, screenShare: false, chat: false, leave: true }}
+            variation="minimal"
+          />
+        ) : (
+          <div className="nativeAudienceLabel">Watching as audience · camera and microphone are off</div>
+        )}
+      </div>
+
+      {expanded && (
+        <aside className="expandedReactionDock" aria-label="Send a live reaction">
+          <div>
+            <strong>React live</strong>
+            <small>Your reaction floats across every connected screen.</small>
+          </div>
+          <div className="expandedReactionButtons">
+            {reactionOptions.map((option) => {
+              const actionKey = `${challengeId}-${option.name}`;
+              return (
+                <button
+                  aria-label={`${option.label}: ${reactionTotals[option.name] || 0}`}
+                  disabled={reactionActionKey !== null}
+                  key={option.name}
+                  onClick={() => onReact(option.name)}
+                  type="button"
+                >
+                  <span aria-hidden="true">{option.emoji}</span>
+                  <small>{option.label}</small>
+                  <b aria-live="polite">
+                    {reactionActionKey === actionKey ? "…" : reactionTotals[option.name] || 0}
+                  </b>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+      )}
+    </section>
   );
+
+  return expanded ? createPortal(stage, document.body) : stage;
 }
 
 export default function ChallengeLiveRoom({
   accessToken,
   challengeId,
-  requestedPublisher
+  requestedPublisher,
+  title,
+  sideLabels,
+  reactionOptions,
+  reactionTotals,
+  reactionActionKey,
+  onReact
 }: ChallengeLiveRoomProps) {
   const [credentials, setCredentials] = useState<JoinCredentials | null>(null);
   const [joined, setJoined] = useState(false);
@@ -145,7 +314,16 @@ export default function ChallengeLiveRoom({
       token={credentials.participant_token}
       video={false}
     >
-      <Talent7VideoStage canPublish={credentials.can_publish} />
+      <Talent7VideoStage
+        canPublish={credentials.can_publish}
+        challengeId={challengeId}
+        onReact={onReact}
+        reactionActionKey={reactionActionKey}
+        reactionOptions={reactionOptions}
+        reactionTotals={reactionTotals}
+        sideLabels={sideLabels}
+        title={title}
+      />
     </LiveKitRoom>
   );
 }

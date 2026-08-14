@@ -7334,7 +7334,19 @@ textarea {
   --lk-control-bg: #202527;
 }
 
+.nativeLiveVideoCanvas {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% 20%, rgb(20 150 143 / 16%), transparent 32%),
+    #090b0c;
+}
+
 .nativeLiveStage .lk-grid-layout {
+  width: 100%;
+  height: 100%;
   min-height: 250px;
   padding: 8px;
 }
@@ -7347,6 +7359,292 @@ textarea {
   z-index: 2;
   width: 100%;
   border-top: 1px solid rgb(255 255 255 / 13%);
+}
+
+.nativeLiveControls {
+  position: relative;
+  z-index: 5;
+  min-width: 0;
+}
+
+.expandLiveStageButton {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 9px 13px;
+  color: #fff;
+  background: rgb(8 11 12 / 88%);
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 32%);
+  font-size: 0.76rem;
+  font-weight: 900;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+
+.expandLiveStageButton:hover,
+.expandLiveStageButton:focus-visible {
+  background: var(--teal);
+  transform: translateY(-1px);
+}
+
+.floatingReactionLayer {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.floatingLiveReaction {
+  position: absolute;
+  bottom: 5%;
+  left: var(--reaction-left);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  color: #fff;
+  background: rgb(5 12 13 / 70%);
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 999px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 34%);
+  opacity: 0;
+  animation: talent7-live-reaction-float 2.7s cubic-bezier(0.2, 0.75, 0.25, 1) forwards;
+  backdrop-filter: blur(9px);
+}
+
+.floatingLiveReaction b {
+  font-size: clamp(1.65rem, 4vw, 3.4rem);
+  line-height: 1;
+}
+
+.floatingLiveReaction small {
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+@keyframes talent7-live-reaction-float {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 18px, 0) scale(0.55) rotate(-5deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1.08) rotate(3deg);
+  }
+  78% {
+    opacity: 0.94;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(-50% + 18px), -56vh, 0) scale(1.35) rotate(-4deg);
+  }
+}
+
+.nativeLiveStage.expanded {
+  position: fixed;
+  z-index: 100000;
+  inset: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  max-height: none;
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: #050708;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.expandedLiveHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-width: 0;
+  padding: 3px 2px 10px;
+}
+
+.expandedLiveHeader > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, auto) auto;
+  align-items: center;
+  gap: 8px 13px;
+  min-width: 0;
+}
+
+.expandedLiveHeader strong {
+  overflow: hidden;
+  font-size: clamp(1rem, 2vw, 1.45rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expandedLiveHeader small {
+  color: #b8c7c8;
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.expandedLiveHeader small b {
+  color: #ef5b50;
+  text-transform: uppercase;
+}
+
+.expandedLiveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  padding: 6px 10px;
+  color: #fff;
+  background: #b92b24;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.expandedLiveBadge i {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgb(255 255 255 / 14%);
+  animation: live-badge-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-badge-pulse {
+  50% { opacity: 0.45; }
+}
+
+.expandedLiveHeader > button {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 9px 14px;
+  color: #fff;
+  background: #1b2022;
+  border: 1px solid #424b4e;
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.expandedLiveHeader > button:hover,
+.expandedLiveHeader > button:focus-visible {
+  background: #30383b;
+}
+
+.nativeLiveStage.expanded .nativeLiveVideoCanvas {
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 14px;
+}
+
+.nativeLiveStage.expanded .lk-grid-layout {
+  min-height: 0;
+  padding: 10px;
+  gap: 10px;
+}
+
+.nativeLiveStage.expanded .lk-participant-tile {
+  min-height: 0;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
+}
+
+.nativeLiveStage.expanded .lk-control-bar {
+  border: 0;
+  border-radius: 10px;
+}
+
+.expandedReactionDock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 10px 2px 0;
+}
+
+.expandedReactionDock > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 160px;
+}
+
+.expandedReactionDock > div:first-child strong {
+  font-size: 0.9rem;
+}
+
+.expandedReactionDock > div:first-child small {
+  max-width: 260px;
+  color: #91a5a7;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.expandedReactionButtons {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(80px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.expandedReactionButtons button {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 7px 11px;
+  color: #fff;
+  background: #171c1e;
+  border: 1px solid #343d40;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.expandedReactionButtons button:hover:not(:disabled),
+.expandedReactionButtons button:focus-visible {
+  background: #173c3a;
+  border-color: var(--teal);
+  transform: translateY(-2px);
+}
+
+.expandedReactionButtons button:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
+.expandedReactionButtons span {
+  font-size: 1.35rem;
+}
+
+.expandedReactionButtons small {
+  overflow: hidden;
+  color: #d9e2e3;
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+}
+
+.expandedReactionButtons b {
+  color: #8edbd6;
+  font-size: 0.72rem;
 }
 
 .nativeAudienceLabel {
@@ -10307,6 +10605,107 @@ textarea {
   .nativeLiveStage .lk-control-bar {
     flex-wrap: wrap;
     padding: 7px;
+  }
+
+  .expandLiveStageButton {
+    top: 8px;
+    right: 8px;
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: 0.68rem;
+  }
+
+  .nativeLiveStage.expanded {
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    padding: max(7px, env(safe-area-inset-top)) max(7px, env(safe-area-inset-right))
+      max(7px, env(safe-area-inset-bottom)) max(7px, env(safe-area-inset-left));
+  }
+
+  .expandedLiveHeader {
+    gap: 8px;
+    padding-bottom: 7px;
+  }
+
+  .expandedLiveHeader > div {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 8px;
+  }
+
+  .expandedLiveHeader small {
+    grid-column: 1 / -1;
+    max-width: 65vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .expandedLiveBadge {
+    padding: 5px 8px;
+    font-size: 0.59rem;
+  }
+
+  .expandedLiveHeader > button {
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: 0.68rem;
+  }
+
+  .nativeLiveStage.expanded .lk-grid-layout {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .nativeLiveStage.expanded .nativeLiveControls .lk-control-bar {
+    max-height: 94px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .expandedReactionDock {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding-top: 7px;
+  }
+
+  .expandedReactionDock > div:first-child {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .expandedReactionDock > div:first-child small {
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .expandedReactionButtons {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .expandedReactionButtons::-webkit-scrollbar {
+    display: none;
+  }
+
+  .expandedReactionButtons button {
+    flex: 0 0 94px;
+    grid-template-columns: auto 1fr;
+    min-height: 48px;
+    padding: 6px 9px;
+  }
+
+  .expandedReactionButtons button b {
+    grid-column: 2;
+  }
+
+  .floatingLiveReaction small {
+    display: none;
   }
 
   .votingWindowPanel {

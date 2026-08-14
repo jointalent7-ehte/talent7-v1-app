@@ -15038,7 +15038,16 @@ export default function Home() {
                     <ChallengeLiveRoom
                       accessToken={session.access_token}
                       challengeId={challenge.id}
+                      onReact={(reaction) => void sendChallengeLiveReaction(challenge, reaction)}
+                      reactionActionKey={liveReactionActionKey}
+                      reactionOptions={liveReactionOptions}
+                      reactionTotals={liveReactionTotals}
                       requestedPublisher={canPublishNativeLive}
+                      sideLabels={[
+                        challengeSideControlLabel(challenge, "Team A"),
+                        challengeSideControlLabel(challenge, "Team B")
+                      ]}
+                      title={challenge.title}
                     />
                   ) : (
                     <div className="nativeLiveState">
