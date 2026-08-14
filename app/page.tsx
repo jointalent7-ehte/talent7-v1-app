@@ -5305,24 +5305,66 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const supabaseClient = supabase;
+    const userId = session?.user.id;
+    let cancelled = false;
+
     async function loadInvites() {
-      if (!supabase || !session?.user.id) {
+      if (!supabaseClient || !userId) {
         setInvites([]);
         return;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from("challenge_invites")
         .select("*")
-        .or(`from_user_id.eq.${session.user.id},invited_user_id.eq.${session.user.id}`)
+        .or(`from_user_id.eq.${userId},invited_user_id.eq.${userId}`)
         .order("created_at", { ascending: false });
 
-      if (error) return;
+      if (cancelled || error) return;
       if (data) setInvites(data as ChallengeInvite[]);
     }
 
-    loadInvites();
-  }, [session]);
+    void loadInvites();
+
+    if (!supabaseClient || !userId) return;
+
+    const inviteChannel = supabaseClient
+      .channel(`talent7-challenge-invites-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "challenge_invites" },
+        (payload) => {
+          const previousInvite = payload.old as Partial<ChallengeInvite>;
+          const nextInvite = payload.new as Partial<ChallengeInvite>;
+          const belongsToUser = [
+            previousInvite.from_user_id,
+            previousInvite.invited_user_id,
+            nextInvite.from_user_id,
+            nextInvite.invited_user_id
+          ].includes(userId);
+
+          if (belongsToUser) void loadInvites();
+        }
+      )
+      .subscribe();
+
+    const refreshVisibleInvites = () => {
+      if (document.visibilityState === "visible") void loadInvites();
+    };
+    const intervalId = window.setInterval(() => void loadInvites(), 30_000);
+
+    window.addEventListener("focus", refreshVisibleInvites);
+    document.addEventListener("visibilitychange", refreshVisibleInvites);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshVisibleInvites);
+      document.removeEventListener("visibilitychange", refreshVisibleInvites);
+      void supabaseClient.removeChannel(inviteChannel);
+    };
+  }, [session?.user.id]);
 
   useEffect(() => {
     async function loadChallengeSchedules() {
