@@ -9,6 +9,7 @@ import {
   LiveKitRoom,
   ParticipantTile,
   RoomAudioRenderer,
+  useParticipants,
   useTracks
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
@@ -37,6 +38,7 @@ type ChallengeLiveRoomProps = {
   challengeId: string;
   requestedPublisher: boolean;
   title: string;
+  shareUrl: string;
   sideLabels: [string, string];
   reactionOptions: LiveReactionOption[];
   reactionTotals: Partial<Record<LiveReactionName, number>>;
@@ -46,7 +48,7 @@ type ChallengeLiveRoomProps = {
 
 type Talent7VideoStageProps = Pick<
   ChallengeLiveRoomProps,
-  "challengeId" | "title" | "sideLabels" | "reactionOptions" | "reactionTotals" | "reactionActionKey" | "onReact"
+  "challengeId" | "title" | "shareUrl" | "sideLabels" | "reactionOptions" | "reactionTotals" | "reactionActionKey" | "onReact"
 > & {
   canPublish: boolean;
 };
@@ -55,6 +57,7 @@ function Talent7VideoStage({
   canPublish,
   challengeId,
   title,
+  shareUrl,
   sideLabels,
   reactionOptions,
   reactionTotals,
@@ -62,9 +65,12 @@ function Talent7VideoStage({
   onReact
 }: Talent7VideoStageProps) {
   const [expanded, setExpanded] = useState(false);
+  const [shareLabel, setShareLabel] = useState("Share");
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const previousTotalsRef = useRef<Partial<Record<LiveReactionName, number>> | null>(null);
   const reactionIdRef = useRef(0);
+  const participants = useParticipants();
+  const peopleInRoom = participants.length;
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -119,6 +125,40 @@ function Talent7VideoStage({
     };
   }, [expanded]);
 
+  async function shareLiveRoom() {
+    const shareData = {
+      title: `${title} live on Talent7`,
+      text: `Watch ${sideLabels[0]} vs ${sideLabels[1]} live on Talent7.`,
+      url: shareUrl
+    };
+
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share(shareData);
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = shareUrl;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      setShareLabel("Link copied");
+      window.setTimeout(() => setShareLabel("Share"), 2200);
+    } catch (shareError) {
+      if (shareError instanceof DOMException && shareError.name === "AbortError") return;
+      setShareLabel("Try again");
+      window.setTimeout(() => setShareLabel("Share"), 2200);
+    }
+  }
+
   const stage = (
     <section
       aria-label={expanded ? `${title} expanded live stage` : `${title} live video`}
@@ -133,13 +173,27 @@ function Talent7VideoStage({
             <strong>{title}</strong>
             <small>{sideLabels[0]} <b>vs</b> {sideLabels[1]}</small>
           </div>
-          <button aria-label="Close expanded live stage" onClick={() => setExpanded(false)} type="button">
-            <span aria-hidden="true">×</span> Close stage
-          </button>
+          <div className="expandedLiveActions">
+            <span className="liveViewerBadge" aria-label={`${peopleInRoom} people in the live room`}>
+              <i aria-hidden="true" /> {peopleInRoom}
+            </span>
+            <button onClick={() => void shareLiveRoom()} type="button">{shareLabel}</button>
+            <button aria-label="Close expanded live stage" onClick={() => setExpanded(false)} type="button">
+              <span aria-hidden="true">×</span> Close
+            </button>
+          </div>
         </header>
       )}
 
       <div className="nativeLiveVideoCanvas">
+        {!expanded && (
+          <div className="nativeLiveOverlay" aria-label="Live room status">
+            <span className="expandedLiveBadge"><i aria-hidden="true" /> Live</span>
+            <span className="liveViewerBadge" aria-label={`${peopleInRoom} people in the live room`}>
+              <i aria-hidden="true" /> {peopleInRoom}
+            </span>
+          </div>
+        )}
         <GridLayout tracks={tracks}>
           <ParticipantTile />
         </GridLayout>
@@ -161,9 +215,14 @@ function Talent7VideoStage({
         </div>
 
         {!expanded && (
-          <button className="expandLiveStageButton" onClick={() => setExpanded(true)} type="button">
-            <span aria-hidden="true">↗</span> Expand live stage
-          </button>
+          <div className="nativeLiveStageActions">
+            <button className="shareLiveStageButton" onClick={() => void shareLiveRoom()} type="button">
+              {shareLabel}
+            </button>
+            <button className="expandLiveStageButton" onClick={() => setExpanded(true)} type="button">
+              <span aria-hidden="true">↗</span> Expand
+            </button>
+          </div>
         )}
       </div>
 
@@ -218,6 +277,7 @@ export default function ChallengeLiveRoom({
   challengeId,
   requestedPublisher,
   title,
+  shareUrl,
   sideLabels,
   reactionOptions,
   reactionTotals,
@@ -321,6 +381,7 @@ export default function ChallengeLiveRoom({
         reactionActionKey={reactionActionKey}
         reactionOptions={reactionOptions}
         reactionTotals={reactionTotals}
+        shareUrl={shareUrl}
         sideLabels={sideLabels}
         title={title}
       />

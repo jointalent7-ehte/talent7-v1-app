@@ -15043,6 +15043,7 @@ export default function Home() {
                       reactionOptions={liveReactionOptions}
                       reactionTotals={liveReactionTotals}
                       requestedPublisher={canPublishNativeLive}
+                      shareUrl={siteUrl(`#${roomHash(challenge.id)}`)}
                       sideLabels={[
                         challengeSideControlLabel(challenge, "Team A"),
                         challengeSideControlLabel(challenge, "Team B")

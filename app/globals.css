@@ -7367,11 +7367,64 @@ textarea {
   min-width: 0;
 }
 
-.expandLiveStageButton {
+.nativeLiveOverlay {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.liveViewerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 10px;
+  color: #fff;
+  background: rgb(8 11 12 / 84%);
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 950;
+  backdrop-filter: blur(10px);
+}
+
+.liveViewerBadge i {
+  position: relative;
+  display: inline-block;
+  width: 15px;
+  height: 10px;
+  border: 2px solid currentcolor;
+  border-radius: 50% / 60%;
+}
+
+.liveViewerBadge i::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: currentcolor;
+  border-radius: 50%;
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.nativeLiveStageActions {
   position: absolute;
   z-index: 5;
   top: 12px;
   right: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.expandLiveStageButton,
+.shareLiveStageButton {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -7389,7 +7442,9 @@ textarea {
 }
 
 .expandLiveStageButton:hover,
-.expandLiveStageButton:focus-visible {
+.expandLiveStageButton:focus-visible,
+.shareLiveStageButton:hover,
+.shareLiveStageButton:focus-visible {
   background: var(--teal);
   transform: translateY(-1px);
 }
@@ -7530,7 +7585,14 @@ textarea {
   50% { opacity: 0.45; }
 }
 
-.expandedLiveHeader > button {
+.expandedLiveActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.expandedLiveActions button {
   flex: 0 0 auto;
   min-height: 42px;
   padding: 9px 14px;
@@ -7542,8 +7604,8 @@ textarea {
   cursor: pointer;
 }
 
-.expandedLiveHeader > button:hover,
-.expandedLiveHeader > button:focus-visible {
+.expandedLiveActions button:hover,
+.expandedLiveActions button:focus-visible {
   background: #30383b;
 }
 
@@ -10607,9 +10669,21 @@ textarea {
     padding: 7px;
   }
 
-  .expandLiveStageButton {
+  .nativeLiveOverlay,
+  .nativeLiveStageActions {
     top: 8px;
+  }
+
+  .nativeLiveOverlay {
+    left: 8px;
+  }
+
+  .nativeLiveStageActions {
     right: 8px;
+  }
+
+  .expandLiveStageButton,
+  .shareLiveStageButton {
     min-height: 38px;
     padding: 7px 10px;
     font-size: 0.68rem;
@@ -10622,6 +10696,7 @@ textarea {
   }
 
   .expandedLiveHeader {
+    flex-wrap: wrap;
     gap: 8px;
     padding-bottom: 7px;
   }
@@ -10643,7 +10718,19 @@ textarea {
     font-size: 0.59rem;
   }
 
-  .expandedLiveHeader > button {
+  .expandedLiveActions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 5px;
+  }
+
+  .expandedLiveActions .liveViewerBadge {
+    min-height: 28px;
+    padding: 4px 7px;
+    font-size: 0.62rem;
+  }
+
+  .expandedLiveActions button {
     min-height: 38px;
     padding: 7px 10px;
     font-size: 0.68rem;
