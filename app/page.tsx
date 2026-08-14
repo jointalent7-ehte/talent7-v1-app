@@ -2133,6 +2133,7 @@ export default function Home() {
   const [challengeReloadKey, setChallengeReloadKey] = useState(0);
   const [refreshingChallengeRooms, setRefreshingChallengeRooms] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const challengeCreationLockRef = useRef(false);
   const [authMode, setAuthMode] = useState<"Sign up" | "Log in">("Sign up");
   const [authLoading, setAuthLoading] = useState(false);
   const [authCaptchaToken, setAuthCaptchaToken] = useState("");
@@ -4075,18 +4076,33 @@ export default function Home() {
     );
   }
 
-  function pendingChallengeInvite(item: TalentProfile) {
+  function latestChallengeInvite(item: TalentProfile) {
     if (!session?.user.id) return null;
-    return invites.find(
-      (invite) =>
-        invite.from_user_id === session.user.id &&
-        invite.invited_user_id === item.user_id &&
-        invite.status === "Pending"
-    ) || null;
+    return (
+      invites
+        .filter(
+          (invite) =>
+            invite.from_user_id === session.user.id &&
+            invite.invited_user_id === item.user_id
+        )
+        .sort((first, second) => {
+          const firstUpdated = new Date(first.updated_at || first.created_at).getTime();
+          const secondUpdated = new Date(second.updated_at || second.created_at).getTime();
+          return secondUpdated - firstUpdated;
+        })[0] || null
+    );
+  }
+
+  function pendingChallengeInvite(item: TalentProfile) {
+    const latestInvite = latestChallengeInvite(item);
+    return latestInvite?.status === "Pending" ? latestInvite : null;
   }
 
   function opponentInviteLabel(item: TalentProfile) {
-    if (pendingChallengeInvite(item)) return "Invite pending";
+    const latestInvite = latestChallengeInvite(item);
+    if (latestInvite?.status === "Pending") return "Invite pending";
+    if (latestInvite?.status === "Accepted") return "Invite accepted";
+    if (latestInvite?.status === "Declined") return "Challenge again";
     if (profileChallengeAvailability(item) === "People I follow" && !targetAllowsChallenge(item)) return "Followers only";
     return "Challenge";
   }
@@ -5308,6 +5324,27 @@ export default function Home() {
     const supabaseClient = supabase;
     const userId = session?.user.id;
     let cancelled = false;
+    let inviteStatusesReady = false;
+    const knownInviteStatuses = new Map<string, ChallengeInvite["status"]>();
+
+    function rememberInviteStatus(invite: ChallengeInvite, announceResponse: boolean) {
+      const previousStatus = knownInviteStatuses.get(invite.id);
+      knownInviteStatuses.set(invite.id, invite.status);
+
+      if (
+        announceResponse &&
+        invite.from_user_id === userId &&
+        previousStatus === "Pending" &&
+        invite.status !== "Pending"
+      ) {
+        setMessage(
+          invite.status === "Accepted"
+            ? `${invite.invited_name} accepted your challenge invitation.`
+            : `${invite.invited_name} declined your challenge invitation.`,
+          invite.status === "Accepted" ? "success" : "info"
+        );
+      }
+    }
 
     async function loadInvites() {
       if (!supabaseClient || !userId) {
@@ -5322,37 +5359,87 @@ export default function Home() {
         .order("created_at", { ascending: false });
 
       if (cancelled || error) return;
-      if (data) setInvites(data as ChallengeInvite[]);
+      if (data) {
+        const nextInvites = data as ChallengeInvite[];
+        nextInvites.forEach((invite) => rememberInviteStatus(invite, inviteStatusesReady));
+        inviteStatusesReady = true;
+        setInvites(nextInvites);
+      }
     }
 
     void loadInvites();
 
     if (!supabaseClient || !userId) return;
 
+    const applyInviteChange = (payload: {
+      eventType: string;
+      old: Record<string, unknown>;
+      new: Record<string, unknown>;
+    }) => {
+      const previousInvite = payload.old as Partial<ChallengeInvite>;
+      const nextInvite = payload.new as Partial<ChallengeInvite>;
+      const belongsToUser = [
+        previousInvite.from_user_id,
+        previousInvite.invited_user_id,
+        nextInvite.from_user_id,
+        nextInvite.invited_user_id
+      ].includes(userId);
+
+      if (!belongsToUser) return;
+
+      if (payload.eventType === "DELETE" && previousInvite.id) {
+        knownInviteStatuses.delete(previousInvite.id);
+        setInvites((items) => items.filter((invite) => invite.id !== previousInvite.id));
+        return;
+      }
+
+      if (nextInvite.id) {
+        if (!knownInviteStatuses.has(nextInvite.id) && previousInvite.status) {
+          knownInviteStatuses.set(nextInvite.id, previousInvite.status);
+        }
+        rememberInviteStatus(nextInvite as ChallengeInvite, inviteStatusesReady);
+        inviteStatusesReady = true;
+        setInvites((items) => [
+          nextInvite as ChallengeInvite,
+          ...items.filter((invite) => invite.id !== nextInvite.id)
+        ]);
+      } else {
+        void loadInvites();
+      }
+    };
+
     const inviteChannel = supabaseClient
       .channel(`talent7-challenge-invites-${userId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "challenge_invites" },
-        (payload) => {
-          const previousInvite = payload.old as Partial<ChallengeInvite>;
-          const nextInvite = payload.new as Partial<ChallengeInvite>;
-          const belongsToUser = [
-            previousInvite.from_user_id,
-            previousInvite.invited_user_id,
-            nextInvite.from_user_id,
-            nextInvite.invited_user_id
-          ].includes(userId);
-
-          if (belongsToUser) void loadInvites();
-        }
+        {
+          event: "*",
+          schema: "public",
+          table: "challenge_invites",
+          filter: `from_user_id=eq.${userId}`
+        },
+        applyInviteChange
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "challenge_invites",
+          filter: `invited_user_id=eq.${userId}`
+        },
+        applyInviteChange
       )
       .subscribe();
 
     const refreshVisibleInvites = () => {
       if (document.visibilityState === "visible") void loadInvites();
     };
-    const intervalId = window.setInterval(() => void loadInvites(), 30_000);
+    // Realtime is primary. This short poll repairs state after a temporary
+    // disconnect, suspended mobile browser, or a database publication delay.
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadInvites();
+    }, 5_000);
 
     window.addEventListener("focus", refreshVisibleInvites);
     document.addEventListener("visibilitychange", refreshVisibleInvites);
@@ -5425,11 +5512,15 @@ export default function Home() {
           }
 
           const updatedChallenge = payload.new as Challenge;
-          setChallenges((items) =>
-            items.some((item) => item.id === updatedChallenge.id)
+          setChallenges((items) => {
+            const mergedItems = items.some((item) => item.id === updatedChallenge.id)
               ? items.map((item) => (item.id === updatedChallenge.id ? updatedChallenge : item))
-              : [updatedChallenge, ...items]
-          );
+              : [updatedChallenge, ...items];
+
+            return mergedItems.filter(
+              (item, index) => mergedItems.findIndex((candidate) => candidate.id === item.id) === index
+            );
+          });
         }
       )
       .on(
@@ -7300,7 +7391,9 @@ export default function Home() {
       }
     }
     if (!requireLogin("create a challenge")) return;
+    if (challengeCreationLockRef.current) return;
 
+    challengeCreationLockRef.current = true;
     setIsSaving(true);
     setMessage("");
 
@@ -7316,6 +7409,7 @@ export default function Home() {
     const teamB = linkedTeam(teamBId);
     if (!Number.isInteger(rosterSize) || rosterSize < 1 || rosterSize > 50) {
       setMessage("Choose a valid number of registered players per side.");
+      challengeCreationLockRef.current = false;
       setIsSaving(false);
       return;
     }
@@ -7337,7 +7431,8 @@ export default function Home() {
       created_by: session?.user.id
     };
 
-    if (!supabase) {
+    try {
+      if (!supabase) {
       const localChallenge: Challenge = {
         id: crypto.randomUUID(),
         proof_url: null,
@@ -7347,7 +7442,7 @@ export default function Home() {
         created_at: new Date().toISOString(),
         ...challenge
       };
-      setChallenges((items) => [localChallenge, ...items]);
+      setChallenges((items) => [localChallenge, ...items.filter((item) => item.id !== localChallenge.id)]);
       if (session?.user.id) {
         setJoins((items) => [
           {
@@ -7367,7 +7462,6 @@ export default function Home() {
       setSelectedStatus("Open");
       setRoomDiscoveryMode("Newest");
       setMessage("Preview mode: challenge added in this browser session.");
-      setIsSaving(false);
       formElement.reset();
       setChallengeCreateStep(1);
       setChallengeCreateMaxStep(1);
@@ -7376,50 +7470,54 @@ export default function Home() {
       setActiveSection("rooms");
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
-    }
-
-    const { data, error } = await supabase
-      .from("challenges")
-      .insert(challenge)
-      .select("*")
-      .single();
-
-    if (error) {
-      setMessage(`Could not create challenge: ${error.message}`);
-    } else if (data) {
-      const savedChallenge = data as Challenge;
-      const inviteMessage = await sendInviteForChallenge(savedChallenge);
-      const { data: creatorJoinData } = await supabase
-        .from("challenge_joins")
-        .select("*")
-        .eq("challenge_id", savedChallenge.id)
-        .eq("user_id", session?.user.id || "")
-        .maybeSingle();
-
-      setChallenges((items) => [savedChallenge, ...items]);
-      if (creatorJoinData) {
-        setJoins((items) => [
-          creatorJoinData as ChallengeJoin,
-          ...items.filter((item) => item.id !== (creatorJoinData as ChallengeJoin).id)
-        ]);
       }
-      setSelectedStatus("Open");
-      setRoomDiscoveryMode("Newest");
-      setCreatedChallengeId(savedChallenge.id);
-      setSelectedLane(savedChallenge.lane);
-      setMessage(
-        inviteMessage
-          ? `Challenge created. ${inviteMessage}`
-          : "Challenge created. No invite was sent because no profile invite target was selected."
-      );
-      formElement.reset();
-      setChallengeCreateStep(1);
-      setChallengeCreateMaxStep(1);
-      setChallengeStepError("");
-      setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
-    }
 
-    setIsSaving(false);
+      const { data, error } = await supabase
+        .from("challenges")
+        .insert(challenge)
+        .select("*")
+        .single();
+
+      if (error) {
+        setMessage(`Could not create challenge: ${error.message}`);
+      } else if (data) {
+        const savedChallenge = data as Challenge;
+        const inviteMessage = await sendInviteForChallenge(savedChallenge);
+        const { data: creatorJoinData } = await supabase
+          .from("challenge_joins")
+          .select("*")
+          .eq("challenge_id", savedChallenge.id)
+          .eq("user_id", session?.user.id || "")
+          .maybeSingle();
+
+        setChallenges((items) => [savedChallenge, ...items.filter((item) => item.id !== savedChallenge.id)]);
+        if (creatorJoinData) {
+          setJoins((items) => [
+            creatorJoinData as ChallengeJoin,
+            ...items.filter((item) => item.id !== (creatorJoinData as ChallengeJoin).id)
+          ]);
+        }
+        setSelectedStatus("Open");
+        setRoomDiscoveryMode("Newest");
+        setCreatedChallengeId(savedChallenge.id);
+        setSelectedLane(savedChallenge.lane);
+        setMessage(
+          inviteMessage
+            ? `Challenge created. ${inviteMessage}`
+            : "Challenge created. No invite was sent because no profile invite target was selected."
+        );
+        formElement.reset();
+        setChallengeCreateStep(1);
+        setChallengeCreateMaxStep(1);
+        setChallengeStepError("");
+        setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
+      }
+    } catch (error) {
+      setMessage(readableAuthError(error, "The challenge could not be created."), "error");
+    } finally {
+      challengeCreationLockRef.current = false;
+      setIsSaving(false);
+    }
   }
 
   function applyChallengeActivity(activity: string, formElement: HTMLFormElement | null) {
@@ -14068,8 +14166,10 @@ export default function Home() {
                 <div className="opponentGrid">
                   {pagedOpponents.map((item) => {
                     const availability = profileChallengeAvailability(item);
-                    const pendingInvite = pendingChallengeInvite(item);
-                    const canInvite = Boolean(profile) && targetAllowsChallenge(item) && !pendingInvite;
+                    const latestInvite = latestChallengeInvite(item);
+                    const pendingInvite = latestInvite?.status === "Pending" ? latestInvite : null;
+                    const acceptedInvite = latestInvite?.status === "Accepted" ? latestInvite : null;
+                    const canInvite = Boolean(profile) && targetAllowsChallenge(item) && !pendingInvite && !acceptedInvite;
                     const initials = item.display_name
                       .split(/\s+/)
                       .filter(Boolean)
@@ -14124,6 +14224,8 @@ export default function Home() {
                             title={
                               pendingInvite
                                 ? "This person already has your pending invitation."
+                                : acceptedInvite
+                                  ? "This person has accepted your latest challenge invitation."
                                 : !profile
                                   ? "Save your profile before sending an invitation."
                                   : !targetAllowsChallenge(item)
