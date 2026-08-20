@@ -324,6 +324,48 @@ function AppStatePanel({
   );
 }
 
+type MobileNavIconName = "settings" | "challenges" | "notifications" | "listen" | "more";
+
+function MobileNavIcon({ name }: { name: MobileNavIconName }) {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      {name === "settings" && (
+        <>
+          <path d="M4 7h10M20 7h-2M4 17h2M10 17h10M4 12h4M12 12h8" />
+          <circle cx="16" cy="7" r="2" />
+          <circle cx="8" cy="17" r="2" />
+          <circle cx="10" cy="12" r="2" />
+        </>
+      )}
+      {name === "challenges" && (
+        <>
+          <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
+          <path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4M12 12v6M8 20h8" />
+        </>
+      )}
+      {name === "notifications" && (
+        <>
+          <path d="M18 9a6 6 0 0 0-12 0c0 6-3 6-3 8h18c0-2-3-2-3-8Z" />
+          <path d="M10 21h4" />
+        </>
+      )}
+      {name === "listen" && (
+        <>
+          <path d="M4 13v-1a8 8 0 0 1 16 0v1" />
+          <path d="M4 13h3v7H5a2 2 0 0 1-2-2v-3a2 2 0 0 1 1-2ZM20 13h-3v7h2a2 2 0 0 0 2-2v-3a2 2 0 0 0-1-2Z" />
+        </>
+      )}
+      {name === "more" && (
+        <>
+          <circle cx="5" cy="12" fill="currentColor" r="1.6" stroke="none" />
+          <circle cx="12" cy="12" fill="currentColor" r="1.6" stroke="none" />
+          <circle cx="19" cy="12" fill="currentColor" r="1.6" stroke="none" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 const primaryTabs: {
   id: PrimaryTabId;
   label: string;
@@ -10604,7 +10646,10 @@ export default function Home() {
             role="tab"
             type="button"
           >
-            {tab.id === "settings" && !session ? "Account" : tab.label}
+            <span className="mobileNavIcon">
+              <MobileNavIcon name={tab.id === "settings" ? "settings" : tab.id === "challenges" ? "challenges" : "listen"} />
+            </span>
+            <span className="mobileNavLabel">{tab.id === "settings" && !session ? "Account" : tab.label}</span>
           </button>
         ))}
         <button
@@ -10616,10 +10661,12 @@ export default function Home() {
           role="tab"
           type="button"
         >
-          <span aria-hidden="true" className="mobileNotificationBell">🔔</span>
-          <span>Notifications</span>
+          <span className="mobileNavIcon mobileNotificationBell"><MobileNavIcon name="notifications" /></span>
+          <span className="mobileNavLabel mobileNotificationLabel">Notifications</span>
           {unreadNotifications.length > 0 && (
-            <em className="appTabBadge" aria-hidden="true">{unreadNotifications.length}</em>
+            <em className="appTabBadge" aria-hidden="true">
+              {unreadNotifications.length > 99 ? "99+" : unreadNotifications.length}
+            </em>
           )}
         </button>
         <button
@@ -10631,7 +10678,8 @@ export default function Home() {
           type="button"
         >
           <span className="desktopMoreLabel">{activeMoreConfig ? `More: ${activeMoreConfig.label}` : "More"}</span>
-          <span className="mobileMoreLabel">More</span>
+          <span className="mobileMoreLabel mobileNavIcon"><MobileNavIcon name="more" /></span>
+          <span className="mobileMoreLabel mobileNavLabel">More</span>
           {moreAttentionSections > 0 && (
             <em className="appTabBadge" aria-label={`${moreAttentionSections} More sections need attention`}>
               {moreAttentionSections}
