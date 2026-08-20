@@ -3172,6 +3172,12 @@ textarea {
   font-size: 1.05rem;
 }
 
+.notificationToolbar > div,
+.notificationActions {
+  display: flex;
+  gap: 8px;
+}
+
 .notificationToolbar button,
 .notificationItem button {
   min-height: 40px;
@@ -3189,6 +3195,38 @@ textarea {
   color: var(--muted);
   background: #eef4f4;
   cursor: not-allowed;
+}
+
+.notificationToolbar button.secondary,
+.notificationItem button.secondary {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.notificationUndoBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 980px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(20, 23, 25, 0.16);
+}
+
+.notificationUndoBar button {
+  min-height: 38px;
+  padding: 8px 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 850;
+  cursor: pointer;
 }
 
 .notificationSearch {
@@ -9177,6 +9215,17 @@ textarea {
   .notificationToolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .notificationToolbar > div,
+  .notificationActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .notificationToolbar button,
+  .notificationActions button {
+    width: 100%;
   }
 
   .versus {

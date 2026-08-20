@@ -2242,6 +2242,8 @@ export default function Home() {
   const [editingShowcasePostId, setEditingShowcasePostId] = useState<string | null>(null);
   const [editingProofId, setEditingProofId] = useState<string | null>(null);
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
+  const [dismissedNotificationKeys, setDismissedNotificationKeys] = useState<string[]>([]);
+  const [notificationUndo, setNotificationUndo] = useState<{ keys: string[]; label: string } | null>(null);
   const [launchQaDoneKeys, setLaunchQaDoneKeys] = useState<string[]>([]);
   const [playStoreDoneKeys, setPlayStoreDoneKeys] = useState<string[]>([]);
   const [selectedNotificationFilter, setSelectedNotificationFilter] = useState<NotificationFilter>("All");
@@ -3715,11 +3717,13 @@ export default function Home() {
       ...expertSessionLinkAlerts,
       ...expertSessionCompletedAlerts
     ]
+      .filter((notification) => !dismissedNotificationKeys.includes(notificationKey(notification)))
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
       .slice(0, 12);
   }, [
     challengeTitle,
     challenges,
+    dismissedNotificationKeys,
     expertHelpRequests,
     expertProfiles,
     founderFeedback,
@@ -3738,6 +3742,7 @@ export default function Home() {
   ]);
 
   const notificationReadStorageKey = session?.user.id ? `talent7-read-notifications-${session.user.id}` : "";
+  const notificationDismissStorageKey = session?.user.id ? `talent7-dismissed-notifications-${session.user.id}` : "";
   const launchQaStorageKey = session?.user.id ? `talent7-launch-qa-${session.user.id}` : "";
   const playStoreStorageKey = session?.user.id ? `talent7-play-store-launch-${session.user.id}` : "";
 
@@ -4117,6 +4122,57 @@ export default function Home() {
       keys.map((notification_key) => ({ user_id: session.user.id, notification_key })),
       { onConflict: "user_id,notification_key", ignoreDuplicates: true }
     );
+  }
+
+  async function persistNotificationDismissals(keys: string[]) {
+    if (!supabase || !session?.user.id || keys.length === 0) return true;
+    const { error } = await supabase.from("user_notification_dismissals").upsert(
+      keys.map((notification_key) => ({ user_id: session.user.id, notification_key })),
+      { onConflict: "user_id,notification_key", ignoreDuplicates: true }
+    );
+    return !error;
+  }
+
+  async function dismissNotificationKeys(keys: string[], label: string) {
+    if (keys.length === 0) return;
+    setDismissedNotificationKeys((items) => Array.from(new Set([...items, ...keys])));
+    setNotificationUndo({ keys, label });
+
+    if (!(await persistNotificationDismissals(keys))) {
+      setDismissedNotificationKeys((items) => items.filter((key) => !keys.includes(key)));
+      setNotificationUndo(null);
+      setMessage("The notification could not be dismissed. Please try again.", "error");
+    }
+  }
+
+  function dismissNotification(notification: AppNotification) {
+    const key = notificationKey(notification);
+    void dismissNotificationKeys([key], `“${notification.title}” dismissed.`);
+  }
+
+  function clearReadNotifications() {
+    const readSet = new Set(readNotificationKeys);
+    const keys = notifications.map(notificationKey).filter((key) => readSet.has(key));
+    void dismissNotificationKeys(keys, `${keys.length} read notification${keys.length === 1 ? "" : "s"} cleared.`);
+  }
+
+  async function undoNotificationDismissal() {
+    if (!notificationUndo) return;
+    const undo = notificationUndo;
+    setNotificationUndo(null);
+    setDismissedNotificationKeys((items) => items.filter((key) => !undo.keys.includes(key)));
+
+    if (!supabase || !session?.user.id) return;
+    const { error } = await supabase
+      .from("user_notification_dismissals")
+      .delete()
+      .eq("user_id", session.user.id)
+      .in("notification_key", undo.keys);
+
+    if (error) {
+      setDismissedNotificationKeys((items) => Array.from(new Set([...items, ...undo.keys])));
+      setMessage("The notification could not be restored. Please try again.", "error");
+    }
   }
 
   function markNotificationRead(notification: AppNotification) {
@@ -5000,6 +5056,67 @@ export default function Home() {
     if (!notificationReadStorageKey) return;
     window.localStorage.setItem(notificationReadStorageKey, JSON.stringify(readNotificationKeys));
   }, [notificationReadStorageKey, readNotificationKeys]);
+
+  useEffect(() => {
+    if (!notificationDismissStorageKey) {
+      setDismissedNotificationKeys([]);
+      return;
+    }
+
+    let localKeys: string[] = [];
+    try {
+      const saved = window.localStorage.getItem(notificationDismissStorageKey);
+      localKeys = saved ? (JSON.parse(saved) as string[]) : [];
+    } catch {
+      localKeys = [];
+    }
+
+    if (!supabase || !session?.user.id) {
+      setDismissedNotificationKeys(localKeys);
+      return;
+    }
+
+    let active = true;
+    const userId = session.user.id;
+    async function loadNotificationDismissals() {
+      if (!supabase) return;
+      const { data, error } = await supabase
+        .from("user_notification_dismissals")
+        .select("notification_key")
+        .eq("user_id", userId);
+
+      if (!active) return;
+      if (error) {
+        setDismissedNotificationKeys(localKeys);
+        return;
+      }
+
+      const merged = Array.from(new Set([...localKeys, ...(data || []).map((item) => item.notification_key)]));
+      setDismissedNotificationKeys(merged);
+      if (localKeys.length > 0) {
+        await supabase.from("user_notification_dismissals").upsert(
+          localKeys.map((notification_key) => ({ user_id: userId, notification_key })),
+          { onConflict: "user_id,notification_key", ignoreDuplicates: true }
+        );
+      }
+    }
+
+    void loadNotificationDismissals();
+    return () => {
+      active = false;
+    };
+  }, [notificationDismissStorageKey, session]);
+
+  useEffect(() => {
+    if (!notificationDismissStorageKey) return;
+    window.localStorage.setItem(notificationDismissStorageKey, JSON.stringify(dismissedNotificationKeys));
+  }, [dismissedNotificationKeys, notificationDismissStorageKey]);
+
+  useEffect(() => {
+    if (!notificationUndo) return;
+    const timeout = window.setTimeout(() => setNotificationUndo(null), 7000);
+    return () => window.clearTimeout(timeout);
+  }, [notificationUndo]);
 
   useEffect(() => {
     if (!launchQaStorageKey) {
@@ -10763,10 +10880,26 @@ export default function Home() {
                 <strong>
                   {unreadNotifications.length} unread / {visibleNotifications.length} shown
                 </strong>
-                <button disabled={unreadNotifications.length === 0} onClick={markAllNotificationsRead} type="button">
-                  Mark all read
-                </button>
+                <div>
+                  <button disabled={unreadNotifications.length === 0} onClick={markAllNotificationsRead} type="button">
+                    Mark all read
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={!notifications.some((notification) => readNotificationKeys.includes(notificationKey(notification)))}
+                    onClick={clearReadNotifications}
+                    type="button"
+                  >
+                    Clear read
+                  </button>
+                </div>
               </div>
+              {notificationUndo && (
+                <div aria-live="polite" className="notificationUndoBar">
+                  <span>{notificationUndo.label}</span>
+                  <button onClick={() => void undoNotificationDismissal()} type="button">Undo</button>
+                </div>
+              )}
               <label className="notificationSearch">
                 Search notifications
                 <input
@@ -10810,9 +10943,14 @@ export default function Home() {
                         <strong>{notification.title}</strong>
                         <small>{notification.detail}</small>
                       </a>
-                      <button disabled={isRead} onClick={() => markNotificationRead(notification)} type="button">
-                        {isRead ? "Read" : "Mark read"}
-                      </button>
+                      <div className="notificationActions">
+                        <button disabled={isRead} onClick={() => markNotificationRead(notification)} type="button">
+                          {isRead ? "Read" : "Mark read"}
+                        </button>
+                        <button className="secondary" onClick={() => dismissNotification(notification)} type="button">
+                          Dismiss
+                        </button>
+                      </div>
                     </article>
                   );
                 })}
