@@ -843,13 +843,18 @@ function isChallengeCompleted(challenge: Challenge) {
   return challenge.status === "Completed";
 }
 
+function isChallengeClosed(challenge: Challenge) {
+  return challenge.status === "Completed" || challenge.status === "Cancelled";
+}
+
 function isChallengeVotingOpen(challenge: Challenge) {
-  if (isChallengeCompleted(challenge) || challenge.voting_status !== "Open") return false;
+  if (isChallengeClosed(challenge) || challenge.voting_status !== "Open") return false;
   if (!challenge.voting_closes_at) return true;
   return new Date(challenge.voting_closes_at).getTime() > Date.now();
 }
 
 function challengeVotingWindowDetail(challenge: Challenge) {
+  if (challenge.status === "Cancelled") return "Voting is unavailable because this challenge was cancelled.";
   if (isChallengeCompleted(challenge)) return "Voting closed when this challenge was completed.";
   if (challenge.voting_status === "Open" && challenge.voting_closes_at) {
     const closeTime = new Date(challenge.voting_closes_at);
@@ -941,10 +946,23 @@ type ChallengeInvite = {
   from_user_id: string;
   invited_user_id: string;
   invited_name: string;
-  status: "Pending" | "Accepted" | "Declined";
+  status: "Pending" | "Accepted" | "Declined" | "Withdrawn" | "Expired";
   created_at: string;
   updated_at?: string | null;
+  expires_at?: string | null;
 };
+
+function isChallengeInviteExpired(invite: ChallengeInvite) {
+  if (invite.status !== "Pending") return false;
+  const expiresAt = invite.expires_at
+    ? new Date(invite.expires_at).getTime()
+    : new Date(invite.created_at).getTime() + 7 * 24 * 60 * 60 * 1000;
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now();
+}
+
+function challengeInviteDisplayStatus(invite: ChallengeInvite): ChallengeInvite["status"] {
+  return isChallengeInviteExpired(invite) ? "Expired" : invite.status;
+}
 
 type ChallengeMessage = {
   id: string;
@@ -2624,7 +2642,9 @@ export default function Home() {
 
     const filteredChallenges = challenges.filter((challenge) => {
       const laneMatches = selectedLane === "All" || challenge.lane === selectedLane;
-      const statusMatches = selectedStatus === "All" || challenge.status === selectedStatus;
+      const statusMatches =
+        selectedStatus === "All" ||
+        (selectedStatus === "Open" ? !isChallengeClosed(challenge) : isChallengeClosed(challenge));
       const profileActivityMatches =
         !selectedActivityProfile || challengeMatchesProfileActivity(challenge, selectedActivityProfile);
       const discoveryMatches =
@@ -2698,11 +2718,11 @@ export default function Home() {
 
   const roomCollectionCounts = useMemo(
     () => ({
-      active: challenges.filter((challenge) => challenge.status !== "Completed").length,
-      archived: challenges.filter((challenge) => challenge.status === "Completed").length,
+      active: challenges.filter((challenge) => !isChallengeClosed(challenge)).length,
+      archived: challenges.filter((challenge) => isChallengeClosed(challenge)).length,
       live: challenges.filter(
         (challenge) =>
-          challenge.status !== "Completed" &&
+          !isChallengeClosed(challenge) &&
           (liveSessionsByRoom[challenge.id]?.status === "Live" ||
             (liveRoomPresenceCounts[challenge.id] || 0) > 0)
       ).length
@@ -2714,7 +2734,7 @@ export default function Home() {
     () =>
       challenges.filter(
         (challenge) =>
-          !isChallengeCompleted(challenge) && challengeInterestScore(challenge, profile?.main_interest) > 0
+          !isChallengeClosed(challenge) && challengeInterestScore(challenge, profile?.main_interest) > 0
       ).length,
     [challenges, profile?.main_interest]
   );
@@ -3359,7 +3379,12 @@ export default function Home() {
       roomMap.set(challenge.id, {
         challenge,
         label: "Created",
-        detail: challenge.status === "Completed" ? `Completed: ${resolvedChallengeWinnerName(challenge, joins)}` : "Open room"
+        detail:
+          challenge.status === "Completed"
+            ? `Completed: ${resolvedChallengeWinnerName(challenge, joins)}`
+            : challenge.status === "Cancelled"
+              ? "Cancelled room"
+              : "Open room"
       });
     });
 
@@ -3397,7 +3422,9 @@ export default function Home() {
         .slice(0, 6),
       posts: showcasePosts.filter((post) => post.user_id === session.user.id).slice(0, 4),
       reports: reports.slice(0, 4),
-      pendingInvites: inviteInbox.received.filter((invite) => invite.status === "Pending").slice(0, 4),
+      pendingInvites: inviteInbox.received
+        .filter((invite) => challengeInviteDisplayStatus(invite) === "Pending")
+        .slice(0, 4),
       teamCount: myTeamDashboard.owned.length + myTeamDashboard.accepted.length,
       pendingTeamRequests: myTeamDashboard.pending.length + teamInbox.filter((request) => request.status === "Pending").length
     };
@@ -3510,27 +3537,45 @@ export default function Home() {
         href: event.href
       }));
 
-    const receivedInviteAlerts = inviteInbox.received.map((invite) => ({
-      id: `notification-invite-${invite.id}`,
-      label: invite.status === "Pending" ? "New invite" : "Invite updated",
-      category: "Invites" as const,
-      title: challengeTitle(invite.challenge_id),
-      detail: invite.status === "Pending" ? "Someone invited you to a challenge." : `Invite ${invite.status.toLowerCase()}.`,
-      createdAt: invite.updated_at || invite.created_at,
-      href: "#invites"
-    }));
-
-    const sentInviteAlerts = inviteInbox.sent
-      .filter((invite) => invite.status !== "Pending")
-      .map((invite) => ({
-        id: `notification-sent-invite-${invite.id}`,
-        label: "Invite response",
+    const receivedInviteAlerts = inviteInbox.received.map((invite) => {
+      const status = challengeInviteDisplayStatus(invite);
+      return {
+        id: `notification-invite-${invite.id}`,
+        label: status === "Pending" ? "New invite" : "Invite updated",
         category: "Invites" as const,
         title: challengeTitle(invite.challenge_id),
-        detail: `${invite.invited_name} ${invite.status.toLowerCase()} your invite.`,
+        detail:
+          status === "Pending"
+            ? "Someone invited you to a challenge."
+            : status === "Withdrawn"
+              ? "The challenger withdrew this invitation."
+              : status === "Expired"
+                ? "This invitation expired before it was accepted."
+                : `Invite ${status.toLowerCase()}.`,
         createdAt: invite.updated_at || invite.created_at,
         href: "#invites"
-      }));
+      };
+    });
+
+    const sentInviteAlerts = inviteInbox.sent
+      .filter((invite) => challengeInviteDisplayStatus(invite) !== "Pending")
+      .map((invite) => {
+        const status = challengeInviteDisplayStatus(invite);
+        return {
+          id: `notification-sent-invite-${invite.id}`,
+          label: status === "Accepted" || status === "Declined" ? "Invite response" : "Invite updated",
+          category: "Invites" as const,
+          title: challengeTitle(invite.challenge_id),
+          detail:
+            status === "Accepted" || status === "Declined"
+              ? `${invite.invited_name} ${status.toLowerCase()} your invite.`
+              : status === "Expired"
+                ? `Your invite to ${invite.invited_name} expired.`
+                : `You withdrew the invite to ${invite.invited_name}.`,
+          createdAt: invite.updated_at || invite.created_at,
+          href: "#invites"
+        };
+      });
 
     const teamOwnerAlerts = teamInbox.map((request) => ({
       id: `notification-team-owner-${request.id}`,
@@ -3860,7 +3905,7 @@ export default function Home() {
     }
 
     if (priorities.length === 0) {
-      const activeRoom = myDashboard.rooms.find((item) => !isChallengeCompleted(item.challenge));
+      const activeRoom = myDashboard.rooms.find((item) => !isChallengeClosed(item.challenge));
 
       priorities.push(
         activeRoom
@@ -4082,7 +4127,7 @@ export default function Home() {
     if (isOwnerReviewer) return true;
     return Boolean(
       challenge.created_by === session.user.id &&
-        !isChallengeCompleted(challenge) &&
+        !isChallengeClosed(challenge) &&
         !challengeHasActivity(challenge.id)
     );
   }
@@ -4122,35 +4167,79 @@ export default function Home() {
     );
   }
 
-  function latestChallengeInvite(item: TalentProfile) {
+  function inviteChallenge(invite: ChallengeInvite) {
+    return challenges.find((challenge) => challenge.id === invite.challenge_id) || null;
+  }
+
+  function pairChallengeInvites(item: TalentProfile) {
     if (!session?.user.id) return null;
+    return invites
+      .filter(
+        (invite) =>
+          (invite.from_user_id === session.user.id && invite.invited_user_id === item.user_id) ||
+          (invite.from_user_id === item.user_id && invite.invited_user_id === session.user.id)
+      )
+      .sort((first, second) => {
+        const firstUpdated = new Date(first.updated_at || first.created_at).getTime();
+        const secondUpdated = new Date(second.updated_at || second.created_at).getTime();
+        return secondUpdated - firstUpdated;
+      });
+  }
+
+  function latestChallengeInvite(item: TalentProfile) {
+    return pairChallengeInvites(item)?.[0] || null;
+  }
+
+  function activeChallengeInvite(item: TalentProfile) {
     return (
-      invites
-        .filter(
-          (invite) =>
-            invite.from_user_id === session.user.id &&
-            invite.invited_user_id === item.user_id
-        )
-        .sort((first, second) => {
-          const firstUpdated = new Date(first.updated_at || first.created_at).getTime();
-          const secondUpdated = new Date(second.updated_at || second.created_at).getTime();
-          return secondUpdated - firstUpdated;
-        })[0] || null
+      pairChallengeInvites(item)?.find((invite) => {
+        const status = challengeInviteDisplayStatus(invite);
+        const challenge = inviteChallenge(invite);
+        return (status === "Pending" || status === "Accepted") && (!challenge || !isChallengeClosed(challenge));
+      }) || null
     );
   }
 
-  function pendingChallengeInvite(item: TalentProfile) {
-    const latestInvite = latestChallengeInvite(item);
-    return latestInvite?.status === "Pending" ? latestInvite : null;
+  function canUseOpponentInviteAction(item: TalentProfile) {
+    const activeInvite = activeChallengeInvite(item);
+    if (activeInvite?.status === "Accepted") return true;
+    if (
+      activeInvite &&
+      challengeInviteDisplayStatus(activeInvite) === "Pending" &&
+      activeInvite.invited_user_id === session?.user.id
+    ) return true;
+    if (activeInvite) return false;
+    return Boolean(profile) && targetAllowsChallenge(item);
   }
 
   function opponentInviteLabel(item: TalentProfile) {
+    const activeInvite = activeChallengeInvite(item);
+    if (activeInvite?.status === "Accepted") return "Open active room";
+    if (activeInvite && challengeInviteDisplayStatus(activeInvite) === "Pending") {
+      return activeInvite.invited_user_id === session?.user.id ? "Review invite" : "Invite pending";
+    }
     const latestInvite = latestChallengeInvite(item);
-    if (latestInvite?.status === "Pending") return "Invite pending";
-    if (latestInvite?.status === "Accepted") return "Invite accepted";
-    if (latestInvite?.status === "Declined") return "Challenge again";
+    if (latestInvite?.status === "Accepted") return "Rematch";
+    if (latestInvite && ["Declined", "Withdrawn", "Expired"].includes(challengeInviteDisplayStatus(latestInvite))) {
+      return "Challenge again";
+    }
     if (profileChallengeAvailability(item) === "People I follow" && !targetAllowsChallenge(item)) return "Followers only";
     return "Challenge";
+  }
+
+  function opponentInviteTitle(item: TalentProfile) {
+    const activeInvite = activeChallengeInvite(item);
+    if (activeInvite?.status === "Accepted") return "Open your active challenge room.";
+    if (activeInvite && challengeInviteDisplayStatus(activeInvite) === "Pending") {
+      return activeInvite.invited_user_id === session?.user.id
+        ? "Review this person's pending invitation."
+        : "This person already has your pending invitation.";
+    }
+    if (!profile) return "Save your profile before sending an invitation.";
+    if (!targetAllowsChallenge(item)) return "This person only accepts invitations from profiles they follow.";
+    return latestChallengeInvite(item)
+      ? "Create a new challenge without changing the previous result."
+      : "Create a challenge invitation.";
   }
 
   function notificationKey(notification: AppNotification) {
@@ -4439,7 +4528,7 @@ export default function Home() {
   }
 
   function canCoordinateChallenge(challenge: Challenge) {
-    if (!session?.user.id || isChallengeCompleted(challenge)) return false;
+    if (!session?.user.id || isChallengeClosed(challenge)) return false;
     if (challenge.created_by === session.user.id) return true;
 
     const acceptedInvite = invites.some(
@@ -4503,7 +4592,7 @@ export default function Home() {
   function roomChatHint(challenge: Challenge) {
     if (!session) return "Log in to read and send room messages.";
     if (!canUseRoomChat(challenge)) return "Join this challenge first to send room messages.";
-    if (isChallengeCompleted(challenge)) return "This room is completed, so chat is read-only.";
+    if (isChallengeClosed(challenge)) return "This room is closed, so chat is read-only.";
     return "Use room chat for coordination. Avoid sharing phone numbers or sensitive personal details.";
   }
 
@@ -4586,7 +4675,7 @@ export default function Home() {
   }
 
   function canManageChallengeLive(challenge: Challenge) {
-    if (isChallengeCompleted(challenge)) return false;
+    if (isChallengeClosed(challenge)) return false;
     if (!hasSupabaseConfig) return true;
     if (!session?.user.id) return false;
     if (isOwnerReviewer || challenge.created_by === session.user.id) return true;
@@ -5231,8 +5320,8 @@ export default function Home() {
       setActiveAppTab("challenges");
       setActiveSection("rooms");
       setSelectedLane("All");
-      setSelectedStatus(isChallengeCompleted(match) ? "Completed" : "Open");
-      setRoomDiscoveryMode(isChallengeCompleted(match) ? "Newest" : "Trending");
+      setSelectedStatus(isChallengeClosed(match) ? "Completed" : "Open");
+      setRoomDiscoveryMode(isChallengeClosed(match) ? "Newest" : "Trending");
       setRoomSearch("");
       setHighlightedChallengeId(match.id);
       setTimeout(() => document.getElementById(roomHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
@@ -5499,12 +5588,15 @@ export default function Home() {
         previousStatus === "Pending" &&
         invite.status !== "Pending"
       ) {
-        setMessage(
+        const responseMessage =
           invite.status === "Accepted"
             ? `${invite.invited_name} accepted your challenge invitation.`
-            : `${invite.invited_name} declined your challenge invitation.`,
-          invite.status === "Accepted" ? "success" : "info"
-        );
+            : invite.status === "Declined"
+              ? `${invite.invited_name} declined your challenge invitation.`
+              : invite.status === "Expired"
+                ? `Your challenge invitation for ${invite.invited_name} expired.`
+                : `Your challenge invitation for ${invite.invited_name} was withdrawn.`;
+        setMessage(responseMessage, invite.status === "Accepted" ? "success" : "info");
       }
     }
 
@@ -5513,6 +5605,8 @@ export default function Home() {
         setInvites([]);
         return;
       }
+
+      await supabaseClient.rpc("expire_challenge_invites");
 
       const { data, error } = await supabaseClient
         .from("challenge_invites")
@@ -7554,6 +7648,17 @@ export default function Home() {
       }
     }
     if (!requireLogin("create a challenge")) return;
+    const selectedInviteProfile = publicProfiles.find((item) => item.user_id === challengeDraft.invitedUserId);
+    const existingActiveInvite = selectedInviteProfile ? activeChallengeInvite(selectedInviteProfile) : null;
+    if (existingActiveInvite) {
+      setMessage(
+        existingActiveInvite.status === "Accepted"
+          ? "You already have an active challenge with this person. Open that room before starting a rematch."
+          : "A challenge invitation between you and this person is already pending.",
+        "warning"
+      );
+      return;
+    }
     if (challengeCreationLockRef.current) return;
 
     challengeCreationLockRef.current = true;
@@ -7660,7 +7765,7 @@ export default function Home() {
             ...items.filter((item) => item.id !== (creatorJoinData as ChallengeJoin).id)
           ]);
         }
-        setSelectedStatus("Open");
+        setSelectedStatus(isChallengeClosed(savedChallenge) ? "Completed" : "Open");
         setRoomDiscoveryMode("Newest");
         setCreatedChallengeId(savedChallenge.id);
         setSelectedLane(savedChallenge.lane);
@@ -7830,7 +7935,8 @@ export default function Home() {
       from_user_id: session.user.id,
       invited_user_id: challengeDraft.invitedUserId,
       invited_name: challengeDraft.invitedProfile || challenge.team_b,
-      status: "Pending"
+      status: "Pending",
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     };
 
     const { data, error } = await supabase
@@ -7840,7 +7946,15 @@ export default function Home() {
       .single();
 
     if (error) {
-      return `Challenge invite could not be saved yet: ${error.message}`;
+      const { error: cancellationError } = await supabase
+        .from("challenges")
+        .update({ status: "Cancelled" })
+        .eq("id", challenge.id)
+        .eq("created_by", session.user.id);
+      if (!cancellationError) challenge.status = "Cancelled";
+      return cancellationError
+        ? `Challenge invite could not be saved yet: ${error.message}`
+        : `Challenge invite was blocked: ${error.message} The unused room was cancelled.`;
     }
 
     if (data) setInvites((items) => [data as ChallengeInvite, ...items]);
@@ -7849,11 +7963,24 @@ export default function Home() {
 
   function inviteProfileToChallenge(item: TalentProfile) {
     if (!requireLogin("challenge another profile")) return;
-    if (!requireProfile("challenge another profile")) return;
     if (item.user_id === session?.user.id) {
       setMessage("Choose another profile to challenge.", "warning");
       return;
     }
+    const activeInvite = activeChallengeInvite(item);
+    if (activeInvite?.status === "Accepted") {
+      openInviteChallenge(activeInvite);
+      return;
+    }
+    if (activeInvite && challengeInviteDisplayStatus(activeInvite) === "Pending") {
+      if (activeInvite.invited_user_id === session?.user.id) {
+        openSection("invites", true);
+      } else {
+        setMessage(`You already have a pending challenge invitation for ${item.display_name}.`, "warning");
+      }
+      return;
+    }
+    if (!requireProfile("challenge another profile")) return;
     if (profileChallengeAvailability(item) === "Unavailable") {
       setMessage(`${item.display_name} is not accepting challenge invitations right now.`, "warning");
       return;
@@ -7862,11 +7989,6 @@ export default function Home() {
       setMessage(`${item.display_name} only accepts invitations from people they follow.`, "warning");
       return;
     }
-    if (pendingChallengeInvite(item)) {
-      setMessage(`You already have a pending challenge invitation for ${item.display_name}.`, "warning");
-      return;
-    }
-
     const invitedName = item.display_name || `@${item.username}`;
     const interest = item.main_interest || "New challenge";
     const matchSetup = inferredMatchSetup(interest);
@@ -8742,6 +8864,10 @@ export default function Home() {
     if (!requireLogin("respond to an invite")) return;
     if (status === "Accepted" && !requireProfile("accept an invite")) return;
     if (!supabase || !session?.user.id) return;
+    if (challengeInviteDisplayStatus(invite) !== "Pending") {
+      setMessage("This invitation is no longer waiting for a response.", "warning");
+      return;
+    }
 
     setInviteActionId(invite.id);
     setMessage("");
@@ -8784,6 +8910,7 @@ export default function Home() {
       .single();
 
     if (error) {
+      if (joinedRoom) await supabase.from("challenge_joins").delete().eq("id", joinedRoom.id);
       setMessage(`Could not update invite: ${error.message}`);
     } else if (data) {
       setInvites((items) => items.map((item) => (item.id === invite.id ? (data as ChallengeInvite) : item)));
@@ -8801,11 +8928,61 @@ export default function Home() {
         setRoomSearch("");
         setActiveAppTab("challenges");
         setActiveSection("rooms");
-        setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
+        openInviteChallenge(data as ChallengeInvite);
+      } else {
+        setChallenges((items) =>
+          items.map((item) => (item.id === invite.challenge_id ? { ...item, status: "Cancelled" } : item))
+        );
       }
     }
 
     setInviteActionId(null);
+  }
+
+  async function withdrawInvite(invite: ChallengeInvite) {
+    if (!requireLogin("withdraw an invite")) return;
+    if (!supabase || invite.from_user_id !== session?.user.id) return;
+    if (challengeInviteDisplayStatus(invite) !== "Pending") {
+      setMessage("This invitation is no longer pending.", "warning");
+      return;
+    }
+
+    setInviteActionId(invite.id);
+    setMessage("");
+    const { data, error } = await supabase
+      .from("challenge_invites")
+      .update({ status: "Withdrawn", updated_at: new Date().toISOString() })
+      .eq("id", invite.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(`Could not withdraw invite: ${error.message}`);
+    } else if (data) {
+      setInvites((items) => items.map((item) => (item.id === invite.id ? (data as ChallengeInvite) : item)));
+      setChallenges((items) =>
+        items.map((item) => (item.id === invite.challenge_id ? { ...item, status: "Cancelled" } : item))
+      );
+      setMessage("Invitation withdrawn. You can challenge this person again when ready.");
+    }
+    setInviteActionId(null);
+  }
+
+  function openInviteChallenge(invite: ChallengeInvite) {
+    const challenge = inviteChallenge(invite);
+    if (!challenge) {
+      setMessage("The linked challenge room is not in the current room list yet.", "warning");
+      openSection("rooms", true);
+      return;
+    }
+
+    setSelectedLane("All");
+    setSelectedStatus(isChallengeClosed(challenge) ? "Completed" : "Open");
+    setRoomDiscoveryMode(isChallengeClosed(challenge) ? "Newest" : "Trending");
+    setRoomSearch("");
+    setHighlightedChallengeId(challenge.id);
+    openSection(roomHash(challenge.id), true);
+    window.setTimeout(() => setHighlightedChallengeId(null), 2600);
   }
 
   async function saveChallengeSchedule(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
@@ -8981,8 +9158,8 @@ export default function Home() {
     if (!requireLogin("join a challenge")) return;
     if (!requireProfile("join a challenge")) return;
 
-    if (isChallengeCompleted(challenge)) {
-      setMessage("This challenge is completed, so new joins are closed.");
+    if (isChallengeClosed(challenge)) {
+      setMessage("This challenge is closed, so new joins are unavailable.");
       return;
     }
 
@@ -9073,8 +9250,8 @@ export default function Home() {
       setMessage("Room creators cannot leave their own room. Delete a mistaken room before activity begins instead.");
       return;
     }
-    if (isChallengeCompleted(challenge)) {
-      setMessage("Completed challenge memberships cannot be changed.");
+    if (isChallengeClosed(challenge)) {
+      setMessage("Closed challenge memberships cannot be changed.");
       return;
     }
     if (membership.role === "Challenger" && isChallengeVotingOpen(challenge)) {
@@ -9131,8 +9308,8 @@ export default function Home() {
   async function rateChallenge(challenge: Challenge, rating: number) {
     if (!requireLogin("rate a challenge")) return;
 
-    if (isChallengeCompleted(challenge)) {
-      setMessage("This challenge is completed, so ratings are closed.");
+    if (isChallengeClosed(challenge)) {
+      setMessage("This challenge is closed, so ratings are unavailable.");
       return;
     }
 
@@ -9179,8 +9356,8 @@ export default function Home() {
   async function voteForWinner(challenge: Challenge, winner: string) {
     if (!requireLogin("vote")) return;
 
-    if (isChallengeCompleted(challenge)) {
-      setMessage("This challenge is completed, so voting is closed.");
+    if (isChallengeClosed(challenge)) {
+      setMessage("This challenge is closed, so voting is unavailable.");
       return;
     }
 
@@ -9233,8 +9410,8 @@ export default function Home() {
     event.preventDefault();
     if (!requireLogin("submit proof")) return;
 
-    if (isChallengeCompleted(challenge)) {
-      setMessage("This challenge is completed, so proof uploads are closed.");
+    if (isChallengeClosed(challenge)) {
+      setMessage("This challenge is closed, so proof uploads are unavailable.");
       return;
     }
 
@@ -9416,8 +9593,8 @@ export default function Home() {
       return;
     }
 
-    if (isChallengeCompleted(challenge)) {
-      setMessage("This challenge is completed, so room chat is read-only.");
+    if (isChallengeClosed(challenge)) {
+      setMessage("This challenge is closed, so room chat is read-only.");
       return;
     }
 
@@ -10277,8 +10454,8 @@ export default function Home() {
     event.preventDefault();
     if (!requireLogin("complete a challenge")) return;
 
-    if (isChallengeCompleted(challenge)) {
-      setMessage("This challenge is already completed.");
+    if (isChallengeClosed(challenge)) {
+      setMessage("This challenge is already closed.");
       return;
     }
 
@@ -13815,7 +13992,7 @@ export default function Home() {
                     : "Follow"}
               </button>
               <button
-                disabled={Boolean(pendingChallengeInvite(selectedProfile)) || !profile || !targetAllowsChallenge(selectedProfile)}
+                disabled={!canUseOpponentInviteAction(selectedProfile)}
                 onClick={() => inviteProfileToChallenge(selectedProfile)}
                 type="button"
               >
@@ -13946,7 +14123,7 @@ export default function Home() {
                         : "Follow"}
                   </button>
                   <button
-                    disabled={Boolean(pendingChallengeInvite(item)) || !profile || !targetAllowsChallenge(item)}
+                    disabled={!canUseOpponentInviteAction(item)}
                     onClick={() => inviteProfileToChallenge(item)}
                     type="button"
                   >
@@ -14110,7 +14287,7 @@ export default function Home() {
                       key={item.challenge.id}
                       onClick={() => {
                         setSelectedLane("All");
-                        setSelectedStatus(isChallengeCompleted(item.challenge) ? "Completed" : "Open");
+                        setSelectedStatus(isChallengeClosed(item.challenge) ? "Completed" : "Open");
                         setRoomSearch("");
                         setHighlightedChallengeId(item.challenge.id);
                         window.setTimeout(() => setHighlightedChallengeId(null), 2600);
@@ -14247,15 +14424,15 @@ export default function Home() {
             <article>
               <div className="inviteListHeader">
                 <strong>Received invites</strong>
-                <small>{inviteInbox.received.filter((invite) => invite.status === "Pending").length} pending</small>
+                <small>{inviteInbox.received.filter((invite) => challengeInviteDisplayStatus(invite) === "Pending").length} pending</small>
               </div>
               {inviteInbox.received.length > 0 ? (
                 inviteInbox.received.map((invite) => (
                   <div className="inviteItem" key={invite.id}>
-                    <span>{invite.status}</span>
+                    <span>{challengeInviteDisplayStatus(invite)}</span>
                     <strong>{challengeTitle(invite.challenge_id)}</strong>
                     <small>Sent to {invite.invited_name}</small>
-                    {invite.status === "Pending" ? (
+                    {challengeInviteDisplayStatus(invite) === "Pending" ? (
                       <div className="inviteActions">
                         <button
                           disabled={inviteActionId === invite.id}
@@ -14272,8 +14449,12 @@ export default function Home() {
                           Decline
                         </button>
                       </div>
+                    ) : invite.status === "Accepted" ? (
+                      <div className="inviteActions">
+                        <button onClick={() => openInviteChallenge(invite)} type="button">Open room</button>
+                      </div>
                     ) : (
-                      <small>Invite {invite.status.toLowerCase()}.</small>
+                      <small>Invite {challengeInviteDisplayStatus(invite).toLowerCase()}.</small>
                     )}
                   </div>
                 ))
@@ -14292,9 +14473,24 @@ export default function Home() {
               {inviteInbox.sent.length > 0 ? (
                 inviteInbox.sent.map((invite) => (
                   <div className="inviteItem" key={invite.id}>
-                    <span>{invite.status}</span>
+                    <span>{challengeInviteDisplayStatus(invite)}</span>
                     <strong>{challengeTitle(invite.challenge_id)}</strong>
                     <small>To {invite.invited_name}</small>
+                    {challengeInviteDisplayStatus(invite) === "Pending" ? (
+                      <div className="inviteActions">
+                        <button
+                          disabled={inviteActionId === invite.id}
+                          onClick={() => withdrawInvite(invite)}
+                          type="button"
+                        >
+                          {inviteActionId === invite.id ? "Withdrawing…" : "Withdraw invite"}
+                        </button>
+                      </div>
+                    ) : invite.status === "Accepted" ? (
+                      <div className="inviteActions">
+                        <button onClick={() => openInviteChallenge(invite)} type="button">Open room</button>
+                      </div>
+                    ) : null}
                   </div>
                 ))
               ) : (
@@ -14318,7 +14514,7 @@ export default function Home() {
           <div>
             <p className="eyebrow">Find opponents</p>
             <h2>Challenge people who want to play</h2>
-            <p>Search active Talent7 profiles by activity, location, skill, play mode, and format. An invitation stays pending until the other person accepts it.</p>
+            <p>Search active Talent7 profiles by activity, location, skill, play mode, and format. Invitations expire after 7 days, and only one active matchup is allowed between the same two people.</p>
           </div>
           {session && <a href="#account">Manage my availability</a>}
         </div>
@@ -14416,10 +14612,7 @@ export default function Home() {
                 <div className="opponentGrid">
                   {pagedOpponents.map((item) => {
                     const availability = profileChallengeAvailability(item);
-                    const latestInvite = latestChallengeInvite(item);
-                    const pendingInvite = latestInvite?.status === "Pending" ? latestInvite : null;
-                    const acceptedInvite = latestInvite?.status === "Accepted" ? latestInvite : null;
-                    const canInvite = Boolean(profile) && targetAllowsChallenge(item) && !pendingInvite && !acceptedInvite;
+                    const canInvite = canUseOpponentInviteAction(item);
                     const initials = item.display_name
                       .split(/\s+/)
                       .filter(Boolean)
@@ -14471,17 +14664,7 @@ export default function Home() {
                             className="primary"
                             disabled={!canInvite}
                             onClick={() => inviteProfileToChallenge(item)}
-                            title={
-                              pendingInvite
-                                ? "This person already has your pending invitation."
-                                : acceptedInvite
-                                  ? "This person has accepted your latest challenge invitation."
-                                : !profile
-                                  ? "Save your profile before sending an invitation."
-                                  : !targetAllowsChallenge(item)
-                                    ? "This person only accepts invitations from profiles they follow."
-                                    : "Create a challenge invitation"
-                            }
+                            title={opponentInviteTitle(item)}
                             type="button"
                           >
                             {opponentInviteLabel(item)}
@@ -15194,11 +15377,11 @@ export default function Home() {
                 open={activePresenceChallengeId === challenge.id}
               >
                 <summary>
-                  <span>{isChallengeCompleted(challenge) ? "View archived room" : "Open room"}</span>
+                  <span>{isChallengeClosed(challenge) ? "View archived room" : "Open room"}</span>
                   <small>
                     {liveRoomPresenceCounts[challenge.id]
                       ? `${liveRoomPresenceCounts[challenge.id]} in this room now`
-                      : isChallengeCompleted(challenge)
+                      : isChallengeClosed(challenge)
                         ? "Result, proof, chat, and participants"
                         : "Join, vote, proof, chat, and room tools"}
                   </small>
@@ -15221,7 +15404,7 @@ export default function Home() {
               </div>
               {!isOwnerReviewer &&
                 challenge.created_by === session?.user.id &&
-                !isChallengeCompleted(challenge) &&
+                !isChallengeClosed(challenge) &&
                 challengeHasActivity(challenge.id) && (
                   <small className="deleteLockNote">Deletion locked after room activity begins. You can still edit or complete it.</small>
                 )}
@@ -15847,10 +16030,14 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {isChallengeCompleted(challenge) ? (
+              {isChallengeClosed(challenge) ? (
                 <div className="closedRoom">
-                  <strong>Challenge closed</strong>
-                  <small>Joins, votes, ratings, and proof uploads are locked after completion.</small>
+                  <strong>{challenge.status === "Cancelled" ? "Challenge cancelled" : "Challenge closed"}</strong>
+                  <small>
+                    {challenge.status === "Cancelled"
+                      ? "This invitation ended without an accepted matchup. Either person can start a new challenge."
+                      : "Joins, votes, ratings, and proof uploads are locked after completion."}
+                  </small>
                 </div>
               ) : (
                 <details className="roomActionPanel roomDisclosure">
@@ -16096,7 +16283,7 @@ export default function Home() {
                   </div>
                   <span>{messages.length} message{messages.length === 1 ? "" : "s"}</span>
                 </div>
-                {canUseRoomChat(challenge) && !isChallengeCompleted(challenge) && (
+                {canUseRoomChat(challenge) && !isChallengeClosed(challenge) && (
                   <form className="roomChatForm" onSubmit={(event) => sendChallengeMessage(event, challenge)}>
                     <input
                       maxLength={280}
@@ -16215,7 +16402,7 @@ export default function Home() {
                   </button>
                 </form>
               </details>
-              {!isChallengeCompleted(challenge) && (
+              {!isChallengeClosed(challenge) && (
                 <section className={`votingWindowPanel ${votingOpen ? "open" : "closed"}`} aria-label="Voting window">
                   <div className="votingWindowHeader">
                     <div>
@@ -16283,7 +16470,7 @@ export default function Home() {
                   </small>
                 </section>
               )}
-              {!isChallengeCompleted(challenge) && (
+              {!isChallengeClosed(challenge) && (
                 <div className="roomButtons">
                   <button
                     disabled={hasUserVoted(challenge.id) || !votingOpen}
@@ -16356,7 +16543,7 @@ export default function Home() {
                 href={`#${roomHash(item.challenge.id)}`}
                 onClick={() => {
                   setSelectedLane("All");
-                  setSelectedStatus(isChallengeCompleted(item.challenge) ? "Completed" : "Open");
+                  setSelectedStatus(isChallengeClosed(item.challenge) ? "Completed" : "Open");
                   setRoomSearch("");
                   setHighlightedChallengeId(item.challenge.id);
                   window.setTimeout(() => setHighlightedChallengeId(null), 2600);
