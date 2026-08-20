@@ -6,6 +6,7 @@
   --teal: #0f8f8c;
   --coral: #ef6654;
   --gold: #f2bd45;
+  --yellow: #f2bd45;
   --blue: #3568d4;
 }
 
@@ -11335,9 +11336,10 @@ html[data-talent7-theme="dark"] {
   --paper: #070913;
   --muted: #aeb6c9;
   --line: #2a3046;
-  --teal: #35c9c2;
+  --teal: #087f7c;
   --gold: #ffd34d;
-  --blue: #7997ff;
+  --yellow: #ffd34d;
+  --blue: #4f67bd;
 }
 
 html[data-talent7-theme="dark"] body {
@@ -11381,6 +11383,170 @@ html[data-talent7-theme="dark"] main > .section :where(.emptyState, .appStatePan
   background-color: #111522 !important;
   border-color: #2a3046 !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+}
+
+html[data-talent7-theme="dark"] main > .section :where(
+  .firstWaveSignup,
+  .firstWaveStats small,
+  .teamNotice,
+  .myTeamsPanel,
+  .feedbackInbox,
+  .emptyFeedback,
+  .safetyInbox,
+  .emptySafetyInbox,
+  .paymentNotice,
+  .contributionBox,
+  .inviteNotice,
+  .challengeWizardProgress button:not(.active),
+  .listenVisibilityPicker label,
+  .nowPlaying,
+  .listenQueue,
+  .listenQueueForm
+) {
+  color: #f5f7ff;
+  background: #151a29 !important;
+  border-color: #303750 !important;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(
+  .feedbackInboxHeader small,
+  .safetyInboxHeader small,
+  .leaderGrid small,
+  .profileDetailStats small
+) {
+  color: #c4cbd9;
+  background: #20263a;
+  border-color: #343b55;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomCard :where(
+  .versus,
+  .rosterSummary,
+  .roomOverviewStats > div,
+  .scoreBoard > div,
+  .roomWorkspaceBody > p,
+  .liveBroadcastEmpty,
+  .liveManagerPanel,
+  .votingWindowPanel,
+  .votingWindowStats,
+  .matchCoordinationPanel,
+  .scheduleSummary > div,
+  .scheduleEditor,
+  .coordinationBookingShortcuts,
+  .bookingPanel,
+  .bookingActions a,
+  .joinForm,
+  .joinedRoomMembership,
+  .proofForm,
+  .proofEvidenceTools,
+  .fileUpload,
+  .closedRoom,
+  .proofList,
+  .proofItem,
+  .roomActionPanel,
+  .roomChat,
+  .roomChatMessage,
+  .roomDetails,
+  .detailGrid > div,
+  .detailList,
+  .participantList,
+  .reportForm,
+  .resultForm
+) {
+  color: #f5f7ff;
+  background: #161b2a !important;
+  border-color: #303750 !important;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomCard :where(
+  .rosterSummary span,
+  .roomChatHeader span,
+  .proofList > a,
+  .joinPicker button:not(.active),
+  .secondaryAction
+) {
+  color: #dce2ef;
+  background: #20263a;
+  border-color: #3a425e;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomCard :where(
+  .versus strong,
+  .roomOverviewStats strong,
+  .scoreBoard strong,
+  .votingWindowStats strong,
+  .liveBroadcastEmpty strong,
+  .detailGrid strong,
+  .participantList strong
+) {
+  color: #f5f7ff;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomCard :where(
+  .roomOverviewStats span,
+  .scoreBoard span,
+  .votingWindowStats span,
+  .participantList small,
+  .detailList small
+) {
+  color: #aeb6c9;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomCard .rosterSummary strong {
+  color: #fff;
+  background: #087f7c;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomCard :where(.bookingActions a, .coordinationBookingLinks a) :where(span, strong) {
+  color: #f5f7ff;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomCard :where(.bookingActions a, .coordinationBookingLinks a) small {
+  color: #aeb6c9;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(
+  .filters button:not(.active),
+  .statusFilters button:not(.active),
+  .roomShelfTabs button:not(.active),
+  .listenRoomActions button,
+  .contributionButtons button:not(:last-child)
+) {
+  color: #dce2ef;
+  background: #1a2030;
+  border-color: #343b55;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(
+  .listenVisibilityPicker label span,
+  .listenQueue h4,
+  .feedbackInbox h3,
+  .feedbackInbox strong,
+  .safetyInbox h3,
+  .safetyInbox strong,
+  .paymentNotice strong,
+  .contributionBox h3
+) {
+  color: #f5f7ff;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(
+  .listenVisibilityPicker label small,
+  .listenQueue .muted,
+  .feedbackInbox small,
+  .safetyInbox small,
+  .paymentNotice small,
+  .contributionBox p
+) {
+  color: #aeb6c9;
+}
+
+html[data-talent7-theme="dark"] .futureFeatureGrid span,
+html[data-talent7-theme="dark"] .roomWelcomeBadge,
+html[data-talent7-theme="dark"] .challengeWizardProgress button.active > span,
+html[data-talent7-theme="dark"] .challengeWizardProgress button.complete > span {
+  color: #17120a;
+  background: var(--yellow);
 }
 
 html[data-talent7-theme="dark"] main > .section :where(input, select, textarea) {
@@ -11506,6 +11672,13 @@ html[data-talent7-theme="dark"] .notificationReturnBar > button {
   border-color: #5f6a91;
 }
 
+html[data-talent7-theme="dark"] .siteFooter a,
+html[data-talent7-theme="dark"] .footerSocials span {
+  color: #dce2ef;
+  background: #191e2c;
+  border-color: #303750;
+}
+
 @media (max-width: 760px) {
   html[data-talent7-theme="dark"] .appTabs {
     background: rgba(9, 12, 22, 0.97);
@@ -11544,5 +11717,34 @@ html[data-talent7-theme="dark"] .notificationReturnBar > button {
   html[data-talent7-theme="dark"] .appTabsScroller > button:last-child.notificationIsActive {
     color: #8f98ae;
     background: transparent;
+  }
+
+  .appSubTabs,
+  .roomsGrid {
+    scrollbar-width: none;
+  }
+
+  .appSubTabs::-webkit-scrollbar,
+  .roomsGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .backToTopButton {
+    right: 16px;
+    bottom: calc(104px + env(safe-area-inset-bottom));
+    width: 46px;
+    min-width: 46px;
+    height: 46px;
+    min-height: 46px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
+  .backToTopButton::before {
+    content: "↑";
+    font-size: 1.2rem;
+    line-height: 1;
   }
 }
