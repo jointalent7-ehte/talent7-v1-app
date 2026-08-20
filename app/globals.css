@@ -4557,6 +4557,198 @@ textarea {
   border: 1px solid var(--line);
 }
 
+.inviteLanding {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(20px, 5vw, 56px);
+  color: #f7f8ff;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(91, 63, 211, 0.32), transparent 34%),
+    radial-gradient(circle at 90% 85%, rgba(255, 196, 30, 0.2), transparent 30%),
+    #080b12;
+}
+
+body:has(.inviteLanding) {
+  padding-bottom: 0;
+  background: #080b12;
+}
+
+.inviteLandingShell {
+  width: min(100%, 720px);
+  display: grid;
+  gap: 18px;
+}
+
+.inviteLandingBrand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.inviteLandingBrand a {
+  color: #f7f8ff;
+  font-size: clamp(1.45rem, 5vw, 2rem);
+  font-style: italic;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.inviteLandingBrand a span {
+  color: #ffd21f;
+}
+
+.inviteLandingBrand > span,
+.invitePreviewStatus {
+  width: fit-content;
+  padding: 7px 11px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.invitePreviewCard {
+  display: grid;
+  gap: 22px;
+  padding: clamp(24px, 6vw, 48px);
+  background: linear-gradient(145deg, rgba(23, 28, 45, 0.98), rgba(12, 16, 27, 0.98));
+  border: 1px solid rgba(145, 130, 255, 0.28);
+  border-radius: 24px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
+}
+
+.invitePreviewIntro {
+  display: grid;
+  gap: 10px;
+}
+
+.invitePreviewIntro p,
+.invitePreviewIntro h1,
+.invitePreviewIntro small {
+  margin: 0;
+}
+
+.invitePreviewIntro p {
+  color: #bcb6ff;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.invitePreviewIntro h1 {
+  font-size: clamp(2rem, 8vw, 4.2rem);
+  line-height: 0.98;
+}
+
+.invitePreviewIntro small {
+  color: #b8bed0;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.invitePreviewStatus.pending,
+.invitePreviewStatus.accepted {
+  color: #08110e;
+  background: #52e1b4;
+  border-color: #52e1b4;
+}
+
+.invitePreviewStatus.expired,
+.invitePreviewStatus.declined,
+.invitePreviewStatus.withdrawn {
+  color: #ffd7d7;
+  background: rgba(222, 62, 75, 0.18);
+  border-color: rgba(255, 100, 113, 0.4);
+}
+
+.invitePreviewMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.invitePreviewMeta div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+}
+
+.invitePreviewMeta span {
+  color: #8f96aa;
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.invitePreviewMeta strong {
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+}
+
+.invitePreviewActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.invitePreviewActions a {
+  min-height: 52px;
+  display: grid;
+  place-items: center;
+  padding: 12px 18px;
+  color: #09100f;
+  background: #ffd21f;
+  border: 1px solid #ffd21f;
+  border-radius: 14px;
+  font-weight: 950;
+  text-align: center;
+  text-decoration: none;
+}
+
+.invitePreviewActions a:last-child {
+  color: #f7f8ff;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.invitePreviewSafety {
+  color: #8f96aa;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .inviteLanding {
+    place-items: start center;
+    padding: 22px 14px 34px;
+  }
+
+  .inviteLandingBrand {
+    align-items: flex-start;
+  }
+
+  .invitePreviewCard {
+    border-radius: 18px;
+  }
+
+  .invitePreviewMeta,
+  .invitePreviewActions {
+    grid-template-columns: 1fr;
+  }
+}
+
 .safetySection {
   background: #fff8e7;
 }

@@ -950,6 +950,7 @@ type ChallengeInvite = {
   created_at: string;
   updated_at?: string | null;
   expires_at?: string | null;
+  share_token?: string | null;
 };
 
 function isChallengeInviteExpired(invite: ChallengeInvite) {
@@ -2212,6 +2213,21 @@ export default function Home() {
   const [loginPrompt, setLoginPrompt] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<TalentProfile | null>(null);
+  useEffect(() => {
+    const inviteToken = new URLSearchParams(window.location.search).get("invite");
+    if (!inviteToken) return;
+
+    if (session?.user.id) {
+      setActiveAppTab("invites");
+      setActiveSection("invites");
+      window.history.replaceState(null, "", "#invites");
+      window.setTimeout(() => document.getElementById("invites")?.scrollIntoView({ behavior: "smooth" }), 80);
+    } else {
+      setActiveAppTab("settings");
+      setActiveSection("account");
+      window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+    }
+  }, [session?.user.id]);
   const [publicProfiles, setPublicProfiles] = useState<TalentProfile[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
   const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
@@ -6474,6 +6490,33 @@ export default function Home() {
     } catch {
       setMessage("Copy failed. You can manually select and copy the text.");
     }
+  }
+
+  async function shareChallengeInvite(invite: ChallengeInvite) {
+    if (!invite.share_token) {
+      setMessage("This invitation does not have a share link yet. Apply the invitation-sharing Supabase migration first.", "warning");
+      return;
+    }
+
+    const title = challengeTitle(invite.challenge_id);
+    const url = siteUrl(`/invite/${invite.share_token}`);
+    const shareData = {
+      title: `${title} challenge on Talent7`,
+      text: `${profileName()} challenged you to ${title} on Talent7. Preview the matchup and respond:`,
+      url
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setMessage("Challenge invitation shared.", "success");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShareText("Challenge invite link", `${shareData.text}\n${url}`);
   }
 
   function openSection(sectionId: string, updateHash = false, historyState: Talent7HistoryState | null = null) {
@@ -14434,6 +14477,9 @@ export default function Home() {
                     <small>Sent to {invite.invited_name}</small>
                     {challengeInviteDisplayStatus(invite) === "Pending" ? (
                       <div className="inviteActions">
+                        {invite.share_token && (
+                          <button onClick={() => shareChallengeInvite(invite)} type="button">Share invite</button>
+                        )}
                         <button
                           disabled={inviteActionId === invite.id}
                           onClick={() => respondToInvite(invite, "Accepted")}
