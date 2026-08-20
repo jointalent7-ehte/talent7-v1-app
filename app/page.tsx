@@ -598,6 +598,7 @@ type Challenge = {
   voting_closes_at?: string | null;
   voting_closed_at?: string | null;
   voting_updated_by?: string | null;
+  result_share_token?: string | null;
   created_at: string;
 };
 
@@ -6517,6 +6518,34 @@ export default function Home() {
     }
 
     await copyShareText("Challenge invite link", `${shareData.text}\n${url}`);
+  }
+
+  async function shareChallengeResult(challenge: Challenge) {
+    if (!challenge.result_share_token) {
+      setMessage("This result does not have a share link yet. Apply the result-sharing Supabase migration first.", "warning");
+      return;
+    }
+
+    const winner = challengeWinnerDisplay(challenge);
+    const score = challenge.final_score?.trim();
+    const url = siteUrl(`/result/${challenge.result_share_token}`);
+    const shareData = {
+      title: `${winner} won ${challenge.title} on Talent7`,
+      text: `${winner} won ${challenge.title}${score ? ` (${score})` : ""} on Talent7. See the official result, audience votes, rating, and proof count:`,
+      url
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setMessage("Challenge result shared.", "success");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShareText("Challenge result link", `${shareData.text}\n${url}`);
   }
 
   function openSection(sectionId: string, updateHash = false, historyState: Talent7HistoryState | null = null) {
@@ -15375,6 +15404,9 @@ export default function Home() {
                   <span>Winner</span>
                   <strong>{challengeWinnerDisplay(challenge)}</strong>
                   {challenge.final_score && <small>Final score: {challenge.final_score}</small>}
+                  <button className="resultShareButton" onClick={() => shareChallengeResult(challenge)} type="button">
+                    Share result
+                  </button>
                 </div>
               )}
               <div className="versus">
