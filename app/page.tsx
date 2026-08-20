@@ -150,7 +150,7 @@ const expertHelpTypes: ExpertHelpType[] = [
   "Other urgent help"
 ];
 
-type PrimaryTabId = "account" | "challenges" | "showcase" | "coaching" | "guidance" | "listen";
+type PrimaryTabId = "settings" | "challenges" | "showcase" | "coaching" | "guidance" | "listen";
 type MoreTabId = "teams" | "profiles" | "notifications" | "feed" | "invites" | "safety" | "plans" | "feedback" | "roadmap";
 type AppTabId = PrimaryTabId | MoreTabId;
 type NoticeTone = "success" | "error" | "warning" | "info";
@@ -331,11 +331,11 @@ const primaryTabs: {
   links: { label: string; href: string }[];
 }[] = [
   {
-    id: "account",
-    label: "Account",
+    id: "settings",
+    label: "Settings",
     firstSection: "account",
     links: [
-      { label: "Account", href: "#account" },
+      { label: "Settings", href: "#account" },
       { label: "Dashboard", href: "#my-talent7" },
       { label: "First wave", href: "#first-wave" }
     ]
@@ -350,24 +350,6 @@ const primaryTabs: {
       { label: "Create", href: "#create" },
       { label: "Leaderboard", href: "#leaderboard" }
     ]
-  },
-  {
-    id: "showcase",
-    label: "Showcase",
-    firstSection: "showcase",
-    links: [{ label: "Posts", href: "#showcase" }]
-  },
-  {
-    id: "coaching",
-    label: "Coaching",
-    firstSection: "coaching",
-    links: [{ label: "Coaching", href: "#coaching" }]
-  },
-  {
-    id: "guidance",
-    label: "Guidance",
-    firstSection: "expert-help",
-    links: [{ label: "Expert guidance", href: "#expert-help" }]
   },
   {
     id: "listen",
@@ -412,9 +394,9 @@ const moreTabGroups: Array<{
 ];
 
 const sectionTabMap: Record<string, AppTabId> = {
-  "first-wave": "account",
-  account: "account",
-  "my-talent7": "account",
+  "first-wave": "settings",
+  account: "settings",
+  "my-talent7": "settings",
   create: "challenges",
   rooms: "challenges",
   opponents: "challenges",
@@ -1837,8 +1819,8 @@ export default function Home() {
   const [roomRankingTimestamp, setRoomRankingTimestamp] = useState(0);
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [activeAppTab, setActiveAppTab] = useState<AppTabId>("challenges");
-  const [activeSection, setActiveSection] = useState("rooms");
+  const [activeAppTab, setActiveAppTab] = useState<AppTabId>("settings");
+  const [activeSection, setActiveSection] = useState("account");
   const [notificationReturnContext, setNotificationReturnContext] = useState<NotificationReturnContext | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
@@ -5256,6 +5238,10 @@ export default function Home() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setAuthHydrated(true);
+      if (data.session && !tabForHash(window.location.hash)) {
+        setActiveAppTab("challenges");
+        setActiveSection("rooms");
+      }
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -5264,7 +5250,7 @@ export default function Home() {
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
         setMessage("Password recovery confirmed. Set a new password below.");
-        setActiveAppTab("account");
+        setActiveAppTab("settings");
         setActiveSection("account");
         window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
       }
@@ -5282,7 +5268,7 @@ export default function Home() {
     if (url.searchParams.get("open") !== "account-deletion") return;
 
     setAccountDeletionFormUserId(session.user.id);
-    setActiveAppTab("account");
+    setActiveAppTab("settings");
     setActiveSection("account");
     url.searchParams.delete("open");
     window.history.replaceState(
@@ -6021,6 +6007,7 @@ export default function Home() {
     setLoginPrompt("");
     setAccountDeletionFormUserId(null);
     setMessage("Logged out.");
+    openSection("account", true);
   }
 
   async function requestPasswordReset(event: MouseEvent<HTMLButtonElement>) {
@@ -8142,7 +8129,7 @@ export default function Home() {
 
     if (!profile?.role.toLowerCase().includes("coach")) {
       setMessage("Set your profile role to Coach / instructor before creating a coaching offer.");
-      setActiveAppTab("account");
+      setActiveAppTab("settings");
       setActiveSection("account");
       setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
@@ -10305,21 +10292,24 @@ export default function Home() {
   const activePrimaryConfig = primaryTabs.find((tab) => tab.id === activeAppTab);
   const activeMoreConfig = moreTabs.find((tab) => tab.id === activeAppTab);
   const moreIsActive = isMoreOpen || Boolean(activeMoreConfig);
-  const activeSectionLinks = activePrimaryConfig?.links ||
-    (activeAppTab === "safety"
-      ? [
-          { label: "Safety", href: "#safety" },
-          { label: "Trust & terms", href: "#trust-terms" }
-        ]
-      : activeAppTab === "roadmap"
+  const activeSectionLinks = activeAppTab === "settings" && !session
+    ? [{ label: "Account", href: "#account" }]
+    : activePrimaryConfig?.links ||
+      (activeAppTab === "safety"
         ? [
-            { label: "Roadmap", href: "#roadmap" },
-            ...(isOwnerReviewer ? [{ label: "Launch control", href: "#launch-control" }] : [])
+            { label: "Safety", href: "#safety" },
+            { label: "Trust & terms", href: "#trust-terms" }
           ]
-        : []);
+        : activeAppTab === "roadmap"
+          ? [
+              { label: "Roadmap", href: "#roadmap" },
+              ...(isOwnerReviewer ? [{ label: "Launch control", href: "#launch-control" }] : [])
+            ]
+          : []);
   const activeSectionLink = activeSectionLinks.find((link) => link.href === `#${activeSection}`);
-  const activeWorkspaceTitle =
-    activeSectionLink?.label || activeMoreConfig?.label || activePrimaryConfig?.label || "Talent7";
+  const activeWorkspaceTitle = activeAppTab === "settings" && !session
+    ? "Account"
+    : activeSectionLink?.label || activeMoreConfig?.label || activePrimaryConfig?.label || "Talent7";
   const isRoomsWorkspace = activeAppTab === "challenges" && activeSection === "rooms";
   const showLandingHero = isRoomsWorkspace && authHydrated && !session;
   const showRoomsHero = isRoomsWorkspace && authHydrated && Boolean(session);
@@ -10430,7 +10420,7 @@ export default function Home() {
           <h1>Challenge anyone. Prove it. Rise on Talent7.</h1>
           <p>
             Talent7 brings fair, proof-based challenge rooms to talent battles, sports matchups,
-            mobile gaming, coaching, and verified expert guidance.
+            and mobile gaming.
           </p>
           <div className="heroMetrics">
             <article>
@@ -10617,7 +10607,7 @@ export default function Home() {
             role="tab"
             type="button"
           >
-            {tab.label}
+            {tab.id === "settings" && !session ? "Account" : tab.label}
           </button>
         ))}
         <button
@@ -10983,7 +10973,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Account</p>
           <h2>Sign up or log in</h2>
-          <p>Your account protects your profile, rooms, votes, proof uploads, teams, coaching requests, and safety reports.</p>
+          <p>Your account protects your profile, rooms, votes, proof uploads, teams, and safety reports.</p>
         </div>
         {session ? (
           <div className="profileStack">
@@ -16259,7 +16249,7 @@ export default function Home() {
       <footer className="siteFooter">
         <div>
           <strong>Talent7</strong>
-          <p>Proof-based challenge rooms, public 7-star ratings, teams, coaching, and verified expert guidance.</p>
+            <p>Proof-based challenge rooms, public 7-star ratings, teams, and live community experiences.</p>
         </div>
         <nav>
           <a href="#account">Account</a>

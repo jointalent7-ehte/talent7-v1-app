@@ -1120,9 +1120,9 @@ main[class*="appTab-"] > section.section {
   display: none;
 }
 
-main.appTab-account > #account,
-main.appTab-account > #my-talent7,
-main.appTab-account > #first-wave,
+main.appTab-settings > #account,
+main.appTab-settings > #my-talent7,
+main.appTab-settings > #first-wave,
 main.appTab-challenges > #rooms,
 main.appTab-challenges > #opponents,
 main.appTab-challenges > #create,
