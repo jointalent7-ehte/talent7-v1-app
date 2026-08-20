@@ -5,7 +5,7 @@ drop constraint if exists challenges_status_check;
 
 alter table public.challenges
 add constraint challenges_status_check
-check (status in ('Open', 'Completed')) not valid;
+check (status in ('Open', 'Completed', 'Cancelled')) not valid;
 
 drop policy if exists "Challenge creators can update own open challenges" on public.challenges;
 
