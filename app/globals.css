@@ -7389,6 +7389,84 @@ textarea {
   padding: 8px;
 }
 
+.nativeLiveStage.layout-stacked .lk-grid-layout {
+  --lk-col-count: 1 !important;
+}
+
+.nativeLiveStage.layout-side-by-side .lk-grid-layout {
+  --lk-col-count: 2 !important;
+}
+
+.liveLayoutSwitcher {
+  position: absolute;
+  z-index: 6;
+  bottom: 12px;
+  left: 50%;
+  display: inline-flex;
+  gap: 3px;
+  max-width: calc(100% - 24px);
+  padding: 4px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  background: rgb(8 11 12 / 88%);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 24%);
+  transform: translateX(-50%);
+  backdrop-filter: blur(10px);
+}
+
+.liveLayoutSwitcher button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.liveLayoutSwitcher button[aria-pressed="true"] {
+  background: var(--teal);
+  box-shadow: 0 5px 14px rgb(0 0 0 / 20%);
+}
+
+.liveLayoutSwitcher button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.liveLayoutIcon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 15px;
+  height: 13px;
+  gap: 2px;
+}
+
+.liveLayoutIcon.stacked {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.liveLayoutIcon.sideBySide {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.liveLayoutIcon i {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid currentcolor;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 16%);
+}
+
 .nativeLiveStage .lk-participant-tile {
   border-radius: 8px;
 }
@@ -10711,6 +10789,18 @@ textarea {
     grid-template-rows: minmax(210px, 58vh) auto;
     min-height: 310px;
     max-height: 70vh;
+  }
+
+  .liveLayoutSwitcher {
+    bottom: 8px;
+    max-width: calc(100% - 16px);
+    padding: 3px;
+  }
+
+  .liveLayoutSwitcher button {
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: 0.62rem;
   }
 
   .nativeLiveStage .lk-control-bar {

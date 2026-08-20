@@ -33,6 +33,10 @@ type FloatingReaction = LiveReactionOption & {
   lane: number;
 };
 
+type BattleScreenLayout = "stacked" | "side-by-side";
+
+const LIVE_LAYOUT_STORAGE_KEY = "talent7-live-battle-layout";
+
 type ChallengeLiveRoomProps = {
   accessToken: string;
   challengeId: string;
@@ -67,6 +71,7 @@ function Talent7VideoStage({
   const [expanded, setExpanded] = useState(false);
   const [shareLabel, setShareLabel] = useState("Share");
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
+  const [screenLayout, setScreenLayout] = useState<BattleScreenLayout>("stacked");
   const previousTotalsRef = useRef<Partial<Record<LiveReactionName, number>> | null>(null);
   const reactionIdRef = useRef(0);
   const participants = useParticipants();
@@ -78,6 +83,17 @@ function Talent7VideoStage({
     ],
     { onlySubscribed: false }
   );
+
+  useEffect(() => {
+    try {
+      const savedLayout = window.localStorage.getItem(LIVE_LAYOUT_STORAGE_KEY);
+      if (savedLayout === "stacked" || savedLayout === "side-by-side") {
+        setScreenLayout(savedLayout);
+      }
+    } catch {
+      // Layout preference persistence is optional (for example, in private browsing).
+    }
+  }, []);
 
   useEffect(() => {
     const previousTotals = previousTotalsRef.current;
@@ -159,11 +175,20 @@ function Talent7VideoStage({
     }
   }
 
+  function selectScreenLayout(layout: BattleScreenLayout) {
+    setScreenLayout(layout);
+    try {
+      window.localStorage.setItem(LIVE_LAYOUT_STORAGE_KEY, layout);
+    } catch {
+      // Keep the selected layout for this session even when storage is unavailable.
+    }
+  }
+
   const stage = (
     <section
       aria-label={expanded ? `${title} expanded live stage` : `${title} live video`}
       aria-modal={expanded ? "true" : undefined}
-      className={`nativeLiveStage${expanded ? " expanded" : ""}`}
+      className={`nativeLiveStage layout-${screenLayout}${expanded ? " expanded" : ""}`}
       role={expanded ? "dialog" : undefined}
     >
       {expanded && (
@@ -212,6 +237,33 @@ function Talent7VideoStage({
               <small>{reaction.label}</small>
             </span>
           ))}
+        </div>
+
+        <div className="liveLayoutSwitcher" role="group" aria-label="Battle screen layout">
+          <button
+            aria-pressed={screenLayout === "stacked"}
+            onClick={() => selectScreenLayout("stacked")}
+            title="Place the battle screens one above the other"
+            type="button"
+          >
+            <span aria-hidden="true" className="liveLayoutIcon stacked">
+              <i />
+              <i />
+            </span>
+            Stacked
+          </button>
+          <button
+            aria-pressed={screenLayout === "side-by-side"}
+            onClick={() => selectScreenLayout("side-by-side")}
+            title="Place the battle screens beside each other"
+            type="button"
+          >
+            <span aria-hidden="true" className="liveLayoutIcon sideBySide">
+              <i />
+              <i />
+            </span>
+            Side by side
+          </button>
         </div>
 
         {!expanded && (
