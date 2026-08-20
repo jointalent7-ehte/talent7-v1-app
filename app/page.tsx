@@ -3368,11 +3368,7 @@ export default function Home() {
           ratings.some((rating) => rating.user_id === userId) ||
           showcaseRatings.some((rating) => rating.user_id === userId))
     );
-    const hasProofOrShowcase = Boolean(
-      userId &&
-        (proofs.some((proof) => proof.user_id === userId) ||
-          showcasePosts.some((post) => post.user_id === userId))
-    );
+    const hasProof = Boolean(userId && proofs.some((proof) => proof.user_id === userId));
     const hasFollow = Boolean(userId && follows.some((follow) => follow.follower_id === userId));
     const hasFeedback = Boolean(userId && founderFeedback.some((feedback) => feedback.user_id === userId));
 
@@ -3396,10 +3392,10 @@ export default function Home() {
         href: "#rooms"
       },
       {
-        title: "Upload proof or showcase",
-        detail: "Add victory proof or post a talent photo, video, or link.",
-        done: hasProofOrShowcase,
-        href: hasProofOrShowcase ? "#my-talent7" : "#showcase"
+        title: "Upload victory proof",
+        detail: "Add photo, video, screenshot, or link proof to a challenge room.",
+        done: hasProof,
+        href: hasProof ? "#my-talent7" : "#rooms"
       },
       {
         title: "Follow one profile",
@@ -3414,7 +3410,7 @@ export default function Home() {
         href: "#feedback"
       }
     ];
-  }, [challenges, follows, founderFeedback, joins, profile, proofs, ratings, session, showcasePosts, showcaseRatings, votes]);
+  }, [challenges, follows, founderFeedback, joins, profile, proofs, ratings, session, showcaseRatings, votes]);
 
   const completedOnboardingSteps = onboardingSteps.filter((step) => step.done).length;
 
@@ -6304,7 +6300,7 @@ export default function Home() {
     return [
       "Talent7 is preparing for Play Store launch at jointalent7.com.",
       `Current build: ${challenges.length} challenge rooms, ${publicProfiles.length} talent profiles, ${proofs.length} proof uploads, and ${firstWaveInterests.length} first-wave launch signups.`,
-      "You can join as a challenger, audience voter, coach, organizer, gaming squad, or expert helper.",
+      "You can join now as a challenger, audience voter, organizer, or gaming squad. Showcase Talent, Coaching, and Guidance are planned future experiences.",
       "Try a challenge room, rate out of 7, upload proof, and help shape the launch version."
     ].join("\n\n");
   }
@@ -10573,6 +10569,7 @@ export default function Home() {
                         <button
                           aria-current={activeAppTab === tab.id ? "page" : undefined}
                           className={activeAppTab === tab.id ? "active" : ""}
+                          data-more-tab={tab.id}
                           key={tab.id}
                           onClick={() => switchAppTab(tab.id)}
                           type="button"
@@ -10611,14 +10608,30 @@ export default function Home() {
           </button>
         ))}
         <button
+          aria-controls="notifications"
+          aria-label={unreadNotifications.length > 0 ? `Notifications, ${unreadNotifications.length} unread` : "Notifications"}
+          aria-selected={activeAppTab === "notifications"}
+          className={`mobileNotificationTab${activeAppTab === "notifications" ? " active" : ""}`}
+          onClick={() => switchAppTab("notifications")}
+          role="tab"
+          type="button"
+        >
+          <span aria-hidden="true" className="mobileNotificationBell">🔔</span>
+          <span>Notifications</span>
+          {unreadNotifications.length > 0 && (
+            <em className="appTabBadge" aria-hidden="true">{unreadNotifications.length}</em>
+          )}
+        </button>
+        <button
           aria-expanded={isMoreOpen}
           aria-haspopup="dialog"
-          className={moreIsActive ? "active" : ""}
+          className={`${moreIsActive ? "active" : ""}${activeAppTab === "notifications" ? " notificationIsActive" : ""}`}
           onClick={() => setIsMoreOpen((current) => !current)}
           ref={moreTriggerRef}
           type="button"
         >
-          <span>{activeMoreConfig ? `More: ${activeMoreConfig.label}` : "More"}</span>
+          <span className="desktopMoreLabel">{activeMoreConfig ? `More: ${activeMoreConfig.label}` : "More"}</span>
+          <span className="mobileMoreLabel">More</span>
           {moreAttentionSections > 0 && (
             <em className="appTabBadge" aria-label={`${moreAttentionSections} More sections need attention`}>
               {moreAttentionSections}
@@ -10653,7 +10666,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Early access</p>
           <h2>Built for the first Play Store launch wave</h2>
-          <p>Start as an audience member, challenger, coach, team owner, or expert helper and build an early Talent7 history.</p>
+          <p>Start as an audience member, challenger, team owner, or organizer and build an early Talent7 history.</p>
         </div>
         <div className="firstWaveGrid">
           <article>
@@ -10671,7 +10684,7 @@ export default function Home() {
           <article>
             <span>3</span>
             <strong>Build your circle</strong>
-            <p>Follow profiles, form teams, request coaching, and watch notifications for invites and updates.</p>
+            <p>Follow profiles, form teams, and watch notifications for invites and challenge updates.</p>
             <a href="#profiles">Browse people</a>
           </article>
         </div>
@@ -10681,7 +10694,7 @@ export default function Home() {
               <p className="eyebrow">First wave list</p>
               <h3>Tell Talent7 what you want first</h3>
               <p>
-                This helps the owner prepare the right challenge, coaching, team, game, and expert-help flows before Play Store launch.
+                This helps the owner prioritize core challenge flows and future Showcase Talent, Coaching, and Guidance releases.
               </p>
             </div>
             <label>
@@ -10701,7 +10714,9 @@ export default function Home() {
               <select name="role_goal" defaultValue="Challenger">
                 {(["Challenger", "Audience", "Coach", "Organizer", "Expert helper", "Gaming squad"] as FirstWaveInterest["role_goal"][]).map(
                   (role) => (
-                    <option key={role}>{role}</option>
+                    <option key={role} value={role}>
+                      {role === "Coach" ? "Coach (future Coaching)" : role === "Expert helper" ? "Expert helper (future Guidance)" : role}
+                    </option>
                   )
                 )}
               </select>
@@ -10753,8 +10768,8 @@ export default function Home() {
             <div className="firstWaveStats">
               <small>{firstWaveInterests.length} total</small>
               <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Challenger").length} challengers</small>
-              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Coach").length} coaches</small>
-              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Expert helper").length} experts</small>
+              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Coach").length} future Coaching interests</small>
+              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Expert helper").length} future Guidance interests</small>
             </div>
           </aside>
         </div>
@@ -10810,7 +10825,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Notifications</p>
           <h2>What needs your attention</h2>
-          <p>See invites, team requests, live rooms, voting windows, proof uploads, results, report updates, expert help, and showcase comments in one place.</p>
+          <p>See invites, team requests, live rooms, voting windows, proof uploads, results, report updates, and feedback in one place.</p>
         </div>
         {session ? (
           <>
@@ -11144,7 +11159,7 @@ export default function Home() {
                 <select name="role" defaultValue={profile?.role || "Challenger"}>
                   <option>Challenger</option>
                   <option>Audience / voter</option>
-                  <option>Coach / instructor</option>
+                  <option value="Coach / instructor">Coach / instructor (future Coaching)</option>
                   <option>Sports organizer</option>
                   <option>Gaming squad / clan</option>
                 </select>
@@ -13058,13 +13073,13 @@ export default function Home() {
 
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
-          <p className="eyebrow">Access & pricing research</p>
-          <h2>Keep discovery and basic challenges free</h2>
-          <p>Audience and basic challenger access are free. Optional pro concepts help Talent7 understand which advanced tools people value most.</p>
+          <p className="eyebrow">Core access & future roadmap</p>
+          <h2>Challenge access stays free</h2>
+          <p>Audience and basic challenger access are free. Optional challenge and organizer concepts remain pricing research, while Showcase Talent, Coaching, and Guidance are planned future releases.</p>
         </div>
         <div className="paymentNotice">
-          <strong>Pricing research only—no checkout</strong>
-          <small>Selecting an option records interest. Talent7 does not request card details, charge money, or activate a paid subscription here.</small>
+          <strong>Research only—no checkout or feature activation</strong>
+          <small>Selecting an option records interest. Talent7 does not request card details, charge money, activate a subscription, or unlock future features here.</small>
         </div>
         <div className="paymentStatusPanel">
           <div>
@@ -13140,24 +13155,6 @@ export default function Home() {
             </button>
           </article>
           <article>
-            <span>Coach / instructor</span>
-            <strong>Concept plan</strong>
-            <p>For coaches who upload lessons, run live sessions, and earn through Talent7.</p>
-            <ul>
-              <li>Coaching profile tools</li>
-              <li>Paid session requests</li>
-              <li>Uploaded lessons and live coaching</li>
-            </ul>
-            <em>Pricing not set</em>
-            <button
-              disabled={paymentActionKey === "Plan-Coach Pro-Pricing research"}
-              onClick={() => recordPaymentInterest("Plan", "Coach Pro", "Pricing research")}
-              type="button"
-            >
-              {paymentActionKey === "Plan-Coach Pro-Pricing research" ? "Saving..." : "Register coach interest"}
-            </button>
-          </article>
-          <article>
             <span>Team / organizer</span>
             <strong>Concept plan</strong>
             <p>For sports organizers, gaming clans, and teams running repeated tournaments.</p>
@@ -13175,6 +13172,31 @@ export default function Home() {
               {paymentActionKey === "Plan-Organizer Pro-Pricing research" ? "Saving..." : "Register organizer interest"}
             </button>
           </article>
+        </div>
+        <div className="futureFeaturePromo" aria-labelledby="future-features-title">
+          <div className="futureFeatureIntro">
+            <p className="eyebrow">Future on Talent7</p>
+            <h3 id="future-features-title">More ways to build, learn, and get help</h3>
+            <p>These experiences are previews of the product roadmap. They are not active services or paid plans yet.</p>
+          </div>
+          <div className="futureFeatureGrid">
+            <article>
+              <span>Future feature</span>
+              <strong>Showcase Talent</strong>
+              <p>Build a dedicated talent portfolio with photos, videos, audience reactions, and public 7-star ratings.</p>
+            </article>
+            <article>
+              <span>Future feature</span>
+              <strong>Coaching</strong>
+              <p>Discover coaches, explore learning offers, and coordinate structured live or recorded sessions.</p>
+            </article>
+            <article>
+              <span>Future feature</span>
+              <strong>Guidance</strong>
+              <p>Find verified specialists and request carefully scoped help while keeping safety boundaries clear.</p>
+            </article>
+          </div>
+          <a href="#feedback">Tell us which future feature matters most</a>
         </div>
         <div className="contributionBox">
           <div>
@@ -13211,7 +13233,7 @@ export default function Home() {
                 <strong>{paymentInterests.filter((interest) => interest.label === "Challenge Plus").length}</strong>
               </article>
               <article>
-                <span>Coach Pro</span>
+                <span>Future Coach Pro interest</span>
                 <strong>{paymentInterests.filter((interest) => interest.label === "Coach Pro").length}</strong>
               </article>
               <article>
@@ -13538,13 +13560,13 @@ export default function Home() {
           </article>
           <article>
             <span>Available</span>
-            <strong>Profiles, teams, coaching, guidance, and shared queues</strong>
-            <p>Build a public identity, organize teams, publish coaching offers, request verified guidance, and share music links.</p>
+            <strong>Profiles, teams, live rooms, and shared queues</strong>
+            <p>Build a public identity, organize teams, join live challenge rooms, and share music links.</p>
           </article>
           <article>
-            <span>In research</span>
-            <strong>Live battles and advanced organizer tools</strong>
-            <p>Validate two-screen live challenges, optional pro tools, brackets, richer statistics, and carefully designed video guidance.</p>
+            <span>Future</span>
+            <strong>Showcase Talent, Coaching, and Guidance</strong>
+            <p>Explore dedicated talent portfolios, coach-led learning, verified guidance, advanced organizer tools, brackets, and richer statistics.</p>
           </article>
         </div>
       </section>
@@ -13580,9 +13602,9 @@ export default function Home() {
             <p>Talent7 does not operate courts, pools, gyms, or events. Check local rules, safety, costs, and permissions before recording or playing.</p>
           </article>
           <article>
-            <span>Medical caution</span>
+            <span>Future Guidance</span>
             <strong>Emergency services come first</strong>
-            <p>Expert help is guidance only. For medical emergencies, danger, serious injury, or urgent risk, contact local emergency services first.</p>
+            <p>Future Guidance will not replace professional or emergency services. For danger, serious injury, or urgent risk, contact local emergency services first.</p>
           </article>
           <article>
             <span>Payments</span>
@@ -13610,7 +13632,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Profiles</p>
           <h2>Talent7 people</h2>
-          <p>Discover challengers, audience voters, coaches, organizers, and gaming squads building early Talent7 history.</p>
+          <p>Discover challengers, audience voters, organizers, and gaming squads building early Talent7 history.</p>
         </div>
         <label className="profileSearch">
           Search profiles
@@ -13902,7 +13924,6 @@ export default function Home() {
             </div>
             <div className="dashboardActions">
               <a href="#create">Create challenge</a>
-              <a href="#showcase">Post showcase</a>
               <a href="#teams">Teams</a>
               <a href="#notifications">Notifications</a>
               <a href="#safety">Safety reports</a>
@@ -13923,11 +13944,6 @@ export default function Home() {
                 <span>Teams</span>
                 <strong>{myDashboard.teamCount}</strong>
                 <small>{myDashboard.pendingTeamRequests} pending team action{myDashboard.pendingTeamRequests === 1 ? "" : "s"}</small>
-              </article>
-              <article>
-                <span>Showcase posts</span>
-                <strong>{myDashboard.posts.length}</strong>
-                <small>{myDashboard.posts[0]?.caption || "No posts yet"}</small>
               </article>
               <article>
                 <span>Reports</span>
@@ -13954,7 +13970,7 @@ export default function Home() {
               <summary>
                 <div>
                   <span>Activity and history</span>
-                  <strong>Rooms, teams, showcase posts, reports, and invites</strong>
+                  <strong>Rooms, teams, reports, and invites</strong>
                 </div>
                 <small>Open full dashboard</small>
               </summary>
@@ -14004,22 +14020,6 @@ export default function Home() {
                   </a>
                 ))}
                 {myDashboard.teamCount === 0 && <small>No teams yet.</small>}
-              </article>
-              <article>
-                <div>
-                  <span>My showcase</span>
-                  <a href="#showcase">Open showcase</a>
-                </div>
-                {myDashboard.posts.length > 0 ? (
-                  myDashboard.posts.map((post) => (
-                    <a className="dashboardRow" href="#showcase" key={post.id}>
-                      <strong>{post.category}</strong>
-                      <small>{post.caption}</small>
-                    </a>
-                  ))
-                ) : (
-                  <small>No showcase posts yet.</small>
-                )}
               </article>
               <article>
                 <div>

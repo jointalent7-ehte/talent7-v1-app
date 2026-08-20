@@ -872,6 +872,14 @@ form button {
   font-weight: 950;
 }
 
+.appTabs .mobileNotificationTab {
+  display: none;
+}
+
+.mobileMoreLabel {
+  display: none;
+}
+
 .appTabs button:hover,
 .appSubTabs a:hover {
   border-color: var(--teal);
@@ -5379,7 +5387,7 @@ textarea {
 
 .plansGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -5454,6 +5462,88 @@ textarea {
 .contributionButtons button:disabled {
   opacity: 0.68;
   cursor: wait;
+}
+
+.futureFeaturePromo {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 24px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 88% 12%, rgb(20 150 143 / 34%), transparent 34%),
+    linear-gradient(135deg, #141719, #233033);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 14px;
+  box-shadow: 0 20px 48px rgb(20 23 25 / 18%);
+}
+
+.futureFeatureIntro {
+  display: grid;
+  gap: 7px;
+  max-width: 760px;
+}
+
+.futureFeatureIntro h3,
+.futureFeatureIntro p {
+  margin: 0;
+}
+
+.futureFeatureIntro h3 {
+  color: #fff;
+  font-size: clamp(1.7rem, 3vw, 2.6rem);
+}
+
+.futureFeatureIntro p:not(.eyebrow) {
+  color: rgb(255 255 255 / 74%);
+  line-height: 1.6;
+}
+
+.futureFeatureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.futureFeatureGrid article {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  background: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 10px;
+}
+
+.futureFeatureGrid span {
+  width: fit-content;
+  padding: 5px 8px;
+  color: var(--ink);
+  background: var(--yellow);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.futureFeatureGrid strong {
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.futureFeatureGrid p {
+  margin: 0;
+  color: rgb(255 255 255 / 72%);
+  line-height: 1.55;
+}
+
+.futureFeaturePromo > a {
+  width: fit-content;
+  padding: 11px 14px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  font-weight: 900;
 }
 
 .paymentStatusPanel {
@@ -9263,6 +9353,7 @@ textarea {
   .paymentStatusPanel,
   .ownerPaymentStats,
   .plansGrid,
+  .futureFeatureGrid,
   .contributionBox,
   .roadmapGrid,
   .profileGrid,
@@ -9678,7 +9769,7 @@ textarea {
 
 @media (max-width: 760px) {
   body {
-    padding-bottom: 74px;
+    padding-bottom: 86px;
   }
 
   html.talent7KeyboardOpen body {
@@ -9697,7 +9788,7 @@ textarea {
   .appTabs {
     top: auto;
     bottom: 0;
-    padding: 8px 10px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--line);
     border-bottom: 0;
     box-shadow: 0 -10px 28px rgba(20, 23, 25, 0.14);
@@ -9715,13 +9806,101 @@ textarea {
   }
 
   .appTabsScroller {
-    gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.24fr) repeat(2, minmax(0, 1fr));
+    gap: 3px;
+    width: 100%;
+    overflow: visible;
   }
 
   .appTabs button {
-    min-height: 42px;
-    padding: 9px 12px;
-    font-size: 0.84rem;
+    display: grid;
+    min-width: 0;
+    min-height: 50px;
+    padding: 7px 3px;
+    background: transparent;
+    border-color: transparent;
+    border-radius: 12px;
+    font-size: 0.68rem;
+    line-height: 1.05;
+    white-space: normal;
+  }
+
+  .appTabs button[data-primary-tab="settings"] {
+    order: 1;
+  }
+
+  .appTabs button[data-primary-tab="challenges"] {
+    order: 2;
+  }
+
+  .appTabs .mobileNotificationTab {
+    position: relative;
+    order: 3;
+    display: grid;
+    min-height: 58px;
+    margin-top: -14px;
+    color: #fff;
+    background: #0f8f8c;
+    border: 3px solid #fff;
+    border-radius: 18px;
+    box-shadow: 0 10px 24px rgb(20 150 143 / 38%);
+  }
+
+  .appTabs .mobileNotificationTab.active {
+    color: #fff;
+    background: #141719;
+    border-color: #fff;
+  }
+
+  .mobileNotificationBell {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .mobileNotificationTab > span:last-of-type {
+    max-width: 100%;
+    font-size: 0.58rem;
+    letter-spacing: -0.035em;
+    white-space: nowrap;
+  }
+
+  .mobileNotificationTab .appTabBadge {
+    position: absolute;
+    top: -8px;
+    right: -5px;
+    min-width: 20px;
+    height: 20px;
+    color: var(--ink);
+    border: 2px solid #fff;
+  }
+
+  .appTabs button[data-primary-tab="listen"] {
+    order: 4;
+  }
+
+  .appTabsScroller > button:last-child {
+    order: 5;
+  }
+
+  .appTabsScroller > button:last-child.notificationIsActive {
+    color: var(--ink);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .desktopMoreLabel {
+    display: none;
+  }
+
+  .mobileMoreLabel {
+    display: inline;
+  }
+
+  .appTabsScroller > button:last-child .appTabBadge,
+  .appMoreMenu [data-more-tab="notifications"] {
+    display: none;
   }
 
   .appSubTabs {
