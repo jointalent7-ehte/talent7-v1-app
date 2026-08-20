@@ -154,6 +154,7 @@ type PrimaryTabId = "settings" | "challenges" | "showcase" | "coaching" | "guida
 type MoreTabId = "teams" | "profiles" | "notifications" | "feed" | "invites" | "safety" | "plans" | "feedback" | "roadmap";
 type AppTabId = PrimaryTabId | MoreTabId;
 type NoticeTone = "success" | "error" | "warning" | "info";
+type ColorTheme = "light" | "dark";
 
 type AppNotice = {
   id: number;
@@ -561,6 +562,7 @@ const sampleListenRooms: ListenRoom[] = [
 const sampleListenTracks: ListenTrack[] = [];
 const listenRoomsStorageKey = "talent7-listen-rooms";
 const listenTracksStorageKey = "talent7-listen-tracks";
+const colorThemeStorageKey = "talent7-color-theme";
 const listenRoomPublicColumns =
   "id,created_by,title,host_name,mood,room_note,current_track_title,current_track_url,listener_count,love_count,vibe_count,status,visibility,room_code,requires_passcode,created_at,updated_at";
 const roomViewerStorageKey = "talent7-room-viewer-id";
@@ -1865,6 +1867,8 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState("account");
   const [notificationReturnContext, setNotificationReturnContext] = useState<NotificationReturnContext | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [colorTheme, setColorTheme] = useState<ColorTheme>("light");
+  const [colorThemeHydrated, setColorThemeHydrated] = useState(false);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLElement>(null);
   const [confirmationRequest, setConfirmationRequest] = useState<ConfirmationRequest | null>(null);
@@ -1881,6 +1885,23 @@ export default function Home() {
   const [listenActionKey, setListenActionKey] = useState<string | null>(null);
   const [privateListenRoomCode, setPrivateListenRoomCode] = useState("");
   const [privateListenRoomPasscode, setPrivateListenRoomPasscode] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const savedTheme = window.localStorage.getItem(colorThemeStorageKey);
+    const nextTheme: ColorTheme = savedTheme === "dark" ? "dark" : "light";
+    setColorTheme(nextTheme);
+    document.documentElement.dataset.talent7Theme = nextTheme;
+    setColorThemeHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!colorThemeHydrated || typeof window === "undefined") return;
+
+    document.documentElement.dataset.talent7Theme = colorTheme;
+    window.localStorage.setItem(colorThemeStorageKey, colorTheme);
+  }, [colorTheme, colorThemeHydrated]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -10582,7 +10603,7 @@ export default function Home() {
             <div className="appMoreHeader">
               <div>
                 <strong id="more-menu-title">More</strong>
-                <span>Open another Talent7 workspace.</span>
+                <span>Account, profile, appearance, and more options.</span>
               </div>
               <button
                 aria-label="Close More menu"
@@ -10592,6 +10613,59 @@ export default function Home() {
               >
                 X
               </button>
+            </div>
+
+            <div className="appMoreEssentials" aria-label="Account and appearance shortcuts">
+              <div className="appMoreQuickLinks">
+                <button onClick={() => openSection("account", true)} type="button">
+                  <span className="appMoreQuickGlyph" aria-hidden="true">⚙</span>
+                  <span>
+                    <strong>Settings &amp; account</strong>
+                    <small>Login, password, privacy, and account controls</small>
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    openSection("account", true);
+                    window.setTimeout(
+                      () => document.querySelector<HTMLElement>(session ? ".profileForm" : ".authForm")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                      120
+                    );
+                  }}
+                  type="button"
+                >
+                  <span className="appMoreQuickGlyph" aria-hidden="true">◎</span>
+                  <span>
+                    <strong>{session ? "My profile" : "Create profile"}</strong>
+                    <small>{session ? "Edit your public Talent7 identity" : "Sign in to build your Talent7 identity"}</small>
+                  </span>
+                </button>
+                <button onClick={() => switchAppTab("profiles")} type="button">
+                  <span className="appMoreQuickGlyph" aria-hidden="true">⌕</span>
+                  <span>
+                    <strong>Discover profiles</strong>
+                    <small>Find people to follow or challenge</small>
+                  </span>
+                </button>
+              </div>
+
+              <div className="appThemeControl">
+                <span className="appThemeIcon" aria-hidden="true">{colorTheme === "dark" ? "☾" : "☀"}</span>
+                <span>
+                  <strong>Black theme</strong>
+                  <small>{colorTheme === "dark" ? "Dark mode is on" : "Use the darker Talent7 interface"}</small>
+                </span>
+                <button
+                  aria-label={`${colorTheme === "dark" ? "Turn off" : "Turn on"} black theme`}
+                  aria-pressed={colorTheme === "dark"}
+                  className={colorTheme === "dark" ? "active" : ""}
+                  disabled={!colorThemeHydrated}
+                  onClick={() => setColorTheme((current) => current === "dark" ? "light" : "dark")}
+                  type="button"
+                >
+                  <span aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             <div className="appMoreGroups">

@@ -1089,6 +1089,117 @@ form button {
   font-weight: 900;
 }
 
+.appMoreEssentials {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.appMoreQuickLinks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.appMoreQuickLinks > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 82px;
+  padding: 12px;
+  color: var(--ink);
+  text-align: left;
+  background: #f4f8f8;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.appMoreQuickLinks > button:hover {
+  background: #eaf8f6;
+  border-color: var(--teal);
+}
+
+.appMoreQuickLinks > button > span:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.appMoreQuickLinks strong,
+.appThemeControl strong {
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+.appMoreQuickLinks small,
+.appThemeControl small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.appMoreQuickGlyph,
+.appThemeIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: var(--teal);
+  background: #e5f6f3;
+  border-radius: 10px;
+  font-size: 1.08rem;
+  font-weight: 950;
+}
+
+.appThemeControl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  background: #fff8e7;
+  border: 1px solid #efd28a;
+  border-radius: 12px;
+}
+
+.appThemeControl > span:nth-child(2) {
+  display: grid;
+  gap: 2px;
+}
+
+.appThemeControl > button {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  padding: 3px;
+  background: #c9d0d2;
+  border: 0;
+  border-radius: 999px;
+  transition: background 160ms ease;
+}
+
+.appThemeControl > button > span {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(20, 23, 25, 0.2);
+  transition: transform 160ms ease;
+}
+
+.appThemeControl > button.active {
+  background: var(--teal);
+}
+
+.appThemeControl > button.active > span {
+  transform: translateX(20px);
+}
+
 .appMoreGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9981,6 +10092,14 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .appMoreQuickLinks {
+    grid-template-columns: 1fr;
+  }
+
+  .appMoreQuickLinks > button {
+    min-height: 68px;
+  }
+
   .backToTopButton {
     bottom: 116px;
   }
@@ -11207,5 +11326,223 @@ textarea {
 
   .challengeLivePanel .liveReactionBar > div {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* User-selected black theme. The attribute is set from the saved local UI preference. */
+html[data-talent7-theme="dark"] {
+  color-scheme: dark;
+  --paper: #070913;
+  --muted: #aeb6c9;
+  --line: #2a3046;
+  --teal: #35c9c2;
+  --gold: #ffd34d;
+  --blue: #7997ff;
+}
+
+html[data-talent7-theme="dark"] body {
+  color: #f5f7ff;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(65, 45, 145, 0.18), transparent 28rem),
+    #070913;
+}
+
+html[data-talent7-theme="dark"] .setupNotice {
+  color: #d8deed;
+  background: #171b2a;
+  border-color: #51476f;
+}
+
+html[data-talent7-theme="dark"] .setupNotice strong {
+  color: var(--gold);
+}
+
+html[data-talent7-theme="dark"] .section {
+  color: #f5f7ff;
+  background-color: #090c16 !important;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(h1, h2, h3, h4, h5, strong, label, legend, summary) {
+  color: #f5f7ff;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(p, small) {
+  color: #aeb6c9;
+}
+
+html[data-talent7-theme="dark"] main > .section .eyebrow {
+  color: var(--gold);
+}
+
+html[data-talent7-theme="dark"] main > .section :where(article, aside, form, details, fieldset, section:not(.section)),
+html[data-talent7-theme="dark"] main > .section :where(div[class*="Card"], div[class*="Panel"], div[class*="Shell"]),
+html[data-talent7-theme="dark"] main > .section :where(.emptyState, .appStatePanel, .paginationBar, .filters) {
+  color: #f5f7ff;
+  background-color: #111522 !important;
+  border-color: #2a3046 !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+}
+
+html[data-talent7-theme="dark"] main > .section :where(input, select, textarea) {
+  color: #f5f7ff;
+  background: #0a0d17;
+  border-color: #343b55;
+}
+
+html[data-talent7-theme="dark"] main > .section .authTabs button {
+  color: #b9c1d3;
+  background: #1a1f30;
+  border: 1px solid #303750;
+}
+
+html[data-talent7-theme="dark"] main > .section .authTabs button.active {
+  color: #fff;
+  background: linear-gradient(135deg, #214a62, #493080);
+  border-color: #6b5bc3;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(input, textarea)::placeholder {
+  color: #788197;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(button, a) {
+  border-color: #343b55;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(button, a):not(.confirmDanger):not(.dangerAction) {
+  box-shadow: none;
+}
+
+html[data-talent7-theme="dark"] .appTabs,
+html[data-talent7-theme="dark"] .appSubTabs,
+html[data-talent7-theme="dark"] .mobileSubTabs {
+  background: rgba(9, 12, 22, 0.96);
+  border-color: #2a3046;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.42);
+}
+
+html[data-talent7-theme="dark"] .appTabs button,
+html[data-talent7-theme="dark"] .appSubTabs a,
+html[data-talent7-theme="dark"] .mobileSubTabs a {
+  color: #aeb6c9;
+  background: #111522;
+  border-color: #2a3046;
+}
+
+html[data-talent7-theme="dark"] .appTabs button.active,
+html[data-talent7-theme="dark"] .appSubTabs a.active,
+html[data-talent7-theme="dark"] .mobileSubTabs a.active {
+  color: #fff;
+  background: linear-gradient(135deg, #214a62, #493080);
+  border-color: #6b5bc3;
+}
+
+html[data-talent7-theme="dark"] .appMoreBackdrop {
+  background: rgba(2, 3, 8, 0.76);
+}
+
+html[data-talent7-theme="dark"] .appMoreMenu {
+  color: #f5f7ff;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(74, 48, 128, 0.28), transparent 18rem),
+    #0c101b;
+  border-color: #323950;
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.58);
+}
+
+html[data-talent7-theme="dark"] .appMoreHeader strong,
+html[data-talent7-theme="dark"] .appMoreGroupHeader > strong,
+html[data-talent7-theme="dark"] .appMoreItemTitle strong,
+html[data-talent7-theme="dark"] .appMoreQuickLinks strong,
+html[data-talent7-theme="dark"] .appThemeControl strong {
+  color: #f5f7ff;
+}
+
+html[data-talent7-theme="dark"] .appMoreHeader span,
+html[data-talent7-theme="dark"] .appMoreGrid span,
+html[data-talent7-theme="dark"] .appMoreGroupHeader > span,
+html[data-talent7-theme="dark"] .appMoreQuickLinks small,
+html[data-talent7-theme="dark"] .appThemeControl small {
+  color: #aeb6c9;
+}
+
+html[data-talent7-theme="dark"] .appMoreHeader > button,
+html[data-talent7-theme="dark"] .appMoreGrid button,
+html[data-talent7-theme="dark"] .appMoreQuickLinks > button {
+  color: #f5f7ff;
+  background: #141827;
+  border-color: #303750;
+}
+
+html[data-talent7-theme="dark"] .appMoreGrid button.active,
+html[data-talent7-theme="dark"] .appMoreQuickLinks > button:hover {
+  background: #222844;
+  border-color: #6b5bc3;
+}
+
+html[data-talent7-theme="dark"] .appMoreQuickGlyph,
+html[data-talent7-theme="dark"] .appThemeIcon {
+  color: #78e0d9;
+  background: #202940;
+}
+
+html[data-talent7-theme="dark"] .appThemeControl {
+  background: linear-gradient(135deg, #161b2b, #211d3a);
+  border-color: #4b426e;
+}
+
+html[data-talent7-theme="dark"] .appThemeControl > button {
+  background: #343b50;
+}
+
+html[data-talent7-theme="dark"] .appThemeControl > button.active {
+  background: #35c9c2;
+}
+
+html[data-talent7-theme="dark"] .backToTopButton,
+html[data-talent7-theme="dark"] .notificationReturnBar > button {
+  color: #fff;
+  background: #111522;
+  border-color: #5f6a91;
+}
+
+@media (max-width: 760px) {
+  html[data-talent7-theme="dark"] .appTabs {
+    background: rgba(9, 12, 22, 0.97);
+    border-color: #303750;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.58);
+  }
+
+  html[data-talent7-theme="dark"] .appTabs button {
+    color: #8f98ae;
+    background: transparent;
+  }
+
+  html[data-talent7-theme="dark"] .appTabs button.active:not(.mobileNotificationTab) {
+    color: #f8f9ff;
+    background: #222844;
+  }
+
+  html[data-talent7-theme="dark"] .appTabs .mobileNotificationTab {
+    color: #fff;
+    background: linear-gradient(145deg, #23283c, #111522);
+    border-color: #090c16;
+    box-shadow: 0 15px 34px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(121, 151, 255, 0.24);
+  }
+
+  html[data-talent7-theme="dark"] .appTabs .mobileNotificationTab.active {
+    color: #071011;
+    background: linear-gradient(145deg, #ffd34d, #f2bd45);
+    border-color: #090c16;
+    box-shadow: 0 15px 34px rgba(242, 189, 69, 0.28);
+  }
+
+  html[data-talent7-theme="dark"] .mobileNotificationTab .appTabBadge {
+    border-color: #090c16;
+  }
+
+  html[data-talent7-theme="dark"] .appTabsScroller > button:last-child.notificationIsActive {
+    color: #8f98ae;
+    background: transparent;
   }
 }
