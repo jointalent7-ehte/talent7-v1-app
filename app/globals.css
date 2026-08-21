@@ -4379,6 +4379,38 @@ textarea {
   border-radius: 8px;
 }
 
+.sharedIntentNotice {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  color: #5b4100;
+  background: #fff4d2;
+  border: 1px solid #eac96f;
+  border-radius: 8px;
+}
+
+.sharedIntentNotice small {
+  color: #725e27;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+button.sharedIntentAction:not(:disabled) {
+  color: #171306 !important;
+  background: #ffd21f !important;
+  box-shadow: 0 0 0 4px rgba(255, 210, 31, 0.25), 0 12px 28px rgba(74, 55, 0, 0.2);
+  outline: 2px solid #9a7600;
+  outline-offset: 2px;
+  scroll-margin: 140px;
+}
+
+button.sharedIntentAction:disabled {
+  color: #315f53;
+  background: #dff8ef;
+  border: 1px solid #7dcdb8;
+  opacity: 1;
+}
+
 .teamRequestForm select {
   width: 100%;
 }

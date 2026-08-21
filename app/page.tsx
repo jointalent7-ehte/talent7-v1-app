@@ -1573,7 +1573,7 @@ const sampleChallenges: Challenge[] = [
     booking_region: "India",
     match_format: "Doubles",
     roster_size: 2,
-    created_at: new Date().toISOString()
+    created_at: "2026-01-03T12:00:00.000Z"
   },
   {
     id: "sample-2",
@@ -1595,7 +1595,7 @@ const sampleChallenges: Challenge[] = [
     booking_region: "Global",
     match_format: "Singles",
     roster_size: 1,
-    created_at: new Date().toISOString()
+    created_at: "2026-01-02T12:00:00.000Z"
   },
   {
     id: "sample-3",
@@ -1617,7 +1617,7 @@ const sampleChallenges: Challenge[] = [
     booking_region: "Online",
     match_format: "Team",
     roster_size: 4,
-    created_at: new Date().toISOString()
+    created_at: "2026-01-01T12:00:00.000Z"
   }
 ];
 
@@ -2194,6 +2194,10 @@ export default function Home() {
   });
   const [selectedActivityProfile, setSelectedActivityProfile] = useState<TalentProfile | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<TalentProfile | null>(null);
+  const [sharedProfileTarget, setSharedProfileTarget] = useState<{
+    userId: string;
+    intent: "challenge" | "follow";
+  } | null>(null);
   const [notices, setNotices] = useState<AppNotice[]>([]);
   const [authHydrated, setAuthHydrated] = useState(!hasSupabaseConfig);
   const [profileHydrated, setProfileHydrated] = useState(!hasSupabaseConfig);
@@ -2239,6 +2243,10 @@ export default function Home() {
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const [highlightedChallengeId, setHighlightedChallengeId] = useState<string | null>(null);
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
+  const [sharedTeamTarget, setSharedTeamTarget] = useState<{
+    teamId: string;
+    intent: "challenge" | "join";
+  } | null>(null);
   const [highlightedShowcasePostId, setHighlightedShowcasePostId] = useState<string | null>(null);
   const [completingChallengeId, setCompletingChallengeId] = useState<string | null>(null);
   const [savingProofChallengeId, setSavingProofChallengeId] = useState<string | null>(null);
@@ -2695,7 +2703,9 @@ export default function Home() {
       if (selectedStatus === "Completed") {
         const firstCompletedAt = new Date(first.completed_at || first.created_at).getTime();
         const secondCompletedAt = new Date(second.completed_at || second.created_at).getTime();
-        return secondCompletedAt - firstCompletedAt;
+        const completedDifference = secondCompletedAt - firstCompletedAt;
+        if (completedDifference !== 0) return completedDifference;
+        return first.id.localeCompare(second.id);
       }
 
       if (roomDiscoveryMode === "Live") {
@@ -2720,7 +2730,10 @@ export default function Home() {
         if (scoreDifference !== 0) return scoreDifference;
       }
 
-      return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
+      const createdDifference =
+        new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
+      if (createdDifference !== 0) return createdDifference;
+      return first.id.localeCompare(second.id);
     });
   }, [
     challengeMatchesProfileActivity,
@@ -5328,6 +5341,53 @@ export default function Home() {
   }, [publicProfiles]);
 
   useEffect(() => {
+    const search = new URLSearchParams(window.location.search);
+    const profileToken = search.get("profile");
+    if (!profileToken) return;
+    const intent = search.get("intent") === "follow" ? "follow" : "challenge";
+
+    if (!session?.user.id) {
+      setAuthMode("Log in");
+      setActiveAppTab("settings");
+      setActiveSection("account");
+      setLoginPrompt(`Log in to ${intent === "follow" ? "follow" : "challenge"} this shared profile.`);
+      window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+      return;
+    }
+
+    if (!profileHydrated) return;
+    if (!profile) {
+      setActiveAppTab("settings");
+      setActiveSection("account");
+      setLoginPrompt("");
+      setMessage("Create your Talent7 profile first. You will return to the shared profile after saving it.", "warning");
+      window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+      return;
+    }
+
+    const match = publicProfiles.find((item) => item.share_token === profileToken);
+    if (!match) return;
+
+    setSelectedProfile(match);
+    setSharedProfileTarget({ userId: match.user_id, intent });
+    setActiveAppTab("profiles");
+    setActiveSection("profiles");
+    setLoginPrompt("");
+    window.history.replaceState(null, "", `#${profileHash(match.username)}`);
+    setMessage(
+      match.user_id === session.user.id
+        ? "This shared link opens your own profile."
+        : `${match.display_name}'s profile is ready. Review it, then use the highlighted ${intent} action.`,
+      match.user_id === session.user.id ? "warning" : "success"
+    );
+    window.setTimeout(() => {
+      const action = document.getElementById(`shared-profile-${intent}-action`);
+      action?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (action instanceof HTMLElement) action.focus({ preventScroll: true });
+    }, 160);
+  }, [profile, profileHydrated, publicProfiles, session?.user.id]);
+
+  useEffect(() => {
     if (challenges.length === 0) return;
 
     const openRoomFromHash = () => {
@@ -5402,6 +5462,54 @@ export default function Home() {
     window.addEventListener("hashchange", openTeamFromHash);
     return () => window.removeEventListener("hashchange", openTeamFromHash);
   }, [teams]);
+
+  useEffect(() => {
+    const search = new URLSearchParams(window.location.search);
+    const teamToken = search.get("team");
+    if (!teamToken) return;
+    const intent = search.get("intent") === "join" ? "join" : "challenge";
+
+    if (!session?.user.id) {
+      setAuthMode("Log in");
+      setActiveAppTab("settings");
+      setActiveSection("account");
+      setLoginPrompt(`Log in to ${intent === "join" ? "request to join" : "challenge"} this shared team.`);
+      window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+      return;
+    }
+
+    if (!profileHydrated) return;
+    if (!profile) {
+      setActiveAppTab("settings");
+      setActiveSection("account");
+      setLoginPrompt("");
+      setMessage("Create your Talent7 profile first. You will return to the shared team after saving it.", "warning");
+      window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+      return;
+    }
+
+    const match = teams.find((team) => team.share_token === teamToken);
+    if (!match) return;
+
+    setSharedTeamTarget({ teamId: match.id, intent });
+    setActiveAppTab("teams");
+    setActiveSection("teams");
+    setHighlightedTeamId(match.id);
+    setLoginPrompt("");
+    window.history.replaceState(null, "", `#${teamHash(match.id)}`);
+    setMessage(
+      match.owner_user_id === session.user.id && intent === "join"
+        ? `You already own ${match.name}.`
+        : `${match.name} is ready. Review the team, then use the highlighted ${intent === "join" ? "join request" : "challenge"} action.`,
+      match.owner_user_id === session.user.id && intent === "join" ? "warning" : "success"
+    );
+    window.setTimeout(() => {
+      const action = document.getElementById(`shared-team-${intent}-${match.id}`);
+      document.getElementById(teamHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (action instanceof HTMLElement) action.focus({ preventScroll: true });
+    }, 160);
+    window.setTimeout(() => setHighlightedTeamId(null), 2600);
+  }, [profile, profileHydrated, session?.user.id, teams]);
 
   useEffect(() => {
     if (showcasePosts.length === 0) return;
@@ -7497,7 +7605,10 @@ export default function Home() {
 
   useEffect(() => {
     async function loadPublicProfiles() {
-      if (!supabase) return;
+      if (!supabase || !session?.user.id) {
+        setPublicProfiles([]);
+        return;
+      }
 
       const { data } = await supabase
         .from("profiles")
@@ -7508,7 +7619,7 @@ export default function Home() {
     }
 
     loadPublicProfiles();
-  }, []);
+  }, [session?.user.id]);
 
   useEffect(() => {
     async function loadProfile() {
@@ -8070,6 +8181,7 @@ export default function Home() {
       setMessage("Choose another profile to challenge.", "warning");
       return;
     }
+    setSharedProfileTarget(null);
     const activeInvite = activeChallengeInvite(item);
     if (activeInvite?.status === "Accepted") {
       openInviteChallenge(activeInvite);
@@ -8138,6 +8250,7 @@ export default function Home() {
   function challengeTeam(team: TalentTeam) {
     if (!requireLogin("challenge teams")) return;
     if (!requireProfile("challenge teams")) return;
+    setSharedTeamTarget(null);
 
     const isOwnTeam = team.owner_user_id === session?.user.id;
     const ownedTeam = isOwnTeam ? team : teams.find((item) => item.owner_user_id === session?.user.id);
@@ -8193,6 +8306,7 @@ export default function Home() {
 
   function openProfileDetail(item: TalentProfile) {
     setSelectedProfile(item);
+    setSharedProfileTarget(null);
     window.history.replaceState(null, "", `#${profileHash(item.username)}`);
     setMessage(`Opened ${item.display_name}'s Talent7 profile.`);
     setActiveAppTab("profiles");
@@ -8324,6 +8438,7 @@ export default function Home() {
       } else {
         setFollows((items) => items.filter((follow) => follow.id !== existingFollow.id));
         setMessage(`Unfollowed ${item.display_name}.`);
+        setSharedProfileTarget(null);
       }
 
       setFollowActionId(null);
@@ -8344,6 +8459,7 @@ export default function Home() {
     } else if (data) {
       setFollows((items) => [data as ProfileFollow, ...items]);
       setMessage(`Following ${item.display_name}.`);
+      setSharedProfileTarget(null);
     }
 
     setFollowActionId(null);
@@ -8691,6 +8807,7 @@ export default function Home() {
       ]);
       setMessage("Preview mode: team join request saved in this browser session.");
       formElement.reset();
+      setSharedTeamTarget(null);
       setTeamRequestId(null);
       return;
     }
@@ -8707,6 +8824,7 @@ export default function Home() {
       setTeamRequests((items) => [data as TeamRequest, ...items]);
       setMessage("Team join request sent.");
       formElement.reset();
+      setSharedTeamTarget(null);
     }
 
     setTeamRequestId(null);
@@ -12635,17 +12753,37 @@ export default function Home() {
                 <button className="teamShareButton" onClick={() => shareTeam(team)} type="button">
                   Share team
                 </button>
+                {sharedTeamTarget?.teamId === team.id && (
+                  <div className="sharedIntentNotice">
+                    <strong>Continue from shared link</strong>
+                    <small>
+                      Review the team, then confirm the highlighted {sharedTeamTarget.intent === "join" ? "join request" : "challenge"} action.
+                    </small>
+                  </div>
+                )}
                 {team.owner_user_id === session?.user.id ? (
                   <div className="ownTeamNotice">
                     <strong>Your team</strong>
                     <small>Join requests will appear in your team inbox.</small>
-                    <button type="button" onClick={() => challengeTeam(team)}>
+                    <button
+                      className={sharedTeamTarget?.teamId === team.id && sharedTeamTarget.intent === "challenge" ? "sharedIntentAction" : ""}
+                      id={`shared-team-challenge-${team.id}`}
+                      type="button"
+                      onClick={() => challengeTeam(team)}
+                    >
                       Start team challenge
                     </button>
                   </div>
                 ) : (
                   <>
-                    <button className="teamChallengeButton" type="button" onClick={() => challengeTeam(team)}>
+                    <button
+                      className={`teamChallengeButton${
+                        sharedTeamTarget?.teamId === team.id && sharedTeamTarget.intent === "challenge" ? " sharedIntentAction" : ""
+                      }`}
+                      id={`shared-team-challenge-${team.id}`}
+                      type="button"
+                      onClick={() => challengeTeam(team)}
+                    >
                       Challenge this team
                     </button>
                     <form className="teamRequestForm" onSubmit={(event) => requestTeamJoin(event, team)}>
@@ -12655,7 +12793,12 @@ export default function Home() {
                         ))}
                       </select>
                       <input name="message" placeholder="Short note: role, skill level, city, timing..." />
-                      <button disabled={teamRequestId === team.id} type="submit">
+                      <button
+                        className={sharedTeamTarget?.teamId === team.id && sharedTeamTarget.intent === "join" ? "sharedIntentAction" : ""}
+                        disabled={teamRequestId === team.id}
+                        id={`shared-team-join-${team.id}`}
+                        type="submit"
+                      >
                         {teamRequestId === team.id ? "Sending..." : "Request to join"}
                       </button>
                     </form>
@@ -14081,6 +14224,7 @@ export default function Home() {
               <button
                 onClick={() => {
                   setSelectedProfile(null);
+                  setSharedProfileTarget(null);
                   if (window.location.hash.startsWith("#profile-")) {
                     window.history.replaceState(null, "", window.location.pathname);
                   }
@@ -14109,18 +14253,40 @@ export default function Home() {
             </div>
             <div className="profileDetailActions">
               <button
-                disabled={followActionId === selectedProfile.user_id || selectedProfile.user_id === session?.user.id}
+                className={
+                  sharedProfileTarget?.userId === selectedProfile.user_id && sharedProfileTarget.intent === "follow"
+                    ? "sharedIntentAction"
+                    : ""
+                }
+                disabled={
+                  followActionId === selectedProfile.user_id ||
+                  selectedProfile.user_id === session?.user.id ||
+                  (sharedProfileTarget?.userId === selectedProfile.user_id &&
+                    sharedProfileTarget.intent === "follow" &&
+                    follows.some(
+                      (follow) => follow.follower_id === session?.user.id && follow.following_id === selectedProfile.user_id
+                    ))
+                }
+                id="shared-profile-follow-action"
                 onClick={() => toggleFollow(selectedProfile)}
                 type="button"
               >
                 {follows.some((follow) => follow.follower_id === session?.user.id && follow.following_id === selectedProfile.user_id)
-                  ? "Following"
+                  ? sharedProfileTarget?.userId === selectedProfile.user_id && sharedProfileTarget.intent === "follow"
+                    ? "Already following"
+                    : "Following"
                   : selectedProfile.user_id === session?.user.id
                     ? "Your profile"
                     : "Follow"}
               </button>
               <button
+                className={
+                  sharedProfileTarget?.userId === selectedProfile.user_id && sharedProfileTarget.intent === "challenge"
+                    ? "sharedIntentAction"
+                    : ""
+                }
                 disabled={!canUseOpponentInviteAction(selectedProfile)}
+                id="shared-profile-challenge-action"
                 onClick={() => inviteProfileToChallenge(selectedProfile)}
                 type="button"
               >
