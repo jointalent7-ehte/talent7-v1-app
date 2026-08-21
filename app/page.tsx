@@ -1296,6 +1296,7 @@ type TalentProfile = {
   challenge_format?: ChallengeFormat | null;
   challenge_activities?: string[] | null;
   availability_note?: string | null;
+  share_token?: string | null;
   updated_at: string;
 };
 
@@ -8169,21 +8170,30 @@ export default function Home() {
     setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
-  async function copyProfileLink(item: TalentProfile) {
-    const link = `${window.location.origin}${window.location.pathname}#${profileHash(item.username)}`;
-
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = link;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+  async function shareProfile(item: TalentProfile) {
+    if (!item.share_token) {
+      setMessage("This profile does not have a public share link yet. Apply the profile-sharing Supabase migration first.", "warning");
+      return;
     }
 
-    setMessage(`Profile link copied for ${item.display_name}.`);
+    const url = siteUrl(`/profile/${item.share_token}`);
+    const shareData = {
+      title: `${item.display_name} on Talent7`,
+      text: `Meet ${item.display_name}, a ${item.role.toLowerCase()} interested in ${item.main_interest || "new challenges"} on Talent7.`,
+      url
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setMessage(`${item.display_name}'s profile shared.`, "success");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShareText("Profile link", `${shareData.text}\n${url}`);
   }
 
   async function copyRoomLink(challenge: Challenge) {
@@ -14073,8 +14083,8 @@ export default function Home() {
               <button onClick={() => viewProfileActivity(selectedProfile)} type="button">
                 View activity
               </button>
-              <button onClick={() => copyProfileLink(selectedProfile)} type="button">
-                Copy profile link
+              <button onClick={() => shareProfile(selectedProfile)} type="button">
+                Share profile
               </button>
             </div>
             <div className="profileDetailGrid">
@@ -14204,8 +14214,8 @@ export default function Home() {
                   <button onClick={() => viewProfileActivity(item)} type="button">
                     View rooms activity
                   </button>
-                  <button onClick={() => copyProfileLink(item)} type="button">
-                    Copy link
+                  <button onClick={() => shareProfile(item)} type="button">
+                    Share profile
                   </button>
                   {item.role.toLowerCase().includes("coach") && (
                     <a href="#coaching">View coaching</a>
