@@ -3015,7 +3015,8 @@ textarea {
 .dashboardActions a,
 .dashboardPanels article > div a,
 .dashboardRow,
-.followingCard a {
+.followingCard a,
+.savedRoomsCard a {
   width: fit-content;
   padding: 10px 12px;
   color: #fff;
@@ -8240,6 +8241,54 @@ body:has(.publicRoomLanding) {
   box-shadow: 0 0 0 4px rgba(55, 104, 214, 0.18), 0 18px 48px rgba(20, 23, 25, 0.12);
 }
 
+.roomCard.savedRoom {
+  border-color: #e2c45c;
+}
+
+.roomSaveButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  min-height: 42px;
+  padding: 9px 12px;
+  color: var(--ink);
+  background: #eef4f4;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.roomSaveButton > span {
+  color: #a06c00;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.roomSaveButton.saved {
+  color: #624300;
+  background: #fff2c8;
+  border-color: #e2c45c;
+}
+
+.savedRoomsSetupNotice {
+  display: grid;
+  gap: 4px;
+  max-width: 900px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  color: #73510a;
+  background: #fff7df;
+  border: 1px solid #e7cc83;
+  border-radius: 8px;
+}
+
+.savedRoomsSetupNotice small {
+  color: inherit;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
 .roomLinkButton,
 .leaderGrid a {
   width: fit-content;
@@ -12719,6 +12768,28 @@ html[data-talent7-theme="dark"] main > .section .roomCard :where(
 html[data-talent7-theme="dark"] main > .section .roomCard .rosterSummary strong {
   color: #fff;
   background: #087f7c;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomCard.savedRoom {
+  border-color: #6f5d24 !important;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomSaveButton {
+  color: #dce2ef;
+  background: #20263a;
+  border-color: #3a425e;
+}
+
+html[data-talent7-theme="dark"] main > .section .roomSaveButton.saved {
+  color: #ffe28a;
+  background: #2c2619;
+  border-color: #6f5d24;
+}
+
+html[data-talent7-theme="dark"] main > .section .savedRoomsSetupNotice {
+  color: #ffe28a;
+  background: #2c2619 !important;
+  border-color: #6f5d24 !important;
 }
 
 html[data-talent7-theme="dark"] main > .section .roomCard :where(.bookingActions a, .coordinationBookingLinks a) :where(span, strong) {

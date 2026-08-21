@@ -16,7 +16,7 @@ import ChallengeLiveRoom from "./challenge-live-room";
 import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
-type ChallengeStatusFilter = "All" | "Open" | "Completed";
+type ChallengeStatusFilter = "All" | "Open" | "Completed" | "Saved";
 type RoomDiscoveryMode = "Live" | "Trending" | "For you" | "Newest";
 type ChallengeVotingStatus = "Closed" | "Open";
 type ExpertHelpType =
@@ -1006,6 +1006,13 @@ type ProfileFollow = {
   id: string;
   follower_id: string;
   following_id: string;
+  created_at: string;
+};
+
+type ChallengeRoomSave = {
+  id: string;
+  user_id: string;
+  challenge_id: string;
   created_at: string;
 };
 
@@ -2327,6 +2334,9 @@ export default function Home() {
   const [votingDurationDrafts, setVotingDurationDrafts] = useState<Record<string, string>>({});
   const [votingWindowActionId, setVotingWindowActionId] = useState<string | null>(null);
   const [follows, setFollows] = useState<ProfileFollow[]>([]);
+  const [savedRooms, setSavedRooms] = useState<ChallengeRoomSave[]>([]);
+  const [savingRoomId, setSavingRoomId] = useState<string | null>(null);
+  const [savedRoomsLoadError, setSavedRoomsLoadError] = useState("");
   const [challengeMessages, setChallengeMessages] = useState<ChallengeMessage[]>([]);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
   const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
@@ -2719,6 +2729,11 @@ export default function Home() {
     return textMatches || userIdMatches || joinMatches || voteMatches || ratingMatches || proofMatches;
   }, [joins, proofs, ratings, votes]);
 
+  const savedRoomByChallengeId = useMemo(
+    () => new Map(savedRooms.map((savedRoom) => [savedRoom.challenge_id, savedRoom])),
+    [savedRooms]
+  );
+
   const visibleChallenges = useMemo(() => {
     const search = roomSearch.trim().toLowerCase();
     const savedInterest = profile?.main_interest;
@@ -2727,11 +2742,13 @@ export default function Home() {
       const laneMatches = selectedLane === "All" || challenge.lane === selectedLane;
       const statusMatches =
         selectedStatus === "All" ||
-        (selectedStatus === "Open" ? !isChallengeClosed(challenge) : isChallengeClosed(challenge));
+        (selectedStatus === "Open" && !isChallengeClosed(challenge)) ||
+        (selectedStatus === "Completed" && isChallengeClosed(challenge)) ||
+        (selectedStatus === "Saved" && savedRoomByChallengeId.has(challenge.id));
       const profileActivityMatches =
         !selectedActivityProfile || challengeMatchesProfileActivity(challenge, selectedActivityProfile);
       const discoveryMatches =
-        selectedStatus === "Completed" ||
+        selectedStatus !== "Open" ||
         roomDiscoveryMode === "Trending" ||
         roomDiscoveryMode === "Newest" ||
         (roomDiscoveryMode === "Live" &&
@@ -2755,6 +2772,14 @@ export default function Home() {
     });
 
     return [...filteredChallenges].sort((first, second) => {
+      if (selectedStatus === "Saved") {
+        const firstSavedAt = new Date(savedRoomByChallengeId.get(first.id)?.created_at || 0).getTime();
+        const secondSavedAt = new Date(savedRoomByChallengeId.get(second.id)?.created_at || 0).getTime();
+        const savedDifference = secondSavedAt - firstSavedAt;
+        if (savedDifference !== 0) return savedDifference;
+        return first.id.localeCompare(second.id);
+      }
+
       if (selectedStatus === "Completed") {
         const firstCompletedAt = new Date(first.completed_at || first.created_at).getTime();
         const secondCompletedAt = new Date(second.completed_at || second.created_at).getTime();
@@ -2798,6 +2823,7 @@ export default function Home() {
     profile?.main_interest,
     roomDiscoveryMode,
     roomSearch,
+    savedRoomByChallengeId,
     selectedActivityProfile,
     selectedLane,
     selectedStatus,
@@ -2813,9 +2839,10 @@ export default function Home() {
           !isChallengeClosed(challenge) &&
           (liveSessionsByRoom[challenge.id]?.status === "Live" ||
             (liveRoomPresenceCounts[challenge.id] || 0) > 0)
-      ).length
+      ).length,
+      saved: savedRooms.length
     }),
-    [challenges, liveRoomPresenceCounts, liveSessionsByRoom]
+    [challenges, liveRoomPresenceCounts, liveSessionsByRoom, savedRooms.length]
   );
 
   const recommendedRoomCount = useMemo(
@@ -6107,6 +6134,37 @@ export default function Home() {
   }, [session]);
 
   useEffect(() => {
+    async function loadSavedRooms() {
+      if (!supabase || !session?.user.id) {
+        setSavedRooms([]);
+        setSavedRoomsLoadError("");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("challenge_room_saves")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        setSavedRooms([]);
+        setSavedRoomsLoadError(
+          error.code === "42P01"
+            ? "Saved rooms need the latest Supabase migration."
+            : "Saved rooms could not be loaded right now."
+        );
+        return;
+      }
+
+      setSavedRooms((data || []) as ChallengeRoomSave[]);
+      setSavedRoomsLoadError("");
+    }
+
+    void loadSavedRooms();
+  }, [session]);
+
+  useEffect(() => {
     async function loadCoachingInterests() {
       if (!supabase || !session?.user.id) {
         setCoachingInterests([]);
@@ -6400,6 +6458,7 @@ export default function Home() {
     setAuthMode("Log in");
     setLoginPrompt("");
     setAccountDeletionFormUserId(null);
+    setSelectedStatus("Open");
     setMessage("Logged out.");
     openSection("account", true);
   }
@@ -8451,6 +8510,58 @@ export default function Home() {
     }
 
     await copyShareText("Challenge room link", `${shareData.text}\n${url}`);
+  }
+
+  async function toggleSavedRoom(challenge: Challenge) {
+    if (!requireLogin("save challenge rooms")) return;
+    if (!supabase || !session?.user.id) return;
+    if (challenge.id.startsWith("sample-")) {
+      setMessage("Preview rooms cannot be saved. Open a shared Supabase room instead.", "warning");
+      return;
+    }
+
+    const existingSave = savedRoomByChallengeId.get(challenge.id);
+    setSavingRoomId(challenge.id);
+    setMessage("");
+
+    if (existingSave) {
+      const { error } = await supabase
+        .from("challenge_room_saves")
+        .delete()
+        .eq("id", existingSave.id)
+        .eq("user_id", session.user.id);
+
+      if (error) {
+        setMessage(`Could not remove saved room: ${error.message}`, "error");
+      } else {
+        setSavedRooms((items) => items.filter((item) => item.id !== existingSave.id));
+        setMessage(`${challenge.title} removed from Saved rooms.`);
+      }
+      setSavingRoomId(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("challenge_room_saves")
+      .insert({ user_id: session.user.id, challenge_id: challenge.id })
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(
+        error.code === "42P01"
+          ? "Apply add-saved-challenge-rooms.sql in Supabase before saving rooms."
+          : error.code === "23505"
+            ? "This room is already saved."
+            : `Could not save room: ${error.message}`,
+        error.code === "23505" ? "warning" : "error"
+      );
+    } else if (data) {
+      setSavedRooms((items) => [data as ChallengeRoomSave, ...items]);
+      setSavedRoomsLoadError("");
+      setMessage(`${challenge.title} saved for later.`, "success");
+    }
+    setSavingRoomId(null);
   }
 
   async function shareTeam(team: TalentTeam) {
@@ -14703,6 +14814,26 @@ export default function Home() {
                 <strong>{myDashboard.rooms.length}</strong>
                 <small>{myDashboard.rooms[0]?.challenge.title || "No rooms yet"}</small>
               </article>
+              <article className="savedRoomsCard">
+                <span>Saved rooms</span>
+                <strong>{savedRooms.length}</strong>
+                <small>
+                  {savedRooms[0]
+                    ? challenges.find((challenge) => challenge.id === savedRooms[0].challenge_id)?.title || "Saved challenge room"
+                    : "Save rooms to revisit them later"}
+                </small>
+                <a
+                  href="#rooms"
+                  onClick={() => {
+                    setSelectedStatus("Saved");
+                    setSelectedLane("All");
+                    setRoomSearch("");
+                    setSelectedActivityProfile(null);
+                  }}
+                >
+                  View saved rooms
+                </a>
+              </article>
               <article>
                 <span>Teams</span>
                 <strong>{myDashboard.teamCount}</strong>
@@ -15486,7 +15617,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Rooms</p>
           <h2>Challenge rooms</h2>
-          <p>Swipe through active rooms, or open Archive for completed results and proof.</p>
+          <p>Swipe through active rooms, revisit saved matchups, or open Archive for completed results and proof.</p>
         </div>
         <div className={`roomWelcomePanel ${session && profile?.display_name && profile?.username ? "personalized" : ""}`}>
           {!authHydrated || (session && !profileHydrated) ? (
@@ -15590,6 +15721,21 @@ export default function Home() {
             >
               Archive <span>{roomCollectionCounts.archived}</span>
             </button>
+            <button
+              aria-selected={selectedStatus === "Saved"}
+              className={selectedStatus === "Saved" ? "active" : ""}
+              onClick={() => {
+                if (!requireLogin("view saved challenge rooms")) return;
+                setSelectedStatus("Saved");
+                setSelectedLane("All");
+                setRoomSearch("");
+                setSelectedActivityProfile(null);
+              }}
+              role="tab"
+              type="button"
+            >
+              Saved <span>{roomCollectionCounts.saved}</span>
+            </button>
           </div>
           <button
             className="roomRefreshButton"
@@ -15600,7 +15746,7 @@ export default function Home() {
             {refreshingChallengeRooms ? "Refreshing…" : "Refresh rooms"}
           </button>
         </div>
-        {selectedStatus !== "Completed" && (
+        {selectedStatus === "Open" && (
           <div className="roomDiscoveryPanel">
             <div aria-label="Discover challenge rooms" className="roomDiscoveryTabs" role="tablist">
               {(["Live", "Trending", "For you", "Newest"] as RoomDiscoveryMode[]).map((mode) => {
@@ -15681,24 +15827,44 @@ export default function Home() {
             tone="error"
           />
         )}
+        {savedRoomsLoadError && (
+          <div className="savedRoomsSetupNotice" role="status">
+            <strong>Saved rooms need setup</strong>
+            <small>{savedRoomsLoadError} Run `supabase/add-saved-challenge-rooms.sql` once in the SQL editor.</small>
+          </div>
+        )}
         {visibleChallenges.length > 1 && <p className="roomSwipeHint">Swipe sideways to browse the rooms on this page.</p>}
-        <div className="roomsGrid" id="challenge-room-list" aria-label={selectedStatus === "Completed" ? "Archived challenge rooms" : `${roomDiscoveryMode} challenge rooms`}>
+        <div
+          className="roomsGrid"
+          id="challenge-room-list"
+          aria-label={
+            selectedStatus === "Completed"
+              ? "Archived challenge rooms"
+              : selectedStatus === "Saved"
+                ? "Saved challenge rooms"
+                : `${roomDiscoveryMode} challenge rooms`
+          }
+        >
           {visibleChallenges.length === 0 && (
             <AppStatePanel
               actionHref={
-                selectedStatus !== "Completed" && roomDiscoveryMode === "Trending" && !roomSearch && selectedLane === "All" && !selectedActivityProfile
+                selectedStatus === "Open" && roomDiscoveryMode === "Trending" && !roomSearch && selectedLane === "All" && !selectedActivityProfile
                   ? "#create"
                   : undefined
               }
               actionLabel={
-                selectedStatus === "Completed"
+                selectedStatus === "Saved"
+                  ? "Browse active rooms"
+                  : selectedStatus === "Completed"
                   ? "View active rooms"
                   : roomDiscoveryMode !== "Trending" || roomSearch || selectedLane !== "All" || selectedActivityProfile
                     ? "Clear room filters"
                     : "Create the first room"
               }
               detail={
-                selectedStatus === "Completed"
+                selectedStatus === "Saved"
+                  ? "Save any active or archived challenge room and it will appear here for quick access."
+                  : selectedStatus === "Completed"
                   ? "Completed challenges will move here with their result and proof."
                   : roomDiscoveryMode === "Live"
                     ? "A room appears here when its broadcast starts or someone opens it. Browse Trending while you wait."
@@ -15707,14 +15873,16 @@ export default function Home() {
                       : "Adjust the current filters or start a new challenge."
               }
               onAction={
-                selectedStatus === "Completed"
+                selectedStatus === "Saved" || selectedStatus === "Completed"
                   ? browseActiveRooms
                   : roomDiscoveryMode !== "Trending" || roomSearch || selectedLane !== "All" || selectedActivityProfile
                     ? browseActiveRooms
                     : undefined
               }
               title={
-                selectedStatus === "Completed"
+                selectedStatus === "Saved"
+                  ? "No saved rooms yet"
+                  : selectedStatus === "Completed"
                   ? "No archived rooms"
                   : roomDiscoveryMode === "Live"
                     ? "No rooms are live right now"
@@ -15770,7 +15938,7 @@ export default function Home() {
             <article
               className={`roomCard ${challenge.id === createdChallengeId ? "newRoom" : ""} ${
                 challenge.id === highlightedChallengeId ? "highlightRoom" : ""
-              }`}
+              } ${savedRoomByChallengeId.has(challenge.id) ? "savedRoom" : ""}`}
               id={roomHash(challenge.id)}
               key={challenge.id}
             >
@@ -15790,6 +15958,20 @@ export default function Home() {
                   {liveProvider === "YouTube" ? "Replay available" : "Broadcast ended"}
                 </em>
               )}
+              <button
+                aria-pressed={savedRoomByChallengeId.has(challenge.id)}
+                className={`roomSaveButton${savedRoomByChallengeId.has(challenge.id) ? " saved" : ""}`}
+                disabled={savingRoomId === challenge.id}
+                onClick={() => void toggleSavedRoom(challenge)}
+                type="button"
+              >
+                <span aria-hidden="true">{savedRoomByChallengeId.has(challenge.id) ? "★" : "☆"}</span>
+                {savingRoomId === challenge.id
+                  ? "Saving…"
+                  : savedRoomByChallengeId.has(challenge.id)
+                    ? "Saved"
+                    : "Save room"}
+              </button>
               <h3>{challenge.title}</h3>
               {challenge.status === "Completed" && (
                 <div className="winnerBanner">
