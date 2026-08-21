@@ -25,6 +25,7 @@
 - Create the intended `app_admins` records and keep admin access limited.
 - Test room completion, proof upload, deletion, moderation, and invitations with at least two ordinary accounts plus one admin account.
 - Save and unsave active and archived rooms with two ordinary accounts; confirm each account sees only its own Saved collection after signing out and back in.
+- Confirm a saved-room user receives Live, Voting, Proof, and Result notifications exactly once and each notification opens the correct room.
 - Confirm storage bucket types and upload limits match the app's photo/video limits.
 - Upload and delete one proof and one showcase file in R2 using an ordinary production test account.
 - Enable database backups appropriate to the launch plan.
