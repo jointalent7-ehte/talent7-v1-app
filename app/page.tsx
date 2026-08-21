@@ -1312,6 +1312,58 @@ const challengeSkillOptions: ChallengeSkillLevel[] = ["Open", "Beginner", "Inter
 const challengeModeOptions: ChallengeMode[] = ["Either", "In person", "Online"];
 const challengeFormatOptions: ChallengeFormat[] = ["Any", "Singles", "Doubles", "Team"];
 
+function discoveryValuesMatch(candidate: string | null | undefined, preference: string | null | undefined) {
+  const normalizedCandidate = candidate?.trim().toLowerCase() || "";
+  const normalizedPreference = preference?.trim().toLowerCase() || "";
+  return Boolean(
+    normalizedCandidate &&
+      normalizedPreference &&
+      (normalizedCandidate.includes(normalizedPreference) || normalizedPreference.includes(normalizedCandidate))
+  );
+}
+
+function profileDiscoveryReasons(item: TalentProfile, viewer: TalentProfile | null) {
+  if (!viewer || item.user_id === viewer.user_id) return [];
+
+  const reasons: string[] = [];
+  const activities = [item.main_interest, ...(item.challenge_activities || [])];
+  if (activities.some((activity) => discoveryValuesMatch(activity, viewer.main_interest))) {
+    reasons.push("Matches your interest");
+  }
+  if (discoveryValuesMatch(item.region, viewer.region)) reasons.push("Same region");
+  if (profileChallengeAvailability(item) === "Open to everyone") reasons.push("Open to challenges");
+  return reasons;
+}
+
+function profileDiscoveryScore(item: TalentProfile, viewer: TalentProfile | null) {
+  if (!viewer) return 0;
+  if (item.user_id === viewer.user_id) return -1;
+
+  const reasons = profileDiscoveryReasons(item, viewer);
+  return (
+    Number(reasons.includes("Matches your interest")) * 6 +
+    Number(reasons.includes("Same region")) * 3 +
+    Number(reasons.includes("Open to challenges"))
+  );
+}
+
+function teamDiscoveryReasons(team: TalentTeam, viewer: TalentProfile | null) {
+  if (!viewer || team.owner_user_id === viewer.user_id) return [];
+
+  const reasons: string[] = [];
+  if (discoveryValuesMatch(team.main_activity, viewer.main_interest)) reasons.push("Matches your interest");
+  if (discoveryValuesMatch(team.region, viewer.region)) reasons.push("Same region");
+  return reasons;
+}
+
+function teamDiscoveryScore(team: TalentTeam, viewer: TalentProfile | null) {
+  if (!viewer) return 0;
+  if (team.owner_user_id === viewer.user_id) return -1;
+
+  const reasons = teamDiscoveryReasons(team, viewer);
+  return Number(reasons.includes("Matches your interest")) * 6 + Number(reasons.includes("Same region")) * 3;
+}
+
 function profileChallengeAvailability(item: TalentProfile): ChallengeAvailability {
   return item.challenge_availability || "Open to everyone";
 }
@@ -2172,6 +2224,7 @@ export default function Home() {
     window.localStorage.setItem(listenTracksStorageKey, JSON.stringify(listenTracks));
   }, [listenTracks]);
   const [profileSearch, setProfileSearch] = useState("");
+  const [profileDiscoverySort, setProfileDiscoverySort] = useState<"Best match" | "Name">("Best match");
   const [opponentSearch, setOpponentSearch] = useState("");
   const [opponentActivity, setOpponentActivity] = useState("All");
   const [opponentRegion, setOpponentRegion] = useState("");
@@ -2293,6 +2346,8 @@ export default function Home() {
   const [expertHelpRequests, setExpertHelpRequests] = useState<ExpertHelpRequest[]>([]);
   const [expertProfiles, setExpertProfiles] = useState<ExpertProfile[]>([]);
   const [teams, setTeams] = useState<TalentTeam[]>([]);
+  const [teamSearch, setTeamSearch] = useState("");
+  const [teamDiscoverySort, setTeamDiscoverySort] = useState<"Best match" | "Newest">("Best match");
   const [teamRequests, setTeamRequests] = useState<TeamRequest[]>([]);
   const [isOwnerReviewer, setIsOwnerReviewer] = useState(false);
   const [safetyReportActionId, setSafetyReportActionId] = useState<string | null>(null);
@@ -2820,16 +2875,44 @@ export default function Home() {
 
   const visibleProfiles = useMemo(() => {
     const search = profileSearch.trim().toLowerCase();
-
-    if (!search) return publicProfiles;
-
-    return publicProfiles.filter((item) =>
+    const filteredProfiles = publicProfiles.filter((item) =>
+      !search ||
       [item.display_name, item.username, item.role, item.main_interest, item.region]
         .join(" ")
         .toLowerCase()
         .includes(search)
     );
-  }, [profileSearch, publicProfiles]);
+
+    return [...filteredProfiles].sort((first, second) => {
+      if (profileDiscoverySort === "Best match") {
+        const scoreDifference = profileDiscoveryScore(second, profile) - profileDiscoveryScore(first, profile);
+        if (scoreDifference !== 0) return scoreDifference;
+      }
+      return first.display_name.localeCompare(second.display_name) || first.user_id.localeCompare(second.user_id);
+    });
+  }, [profile, profileDiscoverySort, profileSearch, publicProfiles]);
+
+  const visibleTeams = useMemo(() => {
+    const search = teamSearch.trim().toLowerCase();
+    const filteredTeams = teams.filter((team) =>
+      !search ||
+      [team.name, team.team_type, team.main_activity, team.region, team.description]
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
+    );
+
+    return [...filteredTeams].sort((first, second) => {
+      if (teamDiscoverySort === "Best match") {
+        const scoreDifference = teamDiscoveryScore(second, profile) - teamDiscoveryScore(first, profile);
+        if (scoreDifference !== 0) return scoreDifference;
+      } else {
+        const createdDifference = new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
+        if (createdDifference !== 0) return createdDifference;
+      }
+      return first.name.localeCompare(second.name) || first.id.localeCompare(second.id);
+    });
+  }, [profile, teamDiscoverySort, teamSearch, teams]);
 
   const visibleOpponents = useMemo(() => {
     const search = opponentSearch.trim().toLowerCase();
@@ -4027,7 +4110,7 @@ export default function Home() {
 
   useEffect(() => {
     setProfilePage(1);
-  }, [profileSearch]);
+  }, [profileDiscoverySort, profileSearch]);
 
   useEffect(() => {
     setOpponentPage(1);
@@ -5370,6 +5453,7 @@ export default function Home() {
 
     setSelectedProfile(match);
     setSharedProfileTarget({ userId: match.user_id, intent });
+    setProfileSearch("");
     setActiveAppTab("profiles");
     setActiveSection("profiles");
     setLoginPrompt("");
@@ -5492,6 +5576,7 @@ export default function Home() {
     if (!match) return;
 
     setSharedTeamTarget({ teamId: match.id, intent });
+    setTeamSearch("");
     setActiveAppTab("teams");
     setActiveSection("teams");
     setHighlightedTeamId(match.id);
@@ -12732,9 +12817,45 @@ export default function Home() {
             </div>
           </div>
         )}
+        <div className="discoveryToolbar teamDiscoveryToolbar">
+          <label>
+            Search teams
+            <input
+              onChange={(event) => setTeamSearch(event.target.value)}
+              placeholder="Search team, activity, region, or type..."
+              type="search"
+              value={teamSearch}
+            />
+          </label>
+          <div aria-label="Team ordering" className="discoverySort" role="group">
+            <button
+              aria-pressed={teamDiscoverySort === "Best match"}
+              className={teamDiscoverySort === "Best match" ? "active" : ""}
+              onClick={() => setTeamDiscoverySort("Best match")}
+              type="button"
+            >
+              Best match
+            </button>
+            <button
+              aria-pressed={teamDiscoverySort === "Newest"}
+              className={teamDiscoverySort === "Newest" ? "active" : ""}
+              onClick={() => setTeamDiscoverySort("Newest")}
+              type="button"
+            >
+              Newest
+            </button>
+          </div>
+          <small>
+            {profile
+              ? `${visibleTeams.length} team${visibleTeams.length === 1 ? "" : "s"}; interest and region matches appear first.`
+              : `${visibleTeams.length} team${visibleTeams.length === 1 ? "" : "s"}; save a profile to unlock matching.`}
+          </small>
+        </div>
         <div className="teamGrid">
-          {teams.length > 0 ? (
-            teams.map((team) => (
+          {visibleTeams.length > 0 ? (
+            visibleTeams.map((team) => {
+              const matchReasons = teamDiscoveryReasons(team, profile);
+              return (
               <article
                 className={team.id === highlightedTeamId ? "highlightShareTarget" : ""}
                 id={teamHash(team.id)}
@@ -12743,6 +12864,11 @@ export default function Home() {
                 <span>{team.team_type}</span>
                 <strong>{team.name}</strong>
                 <small>Owner: {profileDisplayName(team.owner_user_id)}</small>
+                {matchReasons.length > 0 && (
+                  <div className="discoveryMatchRow" aria-label="Why this team matches">
+                    {matchReasons.map((reason) => <small key={reason}>{reason}</small>)}
+                  </div>
+                )}
                 <p>{team.description}</p>
                 <div className="teamMeta">
                   <small>{team.main_activity}</small>
@@ -12805,13 +12931,24 @@ export default function Home() {
                   </>
                 )}
               </article>
-            ))
+              );
+            })
           ) : (
             <AppStatePanel
-              actionLabel="Create the first team"
-              detail="Start a Talent7 sports team, dance crew, gaming clan, or fitness group."
-              onAction={() => document.querySelector<HTMLElement>(".teamForm")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              title="No teams yet"
+              actionLabel={teams.length > 0 ? "Clear team search" : "Create the first team"}
+              detail={
+                teams.length > 0
+                  ? "Try a team name, activity, region, or type, or show every team again."
+                  : "Start a Talent7 sports team, dance crew, gaming clan, or fitness group."
+              }
+              onAction={() => {
+                if (teams.length > 0) {
+                  setTeamSearch("");
+                  return;
+                }
+                document.querySelector<HTMLElement>(".teamForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              title={teams.length > 0 ? "No teams found" : "No teams yet"}
             />
           )}
         </div>
@@ -14213,6 +14350,31 @@ export default function Home() {
             value={profileSearch}
           />
         </label>
+        <div className="discoveryToolbar profileDiscoveryToolbar">
+          <div aria-label="Profile ordering" className="discoverySort" role="group">
+            <button
+              aria-pressed={profileDiscoverySort === "Best match"}
+              className={profileDiscoverySort === "Best match" ? "active" : ""}
+              onClick={() => setProfileDiscoverySort("Best match")}
+              type="button"
+            >
+              Best match
+            </button>
+            <button
+              aria-pressed={profileDiscoverySort === "Name"}
+              className={profileDiscoverySort === "Name" ? "active" : ""}
+              onClick={() => setProfileDiscoverySort("Name")}
+              type="button"
+            >
+              Name
+            </button>
+          </div>
+          <small>
+            {profile
+              ? `${visibleProfiles.length} profile${visibleProfiles.length === 1 ? "" : "s"}; relevant challengers appear first.`
+              : `${visibleProfiles.length} profile${visibleProfiles.length === 1 ? "" : "s"}; save a profile to unlock matching.`}
+          </small>
+        </div>
         {selectedProfile && selectedProfileSummary && (
           <div className="profileDetailPanel" id="profile-detail">
             <div className="profileDetailHeader">
@@ -14375,10 +14537,17 @@ export default function Home() {
                   title="No profiles found"
                 />
               )}
-              {pagedProfiles.map((item) => (
+              {pagedProfiles.map((item) => {
+                const matchReasons = profileDiscoveryReasons(item, profile);
+                return (
               <article key={item.user_id}>
                 <strong>{item.display_name}</strong>
                 <span>@{item.username}</span>
+                {matchReasons.length > 0 && (
+                  <div className="discoveryMatchRow" aria-label="Why this profile matches">
+                    {matchReasons.slice(0, 3).map((reason) => <small key={reason}>{reason}</small>)}
+                  </div>
+                )}
                 <div className="followStats">
                   <small>{followCounts[item.user_id]?.followers || 0} followers</small>
                   <small>{followCounts[item.user_id]?.following || 0} following</small>
@@ -14434,7 +14603,8 @@ export default function Home() {
                   )}
                 </div>
               </article>
-              ))}
+                );
+              })}
             </div>
             <PaginationControls
               currentPage={profilePage}

@@ -4232,6 +4232,92 @@ textarea {
   gap: 14px;
 }
 
+.discoveryToolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 10px 14px;
+  margin: 0 0 16px;
+  padding: 14px;
+  background: #f7fafa;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.profileDiscoveryToolbar {
+  grid-template-columns: auto minmax(220px, 1fr);
+  align-items: center;
+}
+
+.discoveryToolbar > label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.discoveryToolbar input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.discoveryToolbar > small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.profileDiscoveryToolbar > small {
+  grid-column: auto;
+}
+
+.discoverySort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.discoverySort button {
+  min-height: 44px;
+  padding: 9px 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.discoverySort button.active {
+  color: #fff;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+.discoveryMatchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.teamGrid .discoveryMatchRow small,
+.profileGrid .discoveryMatchRow small {
+  width: fit-content;
+  padding: 6px 8px;
+  color: #73510a;
+  background: #fff2c8;
+  border: 1px solid #ead18a;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
 .myTeamsPanel {
   display: grid;
   gap: 14px;
@@ -11012,6 +11098,25 @@ body:has(.publicRoomLanding) {
 }
 
 @media (max-width: 760px) {
+  .discoveryToolbar,
+  .profileDiscoveryToolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .profileDiscoveryToolbar > small {
+    grid-column: 1;
+  }
+
+  .discoverySort {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .discoverySort button {
+    width: 100%;
+  }
+
   body {
     padding-bottom: 104px;
   }
@@ -12672,6 +12777,24 @@ html[data-talent7-theme="dark"] main > .section :where(input, select, textarea) 
   color: #f5f7ff;
   background: #0a0d17;
   border-color: #343b55;
+}
+
+html[data-talent7-theme="dark"] main > .section .discoveryToolbar {
+  color: #f5f7ff;
+  background: #151a29;
+  border-color: #303750;
+}
+
+html[data-talent7-theme="dark"] main > .section .discoverySort button:not(.active) {
+  color: #dce2ef;
+  background: #1a2030;
+  border-color: #343b55;
+}
+
+html[data-talent7-theme="dark"] main > .section :where(.teamGrid, .profileGrid) .discoveryMatchRow small {
+  color: #ffe28a;
+  background: #2c2619;
+  border-color: #594d29;
 }
 
 html[data-talent7-theme="dark"] main > .section .authTabs button {
