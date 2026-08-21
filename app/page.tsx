@@ -599,6 +599,7 @@ type Challenge = {
   voting_closed_at?: string | null;
   voting_updated_by?: string | null;
   result_share_token?: string | null;
+  room_share_token?: string | null;
   created_at: string;
 };
 
@@ -5353,6 +5354,34 @@ export default function Home() {
   }, [challenges]);
 
   useEffect(() => {
+    const roomToken = new URLSearchParams(window.location.search).get("room");
+    if (!roomToken) return;
+
+    if (!session?.user.id) {
+      setActiveAppTab("settings");
+      setActiveSection("account");
+      setLoginPrompt("Log in to join or watch this shared challenge room.");
+      window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+      return;
+    }
+
+    const match = challenges.find((challenge) => challenge.room_share_token === roomToken);
+    if (!match) return;
+
+    setActiveAppTab("challenges");
+    setActiveSection("rooms");
+    setSelectedLane("All");
+    setSelectedStatus(isChallengeClosed(match) ? "Completed" : "Open");
+    setRoomDiscoveryMode(isChallengeClosed(match) ? "Newest" : "Trending");
+    setRoomSearch("");
+    setHighlightedChallengeId(match.id);
+    window.history.replaceState(null, "", `#${roomHash(match.id)}`);
+    setMessage(`Opened the shared room for ${match.title}.`, "success");
+    window.setTimeout(() => document.getElementById(roomHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+    window.setTimeout(() => setHighlightedChallengeId(null), 2600);
+  }, [challenges, session?.user.id]);
+
+  useEffect(() => {
     if (teams.length === 0) return;
 
     const openTeamFromHash = () => {
@@ -8197,23 +8226,32 @@ export default function Home() {
     await copyShareText("Profile link", `${shareData.text}\n${url}`);
   }
 
-  async function copyRoomLink(challenge: Challenge) {
-    const link = `${window.location.origin}${window.location.pathname}#${roomHash(challenge.id)}`;
-
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = link;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+  async function shareChallengeRoom(challenge: Challenge) {
+    if (!challenge.room_share_token) {
+      setMessage("This room does not have a public share link yet. Apply the room-sharing Supabase migration first.", "warning");
+      return;
     }
 
-    setHighlightedChallengeId(challenge.id);
-    setMessage(`Room link copied for ${challenge.title}.`);
-    window.setTimeout(() => setHighlightedChallengeId(null), 2600);
+    const url = siteUrl(`/room/${challenge.room_share_token}`);
+    const teamA = challengeSideDisplay(challenge, "Team A");
+    const teamB = challengeSideDisplay(challenge, "Team B");
+    const shareData = {
+      title: `${challenge.title} on Talent7`,
+      text: `${teamA} vs ${teamB} in ${challenge.title}. Preview the challenge room on Talent7:`,
+      url
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setMessage(`${challenge.title} shared.`, "success");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShareText("Challenge room link", `${shareData.text}\n${url}`);
   }
 
   async function shareTeam(team: TalentTeam) {
@@ -15484,8 +15522,8 @@ export default function Home() {
                 </summary>
                 <div className="roomWorkspaceBody">
               <div className="roomCardActions">
-                <button className="roomLinkButton" onClick={() => copyRoomLink(challenge)} type="button">
-                  Copy link
+                <button className="roomLinkButton" onClick={() => shareChallengeRoom(challenge)} type="button">
+                  Share room
                 </button>
                 {canDeleteChallenge(challenge) && (
                   <button
