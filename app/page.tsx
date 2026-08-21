@@ -1208,6 +1208,7 @@ type AppNotification = {
   detail: string;
   createdAt: string;
   href: string;
+  challengeId?: string;
   challengeTitle?: string;
 };
 
@@ -1217,6 +1218,7 @@ type PushNotificationEvent = {
   title: string;
   body: string;
   href: string;
+  resource_id?: string | null;
   created_at: string;
 };
 
@@ -3670,15 +3672,22 @@ export default function Home() {
 
     const realtimeRoomAlerts = pushNotificationEvents
       .filter((event) => event.category === "Live room" || event.category === "Voting")
-      .map((event) => ({
-        id: `notification-push-${event.id}`,
-        label: event.category === "Live room" ? "Live now" : "Voting open",
-        category: (event.category === "Live room" ? "Live" : "Voting") as AppNotification["category"],
-        title: event.title,
-        detail: event.body,
-        createdAt: event.created_at,
-        href: event.href
-      }));
+      .map((event) => {
+        const challenge = event.resource_id
+          ? challenges.find((item) => item.id === event.resource_id)
+          : null;
+        return {
+          id: `notification-push-${event.id}`,
+          label: event.category === "Live room" ? "Live now" : "Voting open",
+          category: (event.category === "Live room" ? "Live" : "Voting") as AppNotification["category"],
+          title: challenge?.title || event.title,
+          detail: event.body,
+          createdAt: event.created_at,
+          href: challenge ? `#${roomHash(challenge.id)}` : event.href,
+          challengeId: challenge?.id,
+          challengeTitle: challenge?.title
+        };
+      });
 
     const receivedInviteAlerts = inviteInbox.received.map((invite) => {
       const status = challengeInviteDisplayStatus(invite);
@@ -3755,6 +3764,26 @@ export default function Home() {
         detail: `${proof.proof_type || "Proof"} is waiting for review.`,
         createdAt: proof.created_at,
         href: "#rooms",
+        challengeId: proof.challenge_id,
+        challengeTitle: challengeTitle(proof.challenge_id)
+      }));
+
+    const savedProofAlerts = proofs
+      .filter(
+        (proof) =>
+          savedRoomByChallengeId.has(proof.challenge_id) &&
+          proof.user_id !== userId &&
+          !createdChallengeIds.has(proof.challenge_id)
+      )
+      .map((proof) => ({
+        id: `notification-saved-proof-${proof.id}`,
+        label: "Proof added to saved room",
+        category: "Proof" as const,
+        title: challengeTitle(proof.challenge_id),
+        detail: `${proof.proof_type || "Proof"} was added to a room you saved.`,
+        createdAt: proof.created_at,
+        href: `#${roomHash(proof.challenge_id)}`,
+        challengeId: proof.challenge_id,
         challengeTitle: challengeTitle(proof.challenge_id)
       }));
 
@@ -3773,6 +3802,30 @@ export default function Home() {
         detail: challenge.winner ? `Winner: ${resolvedChallengeWinnerName(challenge, joins)}` : "Winner declared.",
         createdAt: challenge.completed_at || challenge.created_at,
         href: "#rooms",
+        challengeId: challenge.id,
+        challengeTitle: challenge.title
+      }));
+
+    const savedCompletedAlerts = challenges
+      .filter(
+        (challenge) =>
+          challenge.status === "Completed" &&
+          challenge.completed_by !== userId &&
+          savedRoomByChallengeId.has(challenge.id) &&
+          challenge.created_by !== userId &&
+          !joinedChallengeIds.has(challenge.id)
+      )
+      .map((challenge) => ({
+        id: `notification-saved-completed-${challenge.id}`,
+        label: "Saved room completed",
+        category: "Results" as const,
+        title: challenge.title,
+        detail: challenge.winner
+          ? `Winner: ${resolvedChallengeWinnerName(challenge, joins)}`
+          : "A saved room has published its result.",
+        createdAt: challenge.completed_at || challenge.created_at,
+        href: `#${roomHash(challenge.id)}`,
+        challengeId: challenge.id,
         challengeTitle: challenge.title
       }));
 
@@ -3934,7 +3987,9 @@ export default function Home() {
       ...teamOwnerAlerts,
       ...teamMemberAlerts,
       ...proofAlerts,
+      ...savedProofAlerts,
       ...completedAlerts,
+      ...savedCompletedAlerts,
       ...reportAlerts,
       ...feedbackAlerts,
       ...commentAlerts,
@@ -3962,6 +4017,7 @@ export default function Home() {
     mySafetyReports,
     pushNotificationEvents,
     proofs,
+    savedRoomByChallengeId,
     session,
     showcaseComments,
     showcasePosts,
@@ -4459,7 +4515,19 @@ export default function Home() {
     event.stopPropagation();
     markNotificationRead(notification);
 
-    if (notification.challengeTitle) {
+    const targetChallenge = notification.challengeId
+      ? challenges.find((challenge) => challenge.id === notification.challengeId)
+      : null;
+
+    if (targetChallenge) {
+      setSelectedStatus(isChallengeClosed(targetChallenge) ? "Completed" : "Open");
+      setRoomDiscoveryMode(isChallengeClosed(targetChallenge) ? "Newest" : "Trending");
+      setRoomSearch("");
+      setSelectedLane("All");
+      setSelectedActivityProfile(null);
+      setHighlightedChallengeId(targetChallenge.id);
+      window.setTimeout(() => setHighlightedChallengeId(null), 2600);
+    } else if (notification.challengeTitle) {
       setRoomSearch(notification.challengeTitle);
       setSelectedLane("All");
     }
@@ -5244,7 +5312,7 @@ export default function Home() {
     async function loadPushNotificationEvents() {
       const { data } = await supabaseClient
         .from("push_notification_events")
-        .select("id, category, title, body, href, created_at")
+        .select("id, category, title, body, href, resource_id, created_at")
         .eq("user_id", userId)
         .in("category", ["Live room", "Voting"])
         .order("created_at", { ascending: false })
@@ -11650,7 +11718,7 @@ export default function Home() {
                 Search notifications
                 <input
                   onChange={(event) => setNotificationSearch(event.target.value)}
-                  placeholder="Search invites, proof, teams, reports, expert help..."
+                  placeholder="Search invites, saved rooms, proof, teams, reports..."
                   type="search"
                   value={notificationSearch}
                 />
@@ -11713,7 +11781,7 @@ export default function Home() {
           ) : (
             <div className="emptyState">
               <strong>No notifications yet.</strong>
-              <small>Invites, team updates, proof uploads, expert help, reports, and comments will appear here.</small>
+              <small>Invites, saved-room activity, team updates, proof uploads, reports, and comments will appear here.</small>
             </div>
           )}
           </>
