@@ -1164,6 +1164,7 @@ type TalentTeam = {
   main_activity: string;
   region: string;
   description: string;
+  share_token?: string | null;
   created_at: string;
 };
 
@@ -8215,23 +8216,30 @@ export default function Home() {
     window.setTimeout(() => setHighlightedChallengeId(null), 2600);
   }
 
-  async function copyTeamLink(team: TalentTeam) {
-    const link = `${window.location.origin}${window.location.pathname}#${teamHash(team.id)}`;
-
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = link;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+  async function shareTeam(team: TalentTeam) {
+    if (!team.share_token) {
+      setMessage("This team does not have a public share link yet. Apply the team-sharing Supabase migration first.", "warning");
+      return;
     }
 
-    setHighlightedTeamId(team.id);
-    setMessage(`Team link copied for ${team.name}.`);
-    window.setTimeout(() => setHighlightedTeamId(null), 2600);
+    const url = siteUrl(`/team/${team.share_token}`);
+    const shareData = {
+      title: `${team.name} on Talent7`,
+      text: `Meet ${team.name}, a ${team.team_type.toLowerCase()} for ${team.main_activity} in ${team.region}. View the team on Talent7:`,
+      url
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setMessage(`${team.name} shared.`, "success");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShareText("Team link", `${shareData.text}\n${url}`);
   }
 
   async function copyShowcaseLink(post: ShowcasePost) {
@@ -12586,8 +12594,8 @@ export default function Home() {
                   <small>{teamRequestCounts[team.id]?.accepted || 0} accepted</small>
                   <small>{teamRequestCounts[team.id]?.pending || 0} pending</small>
                 </div>
-                <button className="teamShareButton" onClick={() => copyTeamLink(team)} type="button">
-                  Copy team link
+                <button className="teamShareButton" onClick={() => shareTeam(team)} type="button">
+                  Share team
                 </button>
                 {team.owner_user_id === session?.user.id ? (
                   <div className="ownTeamNotice">
