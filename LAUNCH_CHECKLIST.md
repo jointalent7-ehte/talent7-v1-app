@@ -24,6 +24,7 @@
 - Verify email confirmation, password reset, sign-out, and session restoration.
 - Create the intended `app_admins` records and keep admin access limited.
 - Test room completion, proof upload, deletion, moderation, and invitations with at least two ordinary accounts plus one admin account.
+- Save and unsave active and archived rooms with two ordinary accounts; confirm each account sees only its own Saved collection after signing out and back in.
 - Confirm storage bucket types and upload limits match the app's photo/video limits.
 - Upload and delete one proof and one showcase file in R2 using an ordinary production test account.
 - Enable database backups appropriate to the launch plan.
@@ -40,6 +41,8 @@
 - Test keyboard navigation, screen-reader labels, reduced motion, color contrast, and 200% zoom on the deployed site.
 
 ## Release verification
+
+- Verify Save room, Saved collection, unsave, and session restoration with two ordinary accounts.
 
 - Create, join, invite to, complete, archive, and—when permitted—delete a challenge room.
 - Upload photo and video proof and verify unauthorized users cannot manage it.

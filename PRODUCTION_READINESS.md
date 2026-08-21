@@ -8,7 +8,7 @@ This document separates features that persist real multi-user data from previews
 | --- | --- | --- | --- |
 | Accounts | Connected | Supabase signup, confirmation, login, session restoration, logout, verified password change, reset email, and confirmation resend | Continue testing confirmation/reset with two real inboxes |
 | Profiles | Connected | Unique profiles, interests, regions, follows, activity, and trust badges | Apply production constraints and test username collisions |
-| Challenges | Connected | Create, edit, join, invite, chat, vote, rate, proof, complete, archive, delete, and report | Apply hardening migration and run three-account permission tests |
+| Challenges | Connected | Create, edit, join, invite, chat, vote, rate, proof, complete, archive, delete, report, and privately save rooms for later | Apply the saved-room and hardening migrations, then run three-account permission tests |
 | Teams | Connected | Team creation, join requests, approvals, member roles, and linked challenges | Apply role constraints and test every role against proof/result permissions |
 | Showcase | Connected | Posts, R2 photo/video uploads, ratings, comments, reports, edit, and delete | Add comment management and moderation response targets |
 | Coaching | Connected marketplace | Offers, learner interest, and coach status updates | It does not yet include checkout, video calling, or calendar booking |
@@ -30,6 +30,7 @@ Back up Supabase first, then apply these files in order:
 2. `supabase/add-notification-read-state.sql`
 3. `supabase/harden-production-user-actions.sql`
 4. `supabase/add-account-deletion-workflow.sql`
+5. `supabase/add-saved-challenge-rooms.sql`
 
 The last migration removes duplicate per-user challenge joins if any exist, prevents future duplicates, locks completion transitions, constrains roles and usernames, and limits status updates to their intended columns.
 
