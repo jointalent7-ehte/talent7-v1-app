@@ -126,8 +126,12 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
           </div>
 
           <div className="profilePreviewActions">
-            <Link href="/#account">Join Talent7</Link>
-            <Link href="/#profiles">Find more talent</Link>
+            <Link href={`/?profile=${encodeURIComponent(token)}&intent=challenge#account`}>
+              Challenge {profile.display_name}
+            </Link>
+            <Link href={`/?profile=${encodeURIComponent(token)}&intent=follow#account`}>
+              Follow on Talent7
+            </Link>
           </div>
           <small className="profilePreviewSafety">
             This shared card contains public profile and aggregate activity only. Email, user ID, messages, and private coordination are never shown.
