@@ -112,8 +112,12 @@ export default async function PublicTeamPage({ params }: TeamPageProps) {
           </div>
 
           <div className="teamPreviewActions">
-            <Link href="/#account">Join Talent7</Link>
-            <Link href="/#teams">Explore more teams</Link>
+            <Link href={`/?team=${encodeURIComponent(token)}&intent=challenge#account`}>
+              Challenge this team
+            </Link>
+            <Link href={`/?team=${encodeURIComponent(token)}&intent=join#account`}>
+              Request to join
+            </Link>
           </div>
           <small className="teamPreviewSafety">
             This card shows public team information and aggregate activity only. Join requests, messages, and private member details stay hidden.
