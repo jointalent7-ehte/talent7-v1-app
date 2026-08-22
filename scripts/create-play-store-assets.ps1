@@ -155,7 +155,7 @@ Draw-CoverImage $g $hero (New-Object System.Drawing.Rectangle 0, 0, 1024, 500)
 Draw-Gradient $g (New-Object System.Drawing.Rectangle 0, 0, 670, 500) "#06100fcc" "#06100f00"
 Draw-Text $g "Talent7" 58 96 88 "#ffffff" ([System.Drawing.FontStyle]::Bold)
 Draw-Text $g "Challenge. Rate. Prove it." 62 205 36 "#ffffff" ([System.Drawing.FontStyle]::Bold)
-Draw-Text $g "Talent battles, sports rooms, gaming squads, coaching, and safe expert help." 64 270 25 "#e5eeec" ([System.Drawing.FontStyle]::Regular) 610
+Draw-Text $g "Talent battles, sports rooms, gaming squads, public ratings, and live community action." 64 270 25 "#e5eeec" ([System.Drawing.FontStyle]::Regular) 610
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 62, 382, 230, 58) 18 (New-Brush "#ffffff")
 Draw-Text $g "Join first wave" 90 398 25 "#101417" ([System.Drawing.FontStyle]::Bold)
 $g.Dispose()
@@ -170,7 +170,7 @@ Draw-CoverImage $g $hero (New-Object System.Drawing.Rectangle 0, 0, 1080, 760)
 Draw-Gradient $g (New-Object System.Drawing.Rectangle 0, 0, 1080, 760) "#06100fcc" "#06100f33"
 Draw-Text $g "Talent7" 66 95 92 "#ffffff" ([System.Drawing.FontStyle]::Bold)
 Draw-Text $g "Challenge. Rate. Prove it." 70 215 50 "#ffffff" ([System.Drawing.FontStyle]::Bold) 760
-Draw-Text $g "Fair challenge rooms for talent, sports, mobile gaming, coaching, and expert guidance." 72 350 32 "#dce8e6" ([System.Drawing.FontStyle]::Regular) 820
+Draw-Text $g "Fair challenge rooms for talent, sports, and mobile gaming with ratings and proof." 72 350 32 "#dce8e6" ([System.Drawing.FontStyle]::Regular) 820
 Draw-StatCard $g 62 825 430 "Challenge rooms" "11"
 Draw-StatCard $g 588 825 430 "Top rooms" "3"
 Draw-StatCard $g 62 990 430 "Proof uploads" "3"
@@ -200,47 +200,47 @@ $s3 = New-Object System.Drawing.Bitmap 1080, 1920
 $g = [System.Drawing.Graphics]::FromImage($s3)
 Set-Quality $g
 $g.Clear([System.Drawing.ColorTranslator]::FromHtml("#f3f8f7"))
-Draw-PhoneHeader $g "Showcase talent and coaching" "Follow profiles, post showcase clips, and find lessons."
+Draw-PhoneHeader $g "Profiles, teams, and matchups" "Find people, check challenge history, and build a team."
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 70, 425, 940, 340) 28 (New-Brush "#ffffff") (New-PenSafe "#d9e5e3" 2)
 Draw-Chip $g "Breakdance" 105 465
 Draw-Text $g "Arya Flow" 105 545 48 "#101417" ([System.Drawing.FontStyle]::Bold)
-Draw-Text $g "Footwork showcase and challenge history" 108 615 30 "#66757a" ([System.Drawing.FontStyle]::Regular)
-Draw-Text $g "7.0/7 rating" 108 700 30 "#101417" ([System.Drawing.FontStyle]::Bold)
+Draw-Text $g "Challenge history, achievements, and Ready Now status" 108 615 30 "#66757a" ([System.Drawing.FontStyle]::Regular)
+Draw-Text $g "Ready now" 108 700 30 "#101417" ([System.Drawing.FontStyle]::Bold)
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 70, 820, 940, 340) 28 (New-Brush "#ffffff") (New-PenSafe "#d9e5e3" 2)
-Draw-Chip $g "Coaching" 105 860
-Draw-Text $g "Badminton footwork lesson" 105 940 42 "#101417" ([System.Drawing.FontStyle]::Bold)
-Draw-Text $g "Upload coaching videos or offer live sessions later." 108 1010 30 "#66757a" ([System.Drawing.FontStyle]::Regular) 800
+Draw-Chip $g "Matchmaking" 105 860
+Draw-Text $g "Find an opponent today" 105 940 42 "#101417" ([System.Drawing.FontStyle]::Bold)
+Draw-Text $g "Search by activity and region, then invite a Ready Now challenger." 108 1010 30 "#66757a" ([System.Drawing.FontStyle]::Regular) 800
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 105, 1080, 810, 62) 16 (New-Brush "#13958f")
-Draw-Text $g "Request coaching" 395 1097 25 "#ffffff" ([System.Drawing.FontStyle]::Bold)
+Draw-Text $g "Open challenges" 395 1097 25 "#ffffff" ([System.Drawing.FontStyle]::Bold)
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 70, 1220, 940, 300) 28 (New-Brush "#ffffff") (New-PenSafe "#d9e5e3" 2)
 Draw-Chip $g "Teams" 105 1260
 Draw-Text $g "Form squads, crews, and clans" 105 1340 42 "#101417" ([System.Drawing.FontStyle]::Bold)
 Draw-Text $g "Create reusable team identities for doubles, dance, calisthenics, and gaming." 108 1410 29 "#66757a" ([System.Drawing.FontStyle]::Regular) 800
 Draw-BottomTabs $g "Teams"
 $g.Dispose()
-Save-Png $s3 (Join-Path $outDir "phone-03-showcase-coaching.png")
+Save-Png $s3 (Join-Path $outDir "phone-03-profiles-teams.png")
 
 # Phone screenshot 4
 $s4 = New-Object System.Drawing.Bitmap 1080, 1920
 $g = [System.Drawing.Graphics]::FromImage($s4)
 Set-Quality $g
 $g.Clear([System.Drawing.ColorTranslator]::FromHtml("#f3f8f7"))
-Draw-PhoneHeader $g "Safety and expert guidance" "Report unsafe content and request help from verified experts."
+Draw-PhoneHeader $g "Safety and notifications" "Report unsafe content and keep important challenge updates together."
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 70, 420, 940, 330) 28 (New-Brush "#fff7e8") (New-PenSafe "#f3bf48" 2)
 Draw-Text $g "Community safety" 110 460 40 "#101417" ([System.Drawing.FontStyle]::Bold)
 Draw-Text $g "No fake proof. No harassment. Use your own content. Report problems quickly." 112 535 30 "#66757a" ([System.Drawing.FontStyle]::Regular) 800
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 112, 645, 300, 64) 18 (New-Brush "#111517")
 Draw-Text $g "Report issue" 178 662 27 "#ffffff" ([System.Drawing.FontStyle]::Bold)
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 70, 820, 940, 370) 28 (New-Brush "#ffffff") (New-PenSafe "#d9e5e3" 2)
-Draw-Chip $g "Expert help" 105 860
-Draw-Text $g "Medical, plumbing, tech, fitness" 105 940 42 "#101417" ([System.Drawing.FontStyle]::Bold)
-Draw-Text $g "Guidance requests can be assigned to verified experts. Emergency cases should contact local services first." 108 1012 29 "#66757a" ([System.Drawing.FontStyle]::Regular) 800
+Draw-Chip $g "Notifications" 105 860
+Draw-Text $g "Challenge updates in one place" 105 940 42 "#101417" ([System.Drawing.FontStyle]::Bold)
+Draw-Text $g "See invites, live rooms, voting windows, proof, results, and weekly summaries." 108 1012 29 "#66757a" ([System.Drawing.FontStyle]::Regular) 800
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 70, 1260, 940, 300) 28 (New-Brush "#ffffff") (New-PenSafe "#d9e5e3" 2)
-Draw-Text $g "Notifications" 105 1305 42 "#101417" ([System.Drawing.FontStyle]::Bold)
-Draw-Text $g "Invites, proof uploads, reports, results, and comments in one place." 108 1375 31 "#66757a" ([System.Drawing.FontStyle]::Regular) 800
-Draw-BottomTabs $g "Help"
+Draw-Text $g "Saved challenge rooms" 105 1305 42 "#101417" ([System.Drawing.FontStyle]::Bold)
+Draw-Text $g "Save active or completed rooms and return when important activity happens." 108 1375 31 "#66757a" ([System.Drawing.FontStyle]::Regular) 800
+Draw-BottomTabs $g "Safety"
 $g.Dispose()
-Save-Png $s4 (Join-Path $outDir "phone-04-safety-expert-help.png")
+Save-Png $s4 (Join-Path $outDir "phone-04-safety-notifications.png")
 
 $hero.Dispose()
 
