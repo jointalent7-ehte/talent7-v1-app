@@ -15,6 +15,7 @@ export type PublicTalentProfile = {
   challenge_count: number;
   completed_count: number;
   proof_count: number;
+  supporter_tier: string | null;
 };
 
 function publicSupabaseClient() {
@@ -32,10 +33,14 @@ export async function getPublicTalentProfile(token: string) {
   const client = publicSupabaseClient();
   if (!client) return null;
 
-  const { data, error } = await client
-    .rpc("get_public_profile_preview", { target_share_token: token })
-    .maybeSingle();
+  const [profileResult, supporterResult] = await Promise.all([
+    client.rpc("get_public_profile_preview", { target_share_token: token }).maybeSingle(),
+    client.rpc("get_public_supporter_badge", { target_share_token: token })
+  ]);
 
-  if (error || !data) return null;
-  return data as PublicTalentProfile;
+  if (profileResult.error || !profileResult.data) return null;
+  return {
+    ...(profileResult.data as Omit<PublicTalentProfile, "supporter_tier">),
+    supporter_tier: supporterResult.error ? null : String(supporterResult.data || "") || null
+  };
 }
