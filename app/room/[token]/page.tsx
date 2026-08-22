@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import GrowthEvent from "../../growth-event";
 import { getPublicChallengeRoom } from "../../../lib/public-room-preview";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,7 @@ export default async function PublicRoomPage({ params }: RoomPageProps) {
 
   return (
     <main className="publicRoomLanding">
+      <GrowthEvent eventName="shared_link_view" resourceToken={token} resourceType="room" source="shared_room" />
       <div className="publicRoomLandingShell">
         <header className="inviteLandingBrand">
           <Link href="/">Talent<span>7</span></Link>

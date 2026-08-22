@@ -12,7 +12,9 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
+import { trackGrowthEvent } from "../lib/growth-analytics";
 import ChallengeLiveRoom from "./challenge-live-room";
+import GrowthHub from "./growth-hub";
 import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
@@ -50,6 +52,27 @@ const profilePageSize = 8;
 const feedPageSize = 8;
 const notificationPageSize = 10;
 const opponentPageSize = 8;
+const sharedIntentStorageKey = "talent7-shared-intent";
+
+function sharedIntentSearch(search = "") {
+  const source = new URLSearchParams(search);
+  const target = new URLSearchParams();
+  const profileToken = source.get("profile");
+  const teamToken = source.get("team");
+  const inviteToken = source.get("invite");
+
+  if (profileToken) {
+    target.set("profile", profileToken);
+    target.set("intent", source.get("intent") === "follow" ? "follow" : "challenge");
+  } else if (teamToken) {
+    target.set("team", teamToken);
+    target.set("intent", source.get("intent") === "join" ? "join" : "challenge");
+  } else if (inviteToken) {
+    target.set("invite", inviteToken);
+  }
+
+  return target.toString();
+}
 const athleticsIndividualEvents = [
   "100 m sprint",
   "200 m sprint",
@@ -1203,7 +1226,7 @@ type SafetyReportItem = {
 type AppNotification = {
   id: string;
   label: string;
-  category: "Invites" | "Teams" | "Live" | "Voting" | "Proof" | "Results" | "Reports" | "Showcase" | "Expert help" | "Feedback";
+  category: "Invites" | "Teams" | "Live" | "Voting" | "Proof" | "Results" | "Weekly" | "Reports" | "Showcase" | "Expert help" | "Feedback";
   title: string;
   detail: string;
   createdAt: string;
@@ -1214,7 +1237,7 @@ type AppNotification = {
 
 type PushNotificationEvent = {
   id: string;
-  category: "Challenge invite" | "Challenge update" | "Live room" | "Voting" | "Proof and result" | "Social";
+  category: "Challenge invite" | "Challenge update" | "Live room" | "Voting" | "Proof and result" | "Social" | "Weekly summary";
   title: string;
   body: string;
   href: string;
@@ -1230,6 +1253,7 @@ type PushNotificationPreferences = {
   voting_windows: boolean;
   proof_results: boolean;
   social_updates: boolean;
+  weekly_summary: boolean;
 };
 
 type Talent7PushBridge = {
@@ -1249,7 +1273,8 @@ const defaultPushNotificationPreferences: PushNotificationPreferences = {
   live_rooms: true,
   voting_windows: true,
   proof_results: true,
-  social_updates: false
+  social_updates: false,
+  weekly_summary: true
 };
 
 const pushNotificationsEnabled = true;
@@ -1276,6 +1301,7 @@ const notificationFilterOptions: NotificationFilter[] = [
   "Voting",
   "Proof",
   "Results",
+  "Weekly",
   "Reports",
   "Showcase",
   "Expert help",
@@ -1307,6 +1333,7 @@ type TalentProfile = {
   challenge_format?: ChallengeFormat | null;
   challenge_activities?: string[] | null;
   availability_note?: string | null;
+  ready_now_until?: string | null;
   share_token?: string | null;
   updated_at: string;
 };
@@ -2240,6 +2267,7 @@ export default function Home() {
   const [opponentSkill, setOpponentSkill] = useState<ChallengeSkillLevel | "All">("All");
   const [opponentMode, setOpponentMode] = useState<ChallengeMode | "All">("All");
   const [opponentFormat, setOpponentFormat] = useState<ChallengeFormat | "All">("All");
+  const [opponentReadyOnly, setOpponentReadyOnly] = useState(false);
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
   const [challengeEditSetups, setChallengeEditSetups] = useState<
     Record<string, { activity: string; format: MatchFormat; rosterSize: number }>
@@ -2283,6 +2311,17 @@ export default function Home() {
   const [loginPrompt, setLoginPrompt] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<TalentProfile | null>(null);
+  useEffect(() => {
+    const currentIntent = sharedIntentSearch(window.location.search);
+    if (currentIntent) {
+      window.localStorage.setItem(sharedIntentStorageKey, currentIntent);
+      return;
+    }
+
+    const savedIntent = window.localStorage.getItem(sharedIntentStorageKey);
+    if (!savedIntent) return;
+    window.history.replaceState(null, "", `/?${savedIntent}#account`);
+  }, []);
   useEffect(() => {
     const inviteToken = new URLSearchParams(window.location.search).get("invite");
     if (!inviteToken) return;
@@ -2972,18 +3011,23 @@ export default function Home() {
         const modeMatches = opponentMode === "All" || mode === "Either" || mode === opponentMode;
         const format = item.challenge_format || "Any";
         const formatMatches = opponentFormat === "All" || format === "Any" || format === opponentFormat;
+        const readyMatches = !opponentReadyOnly || Boolean(
+          item.ready_now_until && new Date(item.ready_now_until).getTime() > roomRankingTimestamp
+        );
 
-        return (!search || searchable.includes(search)) && activityMatches && regionMatches && skillMatches && modeMatches && formatMatches;
+        return (!search || searchable.includes(search)) && activityMatches && regionMatches && skillMatches && modeMatches && formatMatches && readyMatches;
       })
       .sort((first, second) => {
+        const firstReady = first.ready_now_until && new Date(first.ready_now_until).getTime() > roomRankingTimestamp ? 1 : 0;
+        const secondReady = second.ready_now_until && new Date(second.ready_now_until).getTime() > roomRankingTimestamp ? 1 : 0;
         const firstOpen = profileChallengeAvailability(first) === "Open to everyone" ? 1 : 0;
         const secondOpen = profileChallengeAvailability(second) === "Open to everyone" ? 1 : 0;
         const firstInterestMatch = ownInterest && profileChallengeActivities(first).some((item) => item.toLowerCase() === ownInterest) ? 1 : 0;
         const secondInterestMatch = ownInterest && profileChallengeActivities(second).some((item) => item.toLowerCase() === ownInterest) ? 1 : 0;
 
-        return secondOpen - firstOpen || secondInterestMatch - firstInterestMatch || first.display_name.localeCompare(second.display_name);
+        return secondReady - firstReady || secondOpen - firstOpen || secondInterestMatch - firstInterestMatch || first.display_name.localeCompare(second.display_name);
       });
-  }, [opponentActivity, opponentFormat, opponentMode, opponentRegion, opponentSearch, opponentSkill, profile, publicProfiles, session]);
+  }, [opponentActivity, opponentFormat, opponentMode, opponentReadyOnly, opponentRegion, opponentSearch, opponentSkill, profile, publicProfiles, roomRankingTimestamp, session]);
 
   const followCounts = useMemo(() => {
     return follows.reduce<Record<string, { followers: number; following: number }>>((counts, follow) => {
@@ -3671,15 +3715,15 @@ export default function Home() {
     );
 
     const realtimeRoomAlerts = pushNotificationEvents
-      .filter((event) => event.category === "Live room" || event.category === "Voting")
+      .filter((event) => event.category === "Live room" || event.category === "Voting" || event.category === "Weekly summary")
       .map((event) => {
         const challenge = event.resource_id
           ? challenges.find((item) => item.id === event.resource_id)
           : null;
         return {
           id: `notification-push-${event.id}`,
-          label: event.category === "Live room" ? "Live now" : "Voting open",
-          category: (event.category === "Live room" ? "Live" : "Voting") as AppNotification["category"],
+          label: event.category === "Live room" ? "Live now" : event.category === "Voting" ? "Voting open" : "Weekly recap",
+          category: (event.category === "Live room" ? "Live" : event.category === "Voting" ? "Voting" : "Weekly") as AppNotification["category"],
           title: challenge?.title || event.title,
           detail: event.body,
           createdAt: event.created_at,
@@ -4197,7 +4241,7 @@ export default function Home() {
 
   useEffect(() => {
     setOpponentPage(1);
-  }, [opponentActivity, opponentFormat, opponentMode, opponentRegion, opponentSearch, opponentSkill]);
+  }, [opponentActivity, opponentFormat, opponentMode, opponentReadyOnly, opponentRegion, opponentSearch, opponentSkill]);
 
   useEffect(() => {
     setNotificationPage(1);
@@ -5256,7 +5300,8 @@ export default function Home() {
           live_rooms: preferences.live_rooms,
           voting_windows: preferences.voting_windows,
           proof_results: preferences.proof_results,
-          social_updates: preferences.social_updates
+          social_updates: preferences.social_updates,
+          weekly_summary: preferences.weekly_summary ?? true
         }
         : defaultPushNotificationPreferences;
 
@@ -5314,7 +5359,7 @@ export default function Home() {
         .from("push_notification_events")
         .select("id, category, title, body, href, resource_id, created_at")
         .eq("user_id", userId)
-        .in("category", ["Live room", "Voting"])
+        .in("category", ["Live room", "Voting", "Weekly summary"])
         .order("created_at", { ascending: false })
         .limit(30);
 
@@ -5328,7 +5373,7 @@ export default function Home() {
         { event: "INSERT", schema: "public", table: "push_notification_events", filter: `user_id=eq.${userId}` },
         (payload) => {
           const event = payload.new as PushNotificationEvent;
-          if (event.category !== "Live room" && event.category !== "Voting") return;
+          if (event.category !== "Live room" && event.category !== "Voting" && event.category !== "Weekly summary") return;
           setPushNotificationEvents((items) => [event, ...items.filter((item) => item.id !== event.id)].slice(0, 30));
           setMessage(event.title, "info");
         }
@@ -5552,6 +5597,7 @@ export default function Home() {
     setActiveAppTab("profiles");
     setActiveSection("profiles");
     setLoginPrompt("");
+    window.localStorage.removeItem(sharedIntentStorageKey);
     window.history.replaceState(null, "", `#${profileHash(match.username)}`);
     setMessage(
       match.user_id === session.user.id
@@ -5559,6 +5605,7 @@ export default function Home() {
         : `${match.display_name}'s profile is ready. Review it, then use the highlighted ${intent} action.`,
       match.user_id === session.user.id ? "warning" : "success"
     );
+    void trackGrowthEvent("shared_return", { resourceType: "profile", resourceToken: profileToken, source: "shared_profile" });
     window.setTimeout(() => {
       const action = document.getElementById(`shared-profile-${intent}-action`);
       action?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -5676,6 +5723,7 @@ export default function Home() {
     setActiveSection("teams");
     setHighlightedTeamId(match.id);
     setLoginPrompt("");
+    window.localStorage.removeItem(sharedIntentStorageKey);
     window.history.replaceState(null, "", `#${teamHash(match.id)}`);
     setMessage(
       match.owner_user_id === session.user.id && intent === "join"
@@ -5683,6 +5731,7 @@ export default function Home() {
         : `${match.name} is ready. Review the team, then use the highlighted ${intent === "join" ? "join request" : "challenge"} action.`,
       match.owner_user_id === session.user.id && intent === "join" ? "warning" : "success"
     );
+    void trackGrowthEvent("shared_return", { resourceType: "team", resourceToken: teamToken, source: "shared_team" });
     window.setTimeout(() => {
       const action = document.getElementById(`shared-team-${intent}-${match.id}`);
       document.getElementById(teamHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -6484,6 +6533,10 @@ export default function Home() {
     setMessage("");
     setLoginPrompt("");
 
+    const intentSearch = sharedIntentSearch(window.location.search) || window.localStorage.getItem(sharedIntentStorageKey) || "";
+    const authReturnUrl = intentSearch ? `${siteUrl("/")}?${intentSearch}#account` : `${siteUrl("/")}#account`;
+    if (intentSearch) window.localStorage.setItem(sharedIntentStorageKey, intentSearch);
+
     const result =
       authMode === "Sign up"
         ? await supabase.auth.signUp({
@@ -6491,7 +6544,7 @@ export default function Home() {
             password,
             options: {
               captchaToken: authCaptchaToken || undefined,
-              emailRedirectTo: `${siteUrl("/")}#account`
+              emailRedirectTo: authReturnUrl
             }
           })
         : await supabase.auth.signInWithPassword({
@@ -6512,7 +6565,10 @@ export default function Home() {
     } else {
       setConfirmationEmail("");
       setMessage(authMode === "Sign up" ? "Account created and logged in." : "Logged in.");
-      if (authMode === "Log in") {
+      void trackGrowthEvent(authMode === "Sign up" ? "signup" : "login", {
+        source: intentSearch ? "shared_intent" : "account"
+      });
+      if (authMode === "Log in" && !intentSearch) {
         window.setTimeout(() => openSection("rooms", true), 80);
       }
     }
@@ -6889,6 +6945,7 @@ export default function Home() {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
+        void trackGrowthEvent("result_shared", { resourceType: "challenge", resourceToken: challenge.result_share_token, source: "native_share" });
         setMessage("Challenge result shared.", "success");
         return;
       } catch (error) {
@@ -6897,6 +6954,7 @@ export default function Home() {
     }
 
     await copyShareText("Challenge result link", `${shareData.text}\n${url}`);
+    void trackGrowthEvent("result_shared", { resourceType: "challenge", resourceToken: challenge.result_share_token, source: "copy_link" });
   }
 
   function openSection(sectionId: string, updateHash = false, historyState: Talent7HistoryState | null = null) {
@@ -11661,7 +11719,8 @@ export default function Home() {
                   ["live_rooms", "Rooms going live"],
                   ["voting_windows", "Voting windows opening"],
                   ["proof_results", "Proof and result updates"],
-                  ["social_updates", "Social updates"]
+                  ["social_updates", "Social updates"],
+                  ["weekly_summary", "Weekly activity summary"]
                 ] as Array<[keyof PushNotificationPreferences, string]>).map(([key, label]) => (
                   <label className={key !== "push_enabled" && !pushPreferences.push_enabled ? "disabled" : ""} key={key}>
                     <input
@@ -14858,6 +14917,20 @@ export default function Home() {
                 </div>
               </div>
             </details>
+            {profile && (
+              <GrowthHub
+                displayName={profile.display_name}
+                mainInterest={profile.main_interest}
+                onReadyNowChange={(value) => {
+                  setProfile((current) => current ? { ...current, ready_now_until: value } : current);
+                  setPublicProfiles((items) => items.map((item) =>
+                    item.user_id === profile.user_id ? { ...item, ready_now_until: value } : item
+                  ));
+                }}
+                readyNowUntil={profile.ready_now_until}
+                userId={session.user.id}
+              />
+            )}
             <div className="dashboardSectionHeader">
               <div>
                 <span>Quick actions</span>
@@ -15253,6 +15326,14 @@ export default function Home() {
                   {challengeFormatOptions.map((option) => <option key={option}>{option}</option>)}
                 </select>
               </label>
+              <label className="opponentReadyFilter">
+                <input
+                  checked={opponentReadyOnly}
+                  onChange={(event) => setOpponentReadyOnly(event.target.checked)}
+                  type="checkbox"
+                />
+                Ready Now only
+              </label>
               <button
                 onClick={() => {
                   setOpponentSearch("");
@@ -15261,6 +15342,7 @@ export default function Home() {
                   setOpponentSkill("All");
                   setOpponentMode("All");
                   setOpponentFormat("All");
+                  setOpponentReadyOnly(false);
                 }}
                 type="button"
               >
@@ -15296,7 +15378,9 @@ export default function Home() {
                             <small>@{item.username}</small>
                           </div>
                           <span className={`availabilityBadge ${availability === "Open to everyone" ? "open" : "limited"}`}>
-                            {availability === "Open to everyone" ? "Open to challenges" : "Followers only"}
+                            {item.ready_now_until && new Date(item.ready_now_until).getTime() > roomRankingTimestamp
+                              ? "Ready Now"
+                              : availability === "Open to everyone" ? "Open to challenges" : "Followers only"}
                           </span>
                         </div>
                         <div className="opponentMeta">

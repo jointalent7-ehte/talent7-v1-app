@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import GrowthEvent from "../../growth-event";
 import { getPublicTalentProfile } from "../../../lib/public-profile-preview";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +78,7 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
 
   return (
     <main className="profileLanding">
+      <GrowthEvent eventName="shared_link_view" resourceToken={token} resourceType="profile" source="shared_profile" />
       <div className="profileLandingShell">
         <header className="inviteLandingBrand">
           <Link href="/">Talent<span>7</span></Link>

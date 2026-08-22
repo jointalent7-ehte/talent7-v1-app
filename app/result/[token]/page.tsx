@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import GrowthEvent from "../../growth-event";
 import { getPublicChallengeResult } from "../../../lib/public-result-preview";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +74,7 @@ export default async function ResultPreviewPage({ params }: ResultPageProps) {
 
   return (
     <main className="resultLanding">
+      <GrowthEvent eventName="shared_link_view" resourceToken={token} resourceType="result" source="shared_result" />
       <div className="resultLandingShell">
         <header className="inviteLandingBrand">
           <Link href="/">Talent<span>7</span></Link>

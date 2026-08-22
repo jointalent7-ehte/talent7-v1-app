@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import Link from "next/link";
+import GrowthEvent from "../../growth-event";
 
 export const dynamic = "force-dynamic";
 
@@ -104,6 +105,7 @@ export default async function InvitePreviewPage({ params }: InvitePageProps) {
 
   return (
     <main className="inviteLanding">
+      <GrowthEvent eventName="shared_link_view" resourceToken={token} resourceType="invite" source="shared_invite" />
       <div className="inviteLandingShell">
         <header className="inviteLandingBrand">
           <Link href="/">Talent<span>7</span></Link>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import GrowthEvent from "../../growth-event";
 import { getPublicTalentTeam } from "../../../lib/public-team-preview";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,7 @@ export default async function PublicTeamPage({ params }: TeamPageProps) {
 
   return (
     <main className="teamLanding">
+      <GrowthEvent eventName="shared_link_view" resourceToken={token} resourceType="team" source="shared_team" />
       <div className="teamLandingShell">
         <header className="inviteLandingBrand">
           <Link href="/">Talent<span>7</span></Link>

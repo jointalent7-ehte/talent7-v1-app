@@ -2945,6 +2945,103 @@ textarea {
   text-decoration: none;
 }
 
+.growthHub {
+  border: 1px solid color-mix(in srgb, var(--line) 72%, #7c5cff 28%);
+  border-radius: 24px;
+  padding: clamp(18px, 3vw, 28px);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(124, 92, 255, 0.16), transparent 36%),
+    color-mix(in srgb, var(--surface) 92%, #090d1b 8%);
+}
+
+.growthHubHeader,
+.growthHubHeader > div,
+.growthHubGrid article,
+.achievementList,
+.achievementList > div,
+.leagueStandings {
+  display: grid;
+  gap: 8px;
+}
+
+.growthHubHeader {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 16px;
+}
+
+.growthHubHeader h3,
+.growthHubGrid h4,
+.growthHubGrid p,
+.growthHubMessage {
+  margin: 0;
+}
+
+.growthHubGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.growthHubGrid article {
+  align-content: start;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.growthHubGrid article > span,
+.growthStatus {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.growthStatus.live,
+.leagueStandings .mine strong {
+  color: #30d9ae;
+}
+
+.growthHubMessage {
+  border-left: 3px solid #7c5cff;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+
+.achievementList > div {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.achievementList small,
+.leagueStandings small {
+  color: var(--muted);
+}
+
+.leagueStandings > div {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .growthHubHeader,
+  .growthHubGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .growthHubHeader > button {
+    width: 100%;
+  }
+}
+
 .dashboardActions {
   display: flex;
   flex-wrap: wrap;
