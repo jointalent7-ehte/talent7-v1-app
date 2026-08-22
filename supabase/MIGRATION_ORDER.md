@@ -1,6 +1,6 @@
 # Supabase migration order
 
-This is the canonical inventory for the current source tree: **72 numbered SQL files in dependency order**. For a new project, run every numbered file below from top to bottom in the Supabase SQL editor. For an existing project, back up the database and run only files that have not already been applied. GitHub and Vercel deployments do not apply SQL.
+This is the canonical inventory for the current source tree: **73 numbered SQL files in dependency order**. For a new project, run every numbered file below from top to bottom in the Supabase SQL editor. For an existing project, back up the database and run only files that have not already been applied. GitHub and Vercel deployments do not apply SQL.
 
 1. `schema.sql`
 2. `add-challenge-joins.sql`
@@ -74,8 +74,9 @@ This is the canonical inventory for the current source tree: **72 numbered SQL f
 70. `tighten-challenge-completion-and-proof-policies.sql`
 71. `harden-production-user-actions.sql`
 72. `add-growth-engagement.sql`
+73. `add-supporter-payments.sql`
 
-The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` is last because it extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox.
+The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` is last because it extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements.
 
 The Showcase, Coaching, and Guidance migrations remain in this history because production may already contain their records and account deletion still cleans up their data and media. Their launch UI routes are closed and redirected to the Plans roadmap preview. Do not drop, reorder, or replay those migrations merely because the services are not currently active.
 
