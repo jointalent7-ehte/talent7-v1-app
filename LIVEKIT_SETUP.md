@@ -49,6 +49,6 @@ Use three ordinary Talent7 accounts and one active challenge whose registered ro
 
 ## Android wrapper note
 
-The current Play Store WebView wrapper does not yet grant website camera and microphone requests. Native broadcasting therefore works in supported desktop/mobile browsers after this web deployment, but publishing inside the installed Android app requires the planned AAB update with Android camera/microphone permissions and a restricted `WebChromeClient.onPermissionRequest` handler. Audience playback may work in the existing wrapper, but it must still be included in the final Android device test.
+Android 1.5 and later includes camera/microphone permissions and a restricted `WebChromeClient.onPermissionRequest` handler that grants media capture only to trusted Talent7 HTTPS origins. Version 1.6.0 also adds verified App Links. Test challenger publishing, watch-only audience playback, permission denial/recovery, and background/foreground transitions on a physical Play-distributed build before release.
 
 Native Talent7 sessions are not recorded by this implementation. YouTube is the fallback when a persistent replay is required.

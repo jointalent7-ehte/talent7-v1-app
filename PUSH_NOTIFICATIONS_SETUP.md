@@ -4,7 +4,7 @@ Talent7 uses Firebase Cloud Messaging (FCM) for the Android app and Supabase for
 
 ## 1. Apply the database migration
 
-Run `supabase/add-push-notifications.sql` in the Supabase SQL editor after migration 51.
+Run `supabase/add-push-notifications.sql` in the position documented by `supabase/MIGRATION_ORDER.md`. The growth release also requires `supabase/add-growth-engagement.sql` after all earlier migrations.
 
 ## 2. Create the Firebase Android app
 
@@ -48,12 +48,13 @@ Do not enable update or delete events.
 
 ## 5. Test safely
 
-1. Install Android version 1.3 on a test phone.
+1. Install Android version 1.6.0 on a test phone.
 2. Log in and open **More > Notifications**.
 3. Allow Android notifications and confirm the device status changes to **Connected**.
 4. From a second account, send the first account a challenge invitation.
 5. Confirm the phone receives a notification and tapping it opens Talent7 Invites.
 6. Test accepting/declining, Go Live, opening voting, and completing a room.
 7. From the first account, save a room owned by the second account. Confirm Go Live, voting, proof, and result notifications open that exact saved room.
+8. Run `select public.queue_weekly_activity_summaries();` and confirm an opted-in account receives one weekly summary. Run it again and confirm no duplicate is created for the same week.
 
 If a device token becomes invalid, the delivery function disables it automatically.

@@ -1,6 +1,6 @@
 # Talent7
 
-Talent7 is a proof-based challenge and talent platform built with Next.js, React, TypeScript, and Supabase. It supports accounts, challenge rooms, teams, profiles, showcase posts, coaching, expert guidance, notifications, invitations, moderation, and founder feedback.
+Talent7 is a proof-based challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, challenge rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, and founder feedback. Showcase Talent, Coaching, and Guidance remain clearly labelled future experiences.
 
 ## Local development
 
@@ -23,6 +23,7 @@ Open `http://localhost:3000`. If Supabase is not configured, the interface uses 
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 NEXT_PUBLIC_SITE_URL=https://www.jointalent7.com
+ANDROID_APP_LINK_SHA256_CERT_FINGERPRINTS=play_app_signing_sha256
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_public_cloudflare_turnstile_site_key
 SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
 LIVEKIT_URL=wss://your-project.livekit.cloud
@@ -34,7 +35,7 @@ LIVEKIT_API_SECRET=your_server_only_livekit_api_secret
 
 The three LiveKit values enable native Talent7 camera broadcasts in challenge rooms. Create a LiveKit Cloud project, copy its WebSocket URL and API credentials into Vercel Production, and keep the API key and secret server-only. YouTube remains available in the app as a fallback broadcast method.
 
-Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadcasts, including the current Android-wrapper limitation.
+Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadcasts on the website and Android wrapper.
 
 Follow [TURNSTILE_SETUP.md](TURNSTILE_SETUP.md) before enabling CAPTCHA enforcement in Supabase.
 
@@ -52,7 +53,7 @@ Follow [R2_SETUP.md](R2_SETUP.md). The access and secret keys are server-only an
 
 ## Database setup
 
-Run the SQL files in `supabase/` in the order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects should apply only migrations they have not already run, but must run `tighten-challenge-completion-and-proof-policies.sql` last. That migration replaces earlier broad completion and proof-upload policies with authenticated, role-aware policies.
+Run the SQL files in `supabase/` in the order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. The migration order keeps policy hardening after the challenge schema it protects and keeps growth engagement last.
 
 Uploading the repository to GitHub does not apply Supabase migrations. Run them separately in the Supabase SQL editor or through your migration workflow.
 
@@ -77,3 +78,4 @@ npm run build
 
 Review [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) before making the site public.
 Follow [ACCOUNT_DELETION_RUNBOOK.md](ACCOUNT_DELETION_RUNBOOK.md) before enabling permanent account deletion in production.
+Follow [GROWTH_ENGAGEMENT_SETUP.md](GROWTH_ENGAGEMENT_SETUP.md) for Ready Now, achievements, weekly leagues, Firebase summaries, analytics retention, and Android App Links.
