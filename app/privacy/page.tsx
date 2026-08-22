@@ -33,8 +33,21 @@ export default function PrivacyPage() {
           <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, reports, and team requests.</li>
           <li>Legacy showcase, coaching, or expert-help records you previously submitted. Their public creation/request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
           <li>Optional support or founder feedback messages you submit.</li>
+          <li>Payment records such as provider, product, amount, currency, status, provider references, and supporter entitlement. Talent7 does not collect or store your complete card details, UPI PIN, banking password, or payment OTP.</li>
           <li>Basic technical information needed to run, secure, and improve the app.</li>
         </ul>
+      </section>
+
+      <section className="legalCard">
+        <h2>Payments</h2>
+        <p>
+          Razorpay processes website payments and Google Play processes Android purchases. Talent7 sends
+          the information required to create, verify, reconcile, refund, and support a transaction. Payment
+          providers process payment credentials under their own terms and privacy policies. Talent7 stores
+          limited provider references and verification state to deliver and reconcile supporter badges,
+          prevent duplicate processing, handle disputes, and meet legal or accounting obligations.
+        </p>
+        <p><Link href="/refunds">Read the Cancellation and Refund Policy</Link></p>
       </section>
 
       <section className="legalCard">

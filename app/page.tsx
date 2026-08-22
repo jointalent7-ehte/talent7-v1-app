@@ -11886,13 +11886,16 @@ export default function Home() {
                 <small>Manage support questions and account deletion requests from public Play Store-ready pages.</small>
               </div>
               <a href="/privacy">Privacy Policy</a>
+              <a href="/terms">Terms and Conditions</a>
+              <a href="/shipping">Shipping Policy</a>
+              <a href="/refunds">Cancellation and Refunds</a>
               <button
                 onClick={() => setAccountDeletionFormUserId(session.user.id)}
                 type="button"
               >
                 {activeAccountDeletionRequest ? "View deletion request" : "Request account deletion"}
               </button>
-              <a href="/support">Support</a>
+              <a href="/support">Contact Us</a>
               <a href="/child-safety">Child safety standards</a>
             </div>
             {(activeAccountDeletionRequest || accountDeletionFormUserId === session.user.id) && (
@@ -14551,8 +14554,11 @@ export default function Home() {
             <p>Use Founder Feedback inside the app, or contact the Talent7 founder email if something needs direct attention.</p>
           </div>
           <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms and Conditions</a>
+          <a href="/shipping">Shipping Policy</a>
+          <a href="/refunds">Cancellation and Refunds</a>
           <a href="/delete-account">Delete account</a>
-          <a href="/support">Support</a>
+          <a href="/support">Contact Us</a>
           <a href="/child-safety">Child safety standards</a>
           <a href="mailto:jointalent7@gmail.com">jointalent7@gmail.com</a>
           <a href="#feedback">Open founder feedback</a>
@@ -17337,8 +17343,11 @@ export default function Home() {
           <a href="#account">Account</a>
           <a href="#first-wave">First wave</a>
           <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms and Conditions</a>
+          <a href="/shipping">Shipping Policy</a>
+          <a href="/refunds">Cancellation and Refunds</a>
           <a href="/delete-account">Delete account</a>
-          <a href="/support">Support</a>
+          <a href="/support">Contact Us</a>
           <a href="/child-safety">Child safety</a>
           <a href="#trust-terms">Trust & terms</a>
           <a href="#safety">Safety</a>

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Support",
-  description: "Contact Talent7 support."
+  title: "Contact Us",
+  description: "Contact Talent7 support for accounts, safety, privacy, payments, and digital delivery."
 };
 
 export default function SupportPage() {
@@ -11,9 +11,9 @@ export default function SupportPage() {
     <main className="legalPage">
       <Link className="legalBack" href="/">Back to Talent7</Link>
       <section className="legalHero">
-        <p className="eyebrow">Support</p>
-        <h1>Talent7 support</h1>
-        <p>Get help with accounts, safety, privacy, challenge rooms, proof uploads, and launch-wave questions.</p>
+        <p className="eyebrow">Contact Us</p>
+        <h1>Contact Talent7 support</h1>
+        <p>Get help with accounts, safety, privacy, payments, digital delivery, challenge rooms, proof uploads, and launch-wave questions.</p>
       </section>
 
       <section className="legalGrid">
@@ -39,6 +39,14 @@ export default function SupportPage() {
           <h2>Founder Feedback</h2>
           <p>For bugs, confusing screens, payment interest, or feature ideas, use Founder Feedback inside Talent7.</p>
           <Link href="/#feedback">Open Founder Feedback</Link>
+        </article>
+
+        <article className="legalCard">
+          <h2>Payments And Refunds</h2>
+          <p>Ask about a captured payment, missing supporter badge, duplicate charge, cancellation, or refund request.</p>
+          <a href="mailto:jointalent7@gmail.com?subject=Talent7%20payment%20support">Email payment support</a>
+          <p><Link href="/shipping">Digital delivery policy</Link></p>
+          <p><Link href="/refunds">Cancellation and refund policy</Link></p>
         </article>
       </section>
 

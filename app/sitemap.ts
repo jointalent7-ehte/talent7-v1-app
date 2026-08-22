@@ -3,7 +3,16 @@ import type { MetadataRoute } from "next";
 const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.jointalent7.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ["", "/privacy", "/support", "/child-safety", "/delete-account"];
+  const routes = [
+    "",
+    "/privacy",
+    "/terms",
+    "/shipping",
+    "/refunds",
+    "/support",
+    "/child-safety",
+    "/delete-account"
+  ];
 
   return routes.map((route) => ({
     url: `${productionUrl}${route}`,
