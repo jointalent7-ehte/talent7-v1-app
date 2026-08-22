@@ -13,8 +13,10 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 import { trackGrowthEvent } from "../lib/growth-analytics";
+import type { SupporterTier } from "../lib/supporter-products";
 import ChallengeLiveRoom from "./challenge-live-room";
 import GrowthHub from "./growth-hub";
+import SupporterPayments from "./supporter-payments";
 import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
@@ -1113,6 +1115,12 @@ type PaymentInterest = {
   amount_label: string;
   status: "Interested" | "Ready later" | "Contact requested";
   created_at: string;
+};
+
+type SupporterEntitlement = {
+  active: boolean;
+  tier: SupporterTier;
+  user_id: string;
 };
 
 type FounderFeedback = {
@@ -2399,6 +2407,7 @@ export default function Home() {
   const [coachOffers, setCoachOffers] = useState<CoachOffer[]>([]);
   const [coachingInterests, setCoachingInterests] = useState<CoachingInterest[]>([]);
   const [paymentInterests, setPaymentInterests] = useState<PaymentInterest[]>([]);
+  const [supporterEntitlements, setSupporterEntitlements] = useState<SupporterEntitlement[]>([]);
   const [founderFeedback, setFounderFeedback] = useState<FounderFeedback[]>([]);
   const [firstWaveInterests, setFirstWaveInterests] = useState<FirstWaveInterest[]>([]);
   const [expertHelpRequests, setExpertHelpRequests] = useState<ExpertHelpRequest[]>([]);
@@ -2934,9 +2943,12 @@ export default function Home() {
     return paymentInterests.find((interest) => interest.intent_type === "Plan") || null;
   }, [paymentInterests]);
 
-  const latestContributionInterest = useMemo(() => {
-    return paymentInterests.find((interest) => interest.intent_type === "Contribution") || null;
-  }, [paymentInterests]);
+  const supporterTierByUser = useMemo(() => {
+    return supporterEntitlements.reduce<Record<string, SupporterTier>>((tiers, entitlement) => {
+      if (entitlement.active) tiers[entitlement.user_id] = entitlement.tier;
+      return tiers;
+    }, {});
+  }, [supporterEntitlements]);
 
   const activeAccountDeletionRequest = useMemo(() => {
     return accountDeletionRequests.find(
@@ -6293,6 +6305,23 @@ export default function Home() {
 
     loadPaymentInterests();
   }, [isOwnerReviewer, session]);
+
+  useEffect(() => {
+    async function loadSupporterEntitlements() {
+      if (!supabase) {
+        setSupporterEntitlements([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("supporter_entitlements")
+        .select("user_id, tier, active")
+        .eq("active", true);
+      if (!error && data) setSupporterEntitlements(data as SupporterEntitlement[]);
+    }
+
+    void loadSupporterEntitlements();
+  }, []);
 
   useEffect(() => {
     async function loadFounderFeedback() {
@@ -11839,18 +11868,14 @@ export default function Home() {
             </div>
             <div className="accountPaymentCard">
               <div>
-                <span>Talent7 plan</span>
-                <strong>{currentPaymentInterest ? currentPaymentInterest.label : "Free audience"}</strong>
-                <small>
-                  {currentPaymentInterest
-                    ? currentPaymentInterest.amount_label
-                    : "Audience access stays free"}
-                </small>
+                <span>Talent7 access</span>
+                <strong>Free member</strong>
+                <small>Core challenge access stays free.</small>
               </div>
               <div>
-                <span>Founder support</span>
-                <strong>{latestContributionInterest ? latestContributionInterest.amount_label : "$0"}</strong>
-                <small>Real checkout is not connected yet.</small>
+                <span>Supporter badge</span>
+                <strong>{supporterTierByUser[session.user.id] || "No badge yet"}</strong>
+                <small>{supporterTierByUser[session.user.id] ? "Verified one-time support" : "Optional one-time support"}</small>
               </div>
               <a href="#plans">View plans</a>
             </div>
@@ -13987,31 +14012,43 @@ export default function Home() {
 
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
-          <p className="eyebrow">Core access & future roadmap</p>
+          <p className="eyebrow">Free access & one-time support</p>
           <h2>Challenge access stays free</h2>
-          <p>Audience and basic challenger access are free. Optional challenge and organizer concepts remain pricing research, while Showcase Talent, Coaching, and Guidance are planned future releases.</p>
+          <p>Audience and challenger access remain free. Optional one-time supporter purchases add a profile badge without locking core challenge features behind payment.</p>
         </div>
         <div className="paymentNotice">
-          <strong>Research only—no checkout or feature activation</strong>
-          <small>Selecting an option records interest. Talent7 does not request card details, charge money, activate a subscription, or unlock future features here.</small>
+          <strong>Secure one-time payments—no subscription</strong>
+          <small>Website payments use Razorpay and Android purchases use Google Play. Talent7 verifies every completed purchase on the server before granting a badge.</small>
         </div>
+        <SupporterPayments
+          accessToken={session?.access_token}
+          displayName={profileName()}
+          email={session?.user.email}
+          onEntitlementChange={(tier) => {
+            const userId = session?.user.id;
+            if (!userId) return;
+            setSupporterEntitlements((items) => {
+              const withoutCurrent = items.filter((item) => item.user_id !== userId);
+              return tier ? [...withoutCurrent, { active: true, tier, user_id: userId }] : withoutCurrent;
+            });
+          }}
+          onNotice={setMessage}
+          onRequireLogin={() => {
+            setActiveAppTab("settings");
+            setActiveSection("account");
+            setLoginPrompt("Log in or create an account before supporting Talent7.");
+            window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+          }}
+          userId={session?.user.id}
+        />
         <div className="paymentStatusPanel">
           <div>
-            <span>Current plan interest</span>
+            <span>Future subscription research</span>
             <strong>{currentPaymentInterest ? currentPaymentInterest.label : "Free audience"}</strong>
             <small>
               {currentPaymentInterest
                 ? `${currentPaymentInterest.amount_label} · interest recorded`
-                : "No paid plan selected yet"}
-            </small>
-          </div>
-          <div>
-            <span>Latest contribution interest</span>
-            <strong>{latestContributionInterest ? latestContributionInterest.amount_label : "$0"}</strong>
-            <small>
-              {latestContributionInterest
-                ? `${latestContributionInterest.label} saved`
-                : "Optional founder support can be selected below"}
+                : "Monthly subscriptions are not active"}
             </small>
           </div>
         </div>
@@ -14111,25 +14148,6 @@ export default function Home() {
             </article>
           </div>
           <a href="#feedback">Tell us which future feature matters most</a>
-        </div>
-        <div className="contributionBox">
-          <div>
-            <p className="eyebrow">Founder support research</p>
-            <h3>Share what you might support</h3>
-            <p>These ranges measure potential support in US dollars. Selecting one records interest only; no payment is collected.</p>
-          </div>
-          <div className="contributionButtons">
-            {["$0-50", "$50-200", "$200-1000", "$1000+"].map((amount) => (
-              <button
-                disabled={paymentActionKey === `Contribution-Founder support-${amount}`}
-                key={amount}
-                onClick={() => recordPaymentInterest("Contribution", "Founder support", amount)}
-                type="button"
-              >
-                {paymentActionKey === `Contribution-Founder support-${amount}` ? "Saving..." : amount}
-              </button>
-            ))}
-          </div>
         </div>
         {isOwnerReviewer && (
           <div className="ownerPaymentPanel">
@@ -14522,8 +14540,8 @@ export default function Home() {
           </article>
           <article>
             <span>Payments</span>
-            <strong>No checkout is active</strong>
-            <p>Plan and contribution selections record pricing interest only. Talent7 does not collect payment details or charge users through this screen.</p>
+            <strong>One-time support is optional</strong>
+            <p>Core access remains free. Razorpay and Google Play securely process supporter purchases; Talent7 stores only provider references, verification state, amounts, and badge entitlement.</p>
           </article>
         </div>
         <div className="trustContactBox">
@@ -14608,12 +14626,14 @@ export default function Home() {
               <small>{selectedProfile.main_interest || "No main interest yet"}</small>
               <small>{selectedProfile.region || "Global"}</small>
               <small>{followCounts[selectedProfile.user_id]?.followers || 0} followers</small>
-              <small>{selectedProfileSummary.showcasePosts.length} showcase posts</small>
               <small>{selectedProfileSummary.challenges.length} rooms</small>
               <small>{selectedProfileSummary.wins.length} wins</small>
               <small>{selectedProfileSummary.proofs.length} proofs</small>
             </div>
             <div className="trustBadgeRow">
+              {supporterTierByUser[selectedProfile.user_id] && (
+                <span className="supporterProfileBadge">★ {supporterTierByUser[selectedProfile.user_id]}</span>
+              )}
               {profileTrustBadges(selectedProfile).length > 0 ? (
                 profileTrustBadges(selectedProfile).map((badge) => <span key={badge}>{badge}</span>)
               ) : (
@@ -14751,18 +14771,15 @@ export default function Home() {
                   <small>{item.region}</small>
                 </div>
                 <div className="trustBadgeRow compact">
+                  {supporterTierByUser[item.user_id] && (
+                    <span className="supporterProfileBadge">★ {supporterTierByUser[item.user_id]}</span>
+                  )}
                   {profileTrustBadges(item).length > 0 ? (
                     profileTrustBadges(item).slice(0, 3).map((badge) => <span key={badge}>{badge}</span>)
                   ) : (
                     <span>New profile</span>
                   )}
                 </div>
-                {item.role.toLowerCase().includes("coach") && (
-                  <div className="coachProfileBadge">
-                    <strong>Coach profile</strong>
-                    <small>{coachOffers.filter((offer) => offer.user_id === item.user_id).length} offers</small>
-                  </div>
-                )}
                 <div className="profileActions">
                   <button onClick={() => openProfileDetail(item)} type="button">
                     Open profile

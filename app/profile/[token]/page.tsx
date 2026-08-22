@@ -88,7 +88,9 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
           <div className="profilePreviewIdentity">
             <div className="profilePreviewAvatar" aria-hidden="true">{profileInitials(profile.display_name)}</div>
             <div>
-              <span className="profilePreviewBadge">Talent7 member</span>
+              <span className="profilePreviewBadge">
+                {profile.supporter_tier ? `★ ${profile.supporter_tier}` : "Talent7 member"}
+              </span>
               <h1>{profile.display_name}</h1>
               <p>@{profile.username}</p>
             </div>
