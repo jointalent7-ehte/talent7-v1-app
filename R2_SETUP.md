@@ -1,6 +1,6 @@
 # Cloudflare R2 setup for Talent7
 
-Talent7 uses Supabase for accounts and database records. When all R2 environment variables are present, new proof and showcase file uploads go to one Cloudflare R2 bucket. If R2 is not configured, the existing Supabase Storage upload path remains active.
+Talent7 uses Supabase for accounts and database records. When all R2 environment variables are present, new challenge-proof uploads go to Cloudflare R2. The `showcase-media` object path remains supported for previously stored legacy records and account-deletion cleanup, but the Showcase creation route is closed. If R2 is not configured, the existing Supabase Storage proof-upload path remains active.
 
 ## 1. Create the bucket
 
@@ -12,7 +12,7 @@ Talent7 uses Supabase for accounts and database records. When all R2 environment
 
 ## 2. Allow public viewing
 
-Proof and showcase media are public Talent7 content.
+Challenge proofs are public Talent7 content. Previously published legacy showcase media can remain public until its owning record or account is removed.
 
 1. Open the `talent7-media` bucket.
 2. Open **Settings**.
@@ -86,11 +86,10 @@ In **Vercel → Project → Settings → Environment Variables**, add the same f
 ## 8. Test safely
 
 1. Sign in to Talent7 with a non-admin test account.
-2. Upload one small JPG showcase post.
-3. Confirm it appears inside `talent7-media/showcase-media/USER_ID/...` in R2.
-4. Upload one small proof file and confirm it appears under `challenge-proofs/USER_ID/...`.
-5. Delete both records in Talent7 and confirm their R2 objects disappear.
-6. Confirm another ordinary user cannot delete the first user's media.
+2. Upload one small proof file and confirm it appears under `challenge-proofs/USER_ID/...`.
+3. Delete the proof in Talent7 and confirm its R2 object disappears.
+4. Confirm another ordinary user cannot delete the first user's proof.
+5. If a disposable legacy showcase fixture already exists, confirm account deletion removes its `showcase-media/USER_ID/...` object without reopening the closed Showcase UI.
 
 The application creates five-minute, single-object upload URLs only after validating the Supabase session. Photos remain limited to 10 MB and videos to 50 MB. R2 credentials stay on the server.
 

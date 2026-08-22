@@ -31,7 +31,7 @@
 - Deploy the updated `send-push` Edge Function, schedule `queue_weekly_activity_summaries()` weekly, and verify the idempotency test in `GROWTH_ENGAGEMENT_SETUP.md`.
 - Test Ready Now expiry, achievement refresh, weekly league scoring, and shared-link return through email confirmation with two ordinary accounts.
 - Confirm storage bucket types and upload limits match the app's photo/video limits.
-- Upload and delete one proof and one showcase file in R2 using an ordinary production test account.
+- Upload and delete one challenge proof in R2 using an ordinary production test account. If a disposable legacy showcase fixture already exists, verify account deletion removes its media without reopening the closed Showcase UI.
 - Enable database backups appropriate to the launch plan.
 - Review Supabase rate limits, bot protection, and CAPTCHA before opening public sign-up.
 - Run the authenticated request, cancellation, admin review, waiting-period, and completion tests in `ACCOUNT_DELETION_RUNBOOK.md`.
@@ -49,10 +49,10 @@
 
 - Verify Save room, Saved collection, unsave, and session restoration with two ordinary accounts.
 
-- Create, join, invite to, complete, archive, and—when permitted—delete a challenge room.
+- Create, join, invite to, complete, archive, and, when permitted, delete a challenge room.
 - Upload photo and video proof and verify unauthorized users cannot manage it.
-- Exercise teams, profiles, sharing, Ready Now, weekly leagues, listen rooms, notifications, feedback, and moderation. Confirm Showcase Talent, Coaching, and Guidance remain future promos rather than launch services.
-- Install signed Android version 1.6.0 from Play testing, verify profile/team/invite/room/result links open the app, then uninstall and verify website fallback.
+- Exercise teams, profiles, sharing, Ready Now, weekly leagues, listen rooms, notifications, feedback, and moderation. Confirm `#showcase`, old showcase-post hashes, `#coaching`, and `#expert-help` redirect to the Plans future preview and expose no legacy creation/request UI.
+- After the payment implementation decision is complete, install the combined signed Android 1.6 release from Play testing, verify profile/team/invite/room/result links open the app, then uninstall and verify website fallback.
 - Verify confirmations and success/error notices appear in the tab where the action occurred and dismiss automatically where appropriate.
 - Test slow/offline requests and retry actions.
 - Check the browser console and network log for production errors.

@@ -1,6 +1,6 @@
 # Talent7
 
-Talent7 is a proof-based challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, challenge rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, and founder feedback. Showcase Talent, Coaching, and Guidance remain clearly labelled future experiences.
+Talent7 is a proof-based challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, challenge rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, and founder feedback. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
 
 ## Local development
 
@@ -39,7 +39,7 @@ Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadca
 
 Follow [TURNSTILE_SETUP.md](TURNSTILE_SETUP.md) before enabling CAPTCHA enforcement in Supabase.
 
-Optional Cloudflare R2 variables move new proof and showcase uploads out of Supabase Storage while retaining Supabase as a safe fallback:
+Optional Cloudflare R2 variables move new challenge-proof uploads out of Supabase Storage while retaining Supabase as a safe fallback. The existing `showcase-media` path remains supported only so previously stored legacy media can be displayed where required for moderation and removed during account deletion:
 
 ```text
 R2_ACCOUNT_ID
@@ -53,7 +53,7 @@ Follow [R2_SETUP.md](R2_SETUP.md). The access and secret keys are server-only an
 
 ## Database setup
 
-Run the SQL files in `supabase/` in the order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. The migration order keeps policy hardening after the challenge schema it protects and keeps growth engagement last.
+Run the 72 SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. The migration order keeps policy hardening after the challenge schema it protects and keeps growth engagement last. Legacy future-feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
 
 Uploading the repository to GitHub does not apply Supabase migrations. Run them separately in the Supabase SQL editor or through your migration workflow.
 
@@ -71,7 +71,7 @@ npm run build
 
 1. Push the source repository to GitHub.
 2. Import it into Vercel as a Next.js project.
-3. Add all three environment variables for Production and Preview as appropriate.
+3. Add all required environment variables for Production and Preview as appropriate.
 4. Use `npm ci` for installation and `npm run build` for the build.
 5. Add the production and preview URLs to Supabase Authentication redirect URLs.
 6. Apply the Supabase migrations before accepting real users.

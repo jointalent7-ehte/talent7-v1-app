@@ -12,7 +12,7 @@ Talent7 provides an authenticated deletion queue with a seven-day cancellation w
 
 ## Test procedure
 
-1. Upload one proof and one showcase item from the ordinary account.
+1. Upload one proof from the ordinary account. If the account already owns a disposable legacy showcase item, retain it for this cleanup test; do not reopen the closed Showcase route to create new content.
 2. Open **Account → Account deletion**, enter the current password, type `DELETE`, and submit.
 3. Confirm the request appears for the user and in **Safety → Account deletion queue** for the admin.
 4. Cancel it as the user and confirm the status changes to `Cancelled`.
@@ -21,4 +21,3 @@ Talent7 provides an authenticated deletion queue with a seven-day cancellation w
 7. Complete deletion as the admin. Confirm the user can no longer log in, database-owned content is removed, uploaded R2/Storage objects are removed, and the completed audit row has its email redacted.
 
 If cleanup fails, the request returns to `In review` with a short operational error. Investigate the R2, Storage, Supabase foreign-key, or service-role configuration before retrying. Never mark a request completed manually unless the Auth user, linked database records, and managed media have all been checked.
-
