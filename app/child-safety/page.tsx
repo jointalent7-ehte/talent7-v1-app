@@ -16,7 +16,7 @@ export default function ChildSafetyPage() {
       <section className="legalHero">
         <p className="eyebrow">Child Safety Standards</p>
         <h1>Talent7 Child Safety Standards</h1>
-        <p>Last updated: July 16, 2026</p>
+        <p>Last updated: August 22, 2026</p>
       </section>
 
       <section className="legalCard legalHighlight">
@@ -44,8 +44,8 @@ export default function ChildSafetyPage() {
         <article className="legalCard">
           <h2>How To Report A Child Safety Concern</h2>
           <p>
-            Use the Report buttons in challenge rooms, room chat, proofs, profiles, showcase posts,
-            Safety, or Feedback. You can also email Talent7 directly.
+            Use the Report buttons in challenge rooms, room chat, proofs, profiles, Safety, or Feedback.
+            You can also email Talent7 directly. Previously submitted legacy content remains subject to these standards.
           </p>
           <p>
             <a href="mailto:jointalent7@gmail.com?subject=Talent7%20child%20safety%20concern">
@@ -67,7 +67,7 @@ export default function ChildSafetyPage() {
         <article className="legalCard">
           <h2>Room Chat And Meetups</h2>
           <p>
-            Room chat is for safe coordination around challenges, coaching, and expert guidance. Users
+            Room chat is for safe coordination around challenges and teams. Users
             should avoid sharing phone numbers, addresses, private documents, or sensitive personal
             details in chat.
           </p>

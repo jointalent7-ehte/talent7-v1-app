@@ -173,7 +173,7 @@ const expertHelpTypes: ExpertHelpType[] = [
   "Other urgent help"
 ];
 
-type PrimaryTabId = "settings" | "challenges" | "showcase" | "coaching" | "guidance" | "listen";
+type PrimaryTabId = "settings" | "challenges" | "listen";
 type MoreTabId = "teams" | "profiles" | "notifications" | "feed" | "invites" | "safety" | "plans" | "feedback" | "roadmap";
 type AppTabId = PrimaryTabId | MoreTabId;
 type NoticeTone = "success" | "error" | "warning" | "info";
@@ -467,9 +467,6 @@ const sectionTabMap: Record<string, AppTabId> = {
   rooms: "challenges",
   opponents: "challenges",
   leaderboard: "challenges",
-  showcase: "showcase",
-  coaching: "coaching",
-  "expert-help": "guidance",
   "listen-rooms": "listen",
   teams: "teams",
   profiles: "profiles",
@@ -484,21 +481,26 @@ const sectionTabMap: Record<string, AppTabId> = {
   "launch-control": "roadmap"
 };
 
+function isLegacyFutureRoute(hash: string) {
+  const target = hash.replace(/^#/, "");
+  return target === "showcase" || target.startsWith("showcase-") || target === "coaching" || target === "expert-help";
+}
+
 function tabForHash(hash: string): AppTabId | null {
   const target = hash.replace(/^#/, "");
+  if (isLegacyFutureRoute(hash)) return "plans";
   if (target.startsWith("profile-")) return "profiles";
   if (target.startsWith("room-")) return "challenges";
   if (target.startsWith("team-")) return "teams";
-  if (target.startsWith("showcase-")) return "showcase";
   return sectionTabMap[target] || null;
 }
 
 function sectionForHash(hash: string): string | null {
   const target = hash.replace(/^#/, "");
+  if (isLegacyFutureRoute(hash)) return "plans";
   if (target.startsWith("profile-")) return "profiles";
   if (target.startsWith("room-")) return "rooms";
   if (target.startsWith("team-")) return "teams";
-  if (target.startsWith("showcase-")) return "showcase";
   return sectionTabMap[target] ? target : null;
 }
 
@@ -2165,9 +2167,14 @@ export default function Home() {
 
   useEffect(() => {
     const syncTabWithHash = () => {
-      const hashTab = tabForHash(window.location.hash);
+      const requestedHash = window.location.hash;
+      const navigationHash = isLegacyFutureRoute(requestedHash) ? "#plans" : requestedHash;
+      if (navigationHash !== requestedHash) {
+        window.history.replaceState(window.history.state, "", navigationHash);
+      }
+      const hashTab = tabForHash(navigationHash);
       if (hashTab) setActiveAppTab(hashTab);
-      const hashSection = sectionForHash(window.location.hash);
+      const hashSection = sectionForHash(navigationHash);
       if (hashSection) setActiveSection(hashSection);
       setNotificationReturnContext(notificationReturnFromHistoryState(window.history.state));
     };
@@ -3135,22 +3142,6 @@ export default function Home() {
         };
       });
 
-    const showcaseItems = showcasePosts
-      .filter((post) => followedSet.has(post.user_id))
-      .map((post) => {
-        const actor = profileById[post.user_id];
-
-        return {
-          id: `showcase-${post.id}`,
-          actor: actor?.display_name || "Followed profile",
-          action: `posted ${post.media_type.toLowerCase()}`,
-          title: post.caption || post.category,
-          detail: post.category,
-          createdAt: post.created_at,
-          challengeId: ""
-        };
-      });
-
     const completedItems = challenges
       .filter((challenge) => challenge.completed_by && followedSet.has(challenge.completed_by))
       .map((challenge) => {
@@ -3167,9 +3158,9 @@ export default function Home() {
         };
       });
 
-    return [...createdItems, ...joinedItems, ...proofItems, ...showcaseItems, ...completedItems]
+    return [...createdItems, ...joinedItems, ...proofItems, ...completedItems]
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime());
-  }, [challenges, follows, joins, proofs, publicProfiles, session, showcasePosts]);
+  }, [challenges, follows, joins, proofs, publicProfiles, session]);
 
   const myActivity = useMemo(() => {
     if (!session?.user.id) {
@@ -3906,7 +3897,7 @@ export default function Home() {
         title: showcasePosts.find((post) => post.id === comment.post_id)?.caption || "Showcase post",
         detail: comment.body,
         createdAt: comment.created_at,
-        href: "#showcase"
+        href: "#plans"
       }));
 
     const requesterAssignedAlerts = expertHelpRequests
@@ -5739,28 +5730,6 @@ export default function Home() {
     }, 160);
     window.setTimeout(() => setHighlightedTeamId(null), 2600);
   }, [profile, profileHydrated, session?.user.id, teams]);
-
-  useEffect(() => {
-    if (showcasePosts.length === 0) return;
-
-    const openShowcaseFromHash = () => {
-      const hash = window.location.hash.replace("#", "");
-      if (!hash.startsWith("showcase-")) return;
-
-      const match = showcasePosts.find((post) => showcaseHash(post.id) === hash);
-      if (!match) return;
-
-      setActiveAppTab("showcase");
-      setActiveSection("showcase");
-      setHighlightedShowcasePostId(match.id);
-      setTimeout(() => document.getElementById(showcaseHash(match.id))?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
-      window.setTimeout(() => setHighlightedShowcasePostId(null), 2600);
-    };
-
-    openShowcaseFromHash();
-    window.addEventListener("hashchange", openShowcaseFromHash);
-    return () => window.removeEventListener("hashchange", openShowcaseFromHash);
-  }, [showcasePosts]);
 
   useEffect(() => {
     if (!supabase) {
@@ -14456,7 +14425,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "Instagram caption",
-                      `Talent7 is preparing for Play Store launch.\n\nCreate proof-based challenge rooms, join as a challenger or audience member, vote winners, rate out of 7, upload proof, form teams, and find coaching or verified guidance.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentShowcase #SportsChallenge #Breakdance #Gaming`
+                      `Talent7 is preparing for Play Store launch.\n\nCreate proof-based challenge rooms, join as a challenger or audience member, vote winners, rate out of 7, upload proof, form teams, and join live community battles.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentBattles #SportsChallenge #Breakdance #Gaming`
                     )
                   }
                   type="button"
@@ -14467,7 +14436,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "YouTube description",
-                      `Talent7 is preparing for Play Store launch as a proof-based talent, sports, and gaming challenge app. Users can create rooms, join as challenger or audience, vote winners, rate out of 7, upload proof, form teams, request coaching, and join the first launch wave.\n\nTry Talent7: ${siteUrl()}\nJoin first wave: ${siteUrl("#first-wave")}`
+                      `Talent7 is preparing for Play Store launch as a proof-based talent, sports, and gaming challenge app. Users can create rooms, join as challenger or audience, vote winners, rate out of 7, upload proof, form teams, and join the first launch wave.\n\nTry Talent7: ${siteUrl()}\nJoin first wave: ${siteUrl("#first-wave")}`
                     )
                   }
                   type="button"
@@ -14478,7 +14447,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "Direct invite",
-                      `I am preparing Talent7 for Play Store launch. You can join challenges, vote, rate out of 7, upload proof, form teams, find coaching, or request verified guidance.\n\nStart here: ${siteUrl()}`
+                      `I am preparing Talent7 for Play Store launch. You can create or join challenges, vote, rate out of 7, upload proof, form teams, and watch live community battles.\n\nStart here: ${siteUrl()}`
                     )
                   }
                   type="button"
@@ -14701,20 +14670,6 @@ export default function Home() {
             </div>
             <div className="profileDetailGrid">
               <article>
-                <span>Showcase</span>
-                {selectedProfileSummary.showcasePosts.length > 0 ? (
-                  selectedProfileSummary.showcasePosts.map((post) => (
-                    <div key={post.id}>
-                      <strong>{post.caption}</strong>
-                      <small>{post.category} / {post.media_type}</small>
-                      <MediaPreview label="Open post" mediaType={post.media_type} url={post.media_url} />
-                    </div>
-                  ))
-                ) : (
-                  <small>No showcase posts yet.</small>
-                )}
-              </article>
-              <article>
                 <span>Challenge rooms</span>
                 {selectedProfileSummary.challenges.length > 0 ? (
                   selectedProfileSummary.challenges.map((challenge) => (
@@ -14836,9 +14791,6 @@ export default function Home() {
                   <button onClick={() => shareProfile(item)} type="button">
                     Share profile
                   </button>
-                  {item.role.toLowerCase().includes("coach") && (
-                    <a href="#coaching">View coaching</a>
-                  )}
                 </div>
               </article>
                 );
@@ -15114,7 +15066,7 @@ export default function Home() {
                     <span>{item.action}</span>
                     <strong>{item.actor}</strong>
                     <a
-                      href={item.challengeId ? "#rooms" : "#showcase"}
+                      href="#rooms"
                       onClick={() => {
                         if (item.challengeId) setRoomSearch(item.title);
                       }}

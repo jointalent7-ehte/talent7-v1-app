@@ -45,8 +45,8 @@ export default function SupportPage() {
       <section className="legalCard">
         <h2>Emergency Reminder</h2>
         <p>
-          Talent7 expert-help features are guidance only. For medical emergencies, serious injury, danger,
-          or urgent local risk, contact local emergency services first.
+          Talent7 does not provide emergency, medical, legal, or professional-response services. For medical
+          emergencies, serious injury, danger, or urgent local risk, contact local emergency services first.
         </p>
       </section>
     </main>

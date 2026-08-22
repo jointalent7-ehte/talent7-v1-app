@@ -13,14 +13,15 @@ export default function PrivacyPage() {
       <section className="legalHero">
         <p className="eyebrow">Privacy Policy</p>
         <h1>Talent7 Privacy Policy</h1>
-        <p>Last updated: August 21, 2026</p>
+        <p>Last updated: August 22, 2026</p>
       </section>
 
       <section className="legalCard">
         <h2>What Talent7 Is</h2>
         <p>
-          Talent7 is a challenge and talent showcase app for proof-based challenge rooms, public ratings,
-          teams, coaching, expert-help previews, and founder launch-wave feedback.
+          Talent7 is a proof-based challenge app for public challenge rooms, ratings, teams, profiles,
+          live community experiences, notifications, and founder launch-wave feedback. Showcase Talent,
+          Coaching, and Guidance are roadmap previews rather than active launch services.
         </p>
       </section>
 
@@ -29,7 +30,8 @@ export default function PrivacyPage() {
         <ul>
           <li>Account information such as email address and login status.</li>
           <li>Profile information such as display name, username, role, main interest, and region.</li>
-          <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, showcase posts, comments, reports, team requests, coaching requests, and expert-help requests.</li>
+          <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, reports, and team requests.</li>
+          <li>Legacy showcase, coaching, or expert-help records you previously submitted. Their public creation/request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
           <li>Optional support or founder feedback messages you submit.</li>
           <li>Basic technical information needed to run, secure, and improve the app.</li>
         </ul>
@@ -40,7 +42,7 @@ export default function PrivacyPage() {
         <ul>
           <li>To create and manage your Talent7 account and profile.</li>
           <li>To show challenge rooms, public ratings, votes, proof, teams, profiles, and activity.</li>
-          <li>To review safety reports, feedback, coaching requests, and expert-help requests.</li>
+          <li>To review current safety reports and feedback, and to preserve or remove legacy records when required.</li>
           <li>To improve Talent7 before and after Play Store launch.</li>
           <li>To contact you about account, support, safety, or launch-wave matters when needed.</li>
         </ul>
@@ -50,7 +52,7 @@ export default function PrivacyPage() {
         <h2>Public Content</h2>
         <p>
           Talent7 is built around public challenge activity. Your display name, username, role, region,
-          challenge rooms, public votes, ratings, proofs, posts, comments, follows, teams, and results may be visible
+          challenge rooms, public votes, ratings, proofs, follows, teams, and results may be visible
           to other users. Your Saved rooms collection is private to your account. Do not submit private information
           you do not want shown publicly.
         </p>
