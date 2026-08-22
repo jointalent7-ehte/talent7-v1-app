@@ -6,6 +6,7 @@
 - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` in Vercel.
 - Set `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINTS` to the Play Console **App signing** SHA-256 certificate fingerprint.
 - Set the server-only `SUPABASE_SERVICE_ROLE_KEY` for Production before enabling admin account-deletion completion; never prefix it with `NEXT_PUBLIC_`.
+- Before accepting money, set all server-only Razorpay and Google Play values documented in `PAYMENTS_SETUP.md`; test signatures, provider verification, webhook retries, refunds, pending purchases, and restoration before switching Razorpay to live keys.
 - For native challenge video, set server-only `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` in Vercel Production; never expose the key or secret as `NEXT_PUBLIC_`.
 - Set `NEXT_PUBLIC_SENTRY_DSN` for Production and Preview, then follow `SENTRY_SETUP.md` to send one controlled verification event.
 - If R2 is enabled, set all five server-only `R2_` variables, verify the bucket CORS origins, and never expose its secret key as `NEXT_PUBLIC_`.
@@ -20,6 +21,7 @@
 ## Supabase
 
 - Apply only missing migrations in the exact order in `supabase/MIGRATION_ORDER.md`; never replay the full list on an existing database.
+- Apply `add-supporter-payments.sql` only after `add-payments.sql` and `add-growth-engagement.sql`, then confirm ordinary users cannot insert or update `payments` or `supporter_entitlements`.
 - Configure the Authentication Site URL and every allowed redirect URL.
 - Configure branded confirmation, password-reset, and invitation email templates.
 - Configure a production SMTP provider before a public launch.
@@ -52,7 +54,7 @@
 - Create, join, invite to, complete, archive, and, when permitted, delete a challenge room.
 - Upload photo and video proof and verify unauthorized users cannot manage it.
 - Exercise teams, profiles, sharing, Ready Now, weekly leagues, listen rooms, notifications, feedback, and moderation. Confirm `#showcase`, old showcase-post hashes, `#coaching`, and `#expert-help` redirect to the Plans future preview and expose no legacy creation/request UI.
-- After the payment implementation decision is complete, install the combined signed Android 1.6 release from Play testing, verify profile/team/invite/room/result links open the app, then uninstall and verify website fallback.
+- Install the combined signed Android 1.6 release from a Play testing track. Verify App Links plus all three fixed Play products, pending/cancelled/completed states, server verification, purchase restoration, highest-tier badges, and website fallback after uninstalling. Custom amounts must appear on the website only.
 - Verify confirmations and success/error notices appear in the tab where the action occurred and dismiss automatically where appropriate.
 - Test slow/offline requests and retry actions.
 - Check the browser console and network log for production errors.

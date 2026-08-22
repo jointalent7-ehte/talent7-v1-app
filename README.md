@@ -1,6 +1,6 @@
 # Talent7
 
-Talent7 is a proof-based challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, challenge rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, and founder feedback. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
+Talent7 is a proof-based challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, challenge rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, founder feedback, and optional one-time supporter purchases. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
 
 ## Local development
 
@@ -29,6 +29,11 @@ SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
 LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=your_server_only_livekit_api_key
 LIVEKIT_API_SECRET=your_server_only_livekit_api_secret
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_server_only_razorpay_key_secret
+RAZORPAY_WEBHOOK_SECRET=your_server_only_razorpay_webhook_secret
+GOOGLE_PLAY_SERVICE_ACCOUNT_JSON=raw_or_base64_service_account_json
+GOOGLE_PLAY_RTDN_TOKEN=your_long_random_notification_token
 ```
 
 `NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. The Turnstile site key is intentionally public; its matching secret key must be entered only in Supabase Authentication CAPTCHA settings. The service-role key is used only by the authenticated admin account-deletion endpoint. Add it to Vercel Production as a sensitive server-only value; never give it a `NEXT_PUBLIC_` prefix and never commit it.
@@ -38,6 +43,8 @@ The three LiveKit values enable native Talent7 camera broadcasts in challenge ro
 Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadcasts on the website and Android wrapper.
 
 Follow [TURNSTILE_SETUP.md](TURNSTILE_SETUP.md) before enabling CAPTCHA enforcement in Supabase.
+
+Follow [PAYMENTS_SETUP.md](PAYMENTS_SETUP.md) before enabling real charges. Razorpay handles fixed and custom one-time web payments; Google Play Billing handles the three fixed products in the Android app. All secrets remain server-only, and no supporter badge is granted until the provider purchase is verified by the Talent7 server.
 
 Optional Cloudflare R2 variables move new challenge-proof uploads out of Supabase Storage while retaining Supabase as a safe fallback. The existing `showcase-media` path remains supported only so previously stored legacy media can be displayed where required for moderation and removed during account deletion:
 
@@ -53,7 +60,7 @@ Follow [R2_SETUP.md](R2_SETUP.md). The access and secret keys are server-only an
 
 ## Database setup
 
-Run the 72 SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. The migration order keeps policy hardening after the challenge schema it protects and keeps growth engagement last. Legacy future-feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
+Run the 73 SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. The payment entitlement migration is last because it extends the existing payment ledger. Legacy future-feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
 
 Uploading the repository to GitHub does not apply Supabase migrations. Run them separately in the Supabase SQL editor or through your migration workflow.
 
