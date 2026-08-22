@@ -23,15 +23,16 @@ This must run after `add-payments.sql` and `add-growth-engagement.sql`. The brow
 ## 2. Configure Razorpay for the website
 
 1. Create or open the Talent7 Razorpay account and complete the provider's activation/KYC requirements.
-2. Start with Test Mode keys. Add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` to Vercel Preview and Production as sensitive server-only values.
-3. Create a long, unique webhook secret and add it to Vercel as `RAZORPAY_WEBHOOK_SECRET`.
-4. Create a Razorpay webhook pointing to:
+2. Verify `https://www.jointalent7.com` in Razorpay and confirm the public footer links to Terms and Conditions, Privacy Policy, Shipping Policy, Contact Us, and Cancellation and Refunds.
+3. Start with Test Mode keys. Add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` to Vercel Preview and Production as sensitive server-only values.
+4. Create a long, unique webhook secret and add it to Vercel as `RAZORPAY_WEBHOOK_SECRET`.
+5. Create a Razorpay webhook pointing to:
 
    `https://www.jointalent7.com/api/payments/razorpay/webhook`
 
-5. Subscribe to `payment.captured`, `payment.failed`, `payment.refunded`, `refund.processed`, and `order.paid`.
-6. Deploy, make test purchases for every fixed tier and custom amount boundary, then test dismissal, failure, duplicate webhook delivery, and refund downgrade/removal.
-7. Replace Test Mode keys with live keys only after the complete production-domain test passes. Keep the live webhook secret synchronized with Vercel.
+6. Subscribe to `payment.captured`, `payment.failed`, `payment.refunded`, `refund.processed`, and `order.paid`.
+7. Deploy, make test purchases for every fixed tier and custom amount boundary, then test dismissal, failure, duplicate webhook delivery, and refund downgrade/removal.
+8. Replace Test Mode keys with live keys only after the complete production-domain test passes. Keep the live webhook secret synchronized with Vercel.
 
 Checkout success alone never grants a badge. Talent7 validates the checkout HMAC, fetches the Razorpay payment and order, compares amount/currency/order ownership, and requires both to report a captured/paid state. Webhooks are signature checked and deduplicated.
 
