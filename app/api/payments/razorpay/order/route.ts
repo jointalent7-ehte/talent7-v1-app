@@ -17,6 +17,10 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  if (process.env.WEBSITE_PAYMENTS_ENABLED !== "true") {
+    return paymentJsonError("Website checkout is paused while payment-provider approval is pending.", 503);
+  }
+
   const authenticated = await authenticatedPaymentRequest(request);
   if (!authenticated) return paymentJsonError("Sign in again before starting checkout.", 401);
 
