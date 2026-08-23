@@ -14,6 +14,15 @@ On the website, custom amounts of at least ₹99 grant the highest qualifying su
 
 Razorpay rejected the current Talent7 business model. The Razorpay adapter remains in the source only to preserve the already-tested implementation; do not enable it for new live payments unless Razorpay later gives written approval. Before replacing it, send the candidate provider an accurate description of challenges, public/community features, Listen rooms, fixed supporter tiers, and custom support, and obtain written approval for the complete production experience. Cashfree is the first candidate to approach, but approval is not guaranteed and no Cashfree code is implemented yet.
 
+Use `PAYMENT_PROVIDER_REVIEW.md` as the disclosure and question checklist. Website checkout is protected by two independent release switches:
+
+```text
+WEBSITE_PAYMENTS_ENABLED=false
+NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED=false
+```
+
+The first switch is server-enforced and authoritative. The second controls the customer-facing disabled state. Set both to `true` only after written approval, provider integration, and production acceptance testing. Google Play Billing remains independent of these website switches.
+
 ## 1. Apply the Supabase migration
 
 Back up production and apply only missing migrations in `supabase/MIGRATION_ORDER.md`. For a project that already has migrations 1–72, run only:
@@ -61,6 +70,8 @@ The Android wrapper uses `com.android.billingclient:billing:9.1.0`. It passes a 
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
+WEBSITE_PAYMENTS_ENABLED
+NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED
 RAZORPAY_KEY_ID
 RAZORPAY_KEY_SECRET
 RAZORPAY_WEBHOOK_SECRET
@@ -68,7 +79,7 @@ GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
 GOOGLE_PLAY_RTDN_TOKEN
 ```
 
-Only the Supabase URL and anon key are public. Every other value in this list is server-only and must not use a `NEXT_PUBLIC_` prefix.
+Only variables intentionally prefixed with `NEXT_PUBLIC_` are exposed to the browser. `NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED` is a display switch only; `WEBSITE_PAYMENTS_ENABLED` is the authoritative server gate. All credentials and secrets remain server-only.
 
 ## 5. Production acceptance tests
 

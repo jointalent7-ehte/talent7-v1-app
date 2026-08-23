@@ -32,6 +32,8 @@ LIVEKIT_API_SECRET=your_server_only_livekit_api_secret
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_server_only_razorpay_key_secret
 RAZORPAY_WEBHOOK_SECRET=your_server_only_razorpay_webhook_secret
+WEBSITE_PAYMENTS_ENABLED=false
+NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED=false
 GOOGLE_PLAY_SERVICE_ACCOUNT_JSON=raw_or_base64_service_account_json
 GOOGLE_PLAY_RTDN_TOKEN=your_long_random_notification_token
 ```
@@ -44,7 +46,7 @@ Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadca
 
 Follow [TURNSTILE_SETUP.md](TURNSTILE_SETUP.md) before enabling CAPTCHA enforcement in Supabase.
 
-Follow [PAYMENTS_SETUP.md](PAYMENTS_SETUP.md) before enabling real charges. The current website adapter supports fixed and custom one-time web payments, but Razorpay did not approve Talent7's business model; obtain written approval and replace or reconfigure the provider before accepting live website money. Google Play Billing handles the three fixed products in the Android app. All secrets remain server-only, and no supporter badge is granted until the provider purchase is verified by the Talent7 server.
+Follow [PAYMENTS_SETUP.md](PAYMENTS_SETUP.md) before enabling real charges and use [PAYMENT_PROVIDER_REVIEW.md](PAYMENT_PROVIDER_REVIEW.md) when requesting written provider approval. The current website adapter supports fixed and custom one-time web payments, but Razorpay did not approve Talent7's business model; both website-payment switches default to `false` and the server refuses order creation while approval is pending. Google Play Billing handles the three fixed products in the Android app. All secrets remain server-only, and no supporter badge is granted until the provider purchase is verified by the Talent7 server.
 
 Optional Cloudflare R2 variables move new challenge-proof uploads out of Supabase Storage while retaining Supabase as a safe fallback. The existing `showcase-media` path remains supported only so previously stored legacy media can be displayed where required for moderation and removed during account deletion:
 
