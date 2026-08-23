@@ -53,8 +53,8 @@
 
 - Create, join, invite to, complete, archive, and, when permitted, delete a challenge room.
 - Upload photo and video proof and verify unauthorized users cannot manage it.
-- Exercise teams, profiles, sharing, Ready Now, weekly leagues, listen rooms, notifications, feedback, and moderation. Confirm `#showcase`, old showcase-post hashes, `#coaching`, and `#expert-help` redirect to the Plans future preview and expose no legacy creation/request UI.
-- Install the combined signed Android 1.6 release from a Play testing track. Verify App Links plus all three fixed Play products, pending/cancelled/completed states, server verification, purchase restoration, highest-tier badges, and website fallback after uninstalling. Confirm that both website and Android expose only the three defined supporter products.
+- Exercise teams, profiles, sharing, Ready Now, weekly leagues, notifications, feedback, and moderation. Confirm Listen is absent from public navigation and `#listen-rooms` redirects to Challenges. Confirm `#showcase`, old showcase-post hashes, `#coaching`, and `#expert-help` redirect to the Plans future preview and expose no legacy creation/request UI.
+- Install the combined signed Android 1.6 release from a Play testing track. Verify App Links plus all three fixed Play products, pending/cancelled/completed states, server verification, purchase restoration, highest-tier badges, and website fallback after uninstalling. Confirm that both website and Android expose only the three defined digital badge products.
 - Verify confirmations and success/error notices appear in the tab where the action occurred and dismiss automatically where appropriate.
 - Test slow/offline requests and retry actions.
 - Check the browser console and network log for production errors.

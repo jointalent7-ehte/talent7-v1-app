@@ -1,14 +1,14 @@
-# Talent7 one-time supporter payments
+# Talent7 one-time digital badge payments
 
-Talent7 keeps all core access free. Payments are optional one-time support purchases that grant the user's highest verified permanent badge:
+Talent7 keeps all core access free. Payments purchase one of three defined digital profile badge products delivered permanently to the buyer's profile:
 
 | Talent7 product | Web amount | Google Play product ID |
 | --- | ---: | --- |
-| Supporter | ₹99 | `talent7_supporter_99` |
-| Champion Supporter | ₹299 | `talent7_champion_supporter_299` |
-| Founder Supporter | ₹999 | `talent7_founder_supporter_999` |
+| Talent7 Badge | ₹99 | `talent7_supporter_99` |
+| Champion Badge | ₹299 | `talent7_champion_supporter_299` |
+| Founder Badge | ₹999 | `talent7_founder_supporter_999` |
 
-Website and Android checkout expose only these three defined digital products. Talent7 does not accept open-ended donations, custom support amounts, challenge entry fees, wagers, cash-prize payments, peer-to-peer payments, or collections on behalf of users.
+Website and Android checkout expose only these three defined digital products. There is no user-entered payment amount, challenge entry fee, wager, cash-prize payment, peer-to-peer payment, or collection on behalf of users.
 
 ## 1. Apply the Supabase migration
 
