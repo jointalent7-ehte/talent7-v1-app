@@ -75,6 +75,7 @@ declare global {
 }
 
 let razorpayScriptPromise: Promise<void> | null = null;
+const websitePaymentsEnabled = process.env.NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED === "true";
 
 function loadRazorpayScript() {
   if (typeof window === "undefined") return Promise.reject(new Error("Checkout requires a browser."));
@@ -234,6 +235,7 @@ export default function SupporterPayments({
     () => status.payments.filter((payment) => payment.status === "Captured"),
     [status.payments]
   );
+  const websiteCheckoutPaused = !nativeBilling && !websitePaymentsEnabled;
 
   function requirePaymentLogin() {
     if (accessToken && userId) return true;
@@ -243,6 +245,10 @@ export default function SupporterPayments({
 
   async function startRazorpayCheckout(product: SupporterProduct | null, amountSubunits?: number) {
     if (!requirePaymentLogin() || !accessToken) return;
+    if (!nativeBilling && !websitePaymentsEnabled) {
+      onNotice("Website checkout is paused while payment-provider approval is pending.", "info");
+      return;
+    }
     const checkoutKey = product?.code || customSupportProductCode;
     setActionKey(checkoutKey);
     try {
@@ -341,8 +347,12 @@ export default function SupporterPayments({
             <strong>{nativePrices[product.googlePlayProductId] || formatInrSubunits(product.amountSubunits)}</strong>
             <p>{product.description}</p>
             <small>One-time purchase · core features remain free</small>
-            <button disabled={Boolean(actionKey)} onClick={() => purchaseFixedProduct(product)} type="button">
-              {actionKey === product.code ? "Opening secure checkout…" : `Choose ${product.name}`}
+            <button disabled={Boolean(actionKey) || websiteCheckoutPaused} onClick={() => purchaseFixedProduct(product)} type="button">
+              {websiteCheckoutPaused
+                ? "Website checkout awaiting approval"
+                : actionKey === product.code
+                  ? "Opening secure checkout…"
+                  : `Choose ${product.name}`}
             </button>
           </article>
         ))}
@@ -371,10 +381,21 @@ export default function SupporterPayments({
               />
             </span>
           </label>
-          <button disabled={Boolean(actionKey)} type="submit">
-            {actionKey === customSupportProductCode ? "Opening secure checkout…" : "Support a custom amount"}
+          <button disabled={Boolean(actionKey) || websiteCheckoutPaused} type="submit">
+            {websiteCheckoutPaused
+              ? "Website checkout awaiting approval"
+              : actionKey === customSupportProductCode
+                ? "Opening secure checkout…"
+                : "Support a custom amount"}
           </button>
         </form>
+      )}
+
+      {websiteCheckoutPaused && (
+        <div className="supporterProviderNotice" role="status">
+          <strong>Website payments are temporarily paused.</strong>
+          <span>The supporter options remain visible, but checkout will open only after a provider approves Talent7&apos;s complete worldwide community and challenge model.</span>
+        </div>
       )}
 
       <div className="supporterPaymentActions">
