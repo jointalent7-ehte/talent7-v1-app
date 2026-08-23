@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   },
   applicationName: "Talent7",
   description:
-    "Talent7 is a challenge platform for talent battles, sports matchups, mobile gaming rooms, public ratings, proof uploads, teams, and live challenge broadcasts.",
+    "Talent7 is a community challenge platform for talent battles, sports matchups, mobile gaming rooms, shared listening, public ratings, proof uploads, teams, and live challenge broadcasts.",
   keywords: [
     "Talent7",
     "talent challenges",
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     "breakdance battles",
     "badminton challenges",
     "live challenges",
+    "shared listening rooms",
     "public ratings",
     "proof based competitions"
   ],

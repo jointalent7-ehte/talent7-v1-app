@@ -43,7 +43,7 @@ export default function SupportPage() {
 
         <article className="legalCard">
           <h2>Payments And Refunds</h2>
-          <p>Ask about a captured payment, missing digital profile badge, duplicate charge, cancellation, or refund request.</p>
+          <p>Ask about a captured supporter contribution, missing qualifying badge, duplicate charge, cancellation, or refund request.</p>
           <a href="mailto:jointalent7@gmail.com?subject=Talent7%20payment%20support">Email payment support</a>
           <p><Link href="/shipping">Digital delivery policy</Link></p>
           <p><Link href="/refunds">Cancellation and refund policy</Link></p>

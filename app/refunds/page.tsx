@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Cancellation and Refund Policy",
-  description: "Cancellation and refund policy for Talent7 one-time digital badge purchases."
+  description: "Cancellation and refund policy for Talent7 one-time supporter purchases and contributions."
 };
 
 export default function RefundsPage() {
@@ -13,7 +13,7 @@ export default function RefundsPage() {
       <section className="legalHero">
         <p className="eyebrow">Cancellation and Refunds</p>
         <h1>Cancellation and Refund Policy</h1>
-        <p>Last updated: August 22, 2026</p>
+        <p>Last updated: August 24, 2026</p>
       </section>
       <section className="legalCard legalHighlight">
         <h2>Before Payment Completion</h2>
@@ -21,7 +21,7 @@ export default function RefundsPage() {
       </section>
       <section className="legalCard">
         <h2>Captured One-Time Purchases</h2>
-        <p>Profile badge purchases are one-time digital product purchases and are normally final after delivery. A refund may be considered for a duplicate charge, unauthorised transaction, incorrect amount, or verified payment for which Talent7 cannot deliver the purchased badge.</p>
+        <p>Supporter purchases and custom contributions are one-time digital transactions and are normally final after completion. A refund may be considered for a duplicate charge, unauthorised transaction, incorrect amount, or verified qualifying payment for which Talent7 cannot deliver the associated badge.</p>
       </section>
       <section className="legalCard">
         <h2>Requesting A Refund</h2>
@@ -31,7 +31,7 @@ export default function RefundsPage() {
       <section className="legalCard">
         <h2>Provider Processing</h2>
         <ul>
-          <li>Approved Razorpay website refunds are returned through the original payment method.</li>
+          <li>Approved website refunds are returned through the original payment method by the provider used at checkout.</li>
           <li>Google Play purchases are also subject to Google Play billing and refund rules and may need to be requested through Google Play.</li>
           <li>Provider and bank processing times apply after approval.</li>
           <li>A refunded purchase may remove or downgrade the badge according to any remaining captured purchases.</li>

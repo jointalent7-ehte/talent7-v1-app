@@ -418,6 +418,12 @@ const primaryTabs: {
       { label: "Create", href: "#create" },
       { label: "Leaderboard", href: "#leaderboard" }
     ]
+  },
+  {
+    id: "listen",
+    label: "Listen",
+    firstSection: "listen-rooms",
+    links: [{ label: "Listen rooms", href: "#listen-rooms" }]
   }
 ];
 
@@ -428,7 +434,7 @@ const moreTabs: { id: MoreTabId; label: string; href: string; description: strin
   { id: "feed", label: "Updates", href: "#following-feed", description: "Challenge updates from selected profiles" },
   { id: "invites", label: "Invites", href: "#invites", description: "Challenge invitations" },
   { id: "safety", label: "Safety", href: "#safety", description: "Reports, trust, and terms" },
-  { id: "plans", label: "Badges", href: "#plans", description: "Fixed-price digital profile badges" },
+  { id: "plans", label: "Plans", href: "#plans", description: "Plans and supporter options" },
   { id: "feedback", label: "Feedback", href: "#feedback", description: "Send and review feedback" },
   { id: "roadmap", label: "Roadmap", href: "#roadmap", description: "Launch progress and what is next" }
 ];
@@ -463,6 +469,7 @@ const sectionTabMap: Record<string, AppTabId> = {
   rooms: "challenges",
   opponents: "challenges",
   leaderboard: "challenges",
+  "listen-rooms": "listen",
   teams: "teams",
   profiles: "profiles",
   notifications: "notifications",
@@ -481,13 +488,8 @@ function isLegacyFutureRoute(hash: string) {
   return target === "showcase" || target.startsWith("showcase-") || target === "coaching" || target === "expert-help";
 }
 
-function isTemporarilyHiddenRoute(hash: string) {
-  return hash.replace(/^#/, "") === "listen-rooms";
-}
-
 function tabForHash(hash: string): AppTabId | null {
   const target = hash.replace(/^#/, "");
-  if (isTemporarilyHiddenRoute(hash)) return "challenges";
   if (isLegacyFutureRoute(hash)) return "plans";
   if (target.startsWith("profile-")) return "profiles";
   if (target.startsWith("room-")) return "challenges";
@@ -497,7 +499,6 @@ function tabForHash(hash: string): AppTabId | null {
 
 function sectionForHash(hash: string): string | null {
   const target = hash.replace(/^#/, "");
-  if (isTemporarilyHiddenRoute(hash)) return "rooms";
   if (isLegacyFutureRoute(hash)) return "plans";
   if (target.startsWith("profile-")) return "profiles";
   if (target.startsWith("room-")) return "rooms";
@@ -508,8 +509,6 @@ function sectionForHash(hash: string): string | null {
 type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
 type ListenRoomStatus = "Open" | "Archived";
 type ListenRoomVisibility = "Public" | "Private";
-
-const publicListenRoomsEnabled = false;
 
 type ListenRoom = {
   id: string;
@@ -2145,7 +2144,6 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!publicListenRoomsEnabled) return;
 
     if (supabase) {
       const supabaseClient = supabase;
@@ -2178,11 +2176,7 @@ export default function Home() {
   useEffect(() => {
     const syncTabWithHash = () => {
       const requestedHash = window.location.hash;
-      const navigationHash = isLegacyFutureRoute(requestedHash)
-        ? "#plans"
-        : isTemporarilyHiddenRoute(requestedHash)
-          ? "#rooms"
-          : requestedHash;
+      const navigationHash = isLegacyFutureRoute(requestedHash) ? "#plans" : requestedHash;
       if (navigationHash !== requestedHash) {
         window.history.replaceState(window.history.state, "", navigationHash);
       }
@@ -11268,7 +11262,7 @@ export default function Home() {
                 Copy challenge invite
               </button>
               <button onClick={() => startFounderFeedback("Bug")} type="button">Report a bug</button>
-              <a href="#plans">Digital badges</a>
+              <a href="#plans">Support Talent7</a>
             </div>
           </details>
         </section>
@@ -11879,9 +11873,9 @@ export default function Home() {
                 <small>Core challenge access stays free.</small>
               </div>
               <div>
-                <span>Digital profile badge</span>
+                <span>Supporter badge</span>
                 <strong>{supporterTierByUser[session.user.id] ? supporterTierLabel(supporterTierByUser[session.user.id]) : "No badge yet"}</strong>
-                <small>{supporterTierByUser[session.user.id] ? "Verified digital purchase" : "Optional one-time purchase"}</small>
+                <small>{supporterTierByUser[session.user.id] ? "Verified supporter purchase" : "Optional one-time support"}</small>
               </div>
               <a href="#plans">View plans</a>
             </div>
@@ -12402,7 +12396,6 @@ export default function Home() {
         </div>
       </section>
 
-      {publicListenRoomsEnabled && (
       <section className="section listenSection" id="listen-rooms">
         <div className="sectionHeader">
           <span className="eyebrow">Listen together</span>
@@ -12760,7 +12753,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-      )}
 
       <section className="section coachingSection" id="coaching">
         <div className="sectionHeader">
@@ -14023,13 +14015,13 @@ export default function Home() {
 
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
-          <p className="eyebrow">Free challenge access & digital badges</p>
+          <p className="eyebrow">Free challenge access & supporter contributions</p>
           <h2>Challenges stay free</h2>
-          <p>Audience and challenger access remain free. Three optional one-time digital purchases deliver clearly defined profile badges without locking core challenge features behind payment.</p>
+          <p>Audience and challenger access remain free. Optional one-time supporter purchases and a flexible contribution help Talent7 grow without locking core challenge features behind payment.</p>
         </div>
         <div className="paymentNotice">
-          <strong>Three defined one-time purchases—no subscription</strong>
-          <small>Website payments use Razorpay and Android purchases use Google Play. Talent7 verifies every completed purchase on the server before delivering its profile badge.</small>
+          <strong>One-time supporter payments—no subscription</strong>
+          <small>Website checkout is offered only through an approved payment provider, while Android fixed-tier purchases use Google Play. Talent7 verifies every completed purchase on the server before granting a badge.</small>
         </div>
         <SupporterPayments
           accessToken={session?.access_token}
@@ -14047,7 +14039,7 @@ export default function Home() {
           onRequireLogin={() => {
             setActiveAppTab("settings");
             setActiveSection("account");
-            setLoginPrompt("Log in or create an account before buying a digital badge.");
+            setLoginPrompt("Log in or create an account before supporting Talent7.");
             window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
           }}
           userId={session?.user.id}
@@ -14166,7 +14158,7 @@ export default function Home() {
               <div>
                 <p className="eyebrow">Owner payments</p>
                 <h3>Payment interest dashboard</h3>
-                <small>See who selected a plan or digital badge before real checkout is connected.</small>
+                <small>See who selected a future plan or recorded contribution interest.</small>
               </div>
               <strong>{paymentInterests.length} records</strong>
             </div>
@@ -14184,7 +14176,7 @@ export default function Home() {
                 <strong>{paymentInterests.filter((interest) => interest.label === "Organizer Pro").length}</strong>
               </article>
               <article>
-                <span>Digital badge interest</span>
+                <span>Contribution interest</span>
                 <strong>{paymentInterests.filter((interest) => interest.intent_type === "Contribution").length}</strong>
               </article>
             </div>
@@ -14221,7 +14213,7 @@ export default function Home() {
               ) : (
                 <div className="emptyPaymentInterest">
                   <strong>No payment interest yet.</strong>
-                  <small>When users select plans or digital badges, they will appear here.</small>
+                  <small>When users select plans or contribution options, they will appear here.</small>
                 </div>
               )}
             </div>
@@ -14362,7 +14354,7 @@ export default function Home() {
               <article>
                 <span>Payment signals</span>
                 <strong>{paymentInterests.length}</strong>
-                <small>{launchControl.contributionInterest.length} digital badge interests</small>
+                <small>{launchControl.contributionInterest.length} contribution interests</small>
               </article>
             </div>
             <div className="launchChecklist">
@@ -14551,8 +14543,8 @@ export default function Home() {
           </article>
           <article>
             <span>Payments</span>
-            <strong>Digital badge purchases are optional</strong>
-            <p>Core access remains free. Razorpay and Google Play securely process three fixed-price digital badge products; Talent7 stores only provider references, verification state, amounts, and badge entitlement.</p>
+            <strong>Supporter contributions are optional</strong>
+            <p>Core access remains free. An approved website payment provider can process fixed or custom one-time support, while Google Play handles the three fixed Android products. Talent7 stores only provider references, verification state, amounts, and badge entitlement.</p>
           </article>
         </div>
         <div className="trustContactBox">

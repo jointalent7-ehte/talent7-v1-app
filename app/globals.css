@@ -6915,9 +6915,81 @@ body:has(.publicRoomLanding) {
 }
 
 .supporterTierGrid button:disabled,
+.customSupportForm button:disabled,
 .supporterPaymentActions button:disabled {
   cursor: wait;
   opacity: 0.55;
+}
+
+.customSupportForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 240px) auto;
+  align-items: end;
+  gap: 16px;
+  padding: 18px 20px;
+  background: rgba(3, 12, 18, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+}
+
+.customSupportForm > div {
+  display: grid;
+  gap: 5px;
+}
+
+.customSupportForm > div > span,
+.customSupportForm label {
+  color: #e8f4f3;
+  font-weight: 800;
+}
+
+.customSupportForm > div > small {
+  color: #aebfc3;
+  line-height: 1.45;
+}
+
+.customSupportForm label {
+  display: grid;
+  gap: 7px;
+  font-size: 0.82rem;
+}
+
+.customAmountInput {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  overflow: hidden;
+  color: #081516;
+  background: #f5faf9;
+  border: 1px solid rgba(105, 222, 210, 0.45);
+  border-radius: 13px;
+}
+
+.customAmountInput > span {
+  padding-left: 14px;
+  font-weight: 900;
+}
+
+.customAmountInput input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px 12px 8px;
+  color: #081516;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-weight: 850;
+}
+
+.customSupportForm > button {
+  min-height: 46px;
+  padding: 10px 18px;
+  color: #061313;
+  background: #69ded2;
+  border: 0;
+  border-radius: 13px;
+  font-weight: 900;
 }
 
 .supporterPaymentActions button {
@@ -6985,6 +7057,10 @@ body:has(.publicRoomLanding) {
   .supporterTierGrid {
     grid-template-columns: 1fr;
   }
+
+  .customSupportForm {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 520px) {
@@ -6997,6 +7073,14 @@ body:has(.publicRoomLanding) {
   .supporterPaymentActions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .customSupportForm {
+    padding: 16px;
+  }
+
+  .customSupportForm > button {
+    width: 100%;
   }
 }
 
