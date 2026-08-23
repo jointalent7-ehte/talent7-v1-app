@@ -1,10 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  customSupportMaximumSubunits,
-  customSupportMinimumSubunits,
-  customSupportProductCode,
   formatInrSubunits,
   supporterProducts,
   type SupporterProduct,
@@ -137,7 +134,6 @@ export default function SupporterPayments({
   const [status, setStatus] = useState<PaymentStatus>({ entitlement: null, payments: [] });
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [actionKey, setActionKey] = useState("");
-  const [customAmount, setCustomAmount] = useState("299");
   const [nativeBilling, setNativeBilling] = useState(false);
   const [nativePrices, setNativePrices] = useState<Record<string, string>>({});
   const onEntitlementChangeRef = useRef(onEntitlementChange);
@@ -239,10 +235,9 @@ export default function SupporterPayments({
     return false;
   }
 
-  async function startRazorpayCheckout(product: SupporterProduct | null, customAmountSubunits?: number) {
+  async function startRazorpayCheckout(product: SupporterProduct) {
     if (!requirePaymentLogin() || !accessToken) return;
-    const key = product?.code || customSupportProductCode;
-    setActionKey(key);
+    setActionKey(product.code);
     try {
       await loadRazorpayScript();
       const order = await apiRequest<{
@@ -253,10 +248,7 @@ export default function SupporterPayments({
         productName: string;
       }>("/api/payments/razorpay/order", accessToken, {
         method: "POST",
-        body: JSON.stringify({
-          productCode: product?.code || customSupportProductCode,
-          customAmountSubunits
-        })
+        body: JSON.stringify({ productCode: product.code })
       });
       if (!window.Razorpay) throw new Error("Razorpay Checkout is unavailable.");
       const checkout = new window.Razorpay({
@@ -301,28 +293,13 @@ export default function SupporterPayments({
     void startRazorpayCheckout(product);
   }
 
-  function submitCustomSupport(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const amountRupees = Number(customAmount);
-    const amountSubunits = Math.round(amountRupees * 100);
-    if (
-      !Number.isFinite(amountRupees)
-      || amountSubunits < customSupportMinimumSubunits
-      || amountSubunits > customSupportMaximumSubunits
-    ) {
-      onNotice("Enter a custom amount from ₹10 to ₹100,000.", "error");
-      return;
-    }
-    void startRazorpayCheckout(null, amountSubunits);
-  }
-
   return (
     <section className="supporterPayments" aria-labelledby="supporter-payments-title">
       <div className="supporterPaymentsHeader">
         <div>
-          <p className="eyebrow">One-time support</p>
-          <h3 id="supporter-payments-title">Support Talent7 without a subscription</h3>
-          <p>Core challenges stay free. A verified one-time purchase adds your highest supporter badge permanently.</p>
+          <p className="eyebrow">One-time digital purchase</p>
+          <h3 id="supporter-payments-title">Choose a Talent7 supporter badge</h3>
+          <p>Core challenges stay free. Each verified purchase delivers the selected permanent profile badge.</p>
         </div>
         <div className={`supporterCurrentBadge${highestTier ? " active" : ""}`}>
           <span>{highestTier ? "Active badge" : "Current access"}</span>
@@ -344,23 +321,6 @@ export default function SupporterPayments({
           </article>
         ))}
       </div>
-
-      {!nativeBilling && (
-        <form className="customSupportForm" onSubmit={submitCustomSupport}>
-          <div>
-            <span>Custom support amount</span>
-            <strong>Choose any amount from ₹10 to ₹100,000</strong>
-            <small>Amounts of ₹99, ₹299, or ₹999 qualify for the matching highest supporter badge.</small>
-          </div>
-          <label>
-            Amount in INR
-            <span className="customAmountInput"><b>₹</b><input inputMode="decimal" min="10" max="100000" onChange={(event) => setCustomAmount(event.target.value)} step="1" type="number" value={customAmount} /></span>
-          </label>
-          <button disabled={Boolean(actionKey)} type="submit">
-            {actionKey === customSupportProductCode ? "Opening secure checkout…" : "Support a custom amount"}
-          </button>
-        </form>
-      )}
 
       <div className="supporterPaymentActions">
         <small>Payments are verified on Talent7 servers before a badge is granted. Never share payment credentials in chat.</small>

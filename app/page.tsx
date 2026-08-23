@@ -14015,13 +14015,13 @@ export default function Home() {
 
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
-          <p className="eyebrow">Free access & one-time support</p>
-          <h2>Challenge access stays free</h2>
-          <p>Audience and challenger access remain free. Optional one-time supporter purchases add a profile badge without locking core challenge features behind payment.</p>
+          <p className="eyebrow">Free access & supporter badges</p>
+          <h2>Challenges stay free</h2>
+          <p>Audience and challenger access remain free. Three optional one-time digital purchases deliver clearly defined profile badges without locking core challenge features behind payment.</p>
         </div>
         <div className="paymentNotice">
-          <strong>Secure one-time payments—no subscription</strong>
-          <small>Website payments use Razorpay and Android purchases use Google Play. Talent7 verifies every completed purchase on the server before granting a badge.</small>
+          <strong>Three defined one-time purchases—no subscription</strong>
+          <small>Website payments use Razorpay and Android purchases use Google Play. Talent7 verifies every completed purchase on the server before delivering its profile badge.</small>
         </div>
         <SupporterPayments
           accessToken={session?.access_token}

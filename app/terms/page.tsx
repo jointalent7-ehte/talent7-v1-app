@@ -13,7 +13,7 @@ export default function TermsPage() {
       <section className="legalHero">
         <p className="eyebrow">Terms and Conditions</p>
         <h1>Talent7 Terms and Conditions</h1>
-        <p>Last updated: August 22, 2026</p>
+        <p>Last updated: August 23, 2026</p>
       </section>
       <section className="legalCard legalHighlight">
         <h2>Agreement</h2>
@@ -36,9 +36,11 @@ export default function TermsPage() {
         <h2>One-Time Supporter Purchases</h2>
         <ul>
           <li>Core Talent7 access remains free. Supporter purchases are optional and are not subscriptions.</li>
+          <li>The only supporter products are the three fixed-price badges displayed before checkout; Talent7 does not accept open-ended donations or fundraising payments.</li>
           <li>Website payments are processed by Razorpay; Android purchases are processed by Google Play.</li>
           <li>A verified captured purchase grants the highest qualifying supporter badge shown in the offer.</li>
           <li>A badge does not provide ownership, investment rights, guaranteed exposure, ranking advantages, or guaranteed future features.</li>
+          <li>Supporter purchases are not challenge entry fees. Talent7 does not offer wagering, betting, cash prizes, peer-to-peer payments, or collection and transfer of funds for users.</li>
           <li>Prices, currency, and applicable taxes are shown before confirmation.</li>
         </ul>
         <p><Link href="/shipping">Shipping and Digital Delivery Policy</Link></p>

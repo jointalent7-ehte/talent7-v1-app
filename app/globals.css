@@ -6809,8 +6809,7 @@ body:has(.publicRoomLanding) {
 }
 
 .supporterPaymentsHeader,
-.supporterPaymentActions,
-.customSupportForm {
+.supporterPaymentActions {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6818,9 +6817,7 @@ body:has(.publicRoomLanding) {
 }
 
 .supporterPaymentsHeader h3,
-.supporterPaymentsHeader p,
-.customSupportForm strong,
-.customSupportForm span {
+.supporterPaymentsHeader p {
   color: inherit;
 }
 
@@ -6897,13 +6894,11 @@ body:has(.publicRoomLanding) {
 
 .supporterTierGrid article > p,
 .supporterTierGrid article > small,
-.supporterPaymentActions small,
-.customSupportForm small {
+.supporterPaymentActions small {
   color: #bdcbd0;
 }
 
 .supporterTierGrid button,
-.customSupportForm button,
 .supporterPaymentActions button {
   min-height: 46px;
   padding: 10px 15px;
@@ -6920,57 +6915,9 @@ body:has(.publicRoomLanding) {
 }
 
 .supporterTierGrid button:disabled,
-.customSupportForm button:disabled,
 .supporterPaymentActions button:disabled {
   cursor: wait;
   opacity: 0.55;
-}
-
-.customSupportForm {
-  padding: 18px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-}
-
-.customSupportForm > div:first-child {
-  display: grid;
-  flex: 1;
-  gap: 4px;
-}
-
-.customSupportForm label {
-  display: grid;
-  min-width: 190px;
-  gap: 6px;
-  color: #d7e3e4;
-  font-size: 0.8rem;
-  font-weight: 800;
-}
-
-.customAmountInput {
-  display: flex;
-  align-items: center;
-  min-height: 46px;
-  overflow: hidden;
-  color: #0c1618 !important;
-  background: #f8fbfb;
-  border-radius: 12px;
-}
-
-.customAmountInput b {
-  padding-left: 14px;
-}
-
-.customAmountInput input {
-  width: 100%;
-  min-width: 0;
-  padding: 10px;
-  color: #0c1618;
-  background: transparent;
-  border: 0;
-  outline: 0;
-  font: inherit;
 }
 
 .supporterPaymentActions button {
@@ -7026,8 +6973,7 @@ body:has(.publicRoomLanding) {
 }
 
 @media (max-width: 820px) {
-  .supporterPaymentsHeader,
-  .customSupportForm {
+  .supporterPaymentsHeader {
     align-items: stretch;
     flex-direction: column;
   }
@@ -7038,10 +6984,6 @@ body:has(.publicRoomLanding) {
 
   .supporterTierGrid {
     grid-template-columns: 1fr;
-  }
-
-  .customSupportForm label {
-    min-width: 0;
   }
 }
 
