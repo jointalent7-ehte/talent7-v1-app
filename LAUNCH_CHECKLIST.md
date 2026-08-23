@@ -6,7 +6,7 @@
 - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` in Vercel.
 - Set `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINTS` to the Play Console **App signing** SHA-256 certificate fingerprint.
 - Set the server-only `SUPABASE_SERVICE_ROLE_KEY` for Production before enabling admin account-deletion completion; never prefix it with `NEXT_PUBLIC_`.
-- Before accepting money, set all server-only Razorpay and Google Play values documented in `PAYMENTS_SETUP.md`; test signatures, provider verification, webhook retries, refunds, pending purchases, and restoration before switching Razorpay to live keys.
+- Before accepting money, obtain written approval for the complete Talent7 model from the chosen website provider and update the current provider adapter and server-only values documented in `PAYMENTS_SETUP.md`; test signatures, verification, webhook retries, refunds, pending purchases, and Google Play restoration before enabling live checkout.
 - For native challenge video, set server-only `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` in Vercel Production; never expose the key or secret as `NEXT_PUBLIC_`.
 - Set `NEXT_PUBLIC_SENTRY_DSN` for Production and Preview, then follow `SENTRY_SETUP.md` to send one controlled verification event.
 - If R2 is enabled, set all five server-only `R2_` variables, verify the bucket CORS origins, and never expose its secret key as `NEXT_PUBLIC_`.
@@ -53,8 +53,8 @@
 
 - Create, join, invite to, complete, archive, and, when permitted, delete a challenge room.
 - Upload photo and video proof and verify unauthorized users cannot manage it.
-- Exercise teams, profiles, sharing, Ready Now, weekly leagues, notifications, feedback, and moderation. Confirm Listen is absent from public navigation and `#listen-rooms` redirects to Challenges. Confirm `#showcase`, old showcase-post hashes, `#coaching`, and `#expert-help` redirect to the Plans future preview and expose no legacy creation/request UI.
-- Install the combined signed Android 1.6 release from a Play testing track. Verify App Links plus all three fixed Play products, pending/cancelled/completed states, server verification, purchase restoration, highest-tier badges, and website fallback after uninstalling. Confirm that both website and Android expose only the three defined digital badge products.
+- Exercise teams, profiles, sharing, Ready Now, weekly leagues, Listen rooms, notifications, feedback, and moderation. Confirm public/private Listen rooms, queue links, reactions, archive, and deletion work. Confirm `#showcase`, old showcase-post hashes, `#coaching`, and `#expert-help` redirect to the Plans future preview and expose no legacy creation/request UI.
+- Install the combined signed Android 1.6 release from a Play testing track. Verify App Links plus all three fixed Play products, pending/cancelled/completed states, server verification, purchase restoration, highest-tier badges, and website fallback after uninstalling. Confirm the custom support field appears only on website checkout and not in Google Play Billing.
 - Verify confirmations and success/error notices appear in the tab where the action occurred and dismiss automatically where appropriate.
 - Test slow/offline requests and retry actions.
 - Check the browser console and network log for production errors.

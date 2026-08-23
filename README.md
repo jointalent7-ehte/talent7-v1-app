@@ -1,6 +1,6 @@
 # Talent7
 
-Talent7 is a proof-based challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, challenge rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, founder feedback, and optional one-time supporter purchases. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
+Talent7 is a proof-based community challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, challenge rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, shared Listen rooms, achievements, notifications, invitations, moderation, founder feedback, and optional one-time supporter contributions. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
 
 ## Local development
 
@@ -44,7 +44,7 @@ Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadca
 
 Follow [TURNSTILE_SETUP.md](TURNSTILE_SETUP.md) before enabling CAPTCHA enforcement in Supabase.
 
-Follow [PAYMENTS_SETUP.md](PAYMENTS_SETUP.md) before enabling real charges. Razorpay handles fixed and custom one-time web payments; Google Play Billing handles the three fixed products in the Android app. All secrets remain server-only, and no supporter badge is granted until the provider purchase is verified by the Talent7 server.
+Follow [PAYMENTS_SETUP.md](PAYMENTS_SETUP.md) before enabling real charges. The current website adapter supports fixed and custom one-time web payments, but Razorpay did not approve Talent7's business model; obtain written approval and replace or reconfigure the provider before accepting live website money. Google Play Billing handles the three fixed products in the Android app. All secrets remain server-only, and no supporter badge is granted until the provider purchase is verified by the Talent7 server.
 
 Optional Cloudflare R2 variables move new challenge-proof uploads out of Supabase Storage while retaining Supabase as a safe fallback. The existing `showcase-media` path remains supported only so previously stored legacy media can be displayed where required for moderation and removed during account deletion:
 

@@ -1,14 +1,18 @@
-# Talent7 one-time digital badge payments
+# Talent7 one-time supporter payments
 
-Talent7 keeps all core access free. Payments purchase one of three defined digital profile badge products delivered permanently to the buyer's profile:
+Talent7 keeps all core access free. Website users can choose one of three supporter tiers or a custom support amount from ₹10 to ₹100,000. Android users can purchase the three fixed Google Play products:
 
 | Talent7 product | Web amount | Google Play product ID |
 | --- | ---: | --- |
-| Talent7 Badge | ₹99 | `talent7_supporter_99` |
-| Champion Badge | ₹299 | `talent7_champion_supporter_299` |
-| Founder Badge | ₹999 | `talent7_founder_supporter_999` |
+| Supporter | ₹99 | `talent7_supporter_99` |
+| Champion Supporter | ₹299 | `talent7_champion_supporter_299` |
+| Founder Supporter | ₹999 | `talent7_founder_supporter_999` |
 
-Website and Android checkout expose only these three defined digital products. There is no user-entered payment amount, challenge entry fee, wager, cash-prize payment, peer-to-peer payment, or collection on behalf of users.
+On the website, custom amounts of at least ₹99 grant the highest qualifying supporter badge: ₹99, ₹299, and ₹999 are the tier thresholds. Smaller custom support does not grant a badge. Custom amounts are not available through Google Play Billing. Supporter payments are never challenge entry fees, wagers, cash-prize payments, peer-to-peer payments, or collections on behalf of users.
+
+## Website-provider approval gate
+
+Razorpay rejected the current Talent7 business model. The Razorpay adapter remains in the source only to preserve the already-tested implementation; do not enable it for new live payments unless Razorpay later gives written approval. Before replacing it, send the candidate provider an accurate description of challenges, public/community features, Listen rooms, fixed supporter tiers, and custom support, and obtain written approval for the complete production experience. Cashfree is the first candidate to approach, but approval is not guaranteed and no Cashfree code is implemented yet.
 
 ## 1. Apply the Supabase migration
 
@@ -20,9 +24,9 @@ supabase/add-supporter-payments.sql
 
 This must run after `add-payments.sql` and `add-growth-engagement.sql`. The browser cannot write either the payment ledger or entitlements; only server routes using `SUPABASE_SERVICE_ROLE_KEY` reconcile a badge from a captured provider payment.
 
-## 2. Configure Razorpay for the website
+## 2. Current Razorpay website adapter (not approved for live Talent7 use)
 
-1. Create or open the Talent7 Razorpay account and complete the provider's activation/KYC requirements.
+1. Keep production checkout disabled unless Razorpay provides written approval for the complete Talent7 model.
 2. Verify `https://www.jointalent7.com` in Razorpay and confirm the public footer links to Terms and Conditions, Privacy Policy, Shipping Policy, Contact Us, and Cancellation and Refunds.
 3. Start with Test Mode keys. Add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` to Vercel Preview and Production as sensitive server-only values.
 4. Create a long, unique webhook secret and add it to Vercel as `RAZORPAY_WEBHOOK_SECRET`.
@@ -31,8 +35,8 @@ This must run after `add-payments.sql` and `add-growth-engagement.sql`. The brow
    `https://www.jointalent7.com/api/payments/razorpay/webhook`
 
 6. Subscribe to `payment.captured`, `payment.failed`, `refund.processed`, and `order.paid`.
-7. Deploy, make test purchases for every fixed tier, then test dismissal, failure, duplicate webhook delivery, and refund downgrade/removal.
-8. Replace Test Mode keys with live keys only after the complete production-domain test passes. Keep the live webhook secret synchronized with Vercel.
+7. In test mode, test every fixed tier and the ₹10, ₹99, ₹299, ₹999, and ₹100,000 custom boundaries, then test dismissal, failure, duplicate webhook delivery, and refund downgrade/removal.
+8. Do not install live keys until written business approval and the complete production-domain test both pass. Keep the live webhook secret synchronized with Vercel.
 
 Checkout success alone never grants a badge. Talent7 validates the checkout HMAC, fetches the Razorpay payment and order, compares amount/currency/order ownership, and requires both to report a captured/paid state. Webhooks are signature checked and deduplicated.
 
@@ -69,8 +73,9 @@ Only the Supabase URL and anon key are public. Every other value in this list is
 ## 5. Production acceptance tests
 
 - Signed-out users are asked to sign in and no provider order is created.
-- Each fixed web purchase uses its exact server-controlled amount and rejects unknown or client-supplied product codes.
-- ₹99/₹299/₹999 grant the matching badge without downgrading a higher badge already earned.
+- Each fixed web purchase uses its exact server-controlled amount and rejects unknown product codes.
+- Custom website support accepts only server-validated INR amounts from ₹10 to ₹100,000.
+- ₹99/₹299/₹999 fixed or custom thresholds grant the matching badge without downgrading a higher badge already earned; smaller custom support grants no badge.
 - A dismissed, failed, pending, cancelled, forged, wrong-user, wrong-product, or wrong-amount purchase grants nothing.
 - Replayed checkout callbacks, webhooks, RTDN messages, and purchase tokens do not duplicate entitlements.
 - A Razorpay refund removes or downgrades the badge according to the user's remaining captured payments.
