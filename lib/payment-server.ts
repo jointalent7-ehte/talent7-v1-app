@@ -62,14 +62,14 @@ export async function grantSupporterEntitlement(service: SupabaseClient, payment
   const { error } = await service.rpc("reconcile_supporter_entitlement_for_payment", {
     target_payment_id: paymentId
   });
-  if (error) throw new Error(error.message || "The supporter badge could not be granted.");
+  if (error) throw new Error(error.message || "The digital profile badge could not be delivered.");
 }
 
 export async function reconcileSupporterEntitlement(service: SupabaseClient, userId: string) {
   const { error } = await service.rpc("reconcile_supporter_entitlement", {
     target_user_id: userId
   });
-  if (error) throw new Error(error.message || "The supporter badge could not be reconciled.");
+  if (error) throw new Error(error.message || "The digital profile badge could not be reconciled.");
 }
 
 export function currencySubunitsFromMicros(amountMicros: string | number | undefined, currency: string) {

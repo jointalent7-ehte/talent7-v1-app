@@ -15,7 +15,7 @@ export async function processGooglePlaySupporterPurchase(input: {
   expectedUserId?: string;
 }) {
   const product = supporterProductByGooglePlayId(input.productId);
-  if (!product) throw new Error("Unknown Google Play supporter product.");
+  if (!product) throw new Error("Unknown Google Play digital badge product.");
 
   const tokenHash = sha256Hex(input.purchaseToken);
   const { data: existing, error: existingError } = await input.service
