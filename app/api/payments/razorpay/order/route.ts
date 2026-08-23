@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const requestedCode = String(body.productCode || "");
   const fixedProduct = supporterProductByCode(requestedCode);
-  if (!fixedProduct) return paymentJsonError("Choose a valid supporter badge.", 400);
+  if (!fixedProduct) return paymentJsonError("Choose a valid digital profile badge.", 400);
 
   const productCode = fixedProduct.code;
   const productName = fixedProduct.name;

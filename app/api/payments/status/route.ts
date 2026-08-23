@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const authenticated = await authenticatedPaymentRequest(request);
-  if (!authenticated) return paymentJsonError("Sign in again to view supporter purchases.", 401);
+  if (!authenticated) return paymentJsonError("Sign in again to view badge purchases.", 401);
 
   const service = paymentServiceClient();
   if (!service) return paymentJsonError("Payment services are not configured.", 503);
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   ]);
 
   const error = entitlementResult.error || paymentsResult.error;
-  if (error) return paymentJsonError(error.message || "Supporter status could not be loaded.", 400);
+  if (error) return paymentJsonError(error.message || "Badge purchase status could not be loaded.", 400);
 
   return NextResponse.json(
     { entitlement: entitlementResult.data || null, payments: paymentsResult.data || [] },

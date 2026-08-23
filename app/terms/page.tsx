@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms and Conditions",
-  description: "Terms and Conditions for Talent7 accounts, challenges, content, and supporter purchases."
+  description: "Terms and Conditions for Talent7 accounts, challenges, content, and digital badge purchases."
 };
 
 export default function TermsPage() {
@@ -29,18 +29,18 @@ export default function TermsPage() {
       </section>
       <section className="legalCard">
         <h2>Challenges And User Content</h2>
-        <p>Talent7 hosts user-created rooms, profiles, teams, chat, proof, votes, ratings, and live community activity. You retain ownership of content you submit while granting Talent7 a non-exclusive licence to host, display, process, and share it as needed to operate the service.</p>
+        <p>Talent7 hosts structured challenge rooms, participant profiles, teams, room chat, proof, votes, ratings, and live challenge activity. These tools are provided to organize, document, judge, and complete talent, sports, and gaming challenges. You retain ownership of content you submit while granting Talent7 a non-exclusive licence to host, display, process, and share it as needed to operate the service.</p>
         <p>Do not submit illegal, infringing, deceptive, dangerous, abusive, exploitative, or privacy-invasive content. Talent7 may review reports and remove or restrict content and accounts when reasonably required.</p>
       </section>
       <section className="legalCard">
-        <h2>One-Time Supporter Purchases</h2>
+        <h2>One-Time Digital Badge Purchases</h2>
         <ul>
-          <li>Core Talent7 access remains free. Supporter purchases are optional and are not subscriptions.</li>
-          <li>The only supporter products are the three fixed-price badges displayed before checkout; Talent7 does not accept open-ended donations or fundraising payments.</li>
+          <li>Core Talent7 access remains free. Digital badge purchases are optional, fixed-price products and are not subscriptions.</li>
+          <li>Talent7 sells only the three defined digital profile badges displayed before checkout. There is no user-entered payment amount or person-to-person collection feature.</li>
           <li>Website payments are processed by Razorpay; Android purchases are processed by Google Play.</li>
-          <li>A verified captured purchase grants the highest qualifying supporter badge shown in the offer.</li>
+          <li>A verified captured purchase delivers the selected permanent digital badge to the buyer&apos;s Talent7 profile.</li>
           <li>A badge does not provide ownership, investment rights, guaranteed exposure, ranking advantages, or guaranteed future features.</li>
-          <li>Supporter purchases are not challenge entry fees. Talent7 does not offer wagering, betting, cash prizes, peer-to-peer payments, or collection and transfer of funds for users.</li>
+          <li>Digital badge purchases are not challenge entry fees. Talent7 does not offer wagering, betting, cash prizes, peer-to-peer payments, or collection and transfer of funds for users.</li>
           <li>Prices, currency, and applicable taxes are shown before confirmation.</li>
         </ul>
         <p><Link href="/shipping">Shipping and Digital Delivery Policy</Link></p>

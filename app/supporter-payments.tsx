@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatInrSubunits,
+  supporterProductByCode,
   supporterProducts,
+  supporterTierLabel,
   type SupporterProduct,
   type SupporterTier
 } from "../lib/supporter-products";
@@ -156,7 +158,7 @@ export default function SupporterPayments({
       setStatus(nextStatus);
       onEntitlementChangeRef.current(nextStatus.entitlement?.active ? nextStatus.entitlement.tier : null);
     } catch (error) {
-      onNoticeRef.current(error instanceof Error ? error.message : "Supporter status could not be loaded.", "error");
+      onNoticeRef.current(error instanceof Error ? error.message : "Badge purchase status could not be loaded.", "error");
     } finally {
       setLoadingStatus(false);
     }
@@ -206,7 +208,7 @@ export default function SupporterPayments({
           method: "POST",
           body: JSON.stringify({ productId: detail.productId, purchaseToken: detail.purchaseToken })
         });
-        onNoticeRef.current("Google Play purchase verified. Your supporter badge is active.", "success");
+        onNoticeRef.current("Google Play purchase verified. Your profile badge is active.", "success");
         await refreshStatus();
       } catch (error) {
         onNoticeRef.current(error instanceof Error ? error.message : "Google Play verification failed.", "error");
@@ -267,7 +269,7 @@ export default function SupporterPayments({
               method: "POST",
               body: JSON.stringify(response)
             });
-            onNotice("Payment verified. Thank you for supporting Talent7.", "success");
+            onNotice("Payment verified. Your digital profile badge has been delivered.", "success");
             await refreshStatus();
           } catch (error) {
             onNotice(error instanceof Error ? error.message : "The payment could not be verified.", "error");
@@ -298,12 +300,12 @@ export default function SupporterPayments({
       <div className="supporterPaymentsHeader">
         <div>
           <p className="eyebrow">One-time digital purchase</p>
-          <h3 id="supporter-payments-title">Choose a Talent7 supporter badge</h3>
+          <h3 id="supporter-payments-title">Choose a digital Talent7 profile badge</h3>
           <p>Core challenges stay free. Each verified purchase delivers the selected permanent profile badge.</p>
         </div>
         <div className={`supporterCurrentBadge${highestTier ? " active" : ""}`}>
           <span>{highestTier ? "Active badge" : "Current access"}</span>
-          <strong>{highestTier || "Free member"}</strong>
+          <strong>{highestTier ? supporterTierLabel(highestTier) : "Free member"}</strong>
           <small>{loadingStatus ? "Refreshing…" : highestTier ? "Verified purchase" : "No purchase required"}</small>
         </div>
       </div>
@@ -338,7 +340,7 @@ export default function SupporterPayments({
           <div>
             {capturedPayments.slice(0, 10).map((payment) => (
               <article key={payment.id}>
-                <span>{payment.product_name}</span>
+                <span>{supporterProductByCode(payment.product_code)?.name || "Talent7 profile badge"}</span>
                 <strong>{paymentAmount(payment)}</strong>
                 <small>{payment.provider} · {new Date(payment.captured_at || payment.created_at).toLocaleDateString()}</small>
               </article>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import GrowthEvent from "../../growth-event";
 import { getPublicTalentProfile } from "../../../lib/public-profile-preview";
+import { supporterTierLabel, type SupporterTier } from "../../../lib/supporter-products";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ type ProfilePageProps = {
 };
 
 function profileDescription(name: string, role: string, interest: string, region: string) {
-  return `Meet ${name}, a ${role.toLowerCase()} interested in ${interest || "new challenges"} in ${region || "the Talent7 community"}.`;
+  return `Meet ${name}, a ${role.toLowerCase()} interested in ${interest || "new challenges"} in ${region || "Talent7"}.`;
 }
 
 function profileInitials(name: string) {
@@ -89,7 +90,7 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
             <div className="profilePreviewAvatar" aria-hidden="true">{profileInitials(profile.display_name)}</div>
             <div>
               <span className="profilePreviewBadge">
-                {profile.supporter_tier ? `★ ${profile.supporter_tier}` : "Talent7 member"}
+                {profile.supporter_tier ? `★ ${supporterTierLabel(profile.supporter_tier as SupporterTier)}` : "Talent7 member"}
               </span>
               <h1>{profile.display_name}</h1>
               <p>@{profile.username}</p>

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Cancellation and Refund Policy",
-  description: "Cancellation and refund policy for Talent7 one-time supporter purchases."
+  description: "Cancellation and refund policy for Talent7 one-time digital badge purchases."
 };
 
 export default function RefundsPage() {
@@ -21,7 +21,7 @@ export default function RefundsPage() {
       </section>
       <section className="legalCard">
         <h2>Captured One-Time Purchases</h2>
-        <p>Supporter purchases are one-time digital purchases and are normally final after delivery. A refund may be considered for a duplicate charge, unauthorised transaction, incorrect amount, or verified payment for which Talent7 cannot deliver the purchased badge.</p>
+        <p>Profile badge purchases are one-time digital product purchases and are normally final after delivery. A refund may be considered for a duplicate charge, unauthorised transaction, incorrect amount, or verified payment for which Talent7 cannot deliver the purchased badge.</p>
       </section>
       <section className="legalCard">
         <h2>Requesting A Refund</h2>

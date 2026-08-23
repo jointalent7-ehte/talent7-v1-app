@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shipping and Digital Delivery Policy",
-  description: "Digital delivery policy for Talent7 one-time supporter purchases."
+  description: "Digital delivery policy for Talent7 one-time profile badge purchases."
 };
 
 export default function ShippingPage() {
@@ -17,7 +17,7 @@ export default function ShippingPage() {
       </section>
       <section className="legalCard legalHighlight">
         <h2>No Physical Shipping</h2>
-        <p>Talent7 sells optional digital supporter badges. No physical goods are sold or shipped, so no courier, delivery address, or physical shipping charge applies.</p>
+        <p>Talent7 sells three optional fixed-price digital profile badges. No physical goods are sold or shipped, so no courier, delivery address, or physical shipping charge applies.</p>
       </section>
       <section className="legalCard">
         <h2>How Digital Delivery Works</h2>

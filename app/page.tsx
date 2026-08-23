@@ -13,7 +13,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 import { trackGrowthEvent } from "../lib/growth-analytics";
-import type { SupporterTier } from "../lib/supporter-products";
+import { supporterTierLabel, type SupporterTier } from "../lib/supporter-products";
 import ChallengeLiveRoom from "./challenge-live-room";
 import GrowthHub from "./growth-hub";
 import SupporterPayments from "./supporter-payments";
@@ -418,23 +418,17 @@ const primaryTabs: {
       { label: "Create", href: "#create" },
       { label: "Leaderboard", href: "#leaderboard" }
     ]
-  },
-  {
-    id: "listen",
-    label: "Listen",
-    firstSection: "listen-rooms",
-    links: [{ label: "Listen rooms", href: "#listen-rooms" }]
   }
 ];
 
 const moreTabs: { id: MoreTabId; label: string; href: string; description: string }[] = [
   { id: "teams", label: "Teams", href: "#teams", description: "Squads, crews, and requests" },
-  { id: "profiles", label: "Profiles", href: "#profiles", description: "Discover Talent7 people" },
+  { id: "profiles", label: "Profiles", href: "#profiles", description: "Find opponents by talent and activity" },
   { id: "notifications", label: "Notifications", href: "#notifications", description: "Updates that need attention" },
-  { id: "feed", label: "Feed", href: "#following-feed", description: "Activity from people you follow" },
+  { id: "feed", label: "Updates", href: "#following-feed", description: "Challenge updates from selected profiles" },
   { id: "invites", label: "Invites", href: "#invites", description: "Challenge invitations" },
   { id: "safety", label: "Safety", href: "#safety", description: "Reports, trust, and terms" },
-  { id: "plans", label: "Plans", href: "#plans", description: "Plans and founder support" },
+  { id: "plans", label: "Badges", href: "#plans", description: "Fixed-price digital profile badges" },
   { id: "feedback", label: "Feedback", href: "#feedback", description: "Send and review feedback" },
   { id: "roadmap", label: "Roadmap", href: "#roadmap", description: "Launch progress and what is next" }
 ];
@@ -445,8 +439,8 @@ const moreTabGroups: Array<{
   tabIds: MoreTabId[];
 }> = [
   {
-    label: "Community",
-    description: "People, teams, conversations, and invitations",
+    label: "Challenge tools",
+    description: "Opponents, teams, activity, and invitations",
     tabIds: ["teams", "profiles", "feed", "invites"]
   },
   {
@@ -469,7 +463,6 @@ const sectionTabMap: Record<string, AppTabId> = {
   rooms: "challenges",
   opponents: "challenges",
   leaderboard: "challenges",
-  "listen-rooms": "listen",
   teams: "teams",
   profiles: "profiles",
   notifications: "notifications",
@@ -488,8 +481,13 @@ function isLegacyFutureRoute(hash: string) {
   return target === "showcase" || target.startsWith("showcase-") || target === "coaching" || target === "expert-help";
 }
 
+function isTemporarilyHiddenRoute(hash: string) {
+  return hash.replace(/^#/, "") === "listen-rooms";
+}
+
 function tabForHash(hash: string): AppTabId | null {
   const target = hash.replace(/^#/, "");
+  if (isTemporarilyHiddenRoute(hash)) return "challenges";
   if (isLegacyFutureRoute(hash)) return "plans";
   if (target.startsWith("profile-")) return "profiles";
   if (target.startsWith("room-")) return "challenges";
@@ -499,6 +497,7 @@ function tabForHash(hash: string): AppTabId | null {
 
 function sectionForHash(hash: string): string | null {
   const target = hash.replace(/^#/, "");
+  if (isTemporarilyHiddenRoute(hash)) return "rooms";
   if (isLegacyFutureRoute(hash)) return "plans";
   if (target.startsWith("profile-")) return "profiles";
   if (target.startsWith("room-")) return "rooms";
@@ -509,6 +508,8 @@ function sectionForHash(hash: string): string | null {
 type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
 type ListenRoomStatus = "Open" | "Archived";
 type ListenRoomVisibility = "Public" | "Private";
+
+const publicListenRoomsEnabled = false;
 
 type ListenRoom = {
   id: string;
@@ -1763,7 +1764,7 @@ function suggestedBookingLinks(challenge: Challenge, fallbackRegion?: string | n
       {
         label: "Find match rooms",
         url: `https://www.google.com/search?q=${query}`,
-        detail: "Search public lobbies and community match rooms.",
+        detail: "Search public lobbies and organized match rooms.",
         recommended: true
       },
       {
@@ -1780,7 +1781,7 @@ function suggestedBookingLinks(challenge: Challenge, fallbackRegion?: string | n
     shortcuts.push({
       label: "Book with Hudle",
       url: "https://www.hudle.in/",
-      detail: "India-focused sports venues, courts, turfs, pools, and community games."
+      detail: "India-focused sports venues, courts, turfs, pools, and organized games."
     });
   }
 
@@ -2144,6 +2145,7 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!publicListenRoomsEnabled) return;
 
     if (supabase) {
       const supabaseClient = supabase;
@@ -2176,7 +2178,11 @@ export default function Home() {
   useEffect(() => {
     const syncTabWithHash = () => {
       const requestedHash = window.location.hash;
-      const navigationHash = isLegacyFutureRoute(requestedHash) ? "#plans" : requestedHash;
+      const navigationHash = isLegacyFutureRoute(requestedHash)
+        ? "#plans"
+        : isTemporarilyHiddenRoute(requestedHash)
+          ? "#rooms"
+          : requestedHash;
       if (navigationHash !== requestedHash) {
         window.history.replaceState(window.history.state, "", navigationHash);
       }
@@ -3369,7 +3375,7 @@ export default function Home() {
       {
         key: "share-buttons",
         title: "Share buttons",
-        detail: "Copy invite link, Play Store wave invite, founder support text, and launch captions."
+        detail: "Copy invite link, Play Store wave invite, badge details, and launch captions."
       },
       {
         key: "play-store-gate",
@@ -7535,8 +7541,8 @@ export default function Home() {
     label: string,
     amountLabel: string
   ) {
-    if (!requireLogin("select a plan or contribution range")) return;
-    if (!requireProfile("select a plan or contribution range")) return;
+    if (!requireLogin("select a plan or digital badge")) return;
+    if (!requireProfile("select a plan or digital badge")) return;
 
     const actionKey = `${intentType}-${label}-${amountLabel}`;
     const interest = {
@@ -11262,7 +11268,7 @@ export default function Home() {
                 Copy challenge invite
               </button>
               <button onClick={() => startFounderFeedback("Bug")} type="button">Report a bug</button>
-              <a href="#plans">Founder support</a>
+              <a href="#plans">Digital badges</a>
             </div>
           </details>
         </section>
@@ -11873,9 +11879,9 @@ export default function Home() {
                 <small>Core challenge access stays free.</small>
               </div>
               <div>
-                <span>Supporter badge</span>
-                <strong>{supporterTierByUser[session.user.id] || "No badge yet"}</strong>
-                <small>{supporterTierByUser[session.user.id] ? "Verified one-time support" : "Optional one-time support"}</small>
+                <span>Digital profile badge</span>
+                <strong>{supporterTierByUser[session.user.id] ? supporterTierLabel(supporterTierByUser[session.user.id]) : "No badge yet"}</strong>
+                <small>{supporterTierByUser[session.user.id] ? "Verified digital purchase" : "Optional one-time purchase"}</small>
               </div>
               <a href="#plans">View plans</a>
             </div>
@@ -12396,6 +12402,7 @@ export default function Home() {
         </div>
       </section>
 
+      {publicListenRoomsEnabled && (
       <section className="section listenSection" id="listen-rooms">
         <div className="sectionHeader">
           <span className="eyebrow">Listen together</span>
@@ -12753,6 +12760,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       <section className="section coachingSection" id="coaching">
         <div className="sectionHeader">
@@ -13251,9 +13259,9 @@ export default function Home() {
 
       <section className="section safetySection" id="safety">
         <div className="sectionHeader">
-          <p className="eyebrow">Community safety</p>
+          <p className="eyebrow">Participant safety</p>
           <h2>Play fair, prove honestly, stay safe</h2>
-          <p>Talent7 works only if challenges, proof, and community help are handled with trust.</p>
+          <p>Talent7 works only if challenges, proof, and participant interactions are handled with trust.</p>
         </div>
         <div className="safetyGrid">
           <article>
@@ -14015,7 +14023,7 @@ export default function Home() {
 
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
-          <p className="eyebrow">Free access & supporter badges</p>
+          <p className="eyebrow">Free challenge access & digital badges</p>
           <h2>Challenges stay free</h2>
           <p>Audience and challenger access remain free. Three optional one-time digital purchases deliver clearly defined profile badges without locking core challenge features behind payment.</p>
         </div>
@@ -14039,7 +14047,7 @@ export default function Home() {
           onRequireLogin={() => {
             setActiveAppTab("settings");
             setActiveSection("account");
-            setLoginPrompt("Log in or create an account before supporting Talent7.");
+            setLoginPrompt("Log in or create an account before buying a digital badge.");
             window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
           }}
           userId={session?.user.id}
@@ -14158,7 +14166,7 @@ export default function Home() {
               <div>
                 <p className="eyebrow">Owner payments</p>
                 <h3>Payment interest dashboard</h3>
-                <small>See who selected plans or founder support before real checkout is connected.</small>
+                <small>See who selected a plan or digital badge before real checkout is connected.</small>
               </div>
               <strong>{paymentInterests.length} records</strong>
             </div>
@@ -14176,7 +14184,7 @@ export default function Home() {
                 <strong>{paymentInterests.filter((interest) => interest.label === "Organizer Pro").length}</strong>
               </article>
               <article>
-                <span>Contributions</span>
+                <span>Digital badge interest</span>
                 <strong>{paymentInterests.filter((interest) => interest.intent_type === "Contribution").length}</strong>
               </article>
             </div>
@@ -14213,7 +14221,7 @@ export default function Home() {
               ) : (
                 <div className="emptyPaymentInterest">
                   <strong>No payment interest yet.</strong>
-                  <small>When users select plans or contribution ranges, they will appear here.</small>
+                  <small>When users select plans or digital badges, they will appear here.</small>
                 </div>
               )}
             </div>
@@ -14354,7 +14362,7 @@ export default function Home() {
               <article>
                 <span>Payment signals</span>
                 <strong>{paymentInterests.length}</strong>
-                <small>{launchControl.contributionInterest.length} contribution interests</small>
+                <small>{launchControl.contributionInterest.length} digital badge interests</small>
               </article>
             </div>
             <div className="launchChecklist">
@@ -14446,7 +14454,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "Instagram caption",
-                      `Talent7 is preparing for Play Store launch.\n\nCreate proof-based challenge rooms, join as a challenger or audience member, vote winners, rate out of 7, upload proof, form teams, and join live community battles.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentBattles #SportsChallenge #Breakdance #Gaming`
+                      `Talent7 is preparing for Play Store launch.\n\nCreate proof-based challenge rooms, join as a challenger or audience member, vote winners, rate out of 7, upload proof, form teams, and join live challenge battles.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentBattles #SportsChallenge #Breakdance #Gaming`
                     )
                   }
                   type="button"
@@ -14468,7 +14476,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "Direct invite",
-                      `I am preparing Talent7 for Play Store launch. You can create or join challenges, vote, rate out of 7, upload proof, form teams, and watch live community battles.\n\nStart here: ${siteUrl()}`
+                      `I am preparing Talent7 for Play Store launch. You can create or join challenges, vote, rate out of 7, upload proof, form teams, and watch live challenge battles.\n\nStart here: ${siteUrl()}`
                     )
                   }
                   type="button"
@@ -14543,8 +14551,8 @@ export default function Home() {
           </article>
           <article>
             <span>Payments</span>
-            <strong>One-time support is optional</strong>
-            <p>Core access remains free. Razorpay and Google Play securely process supporter purchases; Talent7 stores only provider references, verification state, amounts, and badge entitlement.</p>
+            <strong>Digital badge purchases are optional</strong>
+            <p>Core access remains free. Razorpay and Google Play securely process three fixed-price digital badge products; Talent7 stores only provider references, verification state, amounts, and badge entitlement.</p>
           </article>
         </div>
         <div className="trustContactBox">
@@ -14638,7 +14646,7 @@ export default function Home() {
             </div>
             <div className="trustBadgeRow">
               {supporterTierByUser[selectedProfile.user_id] && (
-                <span className="supporterProfileBadge">★ {supporterTierByUser[selectedProfile.user_id]}</span>
+                <span className="supporterProfileBadge">★ {supporterTierLabel(supporterTierByUser[selectedProfile.user_id])}</span>
               )}
               {profileTrustBadges(selectedProfile).length > 0 ? (
                 profileTrustBadges(selectedProfile).map((badge) => <span key={badge}>{badge}</span>)
@@ -14778,7 +14786,7 @@ export default function Home() {
                 </div>
                 <div className="trustBadgeRow compact">
                   {supporterTierByUser[item.user_id] && (
-                    <span className="supporterProfileBadge">★ {supporterTierByUser[item.user_id]}</span>
+                    <span className="supporterProfileBadge">★ {supporterTierLabel(supporterTierByUser[item.user_id])}</span>
                   )}
                   {profileTrustBadges(item).length > 0 ? (
                     profileTrustBadges(item).slice(0, 3).map((badge) => <span key={badge}>{badge}</span>)
@@ -17337,7 +17345,7 @@ export default function Home() {
       <footer className="siteFooter">
         <div>
           <strong>Talent7</strong>
-            <p>Proof-based challenge rooms, public 7-star ratings, teams, and live community experiences.</p>
+            <p>Proof-based challenge rooms, public 7-star ratings, teams, and live challenge broadcasts.</p>
         </div>
         <nav>
           <a href="#account">Account</a>

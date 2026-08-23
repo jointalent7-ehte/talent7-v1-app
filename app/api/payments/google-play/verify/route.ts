@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
   const productId = String(body.productId || "");
   const purchaseToken = String(body.purchaseToken || "");
-  if (!supporterProductByGooglePlayId(productId)) return paymentJsonError("Unknown Google Play supporter product.", 400);
+  if (!supporterProductByGooglePlayId(productId)) return paymentJsonError("Unknown Google Play digital badge product.", 400);
   if (purchaseToken.length < 20 || purchaseToken.length > 4096) return paymentJsonError("The Google Play purchase token was invalid.", 400);
 
   try {
