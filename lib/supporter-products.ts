@@ -40,23 +40,12 @@ export const supporterProducts: readonly SupporterProduct[] = [
   }
 ] as const;
 
-export const customSupportProductCode = "custom_support";
-export const customSupportMinimumSubunits = 1_000;
-export const customSupportMaximumSubunits = 10_000_000;
-
 export function supporterProductByCode(code: string) {
   return supporterProducts.find((product) => product.code === code) || null;
 }
 
 export function supporterProductByGooglePlayId(productId: string) {
   return supporterProducts.find((product) => product.googlePlayProductId === productId) || null;
-}
-
-export function supporterTierForCustomAmount(amountSubunits: number): SupporterTier | null {
-  if (amountSubunits >= 99_900) return "Founder Supporter";
-  if (amountSubunits >= 29_900) return "Champion Supporter";
-  if (amountSubunits >= 9_900) return "Supporter";
-  return null;
 }
 
 export function formatInrSubunits(amountSubunits: number) {
