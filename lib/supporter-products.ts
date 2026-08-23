@@ -10,33 +10,37 @@ export type SupporterProduct = {
   description: string;
 };
 
+export const customSupportProductCode = "custom_support";
+export const customSupportMinimumSubunits = 1_000;
+export const customSupportMaximumSubunits = 10_000_000;
+
 export const supporterProducts: readonly SupporterProduct[] = [
   {
     code: "supporter_99",
-    name: "Talent7 Badge",
+    name: "Supporter",
     tier: "Supporter",
     amountSubunits: 9_900,
     currency: "INR",
     googlePlayProductId: "talent7_supporter_99",
-    description: "A permanent Talent7 Badge delivered to your profile."
+    description: "A permanent Supporter badge on your Talent7 profile."
   },
   {
     code: "champion_supporter_299",
-    name: "Champion Badge",
+    name: "Champion Supporter",
     tier: "Champion Supporter",
     amountSubunits: 29_900,
     currency: "INR",
     googlePlayProductId: "talent7_champion_supporter_299",
-    description: "A permanent Champion Badge delivered to your profile."
+    description: "A permanent Champion Supporter badge on your Talent7 profile."
   },
   {
     code: "founder_supporter_999",
-    name: "Founder Badge",
+    name: "Founder Supporter",
     tier: "Founder Supporter",
     amountSubunits: 99_900,
     currency: "INR",
     googlePlayProductId: "talent7_founder_supporter_999",
-    description: "A permanent Founder Badge delivered to your profile."
+    description: "A permanent Founder Supporter badge on your Talent7 profile."
   }
 ] as const;
 
@@ -49,9 +53,14 @@ export function supporterProductByGooglePlayId(productId: string) {
 }
 
 export function supporterTierLabel(tier: SupporterTier) {
-  if (tier === "Champion Supporter") return "Champion Badge";
-  if (tier === "Founder Supporter") return "Founder Badge";
-  return "Talent7 Badge";
+  return tier;
+}
+
+export function supporterTierForCustomAmount(amountSubunits: number): SupporterTier | null {
+  if (amountSubunits >= 99_900) return "Founder Supporter";
+  if (amountSubunits >= 29_900) return "Champion Supporter";
+  if (amountSubunits >= 9_900) return "Supporter";
+  return null;
 }
 
 export function formatInrSubunits(amountSubunits: number) {
