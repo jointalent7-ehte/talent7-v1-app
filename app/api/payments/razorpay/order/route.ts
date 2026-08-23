@@ -6,7 +6,13 @@ import {
   paymentServiceClient
 } from "../../../../../lib/payment-server";
 import { createRazorpayOrder, razorpayConfig } from "../../../../../lib/razorpay-server";
-import { supporterProductByCode } from "../../../../../lib/supporter-products";
+import {
+  customSupportMaximumSubunits,
+  customSupportMinimumSubunits,
+  customSupportProductCode,
+  supporterProductByCode,
+  supporterTierForCustomAmount
+} from "../../../../../lib/supporter-products";
 
 export const runtime = "nodejs";
 
@@ -23,12 +29,23 @@ export async function POST(request: Request) {
 
   const requestedCode = String(body.productCode || "");
   const fixedProduct = supporterProductByCode(requestedCode);
-  if (!fixedProduct) return paymentJsonError("Choose a valid digital profile badge.", 400);
+  const isCustomSupport = requestedCode === customSupportProductCode;
+  const requestedAmountSubunits = Number(body.amountSubunits);
+  if (!fixedProduct && !isCustomSupport) return paymentJsonError("Choose a valid supporter option.", 400);
+  if (
+    isCustomSupport &&
+    (!Number.isInteger(requestedAmountSubunits) ||
+      requestedAmountSubunits < customSupportMinimumSubunits ||
+      requestedAmountSubunits > customSupportMaximumSubunits)
+  ) {
+    return paymentJsonError("Choose a custom support amount from ₹10 to ₹100,000.", 400);
+  }
 
-  const productCode = fixedProduct.code;
-  const productName = fixedProduct.name;
-  const amountSubunits = fixedProduct.amountSubunits;
-  const currency = fixedProduct.currency;
+  const amountSubunits = fixedProduct?.amountSubunits || requestedAmountSubunits;
+  const customTier = isCustomSupport ? supporterTierForCustomAmount(amountSubunits) : null;
+  const productCode = fixedProduct?.code || customSupportProductCode;
+  const productName = fixedProduct?.name || (customTier ? `Custom support (${customTier})` : "Custom support");
+  const currency = fixedProduct?.currency || "INR";
   const { data: payment, error: insertError } = await service
     .from("payments")
     .insert({
