@@ -8,7 +8,7 @@ Talent7 keeps all core access free. Payments are optional one-time support purch
 | Champion Supporter | ₹299 | `talent7_champion_supporter_299` |
 | Founder Supporter | ₹999 | `talent7_founder_supporter_999` |
 
-The website also accepts a custom Razorpay amount from ₹10 to ₹100,000. A custom amount at or above ₹99, ₹299, or ₹999 grants the corresponding highest badge. Arbitrary custom prices are intentionally not offered inside Android because Google Play Billing requires configured products and prices.
+Website and Android checkout expose only these three defined digital products. Talent7 does not accept open-ended donations, custom support amounts, challenge entry fees, wagers, cash-prize payments, peer-to-peer payments, or collections on behalf of users.
 
 ## 1. Apply the Supabase migration
 
@@ -30,8 +30,8 @@ This must run after `add-payments.sql` and `add-growth-engagement.sql`. The brow
 
    `https://www.jointalent7.com/api/payments/razorpay/webhook`
 
-6. Subscribe to `payment.captured`, `payment.failed`, `payment.refunded`, `refund.processed`, and `order.paid`.
-7. Deploy, make test purchases for every fixed tier and custom amount boundary, then test dismissal, failure, duplicate webhook delivery, and refund downgrade/removal.
+6. Subscribe to `payment.captured`, `payment.failed`, `refund.processed`, and `order.paid`.
+7. Deploy, make test purchases for every fixed tier, then test dismissal, failure, duplicate webhook delivery, and refund downgrade/removal.
 8. Replace Test Mode keys with live keys only after the complete production-domain test passes. Keep the live webhook secret synchronized with Vercel.
 
 Checkout success alone never grants a badge. Talent7 validates the checkout HMAC, fetches the Razorpay payment and order, compares amount/currency/order ownership, and requires both to report a captured/paid state. Webhooks are signature checked and deduplicated.
@@ -69,9 +69,8 @@ Only the Supabase URL and anon key are public. Every other value in this list is
 ## 5. Production acceptance tests
 
 - Signed-out users are asked to sign in and no provider order is created.
-- Fixed web purchases and the ₹10/₹100,000 custom boundaries use the exact server-created amount.
-- Custom amounts below ₹99 make a valid donation without granting a badge.
-- ₹99/₹299/₹999 and higher custom thresholds grant only the highest matching badge.
+- Each fixed web purchase uses its exact server-controlled amount and rejects unknown or client-supplied product codes.
+- ₹99/₹299/₹999 grant the matching badge without downgrading a higher badge already earned.
 - A dismissed, failed, pending, cancelled, forged, wrong-user, wrong-product, or wrong-amount purchase grants nothing.
 - Replayed checkout callbacks, webhooks, RTDN messages, and purchase tokens do not duplicate entitlements.
 - A Razorpay refund removes or downgrades the badge according to the user's remaining captured payments.
