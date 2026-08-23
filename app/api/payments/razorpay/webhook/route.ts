@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString()
       }).eq("id", paymentRecord.id);
       if (error) throw new Error(error.message);
-    } else if (paymentRecord && (eventType === "refund.processed" || eventType === "payment.refunded")) {
+    } else if (paymentRecord && eventType === "refund.processed") {
       const { error } = await service.from("payments").update({
         status: "Refunded",
         refunded_at: new Date().toISOString(),

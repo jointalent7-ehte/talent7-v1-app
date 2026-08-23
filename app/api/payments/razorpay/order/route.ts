@@ -6,12 +6,7 @@ import {
   paymentServiceClient
 } from "../../../../../lib/payment-server";
 import { createRazorpayOrder, razorpayConfig } from "../../../../../lib/razorpay-server";
-import {
-  customSupportMaximumSubunits,
-  customSupportMinimumSubunits,
-  customSupportProductCode,
-  supporterProductByCode
-} from "../../../../../lib/supporter-products";
+import { supporterProductByCode } from "../../../../../lib/supporter-products";
 
 export const runtime = "nodejs";
 
@@ -28,22 +23,12 @@ export async function POST(request: Request) {
 
   const requestedCode = String(body.productCode || "");
   const fixedProduct = supporterProductByCode(requestedCode);
-  const customAmountSubunits = Number(body.customAmountSubunits);
-  const isCustom = requestedCode === customSupportProductCode;
-  if (!fixedProduct && !isCustom) return paymentJsonError("Choose a valid supporter option.", 400);
-  if (
-    isCustom
-    && (!Number.isSafeInteger(customAmountSubunits)
-      || customAmountSubunits < customSupportMinimumSubunits
-      || customAmountSubunits > customSupportMaximumSubunits)
-  ) {
-    return paymentJsonError("Enter a custom amount from ₹10 to ₹100,000.", 400);
-  }
+  if (!fixedProduct) return paymentJsonError("Choose a valid supporter badge.", 400);
 
-  const productCode = fixedProduct?.code || customSupportProductCode;
-  const productName = fixedProduct?.name || "Custom Talent7 support";
-  const amountSubunits = fixedProduct?.amountSubunits || customAmountSubunits;
-  const currency = fixedProduct?.currency || "INR";
+  const productCode = fixedProduct.code;
+  const productName = fixedProduct.name;
+  const amountSubunits = fixedProduct.amountSubunits;
+  const currency = fixedProduct.currency;
   const { data: payment, error: insertError } = await service
     .from("payments")
     .insert({
