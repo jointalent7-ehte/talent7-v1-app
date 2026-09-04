@@ -10,10 +10,6 @@ export type SupporterProduct = {
   description: string;
 };
 
-export const customSupportProductCode = "custom_support";
-export const customSupportMinimumSubunits = 1_000;
-export const customSupportMaximumSubunits = 10_000_000;
-
 export const supporterProducts: readonly SupporterProduct[] = [
   {
     code: "supporter_99",
@@ -54,13 +50,6 @@ export function supporterProductByGooglePlayId(productId: string) {
 
 export function supporterTierLabel(tier: SupporterTier) {
   return tier;
-}
-
-export function supporterTierForCustomAmount(amountSubunits: number): SupporterTier | null {
-  if (amountSubunits >= 99_900) return "Founder Supporter";
-  if (amountSubunits >= 29_900) return "Champion Supporter";
-  if (amountSubunits >= 9_900) return "Supporter";
-  return null;
 }
 
 export function formatInrSubunits(amountSubunits: number) {

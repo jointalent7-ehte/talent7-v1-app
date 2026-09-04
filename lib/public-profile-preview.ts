@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { containsRetiredGamingContent } from "./product-scope";
 
 export type PublicTalentProfile = {
   display_name: string;
@@ -39,8 +40,10 @@ export async function getPublicTalentProfile(token: string) {
   ]);
 
   if (profileResult.error || !profileResult.data) return null;
+  const profile = profileResult.data as Omit<PublicTalentProfile, "supporter_tier">;
+  if (containsRetiredGamingContent(profile.main_interest, ...(profile.challenge_activities || []))) return null;
   return {
-    ...(profileResult.data as Omit<PublicTalentProfile, "supporter_tier">),
+    ...profile,
     supporter_tier: supporterResult.error ? null : String(supporterResult.data || "") || null
   };
 }
