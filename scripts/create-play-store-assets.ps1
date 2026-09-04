@@ -155,7 +155,7 @@ Draw-CoverImage $g $hero (New-Object System.Drawing.Rectangle 0, 0, 1024, 500)
 Draw-Gradient $g (New-Object System.Drawing.Rectangle 0, 0, 670, 500) "#06100fcc" "#06100f00"
 Draw-Text $g "Talent7" 58 96 88 "#ffffff" ([System.Drawing.FontStyle]::Bold)
 Draw-Text $g "Challenge. Rate. Prove it." 62 205 36 "#ffffff" ([System.Drawing.FontStyle]::Bold)
-Draw-Text $g "Talent battles, sports rooms, gaming squads, public ratings, and live community action." 64 270 25 "#e5eeec" ([System.Drawing.FontStyle]::Regular) 610
+Draw-Text $g "Talent battles, sports rooms, public ratings, proof uploads, and live challenge action." 64 270 25 "#e5eeec" ([System.Drawing.FontStyle]::Regular) 610
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 62, 382, 230, 58) 18 (New-Brush "#ffffff")
 Draw-Text $g "Join first wave" 90 398 25 "#101417" ([System.Drawing.FontStyle]::Bold)
 $g.Dispose()
@@ -170,7 +170,7 @@ Draw-CoverImage $g $hero (New-Object System.Drawing.Rectangle 0, 0, 1080, 760)
 Draw-Gradient $g (New-Object System.Drawing.Rectangle 0, 0, 1080, 760) "#06100fcc" "#06100f33"
 Draw-Text $g "Talent7" 66 95 92 "#ffffff" ([System.Drawing.FontStyle]::Bold)
 Draw-Text $g "Challenge. Rate. Prove it." 70 215 50 "#ffffff" ([System.Drawing.FontStyle]::Bold) 760
-Draw-Text $g "Fair challenge rooms for talent, sports, and mobile gaming with ratings and proof." 72 350 32 "#dce8e6" ([System.Drawing.FontStyle]::Regular) 820
+Draw-Text $g "Fair challenge rooms for talent and sports with public ratings and proof." 72 350 32 "#dce8e6" ([System.Drawing.FontStyle]::Regular) 820
 Draw-StatCard $g 62 825 430 "Challenge rooms" "11"
 Draw-StatCard $g 588 825 430 "Top rooms" "3"
 Draw-StatCard $g 62 990 430 "Proof uploads" "3"
@@ -188,7 +188,7 @@ $g.Clear([System.Drawing.ColorTranslator]::FromHtml("#f3f8f7"))
 Draw-PhoneHeader $g "Join live challenge rooms" "Join as challenger or audience, vote, rate out of 7, and upload proof."
 Draw-RoomCard $g 70 420 "Badminton doubles" "Sports challenge" "Rohan + Dev" "Open invite" "A 5 / B 3" "7.0"
 Draw-RoomCard $g 70 760 "Breakdance battle" "Talent battle" "Arya" "Mateo" "A 4 / B 4" "6.8"
-Draw-RoomCard $g 70 1100 "PUBG squad battle" "Mobile gaming" "Nova Squad" "Open invite" "A 8 / B 7" "7.0"
+Draw-RoomCard $g 70 1100 "Breakdance battle" "Talent battle" "Street Flow Crew" "Open invite" "A 8 / B 7" "7.0"
 Draw-RoundedRect $g (New-Object System.Drawing.Rectangle 70, 1460, 940, 154) 24 (New-Brush "#fff7e8") (New-PenSafe "#f3bf48" 2)
 Draw-Text $g "Room chat, reports, and locked results keep challenges fair." 106 1508 32 "#101417" ([System.Drawing.FontStyle]::Bold) 820
 Draw-BottomTabs $g "Rooms"
