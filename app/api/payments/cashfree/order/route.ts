@@ -1,26 +1,29 @@
 import { NextResponse } from "next/server";
+import { createCashfreeSandboxOrder, cashfreeSandboxConfig } from "../../../../../lib/cashfree-server";
 import {
   authenticatedPaymentRequest,
   paymentJsonError,
   paymentRequestBody,
   paymentServiceClient
 } from "../../../../../lib/payment-server";
-import { createRazorpayOrder, razorpayConfig } from "../../../../../lib/razorpay-server";
 import { supporterProductByCode } from "../../../../../lib/supporter-products";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  if (process.env.WEBSITE_PAYMENTS_ENABLED !== "true") {
-    return paymentJsonError("Website checkout is paused while payment-provider approval is pending.", 503);
+  if (
+    process.env.WEBSITE_PAYMENTS_ENABLED !== "true"
+    || process.env.WEB_PAYMENT_PROVIDER?.trim().toLowerCase() !== "cashfree"
+  ) {
+    return paymentJsonError("Cashfree sandbox checkout is disabled.", 503);
   }
 
   const authenticated = await authenticatedPaymentRequest(request);
   if (!authenticated) return paymentJsonError("Sign in again before starting checkout.", 401);
 
   const service = paymentServiceClient();
-  const config = razorpayConfig();
-  if (!service || !config) return paymentJsonError("Razorpay checkout is not configured yet.", 503);
+  const config = cashfreeSandboxConfig();
+  if (!service || !config) return paymentJsonError("Cashfree sandbox checkout is not configured yet.", 503);
 
   const body = await paymentRequestBody(request);
   if (!body) return paymentJsonError("The checkout request was invalid.", 400);
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
     .from("payments")
     .insert({
       user_id: authenticated.user.id,
-      provider: "Razorpay",
+      provider: "Cashfree",
       product_code: productCode,
       product_name: productName,
       amount_subunits: amountSubunits,
@@ -50,36 +53,41 @@ export async function POST(request: Request) {
     return paymentJsonError(insertError?.message || "The payment record could not be created.", 400);
   }
 
+  const paymentRecordId = String(payment.id);
+  const orderId = `t7_${paymentRecordId.replaceAll("-", "")}`;
+  const metadata = authenticated.user.user_metadata || {};
+  const customerName = String(metadata.full_name || metadata.name || "").trim().slice(0, 80) || undefined;
+
   try {
-    const order = await createRazorpayOrder({
-      amount: amountSubunits,
+    const order = await createCashfreeSandboxOrder({
+      amountSubunits,
       currency,
-      receipt: `t7_${String(payment.id).replaceAll("-", "").slice(0, 28)}`,
-      notes: {
-        talent7_payment_id: String(payment.id),
-        talent7_user_id: authenticated.user.id,
-        product_code: productCode
-      }
+      customerEmail: authenticated.user.email,
+      customerId: authenticated.user.id.replaceAll("-", ""),
+      customerName,
+      orderId,
+      paymentRecordId,
+      productCode,
+      productName
     });
     const { error: updateError } = await service
       .from("payments")
       .update({
-        provider_order_id: order.id,
+        provider_order_id: order.order_id,
         status: "Created",
         updated_at: new Date().toISOString()
       })
-      .eq("id", payment.id);
+      .eq("id", paymentRecordId);
     if (updateError) throw new Error(updateError.message);
 
     return NextResponse.json(
       {
-        paymentRecordId: payment.id,
-        keyId: config.keyId,
-        orderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
+        paymentRecordId,
+        paymentSessionId: order.payment_session_id,
+        orderId: order.order_id,
         productCode,
-        productName
+        productName,
+        sandbox: true
       },
       { headers: { "Cache-Control": "no-store" } }
     );
@@ -91,7 +99,7 @@ export async function POST(request: Request) {
         failure_description: error instanceof Error ? error.message.slice(0, 500) : "Order creation failed.",
         updated_at: new Date().toISOString()
       })
-      .eq("id", payment.id);
-    return paymentJsonError(error instanceof Error ? error.message : "Razorpay could not create the order.", 502);
+      .eq("id", paymentRecordId);
+    return paymentJsonError(error instanceof Error ? error.message : "Cashfree could not create the sandbox order.", 502);
   }
 }

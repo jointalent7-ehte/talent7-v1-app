@@ -14,6 +14,7 @@ import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 import { trackGrowthEvent } from "../lib/growth-analytics";
 import { supporterTierLabel, type SupporterTier } from "../lib/supporter-products";
+import { containsRetiredGamingContent, isRetiredGamingChallenge } from "../lib/product-scope";
 import ChallengeLiveRoom from "./challenge-live-room";
 import GrowthHub from "./growth-hub";
 import SupporterPayments from "./supporter-payments";
@@ -49,6 +50,7 @@ const maxVideoUploadBytes = 50 * 1024 * 1024;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
 const videoMimeTypes = ["video/mp4", "video/quicktime"];
 const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || "";
+const listenRoomsEnabled = false;
 const roomPageSize = 6;
 const profilePageSize = 8;
 const feedPageSize = 8;
@@ -107,7 +109,7 @@ const athleticsRelayEvents = ["4 × 100 m relay", "4 × 400 m relay"];
 const challengeActivityGroups = [
   {
     label: "Popular challenges",
-    options: ["Badminton doubles", "Badminton singles", "Breakdance battle", "Rap battle", "PUBG squad battle"]
+    options: ["Badminton doubles", "Badminton singles", "Breakdance battle", "Rap battle"]
   },
   {
     label: "Sports and fitness",
@@ -141,10 +143,6 @@ const challengeActivityGroups = [
       "Running race",
       "Athletics challenge"
     ]
-  },
-  {
-    label: "Gaming and strategy",
-    options: ["Mech Arena challenge", "PUBG gaming", "Chess match"]
   },
   {
     label: "Performance and creative",
@@ -418,12 +416,6 @@ const primaryTabs: {
       { label: "Create", href: "#create" },
       { label: "Leaderboard", href: "#leaderboard" }
     ]
-  },
-  {
-    id: "listen",
-    label: "Listen",
-    firstSection: "listen-rooms",
-    links: [{ label: "Listen rooms", href: "#listen-rooms" }]
   }
 ];
 
@@ -469,7 +461,6 @@ const sectionTabMap: Record<string, AppTabId> = {
   rooms: "challenges",
   opponents: "challenges",
   leaderboard: "challenges",
-  "listen-rooms": "listen",
   teams: "teams",
   profiles: "profiles",
   notifications: "notifications",
@@ -486,6 +477,10 @@ const sectionTabMap: Record<string, AppTabId> = {
 function isLegacyFutureRoute(hash: string) {
   const target = hash.replace(/^#/, "");
   return target === "showcase" || target.startsWith("showcase-") || target === "coaching" || target === "expert-help";
+}
+
+function isRetiredFeatureRoute(hash: string) {
+  return hash.replace(/^#/, "") === "listen-rooms";
 }
 
 function tabForHash(hash: string): AppTabId | null {
@@ -658,17 +653,12 @@ function activityMatchConfig(activity: string): ActivityMatchConfig {
   if (normalized.includes("volleyball")) return fixed("Team", 6);
   if (normalized.includes("football") || normalized.includes("cricket")) return fixed("Team", 11);
   if (normalized.includes("basketball")) return fixed("Team", 5);
-  if (normalized.includes("pubg squad")) return fixed("Team", 4);
-  if (normalized.includes("mech arena")) return fixed("Team", 5);
   if (normalized.includes("relay")) return fixed("Team", 4);
   if (athleticsIndividualEvents.some((event) => event.toLowerCase() === normalized)) return fixed("Singles", 1);
   if (normalized.includes("team tournament")) return flexible(["Team"], "Team", 4);
 
   if (normalized.includes("table tennis") || normalized.includes("tennis")) {
     return flexible(["Singles", "Doubles"], "Singles", 1);
-  }
-  if (normalized.includes("pubg") || normalized.includes("gaming")) {
-    return flexible(["Singles", "Doubles", "Team"], "Team", 4);
   }
   if (normalized.includes("chess")) return flexible(["Singles", "Team"], "Singles", 1);
 
@@ -729,11 +719,6 @@ function matchFormatLabel(format: MatchFormat, activity: string) {
   const normalized = activity.toLowerCase();
   if (normalized.includes("relay")) return "Relay team";
   if (athleticsIndividualEvents.some((event) => event.toLowerCase() === normalized)) return "Individual";
-  if (normalized.includes("pubg") || normalized.includes("gaming")) {
-    if (format === "Singles") return "Solo";
-    if (format === "Doubles") return "Duo";
-    return "Squad";
-  }
   if (normalized.includes("chess")) return format === "Singles" ? "1 vs 1" : "Team";
   if (
     normalized.includes("race") ||
@@ -812,23 +797,10 @@ type ChallengeSchedule = {
 };
 
 function defaultPlayModeForChallenge(challenge: Challenge): ChallengePlayMode {
-  const challengeType = `${challenge.lane} ${challenge.title} ${challenge.sport_type || ""}`.toLowerCase();
-
-  if (
-    challenge.lane === "Mobile gaming challenge" ||
-    challengeType.includes("pubg") ||
-    challengeType.includes("mech arena") ||
-    challengeType.includes("gaming") ||
-    challengeType.includes("chess")
-  ) {
-    return "Online";
-  }
-
-  return "In person";
+  return challenge.lane === "Sports challenge" ? "In person" : "Online";
 }
 
 function availablePlayModesForChallenge(challenge: Challenge): ChallengePlayMode[] {
-  if (challenge.lane === "Mobile gaming challenge") return ["Online"];
   if (challenge.lane === "Sports challenge") return ["In person"];
   return ["In person", "Online"];
 }
@@ -1415,7 +1387,7 @@ function profileChallengeAvailability(item: TalentProfile): ChallengeAvailabilit
 }
 
 function canonicalChallengeActivity(activity: string) {
-  return activity === "Mobile gaming" ? "PUBG gaming" : activity;
+  return activity;
 }
 
 function profileChallengeActivities(item: TalentProfile) {
@@ -1477,15 +1449,6 @@ function laneForInterest(interest: string): ChallengeLane {
   const normalized = interest.toLowerCase();
 
   if (
-    normalized.includes("pubg") ||
-    normalized.includes("mech arena") ||
-    normalized.includes("gaming") ||
-    normalized.includes("game")
-  ) {
-    return "Mobile gaming challenge";
-  }
-
-  if (
     normalized.includes("dance") ||
     normalized.includes("break") ||
     normalized.includes("singing") ||
@@ -1536,10 +1499,6 @@ function rulesForActivity(activity: string) {
     return "Agree the number of sets before starting. Upload the final score and victory proof after the match.";
   }
 
-  if (normalized.includes("pubg") || normalized.includes("mech arena") || normalized.includes("gaming")) {
-    return "Agree the game mode, map, team size, and number of rounds before starting. Upload a result screenshot or video proof.";
-  }
-
   if (normalized.includes("dance") || normalized.includes("break")) {
     return "Agree the number and length of rounds before starting. Upload both performances for audience ratings out of 7.";
   }
@@ -1578,10 +1537,6 @@ function venueForActivity(activity: string) {
     return normalized.includes("road race") || normalized.includes("marathon")
       ? "Measured road course or certified race event"
       : "Athletics track-and-field venue";
-  }
-
-  if (normalized.includes("pubg") || normalized.includes("mech arena") || normalized.includes("gaming") || normalized.includes("chess")) {
-    return "Online lobby or agreed venue";
   }
 
   if (
@@ -1694,28 +1649,6 @@ const sampleChallenges: Challenge[] = [
     match_format: "Singles",
     roster_size: 1,
     created_at: "2026-01-02T12:00:00.000Z"
-  },
-  {
-    id: "sample-3",
-    title: "PUBG squad battle",
-    lane: "Mobile gaming challenge",
-    status: "Open",
-    rules: "Share room code, play match, upload proof clip or screenshot.",
-    team_a: "Nova Squad",
-    team_b: "Open invite",
-    team_a_id: null,
-    team_b_id: null,
-    proof_url: null,
-    winner: null,
-    final_score: null,
-    completed_at: null,
-    venue_name: "Mobile lobby / room code",
-    booking_url: "",
-    sport_type: "Mobile gaming",
-    booking_region: "Online",
-    match_format: "Team",
-    roster_size: 4,
-    created_at: "2026-01-01T12:00:00.000Z"
   }
 ];
 
@@ -1757,22 +1690,6 @@ function suggestedBookingLinks(challenge: Challenge, fallbackRegion?: string | n
   const isIndia = indiaLocations.some((location) => normalizedRegion.includes(location));
   const isPlayoMarket = playoMarkets.some((location) => normalizedRegion.includes(location));
   const isRacketSport = racketSports.some((activity) => normalizedSport.includes(activity));
-
-  if (challenge.lane === "Mobile gaming challenge" || sport.toLowerCase().includes("gaming")) {
-    return [
-      {
-        label: "Find match rooms",
-        url: `https://www.google.com/search?q=${query}`,
-        detail: "Search public lobbies and organized match rooms.",
-        recommended: true
-      },
-      {
-        label: "Search tournament apps",
-        url: `https://www.google.com/search?q=${encodeURIComponent(`${sport} tournament app ${region}`)}`,
-        detail: "Compare current tournament and matchmaking options."
-      }
-    ];
-  }
 
   const shortcuts: BookingShortcut[] = [];
 
@@ -2144,6 +2061,12 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!listenRoomsEnabled) {
+      setListenRooms([]);
+      setListenTracks([]);
+      setListenLoading(false);
+      return;
+    }
 
     if (supabase) {
       const supabaseClient = supabase;
@@ -2176,7 +2099,11 @@ export default function Home() {
   useEffect(() => {
     const syncTabWithHash = () => {
       const requestedHash = window.location.hash;
-      const navigationHash = isLegacyFutureRoute(requestedHash) ? "#plans" : requestedHash;
+      const navigationHash = isLegacyFutureRoute(requestedHash)
+        ? "#plans"
+        : isRetiredFeatureRoute(requestedHash)
+          ? "#rooms"
+          : requestedHash;
       if (navigationHash !== requestedHash) {
         window.history.replaceState(window.history.state, "", navigationHash);
       }
@@ -2503,7 +2430,7 @@ export default function Home() {
       setChallengeLoadError(refreshError.message);
       if (showFeedback) setMessage(`Could not refresh challenge rooms: ${refreshError.message}`);
     } else {
-      setChallenges((challengeResult.data || []) as Challenge[]);
+      setChallenges(((challengeResult.data || []) as Challenge[]).filter((challenge) => !isRetiredGamingChallenge(challenge)));
       setJoins((joinResult.data || []) as ChallengeJoin[]);
       setChallengeLoadError("");
       if (showFeedback) setMessage("Challenge rooms refreshed.");
@@ -2796,6 +2723,7 @@ export default function Home() {
     const savedInterest = profile?.main_interest;
 
     const filteredChallenges = challenges.filter((challenge) => {
+      if (isRetiredGamingChallenge(challenge)) return false;
       const laneMatches = selectedLane === "All" || challenge.lane === selectedLane;
       const statusMatches =
         selectedStatus === "All" ||
@@ -2913,6 +2841,7 @@ export default function Home() {
 
   const leaderboard = useMemo(() => {
     return challenges
+      .filter((challenge) => !isRetiredGamingChallenge(challenge))
       .map((challenge) => {
         const joinsTotal =
           (joinCounts[challenge.id]?.challengers || 0) + (joinCounts[challenge.id]?.audience || 0);
@@ -2962,13 +2891,14 @@ export default function Home() {
 
   const visibleProfiles = useMemo(() => {
     const search = profileSearch.trim().toLowerCase();
-    const filteredProfiles = publicProfiles.filter((item) =>
-      !search ||
-      [item.display_name, item.username, item.role, item.main_interest, item.region]
-        .join(" ")
-        .toLowerCase()
-        .includes(search)
-    );
+    const filteredProfiles = publicProfiles.filter((item) => {
+      if (containsRetiredGamingContent(item.main_interest, ...(item.challenge_activities || []))) return false;
+      return !search ||
+        [item.display_name, item.username, item.role, item.main_interest, item.region]
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+    });
 
     return [...filteredProfiles].sort((first, second) => {
       if (profileDiscoverySort === "Best match") {
@@ -2981,13 +2911,14 @@ export default function Home() {
 
   const visibleTeams = useMemo(() => {
     const search = teamSearch.trim().toLowerCase();
-    const filteredTeams = teams.filter((team) =>
-      !search ||
-      [team.name, team.team_type, team.main_activity, team.region, team.description]
-        .join(" ")
-        .toLowerCase()
-        .includes(search)
-    );
+    const filteredTeams = teams.filter((team) => {
+      if (containsRetiredGamingContent(team.team_type, team.main_activity, team.description)) return false;
+      return !search ||
+        [team.name, team.team_type, team.main_activity, team.region, team.description]
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+    });
 
     return [...filteredTeams].sort((first, second) => {
       if (teamDiscoverySort === "Best match") {
@@ -3008,6 +2939,7 @@ export default function Home() {
 
     return publicProfiles
       .filter((item) => item.user_id !== session?.user.id)
+      .filter((item) => !containsRetiredGamingContent(item.main_interest, ...(item.challenge_activities || [])))
       .filter((item) => profileChallengeAvailability(item) !== "Unavailable")
       .filter((item) => {
         const activities = profileChallengeActivities(item);
@@ -3663,7 +3595,7 @@ export default function Home() {
       },
       {
         title: "Join or create one challenge",
-        detail: "Start with a badminton, breakdance, gaming, or open challenge room.",
+        detail: "Start with a badminton, breakdance, athletics, or open challenge room.",
         done: hasRoomAction,
         href: hasRoomAction ? "#my-talent7" : "#rooms"
       },
@@ -5931,7 +5863,13 @@ export default function Home() {
         .limit(30);
 
       if (error) return;
-      if (data) setTeams(data as TalentTeam[]);
+      if (data) {
+        setTeams(
+          (data as TalentTeam[]).filter(
+            (team) => !containsRetiredGamingContent(team.team_type, team.main_activity, team.description)
+          )
+        );
+      }
     }
 
     loadTeams();
@@ -6879,7 +6817,7 @@ export default function Home() {
     return [
       "Talent7 is preparing for Play Store launch at jointalent7.com.",
       `Current build: ${challenges.length} challenge rooms, ${publicProfiles.length} talent profiles, ${proofs.length} proof uploads, and ${firstWaveInterests.length} first-wave launch signups.`,
-      "You can join now as a challenger, audience voter, organizer, or gaming squad. Showcase Talent, Coaching, and Guidance are planned future experiences.",
+      "You can join now as a challenger, audience voter, organizer, or sports team. Showcase Talent, Coaching, and Guidance are planned future experiences.",
       "Try a challenge room, rate out of 7, upload proof, and help shape the launch version."
     ].join("\n\n");
   }
@@ -7883,7 +7821,13 @@ export default function Home() {
         .select("*")
         .order("updated_at", { ascending: false });
 
-      if (data) setPublicProfiles((data as TalentProfile[]).map(canonicalTalentProfile));
+      if (data) {
+        setPublicProfiles(
+          (data as TalentProfile[])
+            .map(canonicalTalentProfile)
+            .filter((item) => !containsRetiredGamingContent(item.main_interest, ...(item.challenge_activities || [])))
+        );
+      }
     }
 
     loadPublicProfiles();
@@ -8180,6 +8124,12 @@ export default function Home() {
       status: "Open",
       created_by: session?.user.id
     };
+    if (isRetiredGamingChallenge(challenge)) {
+      setMessage("Talent7 now supports talent and sports challenges only.", "warning");
+      challengeCreationLockRef.current = false;
+      setIsSaving(false);
+      return;
+    }
 
     try {
       if (!supabase) {
@@ -8377,6 +8327,10 @@ export default function Home() {
       match_format: updatedMatchFormat,
       roster_size: updatedRosterSize
     };
+    if (isRetiredGamingChallenge(update)) {
+      setMessage("Talent7 now supports talent and sports challenges only.", "warning");
+      return;
+    }
 
     setEditingChallengeId(challenge.id);
     setMessage("");
@@ -9052,6 +9006,10 @@ export default function Home() {
       region: String(form.get("region") || profile?.region || "Global").trim(),
       description
     };
+    if (containsRetiredGamingContent(team.team_type, team.main_activity, team.description)) {
+      setMessage("Talent7 teams now support talent, sports, dance, and fitness activities only.", "warning");
+      return;
+    }
 
     setSavingTeam(true);
     setMessage("");
@@ -9581,11 +9539,7 @@ export default function Home() {
       return;
     }
     if (!availablePlayModesForChallenge(challenge).includes(playMode)) {
-      setMessage(
-        challenge.lane === "Mobile gaming challenge"
-          ? "Mobile gaming challenges must use Online play mode."
-          : "Sports challenges must use In person play mode."
-      );
+      setMessage("Sports challenges must use In person play mode.");
       return;
     }
     if (playMode === "In person" && !venueName) {
@@ -11221,8 +11175,7 @@ export default function Home() {
           <p className="eyebrow">Early access MVP</p>
           <h1>Challenge anyone. Prove it. Rise on Talent7.</h1>
           <p>
-            Talent7 brings fair, proof-based challenge rooms to talent battles, sports matchups,
-            and mobile gaming.
+            Talent7 brings fair, proof-based challenge rooms to talent battles, athletics, and sports matchups.
           </p>
           <div className="heroMetrics">
             <article>
@@ -11543,7 +11496,7 @@ export default function Home() {
           <article>
             <span>2</span>
             <strong>Join or create a challenge</strong>
-            <p>Start with badminton, breakdance, or mobile gaming. Upload proof, collect votes, and lock a winner.</p>
+            <p>Start with badminton, athletics, or breakdance. Upload proof, collect votes, and lock a winner.</p>
             <a href="#rooms">View rooms</a>
           </article>
           <article>
@@ -11577,7 +11530,7 @@ export default function Home() {
             <label>
               I want to join as
               <select name="role_goal" defaultValue="Challenger">
-                {(["Challenger", "Audience", "Coach", "Organizer", "Expert helper", "Gaming squad"] as FirstWaveInterest["role_goal"][]).map(
+                {(["Challenger", "Audience", "Coach", "Organizer", "Expert helper"] as FirstWaveInterest["role_goal"][]).map(
                   (role) => (
                     <option key={role} value={role}>
                       {role === "Coach" ? "Coach (future Coaching)" : role === "Expert helper" ? "Expert helper (future Guidance)" : role}
@@ -11598,7 +11551,7 @@ export default function Home() {
               Notes
               <textarea
                 name="notes"
-                placeholder="Example: I can test badminton audience voting, or I want to create a PUBG squad challenge."
+                placeholder="Example: I can test badminton audience voting, or I want to create a dance challenge."
               />
             </label>
             <div className="firstWaveSubmit">
@@ -12026,7 +11979,6 @@ export default function Home() {
                   <option>Audience / voter</option>
                   <option value="Coach / instructor">Coach / instructor (future Coaching)</option>
                   <option>Sports organizer</option>
-                  <option>Gaming squad / clan</option>
                 </select>
               </label>
               <label>
@@ -12396,6 +12348,7 @@ export default function Home() {
         </div>
       </section>
 
+      {listenRoomsEnabled && (
       <section className="section listenSection" id="listen-rooms">
         <div className="sectionHeader">
           <span className="eyebrow">Listen together</span>
@@ -12753,6 +12706,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       <section className="section coachingSection" id="coaching">
         <div className="sectionHeader">
@@ -12912,27 +12866,26 @@ export default function Home() {
       <section className="section teamsSection" id="teams">
         <div className="sectionHeader">
           <p className="eyebrow">Teams & squads</p>
-          <h2>Form sports teams, crews, and gaming clans</h2>
-          <p>Create reusable team identities for doubles partners, dance crews, calisthenics groups, and mobile gaming squads.</p>
+          <h2>Form sports teams, dance crews, and fitness groups</h2>
+          <p>Create reusable team identities for doubles partners, dance crews, athletics teams, and calisthenics groups.</p>
         </div>
         {session ? (
           <form className="teamForm" onSubmit={createTeam}>
             <label>
               Team name
-              <input name="name" placeholder="Nova Smashers, Street Flow Crew, Mech Arena Squad..." />
+              <input name="name" placeholder="Nova Smashers, Street Flow Crew, Sprint Team..." />
             </label>
             <label>
               Team type
               <select name="team_type" defaultValue="Sports team">
                 <option>Sports team</option>
                 <option>Dance crew</option>
-                <option>Gaming clan</option>
                 <option>Fitness group</option>
               </select>
             </label>
             <label>
               Main activity
-              <input name="main_activity" defaultValue={profile?.main_interest || ""} placeholder="Badminton doubles, PUBG, breakdance..." />
+              <input name="main_activity" defaultValue={profile?.main_interest || ""} placeholder="Badminton doubles, athletics, breakdance..." />
             </label>
             <label>
               Region
@@ -12949,7 +12902,7 @@ export default function Home() {
         ) : (
           <div className="teamNotice">
             <strong>Log in to create or join teams.</strong>
-            <p>Teams help Talent7 users build stable groups for sports, talent battles, and gaming challenges.</p>
+            <p>Teams help Talent7 users build stable groups for sports and talent challenges.</p>
             <a href="#account">Go to account</a>
           </div>
         )}
@@ -13174,7 +13127,7 @@ export default function Home() {
               detail={
                 teams.length > 0
                   ? "Try a team name, activity, region, or type, or show every team again."
-                  : "Start a Talent7 sports team, dance crew, gaming clan, or fitness group."
+                  : "Start a Talent7 sports team, dance crew, athletics team, or fitness group."
               }
               onAction={() => {
                 if (teams.length > 0) {
@@ -14015,9 +13968,9 @@ export default function Home() {
 
       <section className="section plansSection" id="plans">
         <div className="sectionHeader">
-          <p className="eyebrow">Free challenge access & supporter contributions</p>
+          <p className="eyebrow">Free challenge access & optional digital badges</p>
           <h2>Challenges stay free</h2>
-          <p>Audience and challenger access remain free. Optional one-time supporter purchases and a flexible contribution help Talent7 grow without locking core challenge features behind payment.</p>
+          <p>Audience and challenger access remain free. Three optional fixed-price digital badge products are available without locking any challenge feature behind payment.</p>
         </div>
         <div className="paymentNotice">
           <strong>One-time supporter payments—no subscription</strong>
@@ -14111,7 +14064,7 @@ export default function Home() {
           <article>
             <span>Team / organizer</span>
             <strong>Concept plan</strong>
-            <p>For sports organizers, gaming clans, and teams running repeated tournaments.</p>
+            <p>For sports organizers, dance crews, and teams running repeated events.</p>
             <ul>
               <li>Team pages and member roles</li>
               <li>Tournament and bracket tools</li>
@@ -14158,7 +14111,7 @@ export default function Home() {
               <div>
                 <p className="eyebrow">Owner payments</p>
                 <h3>Payment interest dashboard</h3>
-                <small>See who selected a future plan or recorded contribution interest.</small>
+                <small>See who selected a future plan or recorded legacy payment interest.</small>
               </div>
               <strong>{paymentInterests.length} records</strong>
             </div>
@@ -14176,7 +14129,7 @@ export default function Home() {
                 <strong>{paymentInterests.filter((interest) => interest.label === "Organizer Pro").length}</strong>
               </article>
               <article>
-                <span>Contribution interest</span>
+                <span>Legacy payment interest</span>
                 <strong>{paymentInterests.filter((interest) => interest.intent_type === "Contribution").length}</strong>
               </article>
             </div>
@@ -14185,7 +14138,7 @@ export default function Home() {
                 paymentInterests.slice(0, 12).map((interest) => (
                   <article key={interest.id}>
                     <div>
-                      <span>{interest.intent_type}</span>
+                      <span>{interest.intent_type === "Contribution" ? "Legacy payment" : interest.intent_type}</span>
                       <strong>{interest.label}</strong>
                       <small>{interest.display_name} / {interest.amount_label}</small>
                     </div>
@@ -14213,7 +14166,7 @@ export default function Home() {
               ) : (
                 <div className="emptyPaymentInterest">
                   <strong>No payment interest yet.</strong>
-                  <small>When users select plans or contribution options, they will appear here.</small>
+                  <small>When users select future plan options, they will appear here.</small>
                 </div>
               )}
             </div>
@@ -14354,7 +14307,7 @@ export default function Home() {
               <article>
                 <span>Payment signals</span>
                 <strong>{paymentInterests.length}</strong>
-                <small>{launchControl.contributionInterest.length} contribution interests</small>
+                <small>{launchControl.contributionInterest.length} legacy payment interests</small>
               </article>
             </div>
             <div className="launchChecklist">
@@ -14446,7 +14399,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "Instagram caption",
-                      `Talent7 is preparing for Play Store launch.\n\nCreate proof-based challenge rooms, join as a challenger or audience member, vote winners, rate out of 7, upload proof, form teams, and join live challenge battles.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentBattles #SportsChallenge #Breakdance #Gaming`
+                      `Talent7 is preparing for Play Store launch.\n\nCreate proof-based talent and sports challenge rooms, join as a challenger or audience member, vote winners, rate out of 7, upload proof, form teams, and join live challenge battles.\n\nJoin the first wave: ${siteUrl("#first-wave")}\n\n#Talent7 #ChallengeRooms #TalentBattles #SportsChallenge #Breakdance`
                     )
                   }
                   type="button"
@@ -14457,7 +14410,7 @@ export default function Home() {
                   onClick={() =>
                     copyShareText(
                       "YouTube description",
-                      `Talent7 is preparing for Play Store launch as a proof-based talent, sports, and gaming challenge app. Users can create rooms, join as challenger or audience, vote winners, rate out of 7, upload proof, form teams, and join the first launch wave.\n\nTry Talent7: ${siteUrl()}\nJoin first wave: ${siteUrl("#first-wave")}`
+                      `Talent7 is preparing for Play Store launch as a proof-based talent and sports challenge app. Users can create rooms, join as challenger or audience, vote winners, rate out of 7, upload proof, form teams, and join the first launch wave.\n\nTry Talent7: ${siteUrl()}\nJoin first wave: ${siteUrl("#first-wave")}`
                     )
                   }
                   type="button"
@@ -14495,8 +14448,8 @@ export default function Home() {
           </article>
           <article>
             <span>Available</span>
-            <strong>Profiles, teams, live rooms, and shared queues</strong>
-            <p>Build a public identity, organize teams, join live challenge rooms, and share music links.</p>
+            <strong>Profiles, teams, and live challenge rooms</strong>
+            <p>Build a public identity, organize teams, and join live talent or sports challenge rooms.</p>
           </article>
           <article>
             <span>Future</span>
@@ -14543,8 +14496,8 @@ export default function Home() {
           </article>
           <article>
             <span>Payments</span>
-            <strong>Supporter contributions are optional</strong>
-            <p>Core access remains free. An approved website payment provider can process fixed or custom one-time support, while Google Play handles the three fixed Android products. Talent7 stores only provider references, verification state, amounts, and badge entitlement.</p>
+            <strong>Digital badge purchases are optional</strong>
+            <p>Core access remains free. An approved website payment provider and Google Play can process the same three fixed-price, one-time digital badge products. Talent7 stores only provider references, verification state, product price, and badge entitlement.</p>
           </article>
         </div>
         <div className="trustContactBox">
@@ -14570,13 +14523,13 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Profiles</p>
           <h2>Talent7 people</h2>
-          <p>Discover challengers, audience voters, organizers, and gaming squads building early Talent7 history.</p>
+          <p>Discover challengers, audience voters, organizers, sports teams, and talent crews building early Talent7 history.</p>
         </div>
         <label className="profileSearch">
           Search profiles
           <input
             onChange={(event) => setProfileSearch(event.target.value)}
-            placeholder="Search coach, badminton, India, gaming..."
+            placeholder="Search coach, badminton, India, dance..."
             type="search"
             value={profileSearch}
           />
@@ -15431,7 +15384,7 @@ export default function Home() {
         <div className="sectionHeader">
           <p className="eyebrow">Create</p>
           <h2>Start a challenge</h2>
-          <p>Use this for badminton doubles, breakdance battles, mobile gaming matches, and more.</p>
+          <p>Use this for badminton doubles, athletics, breakdance battles, and more.</p>
         </div>
         {challengeDraft.invitedProfile && (
           <div className="inviteNotice">
@@ -15532,7 +15485,6 @@ export default function Home() {
               <select name="lane" defaultValue={challengeDraft.lane}>
                 <option>Talent battle</option>
                 <option>Sports challenge</option>
-                <option>Mobile gaming challenge</option>
               </select>
               <small className="fieldHint">Selected automatically; change it only if needed.</small>
             </label>
@@ -15919,14 +15871,14 @@ export default function Home() {
             Search rooms
             <input
               onChange={(event) => setRoomSearch(event.target.value)}
-              placeholder="Search badminton, PUBG, Rahul, breakdance..."
+              placeholder="Search badminton, athletics, Rahul, breakdance..."
               type="search"
               value={roomSearch}
             />
           </label>
           <strong className="filterLabel">Lane</strong>
           <div className="filters">
-            {(["All", "Talent battle", "Sports challenge", "Mobile gaming challenge"] as const).map((lane) => (
+            {(["All", "Talent battle", "Sports challenge"] as const).map((lane) => (
               <button
                 className={selectedLane === lane ? "active" : ""}
                 key={lane}
@@ -16200,7 +16152,6 @@ export default function Home() {
                       <select name="lane" defaultValue={challenge.lane}>
                         <option>Talent battle</option>
                         <option>Sports challenge</option>
-                        <option>Mobile gaming challenge</option>
                       </select>
                     </label>
                     <label>
@@ -16675,9 +16626,7 @@ export default function Home() {
                             <small>
                               {challenge.lane === "Sports challenge"
                                 ? "Sports challenges are played at an agreed physical venue."
-                                : challenge.lane === "Mobile gaming challenge"
-                                  ? "Mobile gaming challenges use a private online lobby."
-                                  : schedulePlayMode === "Online"
+                                : schedulePlayMode === "Online"
                                 ? "Compete through a private lobby, video session, or remote submission."
                                 : "Meet at an agreed physical venue."}
                             </small>

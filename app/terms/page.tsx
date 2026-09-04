@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms and Conditions",
-  description: "Terms and Conditions for Talent7 accounts, challenges, community features, and supporter payments."
+  description: "Terms and Conditions for Talent7 accounts, free talent and sports challenges, and digital badge purchases."
 };
 
 export default function TermsPage() {
@@ -13,7 +13,7 @@ export default function TermsPage() {
       <section className="legalHero">
         <p className="eyebrow">Terms and Conditions</p>
         <h1>Talent7 Terms and Conditions</h1>
-        <p>Last updated: August 24, 2026</p>
+        <p>Last updated: September 4, 2026</p>
       </section>
       <section className="legalCard legalHighlight">
         <h2>Agreement</h2>
@@ -29,19 +29,18 @@ export default function TermsPage() {
       </section>
       <section className="legalCard">
         <h2>Challenges And User Content</h2>
-        <p>Talent7 hosts structured challenge rooms, participant profiles, teams, room chat, proof, votes, ratings, shared Listen rooms, and live challenge activity. These community tools help users organize, document, judge, and complete talent, sports, and gaming challenges or listen together using links to third-party music services. You retain ownership of content you submit while granting Talent7 a non-exclusive licence to host, display, process, and share it as needed to operate the service.</p>
+        <p>Talent7 hosts structured talent and sports challenge rooms, participant profiles, teams, room chat, proof, votes, ratings, and live challenge activity. These tools help users organize, document, judge, and complete free talent and sports challenges. You retain ownership of content you submit while granting Talent7 a non-exclusive licence to host, display, process, and share it as needed to operate the service.</p>
         <p>Do not submit illegal, infringing, deceptive, dangerous, abusive, exploitative, or privacy-invasive content. Talent7 may review reports and remove or restrict content and accounts when reasonably required.</p>
       </section>
       <section className="legalCard">
-        <h2>One-Time Supporter Purchases And Contributions</h2>
+        <h2>One-Time Digital Badge Purchases</h2>
         <ul>
-          <li>Core Talent7 access remains free. Supporter payments are optional one-time purchases and are not subscriptions.</li>
-          <li>Website users may choose a fixed supporter tier or enter a custom support amount within the limits shown before checkout. Android purchases use the three fixed Google Play products.</li>
+          <li>Core Talent7 access, including creating and joining challenges, remains free. Digital badge purchases are optional one-time purchases and are not subscriptions.</li>
+          <li>Website and Android users may choose from the three fixed-price badge products shown before checkout.</li>
           <li>Website payments are processed only through the payment provider shown at checkout; Android purchases are processed by Google Play.</li>
-          <li>A verified qualifying purchase delivers the corresponding permanent supporter badge to the buyer&apos;s Talent7 profile. Smaller custom contributions may not include a badge.</li>
+          <li>Each verified purchase delivers the selected permanent digital supporter badge to the buyer&apos;s Talent7 profile.</li>
           <li>A badge does not provide ownership, investment rights, guaranteed exposure, ranking advantages, or guaranteed future features.</li>
-          <li>Supporter payments are not challenge entry fees. Talent7 does not offer wagering, betting, cash prizes, peer-to-peer payments, or collection and transfer of funds for users.</li>
-          <li>Custom support is a voluntary contribution to operating Talent7, not a tax-deductible charitable donation, investment, or payment to another user.</li>
+          <li>Badge purchases are separate from challenges and are never required to create, join, vote in, or complete one. Talent7 does not offer paid entry, wagering, betting, cash prizes, peer-to-peer payments, or collection and transfer of funds for users.</li>
           <li>Prices, currency, and applicable taxes are shown before confirmation.</li>
         </ul>
         <p><Link href="/shipping">Shipping and Digital Delivery Policy</Link></p>

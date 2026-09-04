@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Cancellation and Refund Policy",
-  description: "Cancellation and refund policy for Talent7 one-time supporter purchases and contributions."
+  description: "Cancellation and refund policy for Talent7 fixed-price digital badge purchases."
 };
 
 export default function RefundsPage() {
@@ -13,7 +13,7 @@ export default function RefundsPage() {
       <section className="legalHero">
         <p className="eyebrow">Cancellation and Refunds</p>
         <h1>Cancellation and Refund Policy</h1>
-        <p>Last updated: August 24, 2026</p>
+        <p>Last updated: September 4, 2026</p>
       </section>
       <section className="legalCard legalHighlight">
         <h2>Before Payment Completion</h2>
@@ -21,7 +21,7 @@ export default function RefundsPage() {
       </section>
       <section className="legalCard">
         <h2>Captured One-Time Purchases</h2>
-        <p>Supporter purchases and custom contributions are one-time digital transactions and are normally final after completion. A refund may be considered for a duplicate charge, unauthorised transaction, incorrect amount, or verified qualifying payment for which Talent7 cannot deliver the associated badge.</p>
+        <p>Talent7&apos;s three fixed-price digital badge products are one-time transactions and are normally final after delivery. A refund may be considered for a duplicate charge, unauthorised transaction, incorrect product charge, or verified purchase for which Talent7 cannot deliver the selected badge.</p>
       </section>
       <section className="legalCard">
         <h2>Requesting A Refund</h2>

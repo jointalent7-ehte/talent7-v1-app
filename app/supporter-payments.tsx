@@ -1,10 +1,7 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  customSupportMaximumSubunits,
-  customSupportMinimumSubunits,
-  customSupportProductCode,
   formatInrSubunits,
   supporterProductByCode,
   supporterProducts,
@@ -50,6 +47,16 @@ type RazorpayOptions = {
   theme: { color: string };
 };
 
+type CashfreeCheckoutResult = {
+  error?: { message?: string };
+  paymentDetails?: { paymentMessage?: string };
+  redirect?: boolean;
+};
+
+type CashfreeInstance = {
+  checkout: (options: { paymentSessionId: string; redirectTarget: "_modal" }) => Promise<CashfreeCheckoutResult>;
+};
+
 type NativePurchaseDetail = {
   message?: string;
   productId?: string;
@@ -64,6 +71,7 @@ type NativeProductDetail = {
 
 declare global {
   interface Window {
+    Cashfree?: (options: { mode: "sandbox" }) => CashfreeInstance;
     Razorpay?: new (options: RazorpayOptions) => { open: () => void };
     Talent7Billing?: {
       isAvailable: () => boolean;
@@ -74,8 +82,27 @@ declare global {
   }
 }
 
+let cashfreeScriptPromise: Promise<void> | null = null;
 let razorpayScriptPromise: Promise<void> | null = null;
 const websitePaymentsEnabled = process.env.NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED === "true";
+const webPaymentProvider = process.env.NEXT_PUBLIC_WEB_PAYMENT_PROVIDER?.trim().toLowerCase() || "razorpay";
+const cashfreeSandboxMode = process.env.NEXT_PUBLIC_CASHFREE_MODE?.trim().toLowerCase() === "sandbox";
+
+function loadCashfreeScript() {
+  if (typeof window === "undefined") return Promise.reject(new Error("Checkout requires a browser."));
+  if (window.Cashfree) return Promise.resolve();
+  if (cashfreeScriptPromise) return cashfreeScriptPromise;
+
+  cashfreeScriptPromise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Cashfree Checkout could not be loaded."));
+    document.head.appendChild(script);
+  });
+  return cashfreeScriptPromise;
+}
 
 function loadRazorpayScript() {
   if (typeof window === "undefined") return Promise.reject(new Error("Checkout requires a browser."));
@@ -140,7 +167,6 @@ export default function SupporterPayments({
   const [status, setStatus] = useState<PaymentStatus>({ entitlement: null, payments: [] });
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [actionKey, setActionKey] = useState("");
-  const [customAmount, setCustomAmount] = useState("299");
   const [nativeBilling, setNativeBilling] = useState(false);
   const [nativePrices, setNativePrices] = useState<Record<string, string>>({});
   const onEntitlementChangeRef = useRef(onEntitlementChange);
@@ -235,7 +261,8 @@ export default function SupporterPayments({
     () => status.payments.filter((payment) => payment.status === "Captured"),
     [status.payments]
   );
-  const websiteCheckoutPaused = !nativeBilling && !websitePaymentsEnabled;
+  const cashfreeSandboxSelected = webPaymentProvider === "cashfree" && cashfreeSandboxMode;
+  const websiteCheckoutPaused = !nativeBilling && (!websitePaymentsEnabled || (webPaymentProvider === "cashfree" && !cashfreeSandboxMode));
 
   function requirePaymentLogin() {
     if (accessToken && userId) return true;
@@ -243,14 +270,13 @@ export default function SupporterPayments({
     return false;
   }
 
-  async function startRazorpayCheckout(product: SupporterProduct | null, amountSubunits?: number) {
+  async function startRazorpayCheckout(product: SupporterProduct) {
     if (!requirePaymentLogin() || !accessToken) return;
     if (!nativeBilling && !websitePaymentsEnabled) {
       onNotice("Website checkout is paused while payment-provider approval is pending.", "info");
       return;
     }
-    const checkoutKey = product?.code || customSupportProductCode;
-    setActionKey(checkoutKey);
+    setActionKey(product.code);
     try {
       await loadRazorpayScript();
       const order = await apiRequest<{
@@ -262,8 +288,7 @@ export default function SupporterPayments({
       }>("/api/payments/razorpay/order", accessToken, {
         method: "POST",
         body: JSON.stringify({
-          productCode: product?.code || customSupportProductCode,
-          ...(product ? {} : { amountSubunits })
+          productCode: product.code
         })
       });
       if (!window.Razorpay) throw new Error("Razorpay Checkout is unavailable.");
@@ -299,6 +324,61 @@ export default function SupporterPayments({
     }
   }
 
+  async function startCashfreeSandboxCheckout(product: SupporterProduct) {
+    if (!requirePaymentLogin() || !accessToken) return;
+    if (!websitePaymentsEnabled || !cashfreeSandboxSelected) {
+      onNotice("Cashfree sandbox checkout is disabled.", "info");
+      return;
+    }
+    setActionKey(product.code);
+    try {
+      await loadCashfreeScript();
+      const order = await apiRequest<{
+        orderId: string;
+        paymentSessionId: string;
+        productName: string;
+        sandbox: true;
+      }>("/api/payments/cashfree/order", accessToken, {
+        method: "POST",
+        body: JSON.stringify({
+          productCode: product.code
+        })
+      });
+      if (!window.Cashfree) throw new Error("Cashfree Checkout is unavailable.");
+      const cashfree = window.Cashfree({ mode: "sandbox" });
+      const result = await cashfree.checkout({
+        paymentSessionId: order.paymentSessionId,
+        redirectTarget: "_modal"
+      });
+      if (result.redirect) {
+        onNotice("Cashfree opened the sandbox payment flow in a new page. Refresh status after returning.", "info");
+        return;
+      }
+      if (!result.paymentDetails) {
+        onNotice(result.error?.message || "Cashfree sandbox checkout was closed.", "info");
+        return;
+      }
+      await apiRequest("/api/payments/cashfree/verify", accessToken, {
+        method: "POST",
+        body: JSON.stringify({ orderId: order.orderId })
+      });
+      onNotice("Cashfree sandbox payment verified. No real money was charged.", "success");
+      await refreshStatus();
+    } catch (error) {
+      onNotice(error instanceof Error ? error.message : "Cashfree sandbox checkout could not start.", "error");
+    } finally {
+      setActionKey("");
+    }
+  }
+
+  function startWebsiteCheckout(product: SupporterProduct) {
+    if (webPaymentProvider === "cashfree") {
+      void startCashfreeSandboxCheckout(product);
+      return;
+    }
+    void startRazorpayCheckout(product);
+  }
+
   function purchaseFixedProduct(product: SupporterProduct) {
     if (!requirePaymentLogin() || !userId) return;
     if (nativeBilling) {
@@ -306,32 +386,16 @@ export default function SupporterPayments({
       window.Talent7Billing?.purchase(product.googlePlayProductId, userId);
       return;
     }
-    void startRazorpayCheckout(product);
-  }
-
-  function handleCustomSupport(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!requirePaymentLogin()) return;
-    const amountInRupees = Number(customAmount);
-    const amountSubunits = Math.round(amountInRupees * 100);
-    if (
-      !Number.isFinite(amountInRupees) ||
-      amountSubunits < customSupportMinimumSubunits ||
-      amountSubunits > customSupportMaximumSubunits
-    ) {
-      onNotice("Choose a custom support amount from ₹10 to ₹100,000.", "error");
-      return;
-    }
-    void startRazorpayCheckout(null, amountSubunits);
+    startWebsiteCheckout(product);
   }
 
   return (
     <section className="supporterPayments" aria-labelledby="supporter-payments-title">
       <div className="supporterPaymentsHeader">
         <div>
-          <p className="eyebrow">One-time support</p>
-          <h3 id="supporter-payments-title">Support Talent7 without a subscription</h3>
-          <p>Core challenges stay free. A verified one-time purchase can add your highest qualifying supporter badge permanently.</p>
+          <p className="eyebrow">One-time digital products</p>
+          <h3 id="supporter-payments-title">Choose a Talent7 supporter badge</h3>
+          <p>Each fixed-price purchase permanently adds the selected digital badge to your Talent7 profile. Challenge access remains free.</p>
         </div>
         <div className={`supporterCurrentBadge${highestTier ? " active" : ""}`}>
           <span>{highestTier ? "Active badge" : "Current access"}</span>
@@ -358,43 +422,17 @@ export default function SupporterPayments({
         ))}
       </div>
 
-      {!nativeBilling && (
-        <form className="customSupportForm" onSubmit={handleCustomSupport}>
-          <div>
-            <span>Custom support amount</span>
-            <strong>Choose any amount from ₹10 to ₹100,000.</strong>
-            <small>Amounts of ₹99, ₹299, or ₹999 qualify for the matching highest supporter badge.</small>
-          </div>
-          <label>
-            Amount in INR
-            <span className="customAmountInput">
-              <span aria-hidden="true">₹</span>
-              <input
-                aria-label="Custom support amount in Indian rupees"
-                inputMode="decimal"
-                max="100000"
-                min="10"
-                onChange={(event) => setCustomAmount(event.target.value)}
-                step="1"
-                type="number"
-                value={customAmount}
-              />
-            </span>
-          </label>
-          <button disabled={Boolean(actionKey) || websiteCheckoutPaused} type="submit">
-            {websiteCheckoutPaused
-              ? "Website checkout awaiting approval"
-              : actionKey === customSupportProductCode
-                ? "Opening secure checkout…"
-                : "Support a custom amount"}
-          </button>
-        </form>
-      )}
-
       {websiteCheckoutPaused && (
         <div className="supporterProviderNotice" role="status">
           <strong>Website payments are temporarily paused.</strong>
-          <span>The supporter options remain visible, but checkout will open only after a provider approves Talent7&apos;s complete worldwide community and challenge model.</span>
+          <span>The fixed digital badge products remain visible, but checkout will open only after a provider approves Talent7&apos;s complete worldwide talent-and-sports challenge model.</span>
+        </div>
+      )}
+
+      {!nativeBilling && cashfreeSandboxSelected && websitePaymentsEnabled && (
+        <div className="supporterProviderNotice" role="status">
+          <strong>Cashfree sandbox test mode.</strong>
+          <span>Checkout uses Cashfree test credentials only. No real payment is collected while provider review is pending.</span>
         </div>
       )}
 

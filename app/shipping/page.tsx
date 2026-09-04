@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shipping and Digital Delivery Policy",
-  description: "Digital delivery policy for Talent7 one-time supporter purchases and contributions."
+  description: "Digital delivery policy for Talent7 fixed-price digital badge purchases."
 };
 
 export default function ShippingPage() {
@@ -13,18 +13,18 @@ export default function ShippingPage() {
       <section className="legalHero">
         <p className="eyebrow">Shipping Policy</p>
         <h1>Shipping and Digital Delivery Policy</h1>
-        <p>Last updated: August 24, 2026</p>
+        <p>Last updated: September 4, 2026</p>
       </section>
       <section className="legalCard legalHighlight">
         <h2>No Physical Shipping</h2>
-        <p>Talent7 offers optional one-time supporter purchases and custom contributions. Qualifying amounts can deliver a digital supporter badge. No physical goods are sold or shipped, so no courier, delivery address, or physical shipping charge applies.</p>
+        <p>Talent7 offers three optional, fixed-price, one-time digital badge products. Each completed and verified purchase delivers the selected badge. No physical goods are sold or shipped, so no courier, delivery address, or physical shipping charge applies.</p>
       </section>
       <section className="legalCard">
         <h2>How Digital Delivery Works</h2>
         <ol>
           <li>The signed-in user confirms payment with the website payment provider shown at checkout or Google Play.</li>
           <li>Talent7 verifies the provider payment on its server.</li>
-          <li>After a captured or purchased state is verified, the qualifying badge is attached to the Talent7 account and supported public profile views.</li>
+          <li>After a captured or purchased state is verified, the selected badge is attached to the Talent7 account and supported public profile views.</li>
         </ol>
       </section>
       <section className="legalCard">

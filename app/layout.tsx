@@ -13,16 +13,14 @@ export const metadata: Metadata = {
   },
   applicationName: "Talent7",
   description:
-    "Talent7 is a community challenge platform for talent battles, sports matchups, mobile gaming rooms, shared listening, public ratings, proof uploads, teams, and live challenge broadcasts.",
+    "Talent7 is a proof-based competition platform for talent and sports matchups, public ratings, proof uploads, teams, and live challenge broadcasts.",
   keywords: [
     "Talent7",
     "talent challenges",
     "sports challenges",
-    "mobile gaming challenges",
     "breakdance battles",
     "badminton challenges",
     "live challenges",
-    "shared listening rooms",
     "public ratings",
     "proof based competitions"
   ],
@@ -47,7 +45,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Talent7",
     description:
-      "Join proof-based talent, sports, and mobile gaming challenges with public 7-star ratings, victory proof, teams, and live challenge battles.",
+      "Join proof-based talent and sports challenges with public 7-star ratings, victory proof, teams, and live challenge battles.",
     url: productionUrl,
     siteName: "Talent7",
     type: "website",
@@ -64,7 +62,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Talent7",
     description:
-      "Proof-based talent, sports, and gaming challenges with public ratings, teams, proof uploads, and live challenge battles.",
+      "Proof-based talent and sports challenges with public ratings, teams, proof uploads, and live challenge battles.",
     images: ["/talent7-hero.png"]
   },
   icons: {

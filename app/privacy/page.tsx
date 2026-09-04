@@ -13,14 +13,14 @@ export default function PrivacyPage() {
       <section className="legalHero">
         <p className="eyebrow">Privacy Policy</p>
         <h1>Talent7 Privacy Policy</h1>
-        <p>Last updated: August 24, 2026</p>
+        <p>Last updated: September 4, 2026</p>
       </section>
 
       <section className="legalCard">
         <h2>What Talent7 Is</h2>
         <p>
-          Talent7 is a proof-based community app for public challenge rooms, ratings, teams, profiles,
-          shared Listen rooms, live challenge activity, notifications, and launch-wave feedback. Showcase Talent,
+          Talent7 is a proof-based competition app for free public talent and sports challenge rooms, ratings, teams,
+          profiles, live challenge activity, notifications, and launch-wave feedback. Showcase Talent,
           Coaching, and Guidance are roadmap previews rather than active launch services.
         </p>
       </section>
@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, reports, and team requests.</li>
           <li>Legacy showcase, coaching, or expert-help records you previously submitted. Their public creation/request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
           <li>Optional support or founder feedback messages you submit.</li>
-          <li>Payment records such as provider, supporter product or custom contribution, amount, currency, status, provider references, and badge entitlement. Talent7 does not collect or store your complete card details, UPI PIN, banking password, or payment OTP.</li>
+          <li>Payment records such as provider, selected digital badge product, fixed price, currency, status, provider references, and badge entitlement. Historical payment records may be retained where required for reconciliation, disputes, refunds, or legal obligations. Talent7 does not collect or store your complete card details, UPI PIN, banking password, or payment OTP.</li>
           <li>Basic technical information needed to run, secure, and improve the app.</li>
         </ul>
       </section>
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
           Razorpay processes website payments and Google Play processes Android purchases. Talent7 sends
           the information required to create, verify, reconcile, refund, and support a transaction. Payment
           providers process payment credentials under their own terms and privacy policies. Talent7 stores
-          limited provider references and verification state to reconcile supporter contributions and qualifying profile badges,
+          limited provider references and verification state to reconcile fixed-price digital badge purchases,
           prevent duplicate processing, handle disputes, and meet legal or accounting obligations.
         </p>
         <p><Link href="/refunds">Read the Cancellation and Refund Policy</Link></p>
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
         <h2>How We Use Information</h2>
         <ul>
           <li>To create and manage your Talent7 account and profile.</li>
-          <li>To show challenge rooms, public ratings, votes, proof, teams, profiles, Listen rooms, and community activity.</li>
+          <li>To show free talent and sports challenge rooms, public ratings, votes, proof, teams, profiles, and challenge activity.</li>
           <li>To review current safety reports and feedback, and to preserve or remove legacy records when required.</li>
           <li>To improve Talent7 before and after Play Store launch.</li>
           <li>To contact you about account, support, safety, or launch-wave matters when needed.</li>
