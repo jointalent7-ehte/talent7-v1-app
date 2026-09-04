@@ -53,8 +53,8 @@
 
 - Create, join, invite to, complete, archive, and, when permitted, delete a challenge room.
 - Upload photo and video proof and verify unauthorized users cannot manage it.
-- Exercise teams, profiles, sharing, Ready Now, weekly leagues, Listen rooms, notifications, feedback, and moderation. Confirm public/private Listen rooms, queue links, reactions, archive, and deletion work. Confirm `#showcase`, old showcase-post hashes, `#coaching`, and `#expert-help` redirect to the Plans future preview and expose no legacy creation/request UI.
-- Install the combined signed Android 1.6 release from a Play testing track. Verify App Links plus all three fixed Play products, pending/cancelled/completed states, server verification, purchase restoration, highest-tier badges, and website fallback after uninstalling. Confirm the custom support field appears only on website checkout and not in Google Play Billing.
+- Exercise teams, profiles, sharing, Ready Now, weekly leagues, notifications, feedback, and moderation. Confirm `#listen-rooms` redirects to active challenge rooms and that gaming categories and legacy gaming records are unavailable. Confirm `#showcase`, old showcase-post hashes, `#coaching`, and `#expert-help` redirect to the Plans future preview and expose no legacy creation/request UI.
+- Install the combined signed Android release from a Play testing track. Verify App Links plus all three fixed products, pending/cancelled/completed states, server verification, purchase restoration, highest-tier badges, and website fallback after uninstalling. Confirm there is no customer-entered amount option.
 - Verify confirmations and success/error notices appear in the tab where the action occurred and dismiss automatically where appropriate.
 - Test slow/offline requests and retry actions.
 - Check the browser console and network log for production errors.

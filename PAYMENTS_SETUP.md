@@ -1,6 +1,6 @@
 # Talent7 one-time supporter payments
 
-Talent7 keeps all core access free. Website users can choose one of three supporter tiers or a custom support amount from ₹10 to ₹100,000. Android users can purchase the three fixed Google Play products:
+Talent7 keeps all challenge access free. Website and Android users can purchase one of three fixed-price digital profile badges:
 
 | Talent7 product | Web amount | Google Play product ID |
 | --- | ---: | --- |
@@ -8,11 +8,11 @@ Talent7 keeps all core access free. Website users can choose one of three suppor
 | Champion Supporter | ₹299 | `talent7_champion_supporter_299` |
 | Founder Supporter | ₹999 | `talent7_founder_supporter_999` |
 
-On the website, custom amounts of at least ₹99 grant the highest qualifying supporter badge: ₹99, ₹299, and ₹999 are the tier thresholds. Smaller custom support does not grant a badge. Custom amounts are not available through Google Play Billing. Supporter payments are never challenge entry fees, wagers, cash-prize payments, peer-to-peer payments, or collections on behalf of users.
+Each product has a server-controlled price and delivers the selected permanent profile badge. Badge purchases are never challenge entry fees, wagers, cash-prize payments, peer-to-peer payments, or collections on behalf of users.
 
 ## Website-provider approval gate
 
-Razorpay rejected the current Talent7 business model. The Razorpay adapter remains in the source only to preserve the already-tested implementation; do not enable it for new live payments unless Razorpay later gives written approval. Before replacing it, send the candidate provider an accurate description of challenges, public/community features, Listen rooms, fixed supporter tiers, and custom support, and obtain written approval for the complete production experience. Cashfree is the first candidate to approach, but approval is not guaranteed and no Cashfree code is implemented yet.
+Razorpay rejected an earlier, broader Talent7 model. Talent7 has since permanently retired Listen, gaming categories, and customer-entered payment amounts. Do not enable live website payments unless Razorpay gives written approval for the complete current talent-and-sports challenge model and its three fixed digital badge products. The Cashfree adapter remains sandbox-only and rejects production mode.
 
 Use `PAYMENT_PROVIDER_REVIEW.md` as the disclosure and question checklist. Website checkout is protected by two independent release switches:
 
@@ -21,7 +21,7 @@ WEBSITE_PAYMENTS_ENABLED=false
 NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED=false
 ```
 
-The first switch is server-enforced and authoritative. The second controls the customer-facing disabled state. Set both to `true` only after written approval, provider integration, and production acceptance testing. Google Play Billing remains independent of these website switches.
+The first switch is server-enforced and authoritative. The second controls the customer-facing disabled state. Keep both false in Production while review is pending. They may be true only in a controlled Preview deployment using Cashfree sandbox credentials. Google Play Billing remains independent of these website switches.
 
 ## 1. Apply the Supabase migration
 
@@ -31,9 +31,30 @@ Back up production and apply only missing migrations in `supabase/MIGRATION_ORDE
 supabase/add-supporter-payments.sql
 ```
 
-This must run after `add-payments.sql` and `add-growth-engagement.sql`. The browser cannot write either the payment ledger or entitlements; only server routes using `SUPABASE_SERVICE_ROLE_KEY` reconcile a badge from a captured provider payment.
+Then run `supabase/add-cashfree-sandbox-payments.sql` once if Cashfree sandbox testing is retained, followed by `supabase/retire-listen-and-gaming.sql`. The browser cannot write either the payment ledger or entitlements; only server routes using `SUPABASE_SERVICE_ROLE_KEY` reconcile a badge from a captured provider payment.
 
-## 2. Current Razorpay website adapter (not approved for live Talent7 use)
+## 2. Cashfree sandbox trial while review is pending
+
+Use a Vercel Preview deployment, not Production. Add the following Preview-only values:
+
+```text
+WEBSITE_PAYMENTS_ENABLED=true
+NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED=true
+WEB_PAYMENT_PROVIDER=cashfree
+NEXT_PUBLIC_WEB_PAYMENT_PROVIDER=cashfree
+CASHFREE_MODE=sandbox
+NEXT_PUBLIC_CASHFREE_MODE=sandbox
+CASHFREE_CLIENT_ID=your sandbox app ID
+CASHFREE_CLIENT_SECRET=your sandbox secret key
+```
+
+Whitelist the Preview domain in Cashfree sandbox and configure the sandbox webhook as:
+
+`https://YOUR_PREVIEW_DOMAIN/api/payments/cashfree/webhook`
+
+Enable payment success, payment failed, and payment user-dropped events. The endpoint validates Cashfree's signature against the exact raw body and deduplicates events. Test checkout also fetches the order and its successful captured payment from Cashfree before recording a verified sandbox result. Sandbox results are stored as `Authorized`, never `Captured`, and cannot grant a real supporter badge. Never place either Cashfree credential in a `NEXT_PUBLIC_` value.
+
+## 3. Current Razorpay website adapter (not approved for live Talent7 use)
 
 1. Keep production checkout disabled unless Razorpay provides written approval for the complete Talent7 model.
 2. Verify `https://www.jointalent7.com` in Razorpay and confirm the public footer links to Terms and Conditions, Privacy Policy, Shipping Policy, Contact Us, and Cancellation and Refunds.
@@ -44,12 +65,12 @@ This must run after `add-payments.sql` and `add-growth-engagement.sql`. The brow
    `https://www.jointalent7.com/api/payments/razorpay/webhook`
 
 6. Subscribe to `payment.captured`, `payment.failed`, `refund.processed`, and `order.paid`.
-7. In test mode, test every fixed tier and the ₹10, ₹99, ₹299, ₹999, and ₹100,000 custom boundaries, then test dismissal, failure, duplicate webhook delivery, and refund downgrade/removal.
+7. In test mode, test all three fixed products, then test dismissal, failure, unknown or modified product codes, duplicate webhook delivery, and refund downgrade/removal.
 8. Do not install live keys until written business approval and the complete production-domain test both pass. Keep the live webhook secret synchronized with Vercel.
 
 Checkout success alone never grants a badge. Talent7 validates the checkout HMAC, fetches the Razorpay payment and order, compares amount/currency/order ownership, and requires both to report a captured/paid state. Webhooks are signature checked and deduplicated.
 
-## 3. Configure Google Play Billing for Android
+## 4. Configure Google Play Billing for Android
 
 1. In Play Console, create three **one-time products** with the exact product IDs in the table above. Set their India prices to ₹99, ₹299, and ₹999 and activate them.
 2. Create a Google Cloud service account for server verification, enable the Google Play Android Developer API, link the account in Play Console, and grant only the permissions required to view orders/subscriptions and manage purchases.
@@ -64,7 +85,7 @@ Checkout success alone never grants a badge. Talent7 validates the checkout HMAC
 
 The Android wrapper uses `com.android.billingclient:billing:9.1.0`. It passes a SHA-256 hash of the Talent7 user ID as the obfuscated account ID. The server verifies the package purchase token and account binding, records pending/cancelled/captured state, grants the badge only after `PURCHASED`, and then acknowledges the product. Do not acknowledge or grant purchases only on the device.
 
-## 4. Required Vercel values
+## 5. Required Vercel values
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL
@@ -72,6 +93,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 WEBSITE_PAYMENTS_ENABLED
 NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED
+WEB_PAYMENT_PROVIDER
+NEXT_PUBLIC_WEB_PAYMENT_PROVIDER
+CASHFREE_MODE
+NEXT_PUBLIC_CASHFREE_MODE
+CASHFREE_CLIENT_ID
+CASHFREE_CLIENT_SECRET
 RAZORPAY_KEY_ID
 RAZORPAY_KEY_SECRET
 RAZORPAY_WEBHOOK_SECRET
@@ -81,12 +108,12 @@ GOOGLE_PLAY_RTDN_TOKEN
 
 Only variables intentionally prefixed with `NEXT_PUBLIC_` are exposed to the browser. `NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED` is a display switch only; `WEBSITE_PAYMENTS_ENABLED` is the authoritative server gate. All credentials and secrets remain server-only.
 
-## 5. Production acceptance tests
+## 6. Production acceptance tests
 
 - Signed-out users are asked to sign in and no provider order is created.
 - Each fixed web purchase uses its exact server-controlled amount and rejects unknown product codes.
-- Custom website support accepts only server-validated INR amounts from ₹10 to ₹100,000.
-- ₹99/₹299/₹999 fixed or custom thresholds grant the matching badge without downgrading a higher badge already earned; smaller custom support grants no badge.
+- The server rejects unknown product codes and ignores browser attempts to change a product price.
+- The ₹99/₹299/₹999 fixed products grant the matching badge without downgrading a higher badge already earned.
 - A dismissed, failed, pending, cancelled, forged, wrong-user, wrong-product, or wrong-amount purchase grants nothing.
 - Replayed checkout callbacks, webhooks, RTDN messages, and purchase tokens do not duplicate entitlements.
 - A Razorpay refund removes or downgrades the badge according to the user's remaining captured payments.
