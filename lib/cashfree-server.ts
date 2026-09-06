@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const cashfreeApiVersion = "2026-01-01";
 
+export type CashfreeMode = "sandbox" | "production";
+
 export type CashfreeOrder = {
   cf_order_id: string;
   order_amount: number;
@@ -27,19 +29,24 @@ export type CashfreePayment = {
   payment_status: "SUCCESS" | "NOT_ATTEMPTED" | "FAILED" | "USER_DROPPED" | "VOID" | "CANCELLED" | "PENDING";
 };
 
-export function cashfreeSandboxConfig() {
+export function cashfreeConfig() {
   const mode = process.env.CASHFREE_MODE?.trim().toLowerCase();
   const clientId = process.env.CASHFREE_CLIENT_ID?.trim();
   const clientSecret = process.env.CASHFREE_CLIENT_SECRET?.trim();
-  if (mode !== "sandbox" || !clientId || !clientSecret) return null;
-  return { clientId, clientSecret, mode: "sandbox" as const };
+  if ((mode !== "sandbox" && mode !== "production") || !clientId || !clientSecret) return null;
+  return {
+    apiBaseUrl: mode === "production" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg",
+    clientId,
+    clientSecret,
+    mode: mode as CashfreeMode
+  };
 }
 
 async function cashfreeRequest<T>(path: string, init: RequestInit = {}) {
-  const config = cashfreeSandboxConfig();
-  if (!config) throw new Error("Cashfree sandbox checkout is not configured.");
+  const config = cashfreeConfig();
+  if (!config) throw new Error("Cashfree checkout is not configured.");
 
-  const response = await fetch(`https://sandbox.cashfree.com/pg${path}`, {
+  const response = await fetch(`${config.apiBaseUrl}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -51,11 +58,11 @@ async function cashfreeRequest<T>(path: string, init: RequestInit = {}) {
     cache: "no-store"
   });
   const body = (await response.json()) as T & { message?: string };
-  if (!response.ok) throw new Error(body.message || "Cashfree rejected the sandbox request.");
+  if (!response.ok) throw new Error(body.message || "Cashfree rejected the request.");
   return body;
 }
 
-export function createCashfreeSandboxOrder(input: {
+export function createCashfreeOrder(input: {
   amountSubunits: number;
   currency: string;
   customerEmail?: string;
@@ -66,6 +73,8 @@ export function createCashfreeSandboxOrder(input: {
   productCode: string;
   productName: string;
 }) {
+  const config = cashfreeConfig();
+  if (!config) throw new Error("Cashfree checkout is not configured.");
   return cashfreeRequest<CashfreeOrder>("/orders", {
     method: "POST",
     headers: {
@@ -81,26 +90,26 @@ export function createCashfreeSandboxOrder(input: {
         customer_phone: "9999999999",
         customer_name: input.customerName || undefined
       },
-      order_note: `${input.productName} sandbox checkout`,
+      order_note: `${input.productName} checkout`,
       order_tags: {
         talent7_payment_id: input.paymentRecordId,
         product_code: input.productCode,
-        environment: "sandbox"
+        environment: config.mode
       }
     })
   });
 }
 
-export function fetchCashfreeSandboxOrder(orderId: string) {
+export function fetchCashfreeOrder(orderId: string) {
   return cashfreeRequest<CashfreeOrder>(`/orders/${encodeURIComponent(orderId)}`);
 }
 
-export function fetchCashfreeSandboxPayments(orderId: string) {
+export function fetchCashfreePayments(orderId: string) {
   return cashfreeRequest<CashfreePayment[]>(`/orders/${encodeURIComponent(orderId)}/payments`);
 }
 
-export function verifyCashfreeSandboxWebhook(rawBody: string, timestamp: string, signature: string) {
-  const config = cashfreeSandboxConfig();
+export function verifyCashfreeWebhook(rawBody: string, timestamp: string, signature: string) {
+  const config = cashfreeConfig();
   if (!config || !timestamp || !signature) return false;
   const expected = createHmac("sha256", config.clientSecret)
     .update(`${timestamp}${rawBody}`, "utf8")
