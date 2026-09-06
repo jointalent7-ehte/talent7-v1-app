@@ -18,7 +18,7 @@ type PaymentRow = {
   id: string;
   product_code: string;
   product_name: string;
-  provider: "Razorpay" | "Google Play";
+  provider: "Cashfree" | "Razorpay" | "Google Play";
   refunded_at: string | null;
   status: "Creating" | "Created" | "Pending" | "Authorized" | "Captured" | "Failed" | "Cancelled" | "Refunded";
 };
@@ -71,7 +71,7 @@ type NativeProductDetail = {
 
 declare global {
   interface Window {
-    Cashfree?: (options: { mode: "sandbox" }) => CashfreeInstance;
+    Cashfree?: (options: { mode: "production" | "sandbox" }) => CashfreeInstance;
     Razorpay?: new (options: RazorpayOptions) => { open: () => void };
     Talent7Billing?: {
       isAvailable: () => boolean;
@@ -86,7 +86,10 @@ let cashfreeScriptPromise: Promise<void> | null = null;
 let razorpayScriptPromise: Promise<void> | null = null;
 const websitePaymentsEnabled = process.env.NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED === "true";
 const webPaymentProvider = process.env.NEXT_PUBLIC_WEB_PAYMENT_PROVIDER?.trim().toLowerCase() || "razorpay";
-const cashfreeSandboxMode = process.env.NEXT_PUBLIC_CASHFREE_MODE?.trim().toLowerCase() === "sandbox";
+const configuredCashfreeMode = process.env.NEXT_PUBLIC_CASHFREE_MODE?.trim().toLowerCase();
+const cashfreeMode = configuredCashfreeMode === "sandbox" || configuredCashfreeMode === "production"
+  ? configuredCashfreeMode
+  : null;
 
 function loadCashfreeScript() {
   if (typeof window === "undefined") return Promise.reject(new Error("Checkout requires a browser."));
@@ -261,8 +264,8 @@ export default function SupporterPayments({
     () => status.payments.filter((payment) => payment.status === "Captured"),
     [status.payments]
   );
-  const cashfreeSandboxSelected = webPaymentProvider === "cashfree" && cashfreeSandboxMode;
-  const websiteCheckoutPaused = !nativeBilling && (!websitePaymentsEnabled || (webPaymentProvider === "cashfree" && !cashfreeSandboxMode));
+  const cashfreeSelected = webPaymentProvider === "cashfree" && Boolean(cashfreeMode);
+  const websiteCheckoutPaused = !nativeBilling && (!websitePaymentsEnabled || (webPaymentProvider === "cashfree" && !cashfreeMode));
 
   function requirePaymentLogin() {
     if (accessToken && userId) return true;
@@ -324,10 +327,10 @@ export default function SupporterPayments({
     }
   }
 
-  async function startCashfreeSandboxCheckout(product: SupporterProduct) {
+  async function startCashfreeCheckout(product: SupporterProduct) {
     if (!requirePaymentLogin() || !accessToken) return;
-    if (!websitePaymentsEnabled || !cashfreeSandboxSelected) {
-      onNotice("Cashfree sandbox checkout is disabled.", "info");
+    if (!websitePaymentsEnabled || !cashfreeSelected || !cashfreeMode) {
+      onNotice("Cashfree checkout is disabled.", "info");
       return;
     }
     setActionKey(product.code);
@@ -337,7 +340,7 @@ export default function SupporterPayments({
         orderId: string;
         paymentSessionId: string;
         productName: string;
-        sandbox: true;
+        sandbox: boolean;
       }>("/api/payments/cashfree/order", accessToken, {
         method: "POST",
         body: JSON.stringify({
@@ -345,27 +348,32 @@ export default function SupporterPayments({
         })
       });
       if (!window.Cashfree) throw new Error("Cashfree Checkout is unavailable.");
-      const cashfree = window.Cashfree({ mode: "sandbox" });
+      const cashfree = window.Cashfree({ mode: cashfreeMode });
       const result = await cashfree.checkout({
         paymentSessionId: order.paymentSessionId,
         redirectTarget: "_modal"
       });
       if (result.redirect) {
-        onNotice("Cashfree opened the sandbox payment flow in a new page. Refresh status after returning.", "info");
+        onNotice("Cashfree opened the payment flow in a new page. Refresh status after returning.", "info");
         return;
       }
       if (!result.paymentDetails) {
-        onNotice(result.error?.message || "Cashfree sandbox checkout was closed.", "info");
+        onNotice(result.error?.message || "Cashfree checkout was closed.", "info");
         return;
       }
       await apiRequest("/api/payments/cashfree/verify", accessToken, {
         method: "POST",
         body: JSON.stringify({ orderId: order.orderId })
       });
-      onNotice("Cashfree sandbox payment verified. No real money was charged.", "success");
+      onNotice(
+        order.sandbox
+          ? "Cashfree sandbox payment verified. No real money was charged."
+          : "Payment verified. Your Talent7 badge is active.",
+        "success"
+      );
       await refreshStatus();
     } catch (error) {
-      onNotice(error instanceof Error ? error.message : "Cashfree sandbox checkout could not start.", "error");
+      onNotice(error instanceof Error ? error.message : "Cashfree checkout could not start.", "error");
     } finally {
       setActionKey("");
     }
@@ -373,7 +381,7 @@ export default function SupporterPayments({
 
   function startWebsiteCheckout(product: SupporterProduct) {
     if (webPaymentProvider === "cashfree") {
-      void startCashfreeSandboxCheckout(product);
+      void startCashfreeCheckout(product);
       return;
     }
     void startRazorpayCheckout(product);
@@ -429,7 +437,7 @@ export default function SupporterPayments({
         </div>
       )}
 
-      {!nativeBilling && cashfreeSandboxSelected && websitePaymentsEnabled && (
+      {!nativeBilling && cashfreeSelected && cashfreeMode === "sandbox" && websitePaymentsEnabled && (
         <div className="supporterProviderNotice" role="status">
           <strong>Cashfree sandbox test mode.</strong>
           <span>Checkout uses Cashfree test credentials only. No real payment is collected while provider review is pending.</span>
