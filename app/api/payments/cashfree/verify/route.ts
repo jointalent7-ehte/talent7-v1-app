@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import {
   cashfreeAmountSubunits,
-  fetchCashfreeSandboxOrder,
-  fetchCashfreeSandboxPayments
+  cashfreeConfig,
+  fetchCashfreeOrder,
+  fetchCashfreePayments
 } from "../../../../../lib/cashfree-server";
 import {
   authenticatedPaymentRequest,
+  grantSupporterEntitlement,
   paymentJsonError,
   paymentRequestBody,
   paymentServiceClient
@@ -17,18 +19,18 @@ export async function POST(request: Request) {
   if (
     process.env.WEBSITE_PAYMENTS_ENABLED !== "true"
     || process.env.WEB_PAYMENT_PROVIDER?.trim().toLowerCase() !== "cashfree"
-    || process.env.CASHFREE_MODE?.trim().toLowerCase() !== "sandbox"
   ) {
-    return paymentJsonError("Cashfree sandbox verification is disabled.", 503);
+    return paymentJsonError("Cashfree verification is disabled.", 503);
   }
 
   const authenticated = await authenticatedPaymentRequest(request);
   if (!authenticated) return paymentJsonError("Sign in again before verifying checkout.", 401);
   const service = paymentServiceClient();
-  if (!service) return paymentJsonError("Payment services are not configured.", 503);
+  const config = cashfreeConfig();
+  if (!service || !config) return paymentJsonError("Payment services are not configured.", 503);
   const body = await paymentRequestBody(request);
   const orderId = String(body?.orderId || "");
-  if (!orderId) return paymentJsonError("Cashfree returned an incomplete sandbox response.", 400);
+  if (!orderId) return paymentJsonError("Cashfree returned an incomplete response.", 400);
 
   const { data: paymentRecord, error: lookupError } = await service
     .from("payments")
@@ -41,8 +43,8 @@ export async function POST(request: Request) {
 
   try {
     const [providerOrder, providerPayments] = await Promise.all([
-      fetchCashfreeSandboxOrder(orderId),
-      fetchCashfreeSandboxPayments(orderId)
+      fetchCashfreeOrder(orderId),
+      fetchCashfreePayments(orderId)
     ]);
     const successfulPayment = providerPayments.find((payment) =>
       payment.order_id === orderId
@@ -58,28 +60,31 @@ export async function POST(request: Request) {
       && cashfreeAmountSubunits(successfulPayment.order_amount) === Number(paymentRecord.amount_subunits)
       && successfulPayment.order_currency === paymentRecord.currency;
     if (!verified || !successfulPayment) {
-      return paymentJsonError("The Cashfree sandbox payment has not completed successfully yet.", 409);
+      return paymentJsonError("The Cashfree payment has not completed successfully yet.", 409);
     }
 
+    const sandbox = config.mode === "sandbox";
+    const now = new Date().toISOString();
     const { error: updateError } = await service
       .from("payments")
       .update({
         provider_payment_id: successfulPayment.cf_payment_id,
-        status: "Authorized",
-        verified_at: new Date().toISOString(),
-        captured_at: null,
+        status: sandbox ? "Authorized" : "Captured",
+        verified_at: now,
+        captured_at: sandbox ? null : now,
         failure_code: null,
         failure_description: null,
-        updated_at: new Date().toISOString()
+        updated_at: now
       })
       .eq("id", paymentRecord.id);
     if (updateError) throw new Error(updateError.message);
+    if (!sandbox) await grantSupporterEntitlement(service, String(paymentRecord.id));
 
     return NextResponse.json(
-      { sandboxVerified: true, paymentRecordId: paymentRecord.id, sandbox: true },
+      { verified: true, paymentRecordId: paymentRecord.id, sandbox },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
-    return paymentJsonError(error instanceof Error ? error.message : "The Cashfree sandbox payment could not be verified.", 502);
+    return paymentJsonError(error instanceof Error ? error.message : "The Cashfree payment could not be verified.", 502);
   }
 }

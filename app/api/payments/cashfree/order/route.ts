@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createCashfreeSandboxOrder, cashfreeSandboxConfig } from "../../../../../lib/cashfree-server";
+import { cashfreeConfig, createCashfreeOrder } from "../../../../../lib/cashfree-server";
 import {
   authenticatedPaymentRequest,
   paymentJsonError,
@@ -15,15 +15,15 @@ export async function POST(request: Request) {
     process.env.WEBSITE_PAYMENTS_ENABLED !== "true"
     || process.env.WEB_PAYMENT_PROVIDER?.trim().toLowerCase() !== "cashfree"
   ) {
-    return paymentJsonError("Cashfree sandbox checkout is disabled.", 503);
+    return paymentJsonError("Cashfree checkout is disabled.", 503);
   }
 
   const authenticated = await authenticatedPaymentRequest(request);
   if (!authenticated) return paymentJsonError("Sign in again before starting checkout.", 401);
 
   const service = paymentServiceClient();
-  const config = cashfreeSandboxConfig();
-  if (!service || !config) return paymentJsonError("Cashfree sandbox checkout is not configured yet.", 503);
+  const config = cashfreeConfig();
+  if (!service || !config) return paymentJsonError("Cashfree checkout is not configured yet.", 503);
 
   const body = await paymentRequestBody(request);
   if (!body) return paymentJsonError("The checkout request was invalid.", 400);
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   const customerName = String(metadata.full_name || metadata.name || "").trim().slice(0, 80) || undefined;
 
   try {
-    const order = await createCashfreeSandboxOrder({
+    const order = await createCashfreeOrder({
       amountSubunits,
       currency,
       customerEmail: authenticated.user.email,
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         orderId: order.order_id,
         productCode,
         productName,
-        sandbox: true
+        sandbox: config.mode === "sandbox"
       },
       { headers: { "Cache-Control": "no-store" } }
     );
@@ -100,6 +100,6 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString()
       })
       .eq("id", paymentRecordId);
-    return paymentJsonError(error instanceof Error ? error.message : "Cashfree could not create the sandbox order.", 502);
+    return paymentJsonError(error instanceof Error ? error.message : "Cashfree could not create the order.", 502);
   }
 }

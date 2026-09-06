@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { cashfreeAmountSubunits, verifyCashfreeSandboxWebhook } from "../../../../../lib/cashfree-server";
+import { cashfreeAmountSubunits, cashfreeConfig, verifyCashfreeWebhook } from "../../../../../lib/cashfree-server";
 import {
+  grantSupporterEntitlement,
   paymentJsonError,
   paymentServiceClient,
   sha256Hex
@@ -23,13 +24,12 @@ type CashfreeWebhook = {
 };
 
 export async function POST(request: Request) {
-  if (process.env.CASHFREE_MODE?.trim().toLowerCase() !== "sandbox") {
-    return paymentJsonError("Cashfree sandbox webhooks are disabled.", 503);
-  }
+  const config = cashfreeConfig();
+  if (!config) return paymentJsonError("Cashfree webhooks are not configured.", 503);
   const rawBody = await request.text();
   const timestamp = request.headers.get("x-webhook-timestamp") || "";
   const signature = request.headers.get("x-webhook-signature") || "";
-  if (!verifyCashfreeSandboxWebhook(rawBody, timestamp, signature)) {
+  if (!verifyCashfreeWebhook(rawBody, timestamp, signature)) {
     return paymentJsonError("Cashfree webhook signature verification failed.", 401);
   }
   const service = paymentServiceClient();
@@ -77,16 +77,19 @@ export async function POST(request: Request) {
       if (!amountMatches || !currencyMatches || payment.payment_status !== "SUCCESS" || !providerPaymentId) {
         throw new Error("Cashfree success webhook did not match the Talent7 order.");
       }
+      const sandbox = config.mode === "sandbox";
+      const now = new Date().toISOString();
       const { error } = await service.from("payments").update({
         provider_payment_id: providerPaymentId,
-        status: "Authorized",
-        verified_at: new Date().toISOString(),
-        captured_at: null,
+        status: sandbox ? "Authorized" : "Captured",
+        verified_at: now,
+        captured_at: sandbox ? null : now,
         failure_code: null,
         failure_description: null,
-        updated_at: new Date().toISOString()
+        updated_at: now
       }).eq("id", paymentRecord.id);
       if (error) throw new Error(error.message);
+      if (!sandbox) await grantSupporterEntitlement(service, String(paymentRecord.id));
     } else if (paymentRecord && paymentRecord.status !== "Captured" && eventType === "PAYMENT_FAILED_WEBHOOK") {
       const { error } = await service.from("payments").update({
         provider_payment_id: providerPaymentId || null,
@@ -100,7 +103,7 @@ export async function POST(request: Request) {
       const { error } = await service.from("payments").update({
         provider_payment_id: providerPaymentId || null,
         status: "Cancelled",
-        failure_description: "Cashfree sandbox checkout was closed before payment completed.",
+        failure_description: "Cashfree checkout was closed before payment completed.",
         updated_at: new Date().toISOString()
       }).eq("id", paymentRecord.id);
       if (error) throw new Error(error.message);
@@ -114,7 +117,7 @@ export async function POST(request: Request) {
     if (eventError && eventError.code !== "23505") throw new Error(eventError.message);
 
     return NextResponse.json(
-      { accepted: true, matched: Boolean(paymentRecord), sandbox: true },
+      { accepted: true, matched: Boolean(paymentRecord), sandbox: config.mode === "sandbox" },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
