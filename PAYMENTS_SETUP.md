@@ -12,7 +12,7 @@ Each product has a server-controlled price and delivers the selected permanent p
 
 ## Website-provider approval gate
 
-Razorpay rejected an earlier, broader Talent7 model. Talent7 has since permanently retired Listen, gaming categories, and customer-entered payment amounts. Do not enable live website payments unless Razorpay gives written approval for the complete current talent-and-sports challenge model and its three fixed digital badge products. The Cashfree adapter remains sandbox-only and rejects production mode.
+Razorpay and Cashfree rejected earlier Talent7 applications. Talent7 has since permanently retired Listen, gaming categories, and customer-entered payment amounts. PayU has activated the current merchant account, verified its website and documents, and enabled settlements. The PayU adapter uses Hosted Checkout v2 and supports test and production modes selected explicitly by environment variables.
 
 Use `PAYMENT_PROVIDER_REVIEW.md` as the disclosure and question checklist. Website checkout is protected by two independent release switches:
 
@@ -21,7 +21,7 @@ WEBSITE_PAYMENTS_ENABLED=false
 NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED=false
 ```
 
-The first switch is server-enforced and authoritative. The second controls the customer-facing disabled state. Keep both false in Production while review is pending. They may be true only in a controlled Preview deployment using Cashfree sandbox credentials. Google Play Billing remains independent of these website switches.
+The first switch is server-enforced and authoritative. The second controls the customer-facing disabled state. Keep both false until the selected provider activates the account and the matching environment credentials, domain, and webhook have been verified. Google Play Billing remains independent of these website switches.
 
 ## 1. Apply the Supabase migration
 
@@ -31,9 +31,32 @@ Back up production and apply only missing migrations in `supabase/MIGRATION_ORDE
 supabase/add-supporter-payments.sql
 ```
 
-Then run `supabase/add-cashfree-sandbox-payments.sql` once if Cashfree sandbox testing is retained, followed by `supabase/retire-listen-and-gaming.sql`. The browser cannot write either the payment ledger or entitlements; only server routes using `SUPABASE_SERVICE_ROLE_KEY` reconcile a badge from a captured provider payment.
+Then run `supabase/add-cashfree-sandbox-payments.sql` once if Cashfree sandbox testing is retained, `supabase/add-payu-payments.sql`, and finally `supabase/retire-listen-and-gaming.sql`. The browser cannot write either the payment ledger or entitlements; only server routes using `SUPABASE_SERVICE_ROLE_KEY` reconcile a badge from a captured provider payment.
 
-## 2. Cashfree sandbox trial while review is pending
+## 2. PayU Hosted Checkout production
+
+Add these values to the Vercel Production environment. Copy the complete Key and Salt from PayU **Developers > API Keys**; do not use the MID, Client ID, or Client Secret in these variables and never place the Salt in a `NEXT_PUBLIC_` variable.
+
+```text
+WEBSITE_PAYMENTS_ENABLED=true
+NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED=true
+WEB_PAYMENT_PROVIDER=payu
+NEXT_PUBLIC_WEB_PAYMENT_PROVIDER=payu
+PAYU_MODE=production
+PAYU_MERCHANT_KEY=your complete live Key
+PAYU_MERCHANT_SALT=your complete live Salt
+PAYU_CALLBACK_URL=https://jointalent7.com/api/payu
+```
+
+In PayU **Developers > Webhooks**, add:
+
+`https://jointalent7.com/api/payments/payu/webhook`
+
+Enable the successful-payment and failed-payment events. PayU redirects all checkout outcomes to the short callback URL above. Both the callback and webhook query PayU's Verify Payment API; Talent7 grants a badge only when the PayU transaction ID, amount, currency, product, payment record, `success` state, and `captured` state match the server-created order.
+
+Keep the two website-payment switches false until the Supabase migration, Vercel credentials, webhook, and a low-value production test are ready. A checkout phone number is sent directly in the PayU order request and is not stored in the Talent7 payment ledger.
+
+## 3. Cashfree sandbox trial while review is pending
 
 Use a Vercel Preview deployment, not Production. Add the following Preview-only values:
 
@@ -54,7 +77,28 @@ Whitelist the Preview domain in Cashfree sandbox and configure the sandbox webho
 
 Enable payment success, payment failed, and payment user-dropped events. The endpoint validates Cashfree's signature against the exact raw body and deduplicates events. Test checkout also fetches the order and its successful captured payment from Cashfree before recording a verified sandbox result. Sandbox results are stored as `Authorized`, never `Captured`, and cannot grant a real supporter badge. Never place either Cashfree credential in a `NEXT_PUBLIC_` value.
 
-## 3. Current Razorpay website adapter (not approved for live Talent7 use)
+## 4. Cashfree production
+
+Use Vercel environment scoping so Preview keeps sandbox values while Production receives live values:
+
+```text
+WEBSITE_PAYMENTS_ENABLED=true
+NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED=true
+WEB_PAYMENT_PROVIDER=cashfree
+NEXT_PUBLIC_WEB_PAYMENT_PROVIDER=cashfree
+CASHFREE_MODE=production
+NEXT_PUBLIC_CASHFREE_MODE=production
+CASHFREE_CLIENT_ID=your production app ID
+CASHFREE_CLIENT_SECRET=your production secret key
+```
+
+Whitelist `https://jointalent7.com` and configure the production webhook as:
+
+`https://jointalent7.com/api/payments/cashfree/webhook`
+
+Enable payment success, payment failed, and payment user-dropped events. Production checkout uses `https://api.cashfree.com/pg` and the browser SDK's `production` mode. A badge is granted only after Talent7 fetches the order and payment from Cashfree, verifies order ownership, amount, currency, paid status, and successful capture, then records the payment as `Captured`. The signed success webhook provides an idempotent recovery path.
+
+## 5. Current Razorpay website adapter (not approved for live Talent7 use)
 
 1. Keep production checkout disabled unless Razorpay provides written approval for the complete Talent7 model.
 2. Verify `https://www.jointalent7.com` in Razorpay and confirm the public footer links to Terms and Conditions, Privacy Policy, Shipping Policy, Contact Us, and Cancellation and Refunds.
@@ -70,7 +114,7 @@ Enable payment success, payment failed, and payment user-dropped events. The end
 
 Checkout success alone never grants a badge. Talent7 validates the checkout HMAC, fetches the Razorpay payment and order, compares amount/currency/order ownership, and requires both to report a captured/paid state. Webhooks are signature checked and deduplicated.
 
-## 4. Configure Google Play Billing for Android
+## 6. Configure Google Play Billing for Android
 
 1. In Play Console, create three **one-time products** with the exact product IDs in the table above. Set their India prices to ₹99, ₹299, and ₹999 and activate them.
 2. Create a Google Cloud service account for server verification, enable the Google Play Android Developer API, link the account in Play Console, and grant only the permissions required to view orders/subscriptions and manage purchases.
@@ -85,7 +129,7 @@ Checkout success alone never grants a badge. Talent7 validates the checkout HMAC
 
 The Android wrapper uses `com.android.billingclient:billing:9.1.0`. It passes a SHA-256 hash of the Talent7 user ID as the obfuscated account ID. The server verifies the package purchase token and account binding, records pending/cancelled/captured state, grants the badge only after `PURCHASED`, and then acknowledges the product. Do not acknowledge or grant purchases only on the device.
 
-## 5. Required Vercel values
+## 7. Required Vercel values
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL
@@ -95,6 +139,10 @@ WEBSITE_PAYMENTS_ENABLED
 NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED
 WEB_PAYMENT_PROVIDER
 NEXT_PUBLIC_WEB_PAYMENT_PROVIDER
+PAYU_MODE
+PAYU_MERCHANT_KEY
+PAYU_MERCHANT_SALT
+PAYU_CALLBACK_URL
 CASHFREE_MODE
 NEXT_PUBLIC_CASHFREE_MODE
 CASHFREE_CLIENT_ID
@@ -108,7 +156,7 @@ GOOGLE_PLAY_RTDN_TOKEN
 
 Only variables intentionally prefixed with `NEXT_PUBLIC_` are exposed to the browser. `NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED` is a display switch only; `WEBSITE_PAYMENTS_ENABLED` is the authoritative server gate. All credentials and secrets remain server-only.
 
-## 6. Production acceptance tests
+## 8. Production acceptance tests
 
 - Signed-out users are asked to sign in and no provider order is created.
 - Each fixed web purchase uses its exact server-controlled amount and rejects unknown product codes.
@@ -116,9 +164,9 @@ Only variables intentionally prefixed with `NEXT_PUBLIC_` are exposed to the bro
 - The ₹99/₹299/₹999 fixed products grant the matching badge without downgrading a higher badge already earned.
 - A dismissed, failed, pending, cancelled, forged, wrong-user, wrong-product, or wrong-amount purchase grants nothing.
 - Replayed checkout callbacks, webhooks, RTDN messages, and purchase tokens do not duplicate entitlements.
-- A Razorpay refund removes or downgrades the badge according to the user's remaining captured payments.
+- A provider refund is reconciled before removing or downgrading the badge according to the user's remaining captured payments.
 - Each Play product works from a Play testing install; pending purchase completion and **Restore Google Play purchases** both reconcile on the server.
 - The badge appears on the account, discovery profiles, and shared profile page without exposing payment credentials.
 - Payment history shows only the signed-in user's captured payments.
 
-Keep provider dashboards, Vercel logs, Supabase payment rows, and webhook delivery history under observation during the first live release. Never log raw Google purchase tokens, Razorpay secrets, service-account JSON, card data, or full webhook bodies.
+Keep provider dashboards, Vercel logs, Supabase payment rows, and webhook delivery history under observation during the first live release. Never log PayU Salt, raw Google purchase tokens, provider secrets, service-account JSON, card data, or full webhook bodies.
