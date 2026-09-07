@@ -45,12 +45,12 @@ NEXT_PUBLIC_WEB_PAYMENT_PROVIDER=payu
 PAYU_MODE=production
 PAYU_MERCHANT_KEY=your complete live Key
 PAYU_MERCHANT_SALT=your complete live Salt
-PAYU_CALLBACK_URL=https://jointalent7.com/api/payu
+PAYU_CALLBACK_URL=https://www.jointalent7.com/api/payu
 ```
 
 In PayU **Developers > Webhooks**, add:
 
-`https://jointalent7.com/api/payments/payu/webhook`
+`https://www.jointalent7.com/api/payments/payu/webhook`
 
 Enable the successful-payment and failed-payment events. PayU redirects all checkout outcomes to the short callback URL above. Both the callback and webhook query PayU's Verify Payment API; Talent7 grants a badge only when the PayU transaction ID, amount, currency, product, payment record, `success` state, and `captured` state match the server-created order.
 
