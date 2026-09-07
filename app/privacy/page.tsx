@@ -41,7 +41,7 @@ export default function PrivacyPage() {
       <section className="legalCard">
         <h2>Payments</h2>
         <p>
-          Razorpay processes website payments and Google Play processes Android purchases. Talent7 sends
+          PayU processes website payments and Google Play processes Android purchases. Talent7 sends
           the information required to create, verify, reconcile, refund, and support a transaction. Payment
           providers process payment credentials under their own terms and privacy policies. Talent7 stores
           limited provider references and verification state to reconcile fixed-price digital badge purchases,

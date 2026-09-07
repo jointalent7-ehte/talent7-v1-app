@@ -6860,6 +6860,40 @@ body:has(.publicRoomLanding) {
   gap: 14px;
 }
 
+.payuCustomerField {
+  display: grid;
+  gap: 7px;
+  max-width: 440px;
+  padding: 16px 18px;
+  color: #e8f4f3;
+  background: rgba(3, 12, 18, 0.48);
+  border: 1px solid rgba(105, 222, 210, 0.3);
+  border-radius: 16px;
+  font-weight: 800;
+}
+
+.payuCustomerField input {
+  min-height: 46px;
+  padding: 11px 13px;
+  color: #081516;
+  background: #f5faf9;
+  border: 1px solid rgba(105, 222, 210, 0.45);
+  border-radius: 12px;
+  outline: 0;
+  font: inherit;
+}
+
+.payuCustomerField input:focus {
+  border-color: #69ded2;
+  box-shadow: 0 0 0 3px rgba(105, 222, 210, 0.18);
+}
+
+.payuCustomerField small {
+  color: #aebfc3;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .supporterTierGrid article {
   display: grid;
   align-content: start;

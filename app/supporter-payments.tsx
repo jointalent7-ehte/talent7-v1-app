@@ -18,7 +18,7 @@ type PaymentRow = {
   id: string;
   product_code: string;
   product_name: string;
-  provider: "Cashfree" | "Razorpay" | "Google Play";
+  provider: "Cashfree" | "PayU" | "Razorpay" | "Google Play";
   refunded_at: string | null;
   status: "Creating" | "Created" | "Pending" | "Authorized" | "Captured" | "Failed" | "Cancelled" | "Refunded";
 };
@@ -170,6 +170,7 @@ export default function SupporterPayments({
   const [status, setStatus] = useState<PaymentStatus>({ entitlement: null, payments: [] });
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [actionKey, setActionKey] = useState("");
+  const [checkoutPhone, setCheckoutPhone] = useState("");
   const [nativeBilling, setNativeBilling] = useState(false);
   const [nativePrices, setNativePrices] = useState<Record<string, string>>({});
   const onEntitlementChangeRef = useRef(onEntitlementChange);
@@ -201,6 +202,27 @@ export default function SupporterPayments({
   useEffect(() => {
     void refreshStatus();
   }, [refreshStatus]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("provider") !== "payu") return;
+    const outcome = url.searchParams.get("payment");
+    const messages: Record<string, { message: string; tone: "success" | "error" | "warning" | "info" }> = {
+      captured: { message: "Payment verified. Thank you for supporting Talent7.", tone: "success" },
+      authorized: { message: "PayU authorized the payment. Your badge will appear after capture is confirmed.", tone: "info" },
+      pending: { message: "PayU is still confirming the payment. Refresh payment status shortly.", tone: "warning" },
+      cancelled: { message: "PayU checkout was cancelled.", tone: "info" },
+      failed: { message: "PayU reported that the payment did not complete.", tone: "error" },
+      error: { message: "The PayU result could not be confirmed. No badge was granted.", tone: "error" }
+    };
+    const notice = outcome ? messages[outcome] : null;
+    if (notice) onNoticeRef.current(notice.message, notice.tone);
+    url.searchParams.delete("provider");
+    url.searchParams.delete("payment");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    void refreshStatus();
+  }, [accessToken, refreshStatus]);
 
   useEffect(() => {
     const available = Boolean(window.Talent7Billing?.isAvailable());
@@ -265,7 +287,9 @@ export default function SupporterPayments({
     [status.payments]
   );
   const cashfreeSelected = webPaymentProvider === "cashfree" && Boolean(cashfreeMode);
-  const websiteCheckoutPaused = !nativeBilling && (!websitePaymentsEnabled || (webPaymentProvider === "cashfree" && !cashfreeMode));
+  const payuSelected = webPaymentProvider === "payu";
+  const supportedWebProvider = payuSelected || webPaymentProvider === "razorpay" || cashfreeSelected;
+  const websiteCheckoutPaused = !nativeBilling && (!websitePaymentsEnabled || !supportedWebProvider);
 
   function requirePaymentLogin() {
     if (accessToken && userId) return true;
@@ -379,7 +403,40 @@ export default function SupporterPayments({
     }
   }
 
+  async function startPayUCheckout(product: SupporterProduct) {
+    if (!requirePaymentLogin() || !accessToken) return;
+    if (!websitePaymentsEnabled || !payuSelected) {
+      onNotice("PayU checkout is disabled.", "info");
+      return;
+    }
+    const normalizedPhone = checkoutPhone.trim().replace(/[\s()-]/g, "").replace(/^\+/, "");
+    if (!/^[1-9]\d{7,14}$/.test(normalizedPhone)) {
+      onNotice("Enter a valid mobile number before opening PayU checkout.", "warning");
+      return;
+    }
+    setActionKey(product.code);
+    try {
+      const order = await apiRequest<{
+        checkoutUrl: string;
+        productName: string;
+        test: boolean;
+      }>("/api/payments/payu/order", accessToken, {
+        method: "POST",
+        body: JSON.stringify({ productCode: product.code, customerPhone: normalizedPhone })
+      });
+      if (!order.checkoutUrl.startsWith("https://")) throw new Error("PayU returned an invalid checkout URL.");
+      window.location.assign(order.checkoutUrl);
+    } catch (error) {
+      setActionKey("");
+      onNotice(error instanceof Error ? error.message : "PayU checkout could not start.", "error");
+    }
+  }
+
   function startWebsiteCheckout(product: SupporterProduct) {
+    if (webPaymentProvider === "payu") {
+      void startPayUCheckout(product);
+      return;
+    }
     if (webPaymentProvider === "cashfree") {
       void startCashfreeCheckout(product);
       return;
@@ -412,6 +469,22 @@ export default function SupporterPayments({
         </div>
       </div>
 
+      {!nativeBilling && payuSelected && websitePaymentsEnabled && (
+        <label className="payuCustomerField">
+          <span>Mobile number for PayU checkout</span>
+          <input
+            autoComplete="tel"
+            inputMode="tel"
+            maxLength={18}
+            onChange={(event) => setCheckoutPhone(event.target.value)}
+            placeholder="e.g. 9876543210"
+            type="tel"
+            value={checkoutPhone}
+          />
+          <small>Used only to start this secure PayU transaction. Include the country code if it is not an Indian number.</small>
+        </label>
+      )}
+
       <div className="supporterTierGrid">
         {supporterProducts.map((product) => (
           <article key={product.code}>
@@ -441,6 +514,13 @@ export default function SupporterPayments({
         <div className="supporterProviderNotice" role="status">
           <strong>Cashfree sandbox test mode.</strong>
           <span>Checkout uses Cashfree test credentials only. No real payment is collected while provider review is pending.</span>
+        </div>
+      )}
+
+      {!nativeBilling && payuSelected && websitePaymentsEnabled && (
+        <div className="supporterProviderNotice" role="status">
+          <strong>Secure checkout by PayU.</strong>
+          <span>You will leave Talent7 briefly to choose a payment method on PayU, then return here for server verification and badge delivery.</span>
         </div>
       )}
 
