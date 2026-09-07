@@ -6843,9 +6843,10 @@ body:has(.publicRoomLanding) {
 }
 
 .supporterCurrentBadge.active {
-  color: #fff6c2;
-  background: linear-gradient(135deg, rgba(255, 204, 50, 0.2), rgba(23, 184, 170, 0.15));
-  border-color: rgba(255, 213, 69, 0.5);
+  color: #e6fffc;
+  background: linear-gradient(135deg, rgba(36, 199, 181, 0.22), rgba(104, 91, 235, 0.2));
+  border-color: rgba(111, 226, 215, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 36px rgba(24, 130, 141, 0.12);
 }
 
 .supporterCurrentBadge span,
@@ -6909,9 +6910,24 @@ body:has(.publicRoomLanding) {
   border-color: rgba(110, 226, 214, 0.4);
 }
 
-.supporterTierGrid article:nth-child(3) {
-  background: linear-gradient(145deg, rgba(255, 199, 48, 0.14), rgba(255, 255, 255, 0.055));
-  border-color: rgba(255, 209, 66, 0.42);
+.supporterTierGrid article.founder {
+  background: linear-gradient(145deg, rgba(111, 91, 235, 0.2), rgba(31, 190, 177, 0.09), rgba(255, 255, 255, 0.045));
+  border-color: rgba(151, 139, 255, 0.48);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.supporterTierGrid article.founder > span {
+  color: #c9c2ff;
+}
+
+.supporterTierGrid article.founder button:not(:disabled) {
+  color: #fff;
+  background: linear-gradient(135deg, #7568e8, #478fd5);
+}
+
+.supporterTierGrid article.owned {
+  background: linear-gradient(145deg, rgba(40, 196, 181, 0.11), rgba(255, 255, 255, 0.045));
+  border-color: rgba(101, 218, 207, 0.3);
 }
 
 .supporterTierGrid article > span {
@@ -6953,6 +6969,14 @@ body:has(.publicRoomLanding) {
 .supporterPaymentActions button:disabled {
   cursor: wait;
   opacity: 0.55;
+}
+
+.supporterTierGrid article.owned button:disabled {
+  color: #c4d3d6;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(126, 218, 210, 0.2);
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 .customSupportForm {
@@ -7030,10 +7054,15 @@ body:has(.publicRoomLanding) {
   display: grid;
   gap: 5px;
   padding: 14px 16px;
-  color: #f8e9a9;
-  background: rgba(255, 198, 42, 0.09);
-  border: 1px solid rgba(255, 211, 80, 0.34);
+  color: #dcfbf8;
+  background: linear-gradient(135deg, rgba(24, 164, 153, 0.13), rgba(77, 101, 219, 0.1));
+  border: 1px solid rgba(100, 216, 206, 0.32);
   border-radius: 14px;
+}
+
+.supporterProviderNotice.payu {
+  background: linear-gradient(135deg, rgba(25, 178, 161, 0.16), rgba(88, 91, 224, 0.13));
+  border-color: rgba(111, 226, 215, 0.4);
 }
 
 .supporterProviderNotice span {
@@ -7085,9 +7114,9 @@ body:has(.publicRoomLanding) {
   width: fit-content;
   gap: 6px;
   padding: 5px 9px;
-  color: #fff2af;
-  background: linear-gradient(135deg, rgba(255, 196, 36, 0.18), rgba(23, 184, 170, 0.16));
-  border: 1px solid rgba(255, 205, 57, 0.44);
+  color: #e7fffc;
+  background: linear-gradient(135deg, rgba(33, 185, 170, 0.2), rgba(103, 90, 229, 0.18));
+  border: 1px solid rgba(105, 222, 210, 0.42);
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 900;

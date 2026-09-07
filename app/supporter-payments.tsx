@@ -28,6 +28,12 @@ type PaymentStatus = {
   payments: PaymentRow[];
 };
 
+const supporterTierRank: Record<SupporterTier, number> = {
+  Supporter: 1,
+  "Champion Supporter": 2,
+  "Founder Supporter": 3
+};
+
 type RazorpayResponse = {
   razorpay_order_id: string;
   razorpay_payment_id: string;
@@ -446,6 +452,15 @@ export default function SupporterPayments({
 
   function purchaseFixedProduct(product: SupporterProduct) {
     if (!requirePaymentLogin() || !userId) return;
+    if (highestTier && supporterTierRank[product.tier] <= supporterTierRank[highestTier]) {
+      onNotice(
+        product.tier === highestTier
+          ? `${product.name} is already your active badge.`
+          : `${product.name} is already included with your ${supporterTierLabel(highestTier)} badge.`,
+        "info"
+      );
+      return;
+    }
     if (nativeBilling) {
       setActionKey(product.code);
       window.Talent7Billing?.purchase(product.googlePlayProductId, userId);
@@ -486,21 +501,40 @@ export default function SupporterPayments({
       )}
 
       <div className="supporterTierGrid">
-        {supporterProducts.map((product) => (
-          <article key={product.code}>
-            <span>{product.name}</span>
-            <strong>{nativePrices[product.googlePlayProductId] || formatInrSubunits(product.amountSubunits)}</strong>
-            <p>{product.description}</p>
-            <small>One-time purchase · core features remain free</small>
-            <button disabled={Boolean(actionKey) || websiteCheckoutPaused} onClick={() => purchaseFixedProduct(product)} type="button">
-              {websiteCheckoutPaused
-                ? "Website checkout awaiting approval"
-                : actionKey === product.code
-                  ? "Opening secure checkout…"
-                  : `Choose ${product.name}`}
-            </button>
-          </article>
-        ))}
+        {supporterProducts.map((product) => {
+          const isCurrentTier = product.tier === highestTier;
+          const isOwnedTier = Boolean(highestTier && supporterTierRank[product.tier] <= supporterTierRank[highestTier]);
+          const isUpgrade = Boolean(highestTier && supporterTierRank[product.tier] > supporterTierRank[highestTier]);
+
+          return (
+            <article
+              className={`${product.tier === "Founder Supporter" ? "founder" : ""}${isOwnedTier ? " owned" : ""}`.trim()}
+              key={product.code}
+            >
+              <span>{product.name}</span>
+              <strong>{nativePrices[product.googlePlayProductId] || formatInrSubunits(product.amountSubunits)}</strong>
+              <p>{product.description}</p>
+              <small>One-time purchase · core features remain free</small>
+              <button
+                disabled={Boolean(actionKey) || websiteCheckoutPaused || isOwnedTier}
+                onClick={() => purchaseFixedProduct(product)}
+                type="button"
+              >
+                {isCurrentTier
+                  ? "Active badge"
+                  : isOwnedTier
+                    ? "Included with your badge"
+                    : websiteCheckoutPaused
+                      ? "Website checkout awaiting approval"
+                      : actionKey === product.code
+                        ? "Opening secure checkout…"
+                        : isUpgrade
+                          ? `Upgrade to ${product.name}`
+                          : `Choose ${product.name}`}
+              </button>
+            </article>
+          );
+        })}
       </div>
 
       {websiteCheckoutPaused && (
@@ -518,7 +552,7 @@ export default function SupporterPayments({
       )}
 
       {!nativeBilling && payuSelected && websitePaymentsEnabled && (
-        <div className="supporterProviderNotice" role="status">
+        <div className="supporterProviderNotice payu" role="status">
           <strong>Secure checkout by PayU.</strong>
           <span>You will leave Talent7 briefly to choose a payment method on PayU, then return here for server verification and badge delivery.</span>
         </div>
