@@ -15,18 +15,24 @@ function returnUrl(outcome: string) {
   return url;
 }
 
-async function handlePayUReturn(transactionId: string) {
-  if (!/^[A-Za-z0-9_-]{1,50}$/.test(transactionId)) {
+type PayUReturnIdentifiers = { paymentRecordId: string; transactionId: string };
+
+async function handlePayUReturn({ paymentRecordId, transactionId }: PayUReturnIdentifiers) {
+  const validTransactionId = /^[A-Za-z0-9_-]{1,50}$/.test(transactionId);
+  const validPaymentRecordId = /^[a-f0-9-]{36}$/i.test(paymentRecordId);
+  if (!validTransactionId && !validPaymentRecordId) {
     return NextResponse.redirect(returnUrl("error"), 303);
   }
   const service = paymentServiceClient();
   if (!service) return NextResponse.redirect(returnUrl("error"), 303);
-  const { data } = await service
+  let query = service
     .from("payments")
     .select("id, amount_subunits, currency, product_name, provider_order_id, status")
-    .eq("provider", "PayU")
-    .eq("provider_order_id", transactionId)
-    .maybeSingle();
+    .eq("provider", "PayU");
+  query = validTransactionId
+    ? query.eq("provider_order_id", transactionId)
+    : query.eq("id", paymentRecordId);
+  const { data } = await query.maybeSingle();
   if (!data) return NextResponse.redirect(returnUrl("error"), 303);
 
   try {
@@ -39,8 +45,28 @@ async function handlePayUReturn(transactionId: string) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.formData();
-    return handlePayUReturn(String(body.get("txnid") || body.get("txnId") || ""));
+    const url = new URL(request.url);
+    const contentType = request.headers.get("content-type") || "";
+    let values: Record<string, unknown> = {};
+    if (contentType.includes("application/json")) {
+      values = await request.json() as Record<string, unknown>;
+    } else {
+      const body = await request.formData();
+      values = Object.fromEntries(body.entries());
+    }
+    return handlePayUReturn({
+      transactionId: String(
+        values.txnid
+        || values.txnId
+        || values.referenceId
+        || values.reference_id
+        || url.searchParams.get("txnid")
+        || url.searchParams.get("txnId")
+        || url.searchParams.get("referenceId")
+        || ""
+      ),
+      paymentRecordId: String(values.udf1 || url.searchParams.get("udf1") || "")
+    });
   } catch {
     return NextResponse.redirect(returnUrl("error"), 303);
   }
@@ -48,6 +74,11 @@ export async function POST(request: Request) {
 
 export function GET(request: Request) {
   const url = new URL(request.url);
-  return handlePayUReturn(url.searchParams.get("txnid") || url.searchParams.get("txnId") || "");
+  return handlePayUReturn({
+    transactionId: url.searchParams.get("txnid")
+      || url.searchParams.get("txnId")
+      || url.searchParams.get("referenceId")
+      || "",
+    paymentRecordId: url.searchParams.get("udf1") || ""
+  });
 }
-

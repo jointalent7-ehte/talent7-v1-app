@@ -4,6 +4,7 @@ import {
   paymentJsonError,
   paymentServiceClient
 } from "../../../../lib/payment-server";
+import { reconcilePayUPayment, type PayUPaymentRecord } from "../../../../lib/payu-payment-processing";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,21 @@ export async function GET(request: Request) {
 
   const service = paymentServiceClient();
   if (!service) return paymentJsonError("Payment services are not configured.", 503);
+
+  const { data: unsettledPayUPayments } = await service
+    .from("payments")
+    .select("id, amount_subunits, currency, product_name, provider_order_id, status")
+    .eq("user_id", authenticated.user.id)
+    .eq("provider", "PayU")
+    .in("status", ["Created", "Pending", "Authorized"])
+    .not("provider_order_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  if (unsettledPayUPayments?.length) {
+    await Promise.allSettled(
+      unsettledPayUPayments.map((payment) => reconcilePayUPayment(service, payment as PayUPaymentRecord))
+    );
+  }
 
   const [entitlementResult, paymentsResult] = await Promise.all([
     service

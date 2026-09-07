@@ -15,9 +15,12 @@ export async function POST(request: Request) {
   } catch {
     return paymentJsonError("The PayU webhook payload was invalid.", 400);
   }
-  const transactionId = String(form.get("txnid") || form.get("txnId") || "");
+  const transactionId = String(form.get("txnid") || form.get("txnId") || form.get("referenceId") || "");
+  const paymentRecordId = String(form.get("udf1") || "");
   const merchantKey = String(form.get("key") || "");
-  if (!/^[A-Za-z0-9_-]{1,50}$/.test(transactionId) || (merchantKey && merchantKey !== config.merchantKey)) {
+  const validTransactionId = /^[A-Za-z0-9_-]{1,50}$/.test(transactionId);
+  const validPaymentRecordId = /^[a-f0-9-]{36}$/i.test(paymentRecordId);
+  if ((!validTransactionId && !validPaymentRecordId) || (merchantKey && merchantKey !== config.merchantKey)) {
     return paymentJsonError("The PayU webhook did not match this merchant.", 401);
   }
 
@@ -37,12 +40,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { data } = await service
+    let query = service
       .from("payments")
       .select("id, amount_subunits, currency, product_name, provider_order_id, status")
-      .eq("provider", "PayU")
-      .eq("provider_order_id", transactionId)
-      .maybeSingle();
+      .eq("provider", "PayU");
+    query = validTransactionId
+      ? query.eq("provider_order_id", transactionId)
+      : query.eq("id", paymentRecordId);
+    const { data } = await query.maybeSingle();
     let outcome: string | null = null;
     if (data) outcome = await reconcilePayUPayment(service, data as PayUPaymentRecord);
 
@@ -61,4 +66,3 @@ export async function POST(request: Request) {
     return paymentJsonError(error instanceof Error ? error.message : "The PayU webhook could not be processed.", 502);
   }
 }
-
