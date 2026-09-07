@@ -11,6 +11,7 @@ export type PayUVerifiedPayment = {
   originalAmount?: number | string;
   originalCurrency?: string;
   productInfo?: string;
+  referenceId?: string;
   status?: string;
   txnId?: string;
   udf1?: string | null;
@@ -163,9 +164,9 @@ export async function verifyPayUPayment(transactionId: string) {
     { txnId: [transactionId] },
     { "Info-Command": "verify_payment" }
   );
-  const payment = response.result?.find((item) => String(item.txnId || "") === transactionId)
+  const payment = response.result?.find((item) => String(item.txnId || item.referenceId || "") === transactionId)
     || response.result?.[0];
-  if (!payment || String(payment.txnId || "") !== transactionId) {
+  if (!payment || String(payment.txnId || payment.referenceId || "") !== transactionId) {
     throw new Error("PayU has not found this transaction yet.");
   }
   return payment;
@@ -182,4 +183,3 @@ export function normalizePayUPhone(value: unknown) {
   const normalized = String(value || "").trim().replace(/[\s()-]/g, "").replace(/^\+/, "");
   return /^[1-9]\d{7,14}$/.test(normalized) ? normalized : null;
 }
-
