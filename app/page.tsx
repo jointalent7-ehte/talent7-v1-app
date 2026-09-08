@@ -50,7 +50,7 @@ const maxVideoUploadBytes = 50 * 1024 * 1024;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
 const videoMimeTypes = ["video/mp4", "video/quicktime"];
 const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || "";
-const listenRoomsEnabled = false;
+const listenRoomsEnabled = true;
 const roomPageSize = 6;
 const profilePageSize = 8;
 const feedPageSize = 8;
@@ -416,6 +416,12 @@ const primaryTabs: {
       { label: "Create", href: "#create" },
       { label: "Leaderboard", href: "#leaderboard" }
     ]
+  },
+  {
+    id: "listen",
+    label: "Listen",
+    firstSection: "listen-rooms",
+    links: [{ label: "Listen rooms", href: "#listen-rooms" }]
   }
 ];
 
@@ -461,6 +467,7 @@ const sectionTabMap: Record<string, AppTabId> = {
   rooms: "challenges",
   opponents: "challenges",
   leaderboard: "challenges",
+  "listen-rooms": "listen",
   teams: "teams",
   profiles: "profiles",
   notifications: "notifications",
@@ -477,10 +484,6 @@ const sectionTabMap: Record<string, AppTabId> = {
 function isLegacyFutureRoute(hash: string) {
   const target = hash.replace(/^#/, "");
   return target === "showcase" || target.startsWith("showcase-") || target === "coaching" || target === "expert-help";
-}
-
-function isRetiredFeatureRoute(hash: string) {
-  return hash.replace(/^#/, "") === "listen-rooms";
 }
 
 function tabForHash(hash: string): AppTabId | null {
@@ -2099,11 +2102,7 @@ export default function Home() {
   useEffect(() => {
     const syncTabWithHash = () => {
       const requestedHash = window.location.hash;
-      const navigationHash = isLegacyFutureRoute(requestedHash)
-        ? "#plans"
-        : isRetiredFeatureRoute(requestedHash)
-          ? "#rooms"
-          : requestedHash;
+      const navigationHash = isLegacyFutureRoute(requestedHash) ? "#plans" : requestedHash;
       if (navigationHash !== requestedHash) {
         window.history.replaceState(window.history.state, "", navigationHash);
       }
