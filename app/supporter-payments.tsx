@@ -210,6 +210,23 @@ export default function SupporterPayments({
   }, [refreshStatus]);
 
   useEffect(() => {
+    const handleCheckoutReturn = () => {
+      if (document.visibilityState === "hidden") return;
+      setActionKey("");
+      if (accessToken) void refreshStatus();
+    };
+
+    window.addEventListener("focus", handleCheckoutReturn);
+    window.addEventListener("pageshow", handleCheckoutReturn);
+    document.addEventListener("visibilitychange", handleCheckoutReturn);
+    return () => {
+      window.removeEventListener("focus", handleCheckoutReturn);
+      window.removeEventListener("pageshow", handleCheckoutReturn);
+      document.removeEventListener("visibilitychange", handleCheckoutReturn);
+    };
+  }, [accessToken, refreshStatus]);
+
+  useEffect(() => {
     if (!accessToken) return;
     const url = new URL(window.location.href);
     if (url.searchParams.get("provider") !== "payu") return;
@@ -217,10 +234,10 @@ export default function SupporterPayments({
     const messages: Record<string, { message: string; tone: "success" | "error" | "warning" | "info" }> = {
       captured: { message: "Payment verified. Thank you for supporting Talent7.", tone: "success" },
       authorized: { message: "PayU authorized the payment. Your badge will appear after capture is confirmed.", tone: "info" },
-      pending: { message: "PayU is still confirming the payment. Refresh payment status shortly.", tone: "warning" },
+      pending: { message: "PayU is still confirming the payment. Talent7 will check it again automatically.", tone: "warning" },
       cancelled: { message: "PayU checkout was cancelled.", tone: "info" },
       failed: { message: "PayU reported that the payment did not complete.", tone: "error" },
-      error: { message: "The PayU result could not be confirmed. No badge was granted.", tone: "error" }
+      error: { message: "Talent7 is checking the payment with PayU. Your badge will appear after confirmation.", tone: "warning" }
     };
     const notice = outcome ? messages[outcome] : null;
     if (notice) onNoticeRef.current(notice.message, notice.tone);
@@ -228,6 +245,8 @@ export default function SupporterPayments({
     url.searchParams.delete("payment");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     void refreshStatus();
+    const retryId = window.setTimeout(() => void refreshStatus(), 2500);
+    return () => window.clearTimeout(retryId);
   }, [accessToken, refreshStatus]);
 
   useEffect(() => {
@@ -431,6 +450,7 @@ export default function SupporterPayments({
         body: JSON.stringify({ productCode: product.code, customerPhone: normalizedPhone })
       });
       if (!order.checkoutUrl.startsWith("https://")) throw new Error("PayU returned an invalid checkout URL.");
+      setActionKey("");
       window.location.assign(order.checkoutUrl);
     } catch (error) {
       setActionKey("");
