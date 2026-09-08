@@ -15,6 +15,9 @@ import { supporterProductByCode } from "../../../../../lib/supporter-products";
 
 export const runtime = "nodejs";
 
+const temporaryCustomAmountMinimumInr = 1;
+const temporaryCustomAmountMaximumInr = 100;
+
 export async function POST(request: Request) {
   if (
     process.env.WEBSITE_PAYMENTS_ENABLED !== "true"
@@ -32,8 +35,27 @@ export async function POST(request: Request) {
 
   const body = await paymentRequestBody(request);
   if (!body) return paymentJsonError("The checkout request was invalid.", 400);
-  const fixedProduct = supporterProductByCode(String(body.productCode || ""));
-  if (!fixedProduct) return paymentJsonError("Choose one of the fixed Talent7 badge products.", 400);
+  const requestedProductCode = String(body.productCode || "");
+  const fixedProduct = supporterProductByCode(requestedProductCode);
+  const temporaryCustomAmountsEnabled = process.env.TEMPORARY_PAYU_CUSTOM_AMOUNTS_ENABLED === "true";
+  const requestedAmountInr = Number(body.amountInr);
+  const validCustomAmount = temporaryCustomAmountsEnabled
+    && requestedProductCode === "custom_support"
+    && Number.isInteger(requestedAmountInr)
+    && requestedAmountInr >= temporaryCustomAmountMinimumInr
+    && requestedAmountInr <= temporaryCustomAmountMaximumInr;
+  if (!fixedProduct && !validCustomAmount) {
+    return paymentJsonError(
+      temporaryCustomAmountsEnabled
+        ? `Enter a whole-rupee test amount from ₹${temporaryCustomAmountMinimumInr} to ₹${temporaryCustomAmountMaximumInr}.`
+        : "Choose one of the fixed Talent7 badge products.",
+      400
+    );
+  }
+  const productCode = fixedProduct?.code || "custom_support";
+  const productName = fixedProduct?.name || "Custom Talent7 support";
+  const amountSubunits = fixedProduct?.amountSubunits || requestedAmountInr * 100;
+  const currency = fixedProduct?.currency || "INR";
   const customerPhone = normalizePayUPhone(body.customerPhone);
   if (!customerPhone) return paymentJsonError("Enter a valid phone number, including country code when required.", 400);
   if (!authenticated.user.email) return paymentJsonError("A verified email address is required for PayU checkout.", 400);
@@ -43,10 +65,10 @@ export async function POST(request: Request) {
     .insert({
       user_id: authenticated.user.id,
       provider: "PayU",
-      product_code: fixedProduct.code,
-      product_name: fixedProduct.name,
-      amount_subunits: fixedProduct.amountSubunits,
-      currency: fixedProduct.currency,
+      product_code: productCode,
+      product_name: productName,
+      amount_subunits: amountSubunits,
+      currency,
       status: "Creating"
     })
     .select("id")
@@ -65,15 +87,15 @@ export async function POST(request: Request) {
 
   try {
     const order = await createPayUHostedPayment({
-      amountSubunits: fixedProduct.amountSubunits,
+      amountSubunits,
       callbackUrl: transactionCallbackUrl.toString(),
-      currency: fixedProduct.currency,
+      currency,
       customerEmail: authenticated.user.email,
       customerName,
       customerPhone,
       paymentRecordId,
-      productCode: fixedProduct.code,
-      productName: fixedProduct.name,
+      productCode,
+      productName,
       transactionId
     });
     const { error: updateError } = await service.from("payments").update({
@@ -84,7 +106,7 @@ export async function POST(request: Request) {
     if (updateError) throw new Error(updateError.message);
 
     return NextResponse.json(
-      { checkoutUrl: order.checkoutUrl, paymentRecordId, productName: fixedProduct.name, test: config.mode === "test" },
+      { checkoutUrl: order.checkoutUrl, paymentRecordId, productName, test: config.mode === "test" },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
