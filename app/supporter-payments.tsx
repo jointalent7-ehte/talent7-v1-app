@@ -193,15 +193,17 @@ export default function SupporterPayments({
     if (!accessToken) {
       setStatus({ entitlement: null, payments: [] });
       onEntitlementChangeRef.current(null);
-      return;
+      return null;
     }
     setLoadingStatus(true);
     try {
       const nextStatus = await apiRequest<PaymentStatus>("/api/payments/status", accessToken);
       setStatus(nextStatus);
       onEntitlementChangeRef.current(nextStatus.entitlement?.active ? nextStatus.entitlement.tier : null);
+      return nextStatus;
     } catch (error) {
       onNoticeRef.current(error instanceof Error ? error.message : "Badge purchase status could not be loaded.", "error");
+      return null;
     } finally {
       setLoadingStatus(false);
     }
@@ -233,6 +235,7 @@ export default function SupporterPayments({
     const url = new URL(window.location.href);
     if (url.searchParams.get("provider") !== "payu") return;
     const outcome = url.searchParams.get("payment");
+    const returnedPaymentId = url.searchParams.get("payment_id");
     const messages: Record<string, { message: string; tone: "success" | "error" | "warning" | "info" }> = {
       captured: { message: "Payment verified. Thank you for supporting Talent7.", tone: "success" },
       authorized: { message: "PayU authorized the payment. Your badge will appear after capture is confirmed.", tone: "info" },
@@ -245,10 +248,43 @@ export default function SupporterPayments({
     if (notice) onNoticeRef.current(notice.message, notice.tone);
     url.searchParams.delete("provider");
     url.searchParams.delete("payment");
+    url.searchParams.delete("payment_id");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-    void refreshStatus();
-    const retryId = window.setTimeout(() => void refreshStatus(), 2500);
-    return () => window.clearTimeout(retryId);
+    if (outcome !== "pending" || !returnedPaymentId) {
+      void refreshStatus();
+      return;
+    }
+
+    let cancelled = false;
+    let attempts = 0;
+    let retryId: number | undefined;
+    const refreshReturnedPayment = async () => {
+      attempts += 1;
+      const nextStatus = await refreshStatus();
+      if (cancelled) return;
+      const returnedPayment = nextStatus?.payments.find(
+        (payment) => payment.id === returnedPaymentId && payment.provider === "PayU"
+      );
+      if (returnedPayment?.status === "Captured") {
+        onNoticeRef.current("Payment verified. Thank you for supporting Talent7.", "success");
+        return;
+      }
+      if (returnedPayment?.status === "Failed") {
+        onNoticeRef.current("PayU reported that the payment did not complete.", "error");
+        return;
+      }
+      if (returnedPayment?.status === "Cancelled") {
+        onNoticeRef.current("PayU checkout was cancelled.", "info");
+        return;
+      }
+      if (attempts < 5) retryId = window.setTimeout(() => void refreshReturnedPayment(), 2500);
+    };
+
+    void refreshReturnedPayment();
+    return () => {
+      cancelled = true;
+      if (retryId) window.clearTimeout(retryId);
+    };
   }, [accessToken, refreshStatus]);
 
   useEffect(() => {

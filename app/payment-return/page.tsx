@@ -36,9 +36,12 @@ function buildReturnTargets(outcomeOverride?: string) {
   const search = new URLSearchParams(window.location.search);
   const rawOutcome = outcomeOverride || search.get("payment") || "pending";
   const outcome = allowedOutcomes.has(rawOutcome) ? rawOutcome : "pending";
+  const paymentRecordId = search.get("payment_id") || "";
+  const transactionId = search.get("txnid") || "";
   const website = new URL("/", window.location.origin);
   website.searchParams.set("provider", "payu");
   website.searchParams.set("payment", outcome);
+  if (paymentRecordId) website.searchParams.set("payment_id", paymentRecordId);
   website.hash = "plans";
 
   const query = `provider=payu&payment=${encodeURIComponent(outcome)}`;
@@ -50,8 +53,8 @@ function buildReturnTargets(outcomeOverride?: string) {
     websiteUrl: website.toString(),
     appUrl,
     intentUrl,
-    paymentRecordId: search.get("payment_id") || "",
-    transactionId: search.get("txnid") || ""
+    paymentRecordId,
+    transactionId
   };
 }
 
