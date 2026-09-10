@@ -79,16 +79,13 @@ export async function POST(request: Request) {
 
   const paymentRecordId = String(payment.id);
   const transactionId = `t7${paymentRecordId.replaceAll("-", "")}`;
-  const transactionCallbackUrl = new URL(callbackUrl);
-  transactionCallbackUrl.searchParams.set("txnid", transactionId);
-  transactionCallbackUrl.searchParams.set("udf1", paymentRecordId);
   const metadata = authenticated.user.user_metadata || {};
   const customerName = String(metadata.full_name || metadata.name || "").trim().slice(0, 80) || undefined;
 
   try {
     const order = await createPayUHostedPayment({
       amountSubunits,
-      callbackUrl: transactionCallbackUrl.toString(),
+      callbackUrl,
       currency,
       customerEmail: authenticated.user.email,
       customerName,
