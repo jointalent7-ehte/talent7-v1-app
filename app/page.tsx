@@ -1274,6 +1274,16 @@ type NotificationReturnContext = {
   notificationTitle: string;
 };
 
+function formatNotificationReceivedAt(value: string) {
+  const receivedAt = new Date(value);
+  if (Number.isNaN(receivedAt.getTime())) return "Time unavailable";
+
+  return receivedAt.toLocaleString([], {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+
 type Talent7HistoryState = {
   talent7NotificationReturn?: NotificationReturnContext;
 };
@@ -5681,12 +5691,32 @@ export default function Home() {
       return;
     }
 
+    const currentUrl = new URL(window.location.href);
+    const hashParameters = new URLSearchParams(currentUrl.hash.replace(/^#/, ""));
+    const recoveryReturnRequested =
+      currentUrl.searchParams.get("recovery") === "1" || hashParameters.get("type") === "recovery";
+
+    function showPasswordRecovery() {
+      setIsPasswordRecovery(true);
+      setMessage("Password recovery confirmed. Set a new password below.");
+      setActiveAppTab("settings");
+      setActiveSection("account");
+      window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setAuthHydrated(true);
-      if (data.session && !tabForHash(window.location.hash)) {
+      if (data.session && recoveryReturnRequested) {
+        showPasswordRecovery();
+      } else if (data.session && !tabForHash(window.location.hash)) {
         setActiveAppTab("challenges");
         setActiveSection("rooms");
+      } else if (recoveryReturnRequested) {
+        setAuthMode("Log in");
+        setActiveAppTab("settings");
+        setActiveSection("account");
+        setMessage("This password-reset link is invalid or has expired. Request a new link below.", "error");
       }
     });
 
@@ -5694,11 +5724,7 @@ export default function Home() {
       setSession(newSession);
       setAuthHydrated(true);
       if (event === "PASSWORD_RECOVERY") {
-        setIsPasswordRecovery(true);
-        setMessage("Password recovery confirmed. Set a new password below.");
-        setActiveAppTab("settings");
-        setActiveSection("account");
-        window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
+        showPasswordRecovery();
       }
     });
 
@@ -6542,7 +6568,7 @@ export default function Home() {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         captchaToken: authCaptchaToken || undefined,
-        redirectTo: `${siteUrl("/")}#account`
+        redirectTo: `${siteUrl("/")}?recovery=1#account`
       });
 
       if (error) {
@@ -6599,6 +6625,7 @@ export default function Home() {
       if (error) throw error;
       setIsPasswordRecovery(false);
       setAuthMode("Log in");
+      clearPasswordRecoveryLocation();
       setMessage("Password recovery cancelled. You can log in or request a new reset link.", "info");
     } catch (error) {
       setMessage(readableAuthError(error, "Password recovery could not be cancelled. Close this page and try again."), "error");
@@ -6655,6 +6682,7 @@ export default function Home() {
         if (signOutError) throw signOutError;
         setIsPasswordRecovery(false);
         setAuthMode("Log in");
+        clearPasswordRecoveryLocation();
         setMessage("Password reset complete. Log in with your new password.", "success");
       } else {
         setMessage("Password updated.", "success");
@@ -6811,6 +6839,12 @@ export default function Home() {
         : "https://www.jointalent7.com";
 
     return `${base}${path}`;
+  }
+
+  function clearPasswordRecoveryLocation() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("recovery");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}#account`);
   }
 
   function launchUpdateText() {
@@ -11774,7 +11808,12 @@ export default function Home() {
                       >
                         <span>{notification.label}</span>
                         <strong>{notification.title}</strong>
-                        <small>{notification.detail}</small>
+                        <div className="notificationMessage">
+                          <small>{notification.detail}</small>
+                          <time className="notificationTimestamp" dateTime={notification.createdAt}>
+                            Received {formatNotificationReceivedAt(notification.createdAt)}
+                          </time>
+                        </div>
                       </a>
                       <div className="notificationActions">
                         <button disabled={isRead} onClick={() => markNotificationRead(notification)} type="button">
