@@ -52,7 +52,11 @@ export async function POST(request: Request) {
       400
     );
   }
-  const productCode = fixedProduct?.code || "custom_support";
+  // A custom test payment at or above the Supporter price should use the
+  // canonical product code. This keeps badge delivery compatible with both
+  // current and previously deployed entitlement functions.
+  const customProductCode = requestedAmountInr >= 99 ? "supporter_99" : "custom_support";
+  const productCode = fixedProduct?.code || customProductCode;
   const productName = fixedProduct?.name || "Custom Talent7 support";
   const amountSubunits = fixedProduct?.amountSubunits || requestedAmountInr * 100;
   const currency = fixedProduct?.currency || "INR";

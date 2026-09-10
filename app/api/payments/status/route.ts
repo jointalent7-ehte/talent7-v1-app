@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import {
   authenticatedPaymentRequest,
   paymentJsonError,
-  paymentServiceClient
+  paymentServiceClient,
+  reconcileSupporterEntitlement
 } from "../../../../lib/payment-server";
 import { reconcilePayUPayment, type PayUPaymentRecord } from "../../../../lib/payu-payment-processing";
 
@@ -28,6 +29,14 @@ export async function GET(request: Request) {
     await Promise.allSettled(
       unsettledPayUPayments.map((payment) => reconcilePayUPayment(service, payment as PayUPaymentRecord))
     );
+  }
+
+  // Retry badge delivery independently of the provider payment state. This
+  // repairs a captured payment whose original entitlement RPC was interrupted.
+  try {
+    await reconcileSupporterEntitlement(service, authenticated.user.id);
+  } catch (error) {
+    console.error("Supporter entitlement reconciliation failed", error);
   }
 
   const [entitlementResult, paymentsResult] = await Promise.all([
