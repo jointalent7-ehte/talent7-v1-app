@@ -79,13 +79,18 @@ export async function POST(request: Request) {
 
   const paymentRecordId = String(payment.id);
   const transactionId = `t7${paymentRecordId.replaceAll("-", "")}`;
+  // PayU's hosted mobile return does not consistently echo the transaction
+  // reference in the callback body. Keep the transaction ID in the return URL
+  // so Talent7 can always perform server-side verification after checkout.
+  const transactionCallbackUrl = new URL(callbackUrl);
+  transactionCallbackUrl.searchParams.set("txnid", transactionId);
   const metadata = authenticated.user.user_metadata || {};
   const customerName = String(metadata.full_name || metadata.name || "").trim().slice(0, 80) || undefined;
 
   try {
     const order = await createPayUHostedPayment({
       amountSubunits,
-      callbackUrl,
+      callbackUrl: transactionCallbackUrl.toString(),
       currency,
       customerEmail: authenticated.user.email,
       customerName,
