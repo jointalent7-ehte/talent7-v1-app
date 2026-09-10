@@ -7,11 +7,10 @@ export const runtime = "nodejs";
 function returnUrl(outcome: string) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.jointalent7.com";
   const url = new URL(siteUrl);
-  url.pathname = "/";
+  url.pathname = "/payment-return";
   url.search = "";
   url.searchParams.set("provider", "payu");
   url.searchParams.set("payment", outcome);
-  url.hash = "plans";
   return url;
 }
 
