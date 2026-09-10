@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       .maybeSingle(),
     service
       .from("payments")
-      .select("id, provider, product_code, product_name, amount_subunits, currency, status, created_at, captured_at, refunded_at")
+      .select("id, provider, provider_order_id, product_code, product_name, amount_subunits, currency, status, created_at, captured_at, refunded_at")
       .eq("user_id", authenticated.user.id)
       .order("created_at", { ascending: false })
       .limit(20)

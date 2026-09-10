@@ -42,6 +42,7 @@ function buildReturnTargets(outcomeOverride?: string) {
   website.searchParams.set("provider", "payu");
   website.searchParams.set("payment", outcome);
   if (paymentRecordId) website.searchParams.set("payment_id", paymentRecordId);
+  if (transactionId) website.searchParams.set("txnid", transactionId);
   website.hash = "plans";
 
   const query = `provider=payu&payment=${encodeURIComponent(outcome)}`;
@@ -80,7 +81,7 @@ export default function PaymentReturnPage() {
   }, []);
 
   useEffect(() => {
-    if (!targets || targets.outcome !== "pending" || !targets.transactionId || !targets.paymentRecordId) return;
+    if (!targets || targets.outcome !== "pending" || !targets.transactionId) return;
 
     let cancelled = false;
     let attempts = 0;
@@ -89,10 +90,8 @@ export default function PaymentReturnPage() {
     const checkPayment = async () => {
       attempts += 1;
       try {
-        const query = new URLSearchParams({
-          txnid: targets.transactionId,
-          payment_id: targets.paymentRecordId
-        });
+        const query = new URLSearchParams({ txnid: targets.transactionId });
+        if (targets.paymentRecordId) query.set("payment_id", targets.paymentRecordId);
         const response = await fetch(`/api/payments/payu/return-status?${query}`, { cache: "no-store" });
         const body = await response.json() as { outcome?: string };
         if (cancelled) return;

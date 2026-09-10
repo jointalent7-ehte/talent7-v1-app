@@ -19,6 +19,7 @@ type PaymentRow = {
   product_code: string;
   product_name: string;
   provider: "Cashfree" | "PayU" | "Razorpay" | "Google Play";
+  provider_order_id: string | null;
   refunded_at: string | null;
   status: "Creating" | "Created" | "Pending" | "Authorized" | "Captured" | "Failed" | "Cancelled" | "Refunded";
 };
@@ -236,6 +237,7 @@ export default function SupporterPayments({
     if (url.searchParams.get("provider") !== "payu") return;
     const outcome = url.searchParams.get("payment");
     const returnedPaymentId = url.searchParams.get("payment_id");
+    const returnedTransactionId = url.searchParams.get("txnid");
     const messages: Record<string, { message: string; tone: "success" | "error" | "warning" | "info" }> = {
       captured: { message: "Payment verified. Thank you for supporting Talent7.", tone: "success" },
       authorized: { message: "PayU authorized the payment. Your badge will appear after capture is confirmed.", tone: "info" },
@@ -249,8 +251,9 @@ export default function SupporterPayments({
     url.searchParams.delete("provider");
     url.searchParams.delete("payment");
     url.searchParams.delete("payment_id");
+    url.searchParams.delete("txnid");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-    if (outcome !== "pending" || !returnedPaymentId) {
+    if (outcome !== "pending" || (!returnedPaymentId && !returnedTransactionId)) {
       void refreshStatus();
       return;
     }
@@ -263,7 +266,10 @@ export default function SupporterPayments({
       const nextStatus = await refreshStatus();
       if (cancelled) return;
       const returnedPayment = nextStatus?.payments.find(
-        (payment) => payment.id === returnedPaymentId && payment.provider === "PayU"
+        (payment) => payment.provider === "PayU" && (
+          (returnedPaymentId && payment.id === returnedPaymentId)
+          || (returnedTransactionId && payment.provider_order_id === returnedTransactionId)
+        )
       );
       if (returnedPayment?.status === "Captured") {
         onNoticeRef.current("Payment verified. Thank you for supporting Talent7.", "success");
