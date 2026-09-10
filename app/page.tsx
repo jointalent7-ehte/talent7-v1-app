@@ -57,6 +57,7 @@ const feedPageSize = 8;
 const notificationPageSize = 10;
 const opponentPageSize = 8;
 const sharedIntentStorageKey = "talent7-shared-intent";
+const googlePlayListingUrl = "https://play.google.com/store/apps/details?id=com.jointalent7.app";
 
 function sharedIntentSearch(search = "") {
   const source = new URLSearchParams(search);
@@ -11197,6 +11198,15 @@ export default function Home() {
           <div className="heroActions">
             <a href="#rooms" className="primary">Browse challenge rooms</a>
             <a href="#create" className="secondary">Create a challenge</a>
+            <a
+              className="googlePlayLink"
+              href={googlePlayListingUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Get Talent7 on Google Play (opens in a new tab)"
+            >
+              Get Talent7 on Google Play ↗
+            </a>
           </div>
           <details className="heroTools">
             <summary>Share and launch tools</summary>
@@ -17300,6 +17310,15 @@ export default function Home() {
           <a href="#trust-terms">Trust & terms</a>
           <a href="#safety">Safety</a>
           <a href="#feedback">Feedback</a>
+          <a
+            className="googlePlayLink"
+            href={googlePlayListingUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Get Talent7 on Google Play (opens in a new tab)"
+          >
+            Google Play ↗
+          </a>
           <a href="mailto:jointalent7@gmail.com">Contact</a>
         </nav>
         <div className="footerSocials">
