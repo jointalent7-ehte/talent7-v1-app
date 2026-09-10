@@ -67,10 +67,10 @@ export default function PaymentReturnPage() {
       return;
     }
 
-    const timer = window.setTimeout(() => {
-      window.location.href = nextTargets.intentUrl;
-    }, 150);
-    return () => window.clearTimeout(timer);
+    // Keep the verified result visible in Android browsers. Automatically
+    // navigating to an intent can leave a blank tab above this page when the
+    // browser cannot complete the app hand-off. Opening the app remains an
+    // explicit action below.
   }, []);
 
   return (
