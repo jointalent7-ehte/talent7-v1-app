@@ -6568,7 +6568,9 @@ export default function Home() {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         captchaToken: authCaptchaToken || undefined,
-        redirectTo: `${siteUrl("/")}?recovery=1#account`
+        // Supabase puts the recovery credentials in the URL fragment. Adding
+        // our own fragment here can hide those credentials from the client.
+        redirectTo: `${siteUrl("/")}?recovery=1`
       });
 
       if (error) {
