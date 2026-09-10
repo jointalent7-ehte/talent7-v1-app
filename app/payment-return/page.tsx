@@ -69,15 +69,11 @@ export default function PaymentReturnPage() {
       return;
     }
 
-    if (!/Android/i.test(window.navigator.userAgent)) {
-      window.location.replace(nextTargets.websiteUrl);
-      return;
-    }
-
-    // Keep the verified result visible in Android browsers. Automatically
+    // Keep the verified result visible in regular browsers. Automatically
     // navigating to an intent can leave a blank tab above this page when the
-    // browser cannot complete the app hand-off. Opening the app remains an
-    // explicit action below.
+    // browser cannot complete the app hand-off, and user-agent based redirects
+    // are unreliable when mobile Chrome requests a desktop version of a site.
+    // Opening the app or continuing to the website remains an explicit action.
   }, []);
 
   useEffect(() => {
