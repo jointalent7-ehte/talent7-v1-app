@@ -54,6 +54,9 @@ export function payuCallbackUrl() {
   try {
     const url = new URL(candidate);
     if (url.protocol !== "https:" && url.hostname !== "localhost") return null;
+    if (url.hostname === "jointalent7.com") url.hostname = "www.jointalent7.com";
+    url.search = "";
+    url.hash = "";
     return url.toString().replace(/\/$/, "");
   } catch {
     return null;
