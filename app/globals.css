@@ -14744,6 +14744,279 @@ html[data-talent7-theme="dark"] main > .section :where(
   font-size: 0.86rem;
 }
 
+.challengeJudgeScoreForm.scorecard {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+}
+
+.challengeJudgeScoreHeading,
+.challengeJudgeSubmitRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.challengeJudgeScoreHeading small,
+.challengeJudgeSubmitRow small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.challengeJudgeRubric {
+  overflow: hidden;
+  border: 1px solid rgba(48, 91, 96, 0.2);
+  border-radius: 12px;
+}
+
+.challengeJudgeRubricHeader,
+.challengeJudgeRubricRow {
+  display: grid;
+  grid-template-columns: minmax(165px, 1fr) minmax(90px, 0.55fr) minmax(90px, 0.55fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+}
+
+.challengeJudgeRubricHeader {
+  color: #f7ffff;
+  background: linear-gradient(115deg, #074c50, #4f42b6);
+}
+
+.challengeJudgeRubricHeader span,
+.challengeJudgeRubricHeader strong {
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.challengeJudgeRubricRow + .challengeJudgeRubricRow {
+  border-top: 1px solid rgba(48, 91, 96, 0.14);
+}
+
+.challengeJudgeRubricRow label {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.challengeJudgeRubricRow label small {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.challengeJudgeRubricRow input {
+  width: 100%;
+}
+
+.challengeJudgeFinalScores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.challengeJudgeMarkdowns textarea {
+  min-height: 108px;
+}
+
+.challengeJudgeSubmitRow button {
+  margin-left: auto;
+}
+
+.challengeAiReview {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 13px;
+  color: #eaffff;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(128, 104, 255, 0.28), transparent 14rem),
+    linear-gradient(145deg, #073d43, #151c34);
+  border: 1px solid rgba(113, 220, 211, 0.34);
+  border-radius: 13px;
+  box-shadow: 0 12px 26px rgba(4, 39, 43, 0.16);
+}
+
+.challengeAiReviewHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.challengeAiReviewHeader > div {
+  display: grid;
+  gap: 2px;
+}
+
+.proofItem .challengeAiReviewHeader span {
+  color: #75e1d8;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.challengeAiReviewHeader strong {
+  color: #fff;
+}
+
+.challengeAiReviewHeader em {
+  padding: 5px 8px;
+  color: #e8f1ff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.challengeAiReviewHeader em.high {
+  color: #8ef2cf;
+}
+
+.challengeAiReviewHeader em.low {
+  color: #ffd47a;
+}
+
+.challengeAiReview p,
+.proofItem .challengeAiReview small,
+.proofItem .challengeAiReview span {
+  margin: 0;
+  color: #d6e4ea;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.challengeAiCriteria {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.challengeAiCriteria > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.challengeAiCriteria > div > strong {
+  color: #fff;
+  margin-bottom: 3px;
+}
+
+.challengeAiCriteria > div > span {
+  color: #83e4dc;
+  font-size: 0.77rem;
+}
+
+.challengeAiCriteria > div > small {
+  font-size: 0.72rem;
+}
+
+.challengeAiObservations {
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 10px;
+}
+
+.challengeAiObservations summary {
+  padding: 9px 10px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.challengeAiObservations ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0 10px 10px;
+  list-style: none;
+}
+
+.challengeAiObservations li {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.14);
+  border-radius: 8px;
+}
+
+.challengeAiObservations li strong {
+  color: #fff;
+  font-size: 0.74rem;
+}
+
+.challengeAiLimitations {
+  padding: 8px 9px;
+  background: rgba(255, 192, 75, 0.09);
+  border-left: 3px solid #ffc14b;
+  border-radius: 5px;
+}
+
+.challengeAiRequestForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.challengeAiRequestForm label {
+  display: grid;
+  gap: 5px;
+  color: #eaffff;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.challengeAiRequestForm input {
+  min-height: 38px;
+  padding: 8px 10px;
+  color: #15272b;
+  background: #f8ffff;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 9px;
+}
+
+.challengeAiReview button {
+  justify-self: start;
+  min-height: 38px;
+  padding: 8px 11px;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  font-size: 0.76rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.challengeAiReview .loadAiScorecardButton {
+  background: linear-gradient(135deg, #6755e8, #2888d8);
+}
+
+.challengeAiReview .requestAiReviewButton {
+  background: linear-gradient(135deg, #087f7c, #0d5d78);
+}
+
+.challengeAiReview button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.challengeAiDisclaimer {
+  opacity: 0.86;
+}
+
 .proofReviewActions,
 .roomChatMessageActions {
   display: flex;
@@ -14802,6 +15075,14 @@ html[data-talent7-theme="dark"] .challengeStaffPanel :where(
   border-color: #39435a;
 }
 
+html[data-talent7-theme="dark"] .challengeJudgeRubric {
+  border-color: #465067;
+}
+
+html[data-talent7-theme="dark"] .challengeJudgeRubricRow + .challengeJudgeRubricRow {
+  border-color: #39435a;
+}
+
 html[data-talent7-theme="dark"] .challengeStaffPanel :where(strong, label) {
   color: #f5f7ff;
 }
@@ -14833,6 +15114,10 @@ html[data-talent7-theme="dark"] .challengeStaffPanel .challengeStaffStatus.decli
   .challengeStaffAssignForm,
   .challengeJudgeScoreForm {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .challengeJudgeScoreForm.scorecard {
+    grid-template-columns: 1fr;
   }
 
   .challengeJudgeScoreForm > strong,
@@ -14870,6 +15155,31 @@ html[data-talent7-theme="dark"] .challengeStaffPanel .challengeStaffStatus.decli
   .challengeStaffAssignForm,
   .challengeJudgeScoreForm {
     grid-template-columns: 1fr;
+  }
+
+  .challengeJudgeRubricHeader,
+  .challengeJudgeRubricRow {
+    grid-template-columns: minmax(115px, 1fr) minmax(62px, 0.55fr) minmax(62px, 0.55fr);
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .challengeJudgeFinalScores,
+  .challengeAiCriteria {
+    grid-template-columns: 1fr;
+  }
+
+  .challengeAiRequestForm {
+    grid-template-columns: 1fr;
+  }
+
+  .challengeJudgeSubmitRow {
+    display: grid;
+  }
+
+  .challengeJudgeSubmitRow button {
+    width: 100%;
+    margin-left: 0;
   }
 
   .challengeJudgeScoreForm > strong,

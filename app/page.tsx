@@ -47,6 +47,13 @@ const teamMemberRoles = ["Player", "Captain", "Dancer", "Coach", "Substitute", "
 const proofManagerRoles = ["Captain", "Organizer", "Proof uploader"];
 const resultManagerRoles = ["Captain", "Organizer"];
 const challengeStaffRoles = ["Judge", "Camera operator", "Moderator", "Proof verifier", "Scorekeeper"] as const;
+const breakdanceJudgeCriteria = [
+  { key: "musicality", label: "Musicality", weight: "25%", humanOnly: true },
+  { key: "technique", label: "Technique", weight: "20%", humanOnly: false },
+  { key: "execution", label: "Execution & control", weight: "20%", humanOnly: false },
+  { key: "originality", label: "Originality & variety", weight: "20%", humanOnly: false },
+  { key: "battle_presence", label: "Battle presence", weight: "15%", humanOnly: false }
+] as const;
 const maxPhotoUploadBytes = 10 * 1024 * 1024;
 const maxVideoUploadBytes = 50 * 1024 * 1024;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -883,6 +890,18 @@ function isChallengeClosed(challenge: Challenge) {
   return challenge.status === "Completed" || challenge.status === "Cancelled";
 }
 
+function supportsAiVisualJudging(challenge: Challenge) {
+  return /(break|dance)/i.test(`${challenge.sport_type || ""} ${challenge.title || ""}`);
+}
+
+function formatEvidenceTimestamp(value: number | null) {
+  if (value === null || !Number.isFinite(value)) return "Time unclear";
+  const totalSeconds = Math.max(0, Math.round(value));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
 function isChallengeVotingOpen(challenge: Challenge) {
   if (isChallengeClosed(challenge) || challenge.voting_status !== "Open") return false;
   if (!challenge.voting_closes_at) return true;
@@ -933,9 +952,45 @@ type ChallengeJudgeScore = {
   judge_user_id: string;
   team_a_score: number;
   team_b_score: number;
+  rubric_scores?: Record<string, { team_a: number; team_b: number }>;
+  markdowns?: Array<{ note: string }>;
+  ai_review_id?: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type ChallengeAiReviewCriterion = {
+  criterion: "technique" | "execution" | "originality" | "battle_presence";
+  team_a_score: number | null;
+  team_b_score: number | null;
+  team_a_note: string;
+  team_b_note: string;
+};
+
+type ChallengeAiObservation = {
+  side: "Team A" | "Team B" | "Unclear";
+  category: string;
+  timestamp_seconds: number | null;
+  suggested_deduction: number;
+  explanation: string;
+  confidence: "Low" | "Medium" | "High";
+};
+
+type ChallengeAiReview = {
+  id: string;
+  challenge_id: string;
+  proof_id: string;
+  requested_by: string;
+  activity: string;
+  rubric_version: string;
+  model: string;
+  summary: string;
+  confidence: "Low" | "Medium" | "High";
+  limitations: string;
+  criteria: ChallengeAiReviewCriterion[];
+  observations: ChallengeAiObservation[];
+  created_at: string;
 };
 
 type ChallengeJoin = {
@@ -1859,6 +1914,89 @@ function mediaPreviewKind(url: string, mediaType?: string | null) {
   return "link";
 }
 
+function waitForMediaEvent(target: EventTarget, eventName: string, timeoutMs = 12_000) {
+  return new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      target.removeEventListener(eventName, handleEvent);
+      target.removeEventListener("error", handleError);
+    };
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("The proof media took too long to load."));
+    }, timeoutMs);
+    const handleEvent = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      cleanup();
+      reject(new Error("The proof media could not be loaded for visual review."));
+    };
+    target.addEventListener(eventName, handleEvent);
+    target.addEventListener("error", handleError);
+  });
+}
+
+function visualEvidenceDataUrl(source: CanvasImageSource, width: number, height: number) {
+  const maxDimension = 640;
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("This browser could not prepare the proof frames.");
+  context.drawImage(source, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.68);
+}
+
+async function captureProofVisualEvidence(proof: ChallengeProof) {
+  const kind = mediaPreviewKind(proof.proof_url, proof.proof_type);
+  if (kind === "image") {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.src = proof.proof_url;
+    if (!image.complete) await waitForMediaEvent(image, "load");
+    if (!image.naturalWidth || !image.naturalHeight) {
+      throw new Error("The proof image could not be read for visual review.");
+    }
+    return [{
+      image: visualEvidenceDataUrl(image, image.naturalWidth, image.naturalHeight),
+      timestampSeconds: 0
+    }];
+  }
+
+  if (kind !== "video") {
+    throw new Error("AI visual review needs an uploaded photo or video file, not an external match-page link.");
+  }
+
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.muted = true;
+  video.preload = "auto";
+  video.src = proof.proof_url;
+  await waitForMediaEvent(video, "loadedmetadata", 20_000);
+
+  const duration = Number.isFinite(video.duration) ? video.duration : 0;
+  if (duration <= 0) throw new Error("The proof video duration could not be read.");
+
+  const fractions = [0.08, 0.25, 0.42, 0.58, 0.75, 0.92];
+  const frames: Array<{ image: string; timestampSeconds: number }> = [];
+  for (const fraction of fractions) {
+    const timestampSeconds = Math.min(Math.max(0, duration * fraction), Math.max(0, duration - 0.05));
+    video.currentTime = timestampSeconds;
+    await waitForMediaEvent(video, "seeked");
+    frames.push({
+      image: visualEvidenceDataUrl(video, video.videoWidth, video.videoHeight),
+      timestampSeconds
+    });
+  }
+
+  video.removeAttribute("src");
+  video.load();
+  return frames;
+}
+
 function MediaPreview({
   url,
   mediaType,
@@ -2413,8 +2551,11 @@ export default function Home() {
   const [challengeMessages, setChallengeMessages] = useState<ChallengeMessage[]>([]);
   const [challengeRoomStaff, setChallengeRoomStaff] = useState<ChallengeRoomStaff[]>([]);
   const [challengeJudgeScores, setChallengeJudgeScores] = useState<ChallengeJudgeScore[]>([]);
+  const [challengeAiReviews, setChallengeAiReviews] = useState<ChallengeAiReview[]>([]);
   const [challengeStaffActionKey, setChallengeStaffActionKey] = useState<string | null>(null);
   const [judgeScoreActionId, setJudgeScoreActionId] = useState<string | null>(null);
+  const [aiReviewActionId, setAiReviewActionId] = useState<string | null>(null);
+  const [appliedJudgeAiReviews, setAppliedJudgeAiReviews] = useState<Record<string, string>>({});
   const [proofReviewActionId, setProofReviewActionId] = useState<string | null>(null);
   const [deletingChallengeMessageId, setDeletingChallengeMessageId] = useState<string | null>(null);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
@@ -6019,13 +6160,19 @@ export default function Home() {
     async function loadChallengeStaff() {
       if (!supabase) return;
 
-      const [{ data: staffData, error: staffError }, { data: scoreData, error: scoreError }] = await Promise.all([
+      const [
+        { data: staffData, error: staffError },
+        { data: scoreData, error: scoreError },
+        { data: aiReviewData, error: aiReviewError }
+      ] = await Promise.all([
         supabase.from("challenge_room_staff").select("*").order("created_at", { ascending: true }),
-        supabase.from("challenge_judge_scores").select("*").order("created_at", { ascending: true })
+        supabase.from("challenge_judge_scores").select("*").order("created_at", { ascending: true }),
+        supabase.from("challenge_ai_reviews").select("*").order("created_at", { ascending: false }).limit(30)
       ]);
 
       if (!staffError && staffData) setChallengeRoomStaff(staffData as ChallengeRoomStaff[]);
       if (!scoreError && scoreData) setChallengeJudgeScores(scoreData as ChallengeJudgeScore[]);
+      if (!aiReviewError && aiReviewData) setChallengeAiReviews(aiReviewData as ChallengeAiReview[]);
     }
 
     void loadChallengeStaff();
@@ -6039,6 +6186,9 @@ export default function Home() {
       .on("postgres_changes", { event: "*", schema: "public", table: "challenge_judge_scores" }, () => {
         void loadChallengeStaff();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_ai_reviews" }, () => {
+        void loadChallengeStaff();
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "challenge_messages" }, () => {
         void loadAccessibleChallengeMessages();
       })
@@ -6047,7 +6197,7 @@ export default function Home() {
     return () => {
       void listener.unsubscribe();
     };
-  }, []);
+  }, [session?.user.id]);
 
   useEffect(() => {
     async function loadShowcasePosts() {
@@ -10610,6 +10760,56 @@ export default function Home() {
     setChallengeStaffActionKey(null);
   }
 
+  async function requestChallengeAiReview(proof: ChallengeProof, challenge: Challenge, sideGuide: string) {
+    if (!requireLogin("request an AI visual review")) return;
+    const acceptedJudge = currentRoomStaffRole(challenge.id) === "Judge";
+    if (!acceptedJudge && !canAssignRoomStaff(challenge)) {
+      setMessage("Only an accepted judge, the room creator, or a Talent7 admin can request AI review.", "error");
+      return;
+    }
+    if (!supportsAiVisualJudging(challenge)) {
+      setMessage("The first AI scorecard is available for breakdance and dance battles only.", "error");
+      return;
+    }
+    if (!session?.access_token) return;
+
+    setAiReviewActionId(proof.id);
+    setMessage("Preparing visual evidence frames for AI review…", "info");
+
+    try {
+      const frames = await captureProofVisualEvidence(proof);
+      const response = await fetch("/api/challenge-ai-review", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ challengeId: challenge.id, proofId: proof.id, frames, sideGuide })
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        review?: ChallengeAiReview;
+        error?: string;
+      };
+      if (!response.ok || !result.review) {
+        throw new Error(result.error || "The AI visual review could not be completed.");
+      }
+
+      setChallengeAiReviews((items) => [
+        result.review as ChallengeAiReview,
+        ...items.filter((item) => item.id !== result.review?.id)
+      ]);
+      setMessage("AI visual review ready. A human judge must review and confirm every suggestion.");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "The AI visual review could not be completed.";
+      const corsHint = /security|cross-origin|load|media/i.test(detail)
+        ? " Use an uploaded Talent7 photo/video and allow your Talent7 domain in the R2 bucket CORS settings."
+        : "";
+      setMessage(`${detail}${corsHint}`, "error");
+    }
+
+    setAiReviewActionId(null);
+  }
+
   async function submitChallengeJudgeScore(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("submit a judge score")) return;
@@ -10622,11 +10822,45 @@ export default function Home() {
     const teamAScore = Number(form.get("team_a_score"));
     const teamBScore = Number(form.get("team_b_score"));
     const notes = String(form.get("notes") || "").trim().slice(0, 500);
+    const usesBreakdanceScorecard = supportsAiVisualJudging(challenge);
+    const rubricScores = usesBreakdanceScorecard
+      ? Object.fromEntries(
+          breakdanceJudgeCriteria.map((criterion) => [
+            criterion.key,
+            {
+              team_a: Number(form.get(`rubric_${criterion.key}_team_a`)),
+              team_b: Number(form.get(`rubric_${criterion.key}_team_b`))
+            }
+          ])
+        ) as Record<string, { team_a: number; team_b: number }>
+      : {};
+    const markdowns = String(form.get("markdowns") || "")
+      .split(/\r?\n/)
+      .map((note) => note.trim())
+      .filter(Boolean)
+      .slice(0, 20)
+      .map((note) => ({ note: note.slice(0, 240) }));
+    const rubricIsValid = !usesBreakdanceScorecard || Object.values(rubricScores).every(
+      (criterion) =>
+        Number.isFinite(criterion.team_a) &&
+        Number.isFinite(criterion.team_b) &&
+        criterion.team_a >= 0 &&
+        criterion.team_a <= 7 &&
+        criterion.team_b >= 0 &&
+        criterion.team_b <= 7
+    );
 
-    if (!Number.isInteger(teamAScore) || !Number.isInteger(teamBScore) || teamAScore < 0 || teamAScore > 7 || teamBScore < 0 || teamBScore > 7) {
-      setMessage("Both judge scores must be whole numbers from 0 to 7.", "error");
+    if (!Number.isFinite(teamAScore) || !Number.isFinite(teamBScore) || teamAScore < 0 || teamAScore > 7 || teamBScore < 0 || teamBScore > 7) {
+      setMessage("Both final judge scores must be numbers from 0 to 7.", "error");
       return;
     }
+
+    if (!rubricIsValid || (usesBreakdanceScorecard && Object.keys(rubricScores).length !== 5)) {
+      setMessage("Complete all five rubric scores using values from 0 to 7.", "error");
+      return;
+    }
+
+    const selectedAiReviewId = appliedJudgeAiReviews[challenge.id] || null;
 
     setJudgeScoreActionId(challenge.id);
     setMessage("");
@@ -10641,6 +10875,9 @@ export default function Home() {
         judge_user_id: session?.user.id || "preview",
         team_a_score: teamAScore,
         team_b_score: teamBScore,
+        rubric_scores: rubricScores,
+        markdowns,
+        ai_review_id: selectedAiReviewId,
         notes: notes || null,
         created_at: existing?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -10651,12 +10888,22 @@ export default function Home() {
       return;
     }
 
-    const { data, error } = await supabase.rpc("submit_challenge_judge_score", {
-      target_challenge_id: challenge.id,
-      target_team_a_score: teamAScore,
-      target_team_b_score: teamBScore,
-      target_notes: notes || null
-    });
+    const { data, error } = usesBreakdanceScorecard
+      ? await supabase.rpc("submit_challenge_judge_scorecard", {
+          target_challenge_id: challenge.id,
+          target_team_a_score: teamAScore,
+          target_team_b_score: teamBScore,
+          target_rubric_scores: rubricScores,
+          target_markdowns: markdowns,
+          target_notes: notes || null,
+          target_ai_review_id: selectedAiReviewId
+        })
+      : await supabase.rpc("submit_challenge_judge_score", {
+          target_challenge_id: challenge.id,
+          target_team_a_score: teamAScore,
+          target_team_b_score: teamBScore,
+          target_notes: notes || null
+        });
 
     if (error) {
       setMessage(`Could not save judge score: ${error.message}`, "error");
@@ -16805,6 +17052,18 @@ export default function Home() {
             const currentJudgeScore = session?.user.id
               ? judgeScores.find((score) => score.judge_user_id === session.user.id) || null
               : null;
+            const selectedJudgeAiReview = appliedJudgeAiReviews[challenge.id]
+              ? challengeAiReviews.find((review) => review.id === appliedJudgeAiReviews[challenge.id]) || null
+              : null;
+            const selectedAiMarkdowns = selectedJudgeAiReview
+              ? selectedJudgeAiReview.observations
+                  .map((observation) =>
+                    `${formatEvidenceTimestamp(observation.timestamp_seconds)} ${observation.side} — ${observation.category}${
+                      observation.suggested_deduction > 0 ? ` (-${observation.suggested_deduction})` : ""
+                    }: ${observation.explanation}`
+                  )
+                  .join("\n")
+              : "";
             const teamAJudgeAverage = judgeScores.length
               ? (judgeScores.reduce((sum, score) => sum + score.team_a_score, 0) / judgeScores.length).toFixed(1)
               : null;
@@ -17220,23 +17479,110 @@ export default function Home() {
                     )}
 
                     {currentStaffRole === "Judge" && !isChallengeClosed(challenge) && (
-                      <form className="challengeJudgeScoreForm" onSubmit={(event) => submitChallengeJudgeScore(event, challenge)}>
-                        <strong>{currentJudgeScore ? "Update your judge score" : "Submit your judge score"}</strong>
-                        <label>
-                          {teamADisplay}
-                          <input defaultValue={currentJudgeScore?.team_a_score ?? ""} max={7} min={0} name="team_a_score" required type="number" />
-                        </label>
-                        <label>
-                          {teamBDisplay}
-                          <input defaultValue={currentJudgeScore?.team_b_score ?? ""} max={7} min={0} name="team_b_score" required type="number" />
-                        </label>
+                      <form
+                        className="challengeJudgeScoreForm scorecard"
+                        key={`${currentJudgeScore?.updated_at || "new"}-${selectedJudgeAiReview?.id || "manual"}`}
+                        onSubmit={(event) => submitChallengeJudgeScore(event, challenge)}
+                      >
+                        <div className="challengeJudgeScoreHeading">
+                          <strong>{currentJudgeScore ? "Update your judge score" : "Submit your judge score"}</strong>
+                          {selectedJudgeAiReview && <small>AI visual suggestions loaded—review every value before saving.</small>}
+                        </div>
+
+                        {supportsAiVisualJudging(challenge) && (
+                          <div className="challengeJudgeRubric">
+                            <div className="challengeJudgeRubricHeader">
+                              <span>Breakdance scorecard</span>
+                              <strong>{teamADisplay}</strong>
+                              <strong>{teamBDisplay}</strong>
+                            </div>
+                            {breakdanceJudgeCriteria.map((criterion) => {
+                              const aiCriterion = selectedJudgeAiReview?.criteria.find(
+                                (item) => item.criterion === criterion.key
+                              );
+                              return (
+                                <div className="challengeJudgeRubricRow" key={criterion.key}>
+                                  <label>
+                                    {criterion.label} <small>{criterion.weight}{criterion.humanOnly ? " · human only" : ""}</small>
+                                  </label>
+                                  <input
+                                    aria-label={`${teamADisplay} ${criterion.label}`}
+                                    defaultValue={aiCriterion?.team_a_score ?? currentJudgeScore?.rubric_scores?.[criterion.key]?.team_a ?? ""}
+                                    max={7}
+                                    min={0}
+                                    name={`rubric_${criterion.key}_team_a`}
+                                    required
+                                    step="0.1"
+                                    type="number"
+                                  />
+                                  <input
+                                    aria-label={`${teamBDisplay} ${criterion.label}`}
+                                    defaultValue={aiCriterion?.team_b_score ?? currentJudgeScore?.rubric_scores?.[criterion.key]?.team_b ?? ""}
+                                    max={7}
+                                    min={0}
+                                    name={`rubric_${criterion.key}_team_b`}
+                                    required
+                                    step="0.1"
+                                    type="number"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <div className="challengeJudgeFinalScores">
+                          <label>
+                            Final: {teamADisplay}
+                            <input
+                              defaultValue={currentJudgeScore?.team_a_score ?? ""}
+                              max={7}
+                              min={0}
+                              name="team_a_score"
+                              required
+                              step={supportsAiVisualJudging(challenge) ? "0.1" : "1"}
+                              type="number"
+                            />
+                          </label>
+                          <label>
+                            Final: {teamBDisplay}
+                            <input
+                              defaultValue={currentJudgeScore?.team_b_score ?? ""}
+                              max={7}
+                              min={0}
+                              name="team_b_score"
+                              required
+                              step={supportsAiVisualJudging(challenge) ? "0.1" : "1"}
+                              type="number"
+                            />
+                          </label>
+                        </div>
+                        {supportsAiVisualJudging(challenge) && (
+                          <label className="wide challengeJudgeMarkdowns">
+                            Markdowns and timestamped errors—one per line
+                            <textarea
+                              defaultValue={
+                                selectedAiMarkdowns ||
+                                currentJudgeScore?.markdowns?.map((markdown) => markdown.note).join("\n") ||
+                                ""
+                              }
+                              maxLength={4800}
+                              name="markdowns"
+                              placeholder="0:42 Team A — Loss of balance (-0.5): hand touched down during landing"
+                              rows={4}
+                            />
+                          </label>
+                        )}
                         <label className="wide">
                           Judge note (optional)
                           <textarea defaultValue={currentJudgeScore?.notes || ""} maxLength={500} name="notes" rows={2} />
                         </label>
-                        <button disabled={judgeScoreActionId === challenge.id} type="submit">
-                          {judgeScoreActionId === challenge.id ? "Saving score…" : "Save judge score"}
-                        </button>
+                        <div className="challengeJudgeSubmitRow">
+                          <small>The human judge owns the final score. AI suggestions are never submitted automatically.</small>
+                          <button disabled={judgeScoreActionId === challenge.id} type="submit">
+                            {judgeScoreActionId === challenge.id ? "Saving score…" : "Confirm and save score"}
+                          </button>
+                        </div>
                       </form>
                     )}
                   </div>
@@ -17942,7 +18288,15 @@ export default function Home() {
               {(roomProofs[challenge.id] || []).length > 0 && (
                 <details className="proofList roomDisclosure">
                   <summary>Proofs submitted ({(roomProofs[challenge.id] || []).length})</summary>
-                  {(roomProofs[challenge.id] || []).slice(0, 3).map((proof) => (
+                  {(roomProofs[challenge.id] || []).slice(0, 3).map((proof) => {
+                    const aiReview = challengeAiReviews.find((review) => review.proof_id === proof.id) || null;
+                    const canRequestAiReview =
+                      supportsAiVisualJudging(challenge) &&
+                      !isChallengeClosed(challenge) &&
+                      (currentStaffRole === "Judge" || canAssignRoomStaff(challenge)) &&
+                      mediaPreviewKind(proof.proof_url, proof.proof_type) !== "link";
+
+                    return (
                     <div className="proofItem" key={proof.id}>
                       <MediaPreview label="View proof" mediaType={proof.proof_type} url={proof.proof_url} />
                       <div>
@@ -17950,6 +18304,105 @@ export default function Home() {
                         <small>
                           {proof.review_status || "Pending review"} | <a href={proof.proof_url} rel="noreferrer" target="_blank">Open proof</a>
                         </small>
+                        {supportsAiVisualJudging(challenge) && (canRequestAiReview || aiReview) && (
+                          <section className="challengeAiReview" aria-label="AI-assisted visual review">
+                            <div className="challengeAiReviewHeader">
+                              <div>
+                                <span>AI visual assistant</span>
+                                <strong>{aiReview ? "Review ready" : "Optional judge aid"}</strong>
+                              </div>
+                              {aiReview && <em className={aiReview.confidence.toLowerCase()}>{aiReview.confidence} confidence</em>}
+                            </div>
+
+                            {aiReview ? (
+                              <>
+                                <p>{aiReview.summary}</p>
+                                <div className="challengeAiCriteria">
+                                  {aiReview.criteria.map((criterion) => {
+                                    const label = breakdanceJudgeCriteria.find((item) => item.key === criterion.criterion)?.label || criterion.criterion;
+                                    return (
+                                      <div key={criterion.criterion}>
+                                        <strong>{label}</strong>
+                                        <span>{teamADisplay}: {criterion.team_a_score === null ? "Not enough evidence" : `${criterion.team_a_score} / 7`}</span>
+                                        <small>{criterion.team_a_note}</small>
+                                        <span>{teamBDisplay}: {criterion.team_b_score === null ? "Not enough evidence" : `${criterion.team_b_score} / 7`}</span>
+                                        <small>{criterion.team_b_note}</small>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                {aiReview.observations.length > 0 && (
+                                  <details className="challengeAiObservations">
+                                    <summary>Timestamped observations ({aiReview.observations.length})</summary>
+                                    <ul>
+                                      {aiReview.observations.map((observation, index) => (
+                                        <li key={`${observation.category}-${observation.timestamp_seconds ?? "unknown"}-${index}`}>
+                                          <strong>{formatEvidenceTimestamp(observation.timestamp_seconds)} · {observation.side} · {observation.category}</strong>
+                                          <span>{observation.explanation}</span>
+                                          <small>
+                                            {observation.suggested_deduction > 0 ? `Suggested markdown: -${observation.suggested_deduction} · ` : ""}
+                                            {observation.confidence} confidence
+                                          </small>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </details>
+                                )}
+                                <small className="challengeAiLimitations"><strong>Limits:</strong> {aiReview.limitations}</small>
+                                {currentStaffRole === "Judge" && !isChallengeClosed(challenge) && (
+                                  <button
+                                    className="loadAiScorecardButton"
+                                    onClick={() => {
+                                      setAppliedJudgeAiReviews((current) => ({ ...current, [challenge.id]: aiReview.id }));
+                                      setMessage("AI visual suggestions loaded into your scorecard. Review and confirm them before saving.");
+                                    }}
+                                    type="button"
+                                  >
+                                    Load suggestions into my scorecard
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <small>No AI review has been generated for this proof.</small>
+                            )}
+
+                            {canRequestAiReview && (
+                              <form
+                                className="challengeAiRequestForm"
+                                onSubmit={(event) => {
+                                  event.preventDefault();
+                                  const form = new FormData(event.currentTarget);
+                                  void requestChallengeAiReview(proof, challenge, String(form.get("side_guide") || "").trim());
+                                }}
+                              >
+                                <label>
+                                  How to identify each side in this proof
+                                  <input
+                                    maxLength={300}
+                                    minLength={3}
+                                    name="side_guide"
+                                    placeholder={`Example: ${teamADisplay} wears red; ${teamBDisplay} wears blue`}
+                                    required
+                                  />
+                                </label>
+                                <button
+                                  className="requestAiReviewButton"
+                                  disabled={aiReviewActionId === proof.id}
+                                  type="submit"
+                                >
+                                  {aiReviewActionId === proof.id
+                                    ? "Reviewing visual evidence…"
+                                    : aiReview
+                                      ? "Generate a fresh visual review"
+                                      : "Generate AI visual review"}
+                                </button>
+                              </form>
+                            )}
+                            <small className="challengeAiDisclaimer">
+                              Visual samples only—no audio or musicality analysis. The human judge owns every final score and decision.
+                            </small>
+                          </section>
+                        )}
                         {canReviewChallengeProof(challenge) && !isChallengeClosed(challenge) && (
                           <div className="proofReviewActions">
                             <button
@@ -18009,7 +18462,8 @@ export default function Home() {
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </details>
               )}
               <details className="roomChat roomDisclosure">
