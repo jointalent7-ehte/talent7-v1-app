@@ -12896,11 +12896,12 @@ export default function Home() {
                             <div key={member.id}>
                               <span>{member.display_name}</span>
                               <button
+                                aria-label={`Remove microphone access from ${member.display_name}`}
                                 disabled={listenActionKey === `voice-role-${room.id}-${member.user_id}`}
                                 onClick={() => void setListenMemberVoiceRole(room.id, member.user_id, "Listener")}
                                 type="button"
                               >
-                                Return to listener
+                                Remove mic access
                               </button>
                             </div>
                           ))}

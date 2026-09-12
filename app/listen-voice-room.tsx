@@ -71,6 +71,7 @@ export default function ListenVoiceRoom({ accessToken, areaLabel, memberRole, ro
 
   useEffect(() => {
     const controller = new AbortController();
+    let automaticRetryTimer: number | undefined;
 
     async function prepareRoom() {
       setCredentials(null);
@@ -92,12 +93,19 @@ export default function ListenVoiceRoom({ accessToken, areaLabel, memberRole, ro
         setCredentials(result);
       } catch (requestError) {
         if (controller.signal.aborted) return;
+        if (retryKey === 0) {
+          automaticRetryTimer = window.setTimeout(() => setRetryKey(1), 800);
+          return;
+        }
         setError(requestError instanceof Error ? requestError.message : "The voice room could not be opened.");
       }
     }
 
     void prepareRoom();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      window.clearTimeout(automaticRetryTimer);
+    };
   }, [accessToken, memberRole, retryKey, roomId]);
 
   if (error) {

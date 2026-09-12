@@ -12971,13 +12971,14 @@ body:has(.publicRoomLanding) {
 .listenVoicePanel {
   display: grid;
   gap: 12px;
-  padding: 16px;
+  margin: 4px 0;
+  padding: 22px;
   color: #e8ffff;
   background:
     radial-gradient(circle at 92% 0%, rgba(250, 194, 48, 0.2), transparent 34%),
     linear-gradient(145deg, #061f25, #073f43 58%, #0a5550);
   border: 1px solid rgba(77, 218, 199, 0.35);
-  border-radius: 14px;
+  border-radius: 22px;
   box-shadow: 0 18px 38px rgba(4, 37, 41, 0.16);
 }
 
@@ -12990,6 +12991,7 @@ body:has(.publicRoomLanding) {
   justify-content: space-between;
   gap: 12px;
   align-items: center;
+  padding-bottom: 4px;
 }
 
 .listenVoicePanelHeader > div {
@@ -13016,11 +13018,11 @@ body:has(.publicRoomLanding) {
   justify-content: space-between;
   gap: 12px;
   align-items: center;
-  padding: 13px;
+  padding: 16px;
   color: #d8eded;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+  border-radius: 14px;
 }
 
 .listenVoiceState > div,
