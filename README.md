@@ -29,6 +29,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
 LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=your_server_only_livekit_api_key
 LIVEKIT_API_SECRET=your_server_only_livekit_api_secret
+OPENAI_API_KEY=your_server_only_openai_api_key
+OPENAI_JUDGING_MODEL=gpt-5.4-mini
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_server_only_razorpay_key_secret
 RAZORPAY_WEBHOOK_SECRET=your_server_only_razorpay_webhook_secret
@@ -41,6 +43,8 @@ GOOGLE_PLAY_RTDN_TOKEN=your_long_random_notification_token
 `NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. The Turnstile site key is intentionally public; its matching secret key must be entered only in Supabase Authentication CAPTCHA settings. The service-role key is used only by authenticated server endpoints, including account deletion and Listen voice authorization. Add it to Vercel Production as a sensitive server-only value; never give it a `NEXT_PUBLIC_` prefix and never commit it.
 
 The three LiveKit values enable native Talent7 camera broadcasts in challenge rooms and audio-only Local Listen rooms. Create a LiveKit Cloud project, copy its WebSocket URL and API credentials into Vercel Production, and keep the API key and secret server-only. YouTube remains available in the app as a fallback broadcast method.
+
+`OPENAI_API_KEY` optionally enables AI-assisted visual review for uploaded breakdance and dance-battle proofs. The server samples up to six still frames, requests visual suggestions, and stores the private review for authorized room officials. It does not send audio, assess musicality, submit a judge score, or choose a winner. Keep the key server-only and omit it entirely if this optional aid should stay disabled.
 
 Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadcasts on the website and Android wrapper.
 
@@ -62,7 +66,7 @@ Follow [R2_SETUP.md](R2_SETUP.md). The access and secret keys are server-only an
 
 ## Database setup
 
-Run the SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. For a database already current through migration 76, apply migrations 77 through 81 to restore Listen, add locality-based voice rooms and host microphone notifications, enable staffed challenge rooms, and require invited officials to accept before receiving room powers. Legacy feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
+Run the SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. For a database already current through migration 76, apply migrations 77 through 82 to restore Listen, add locality-based voice rooms and host microphone notifications, enable consent-based staffed challenge rooms, and add private AI-assisted breakdance scorecards. Legacy feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
 
 Uploading the repository to GitHub does not apply Supabase migrations. Run them separately in the Supabase SQL editor or through your migration workflow.
 

@@ -91,7 +91,7 @@ In **Vercel → Project → Settings → Environment Variables**, add the same f
 4. Confirm another ordinary user cannot delete the first user's proof.
 5. If a disposable legacy showcase fixture already exists, confirm account deletion removes its `showcase-media/USER_ID/...` object without reopening the closed Showcase UI.
 
-The application creates five-minute, single-object upload URLs only after validating the Supabase session. Photos remain limited to 10 MB and videos to 50 MB. R2 credentials stay on the server.
+The application creates five-minute, single-object upload URLs only after validating the Supabase session. Photos remain limited to 10 MB and videos to 50 MB. R2 credentials stay on the server. The `GET` CORS permission shown above is also required when an authorized room official asks Talent7 to sample proof frames for an AI visual review; without it, the browser can display the public proof but cannot safely read its pixels into the review canvas.
 
 ## Troubleshooting
 
