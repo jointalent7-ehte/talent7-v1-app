@@ -14437,6 +14437,325 @@ html[data-talent7-theme="dark"] main > .section :where(
   }
 }
 
+.challengeStaffPanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(121, 92, 255, 0.17), transparent 19rem),
+    linear-gradient(145deg, #eefaf8, #f6f3ff 58%, #fff8e6);
+  border: 1px solid rgba(36, 112, 108, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 16px 38px rgba(27, 72, 72, 0.1);
+}
+
+.challengeStaffHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.challengeStaffHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.challengeStaffHeader span {
+  color: #8b6710;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.challengeStaffHeader strong {
+  color: var(--ink);
+  font-size: 1.08rem;
+}
+
+.challengeStaffHeader small {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.challengeStaffHeader em {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  color: #fff;
+  background: linear-gradient(135deg, #087f7c, #5848c7);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.challengeStaffRoster {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.challengeStaffRoster > div {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-height: 82px;
+  padding: 11px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(55, 93, 96, 0.16);
+  border-radius: 12px;
+}
+
+.challengeStaffRoster > div.filled {
+  border-color: rgba(14, 143, 136, 0.4);
+  box-shadow: inset 0 3px 0 #149b93;
+}
+
+.challengeStaffRoster > div > span {
+  color: #496064;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.challengeStaffRoster p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+}
+
+.challengeStaffRoster p strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.challengeStaffRoster p button {
+  min-height: 30px;
+  padding: 5px 7px;
+  color: #982f3d;
+  background: #fff0f2;
+  border: 1px solid #efb9c0;
+  border-radius: 7px;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.challengeStaffRoster small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.challengeStaffRoster .challengeStaffEmpty {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+.challengeStaffAssignForm,
+.challengeJudgeScoreForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(55, 93, 96, 0.15);
+  border-radius: 12px;
+}
+
+.challengeStaffAssignForm label,
+.challengeJudgeScoreForm label {
+  display: grid;
+  gap: 5px;
+  color: #486064;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.challengeStaffAssignForm input,
+.challengeStaffAssignForm select,
+.challengeJudgeScoreForm input,
+.challengeJudgeScoreForm textarea {
+  min-height: 42px;
+  background: #fff;
+}
+
+.challengeStaffAssignForm button,
+.challengeJudgeScoreForm button {
+  min-height: 42px;
+  padding: 10px 15px;
+  color: #fff;
+  background: linear-gradient(135deg, #087f7c, #5848c7);
+  border: 0;
+  border-radius: 10px;
+  font-weight: 850;
+}
+
+.challengeJudgePanel {
+  display: grid;
+  gap: 10px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(55, 93, 96, 0.17);
+}
+
+.challengeJudgeSummary,
+.challengeJudgeCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.challengeJudgeSummary > div,
+.challengeJudgeCards > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 11px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(55, 93, 96, 0.15);
+  border-radius: 11px;
+}
+
+.challengeJudgeSummary span,
+.challengeJudgeCards span {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 850;
+}
+
+.challengeJudgeSummary strong,
+.challengeJudgeCards strong {
+  color: var(--ink);
+}
+
+.challengeJudgeCards small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.challengeJudgeScoreForm {
+  grid-template-columns: auto minmax(100px, 0.5fr) minmax(100px, 0.5fr) minmax(0, 1.6fr) auto;
+}
+
+.challengeJudgeScoreForm > strong {
+  align-self: center;
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+.proofReviewActions,
+.roomChatMessageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.proofReviewActions button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.proofReviewActions .acceptProofButton {
+  color: #075c3d;
+  background: #e0f8ec;
+  border: 1px solid #8cd7b5;
+}
+
+.proofReviewActions .rejectProofButton {
+  color: #922f3b;
+  background: #fff0f2;
+  border: 1px solid #efb9c0;
+}
+
+.roomChatMessage .roomChatMessageActions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.roomChatMessage .roomChatMessageActions button.dangerAction {
+  color: #922f3b;
+  background: #fff0f2;
+  border-color: #efb9c0;
+}
+
+html[data-talent7-theme="dark"] .challengeStaffPanel {
+  color: #f5f7ff;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(109, 88, 214, 0.25), transparent 18rem),
+    linear-gradient(145deg, #121d25, #19172a);
+  border-color: #39435a;
+}
+
+html[data-talent7-theme="dark"] .challengeStaffPanel :where(
+  .challengeStaffRoster > div,
+  .challengeStaffAssignForm,
+  .challengeJudgeSummary > div,
+  .challengeJudgeCards > div,
+  .challengeJudgeScoreForm
+) {
+  color: #f5f7ff;
+  background: rgba(24, 30, 47, 0.9);
+  border-color: #39435a;
+}
+
+html[data-talent7-theme="dark"] .challengeStaffPanel :where(strong, label) {
+  color: #f5f7ff;
+}
+
+html[data-talent7-theme="dark"] .challengeStaffPanel :where(small, .challengeJudgeSummary span, .challengeJudgeCards span) {
+  color: #c4cbd9;
+}
+
+@media (max-width: 900px) {
+  .challengeStaffRoster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .challengeStaffAssignForm,
+  .challengeJudgeScoreForm {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .challengeJudgeScoreForm > strong,
+  .challengeJudgeScoreForm .wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .challengeStaffPanel {
+    padding: 14px;
+  }
+
+  .challengeStaffHeader {
+    display: grid;
+  }
+
+  .challengeStaffHeader em {
+    justify-self: start;
+  }
+
+  .challengeStaffRoster,
+  .challengeJudgeSummary,
+  .challengeJudgeCards,
+  .challengeStaffAssignForm,
+  .challengeJudgeScoreForm {
+    grid-template-columns: 1fr;
+  }
+
+  .challengeJudgeScoreForm > strong,
+  .challengeJudgeScoreForm .wide {
+    grid-column: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .heroMetrics article,
   .pathFinder a,

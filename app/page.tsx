@@ -46,6 +46,7 @@ type ExpertHelpType =
 const teamMemberRoles = ["Player", "Captain", "Dancer", "Coach", "Substitute", "Proof uploader", "Organizer"];
 const proofManagerRoles = ["Captain", "Organizer", "Proof uploader"];
 const resultManagerRoles = ["Captain", "Organizer"];
+const challengeStaffRoles = ["Judge", "Camera operator", "Moderator", "Proof verifier", "Scorekeeper"] as const;
 const maxPhotoUploadBytes = 10 * 1024 * 1024;
 const maxVideoUploadBytes = 50 * 1024 * 1024;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -910,6 +911,30 @@ function localDateTimeValue(value?: string | null) {
 }
 
 type JoinRole = "Challenger" | "Audience";
+
+type ChallengeStaffRole = (typeof challengeStaffRoles)[number];
+
+type ChallengeRoomStaff = {
+  id: string;
+  challenge_id: string;
+  user_id: string;
+  display_name: string;
+  role: ChallengeStaffRole;
+  assigned_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type ChallengeJudgeScore = {
+  id: string;
+  challenge_id: string;
+  judge_user_id: string;
+  team_a_score: number;
+  team_b_score: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 type ChallengeJoin = {
   id: string;
@@ -2384,6 +2409,12 @@ export default function Home() {
   const [savingRoomId, setSavingRoomId] = useState<string | null>(null);
   const [savedRoomsLoadError, setSavedRoomsLoadError] = useState("");
   const [challengeMessages, setChallengeMessages] = useState<ChallengeMessage[]>([]);
+  const [challengeRoomStaff, setChallengeRoomStaff] = useState<ChallengeRoomStaff[]>([]);
+  const [challengeJudgeScores, setChallengeJudgeScores] = useState<ChallengeJudgeScore[]>([]);
+  const [challengeStaffActionKey, setChallengeStaffActionKey] = useState<string | null>(null);
+  const [judgeScoreActionId, setJudgeScoreActionId] = useState<string | null>(null);
+  const [proofReviewActionId, setProofReviewActionId] = useState<string | null>(null);
+  const [deletingChallengeMessageId, setDeletingChallengeMessageId] = useState<string | null>(null);
   const [challengeReports, setChallengeReports] = useState<ChallengeReport[]>([]);
   const [showcaseReports, setShowcaseReports] = useState<ShowcaseReport[]>([]);
   const [accountDeletionRequests, setAccountDeletionRequests] = useState<AccountDeletionRequest[]>([]);
@@ -4359,6 +4390,8 @@ export default function Home() {
         proofs.some((item) => item.challenge_id === challengeId) ||
         invites.some((item) => item.challenge_id === challengeId) ||
         challengeMessages.some((item) => item.challenge_id === challengeId) ||
+        challengeRoomStaff.some((item) => item.challenge_id === challengeId) ||
+        challengeJudgeScores.some((item) => item.challenge_id === challengeId) ||
         challengeReports.some((item) => item.challenge_id === challengeId)
     );
   }
@@ -4773,7 +4806,49 @@ export default function Home() {
   function canUseRoomChat(challenge: Challenge) {
     if (!session?.user.id) return false;
     if (challenge.created_by === session.user.id) return true;
-    return joins.some((join) => join.challenge_id === challenge.id && join.user_id === session.user.id);
+    return (
+      joins.some((join) => join.challenge_id === challenge.id && join.user_id === session.user.id) ||
+      challengeRoomStaff.some(
+        (staff) => staff.challenge_id === challenge.id && staff.user_id === session.user.id
+      )
+    );
+  }
+
+  function roomStaff(challengeId: string) {
+    return challengeRoomStaff.filter((staff) => staff.challenge_id === challengeId);
+  }
+
+  function currentRoomStaffRole(challengeId: string) {
+    if (!session?.user.id) return null;
+    return (
+      challengeRoomStaff.find(
+        (staff) => staff.challenge_id === challengeId && staff.user_id === session.user.id
+      )?.role || null
+    );
+  }
+
+  function canAssignRoomStaff(challenge: Challenge) {
+    return Boolean(
+      session?.user.id &&
+        !isChallengeClosed(challenge) &&
+        (isOwnerReviewer || challenge.created_by === session.user.id)
+    );
+  }
+
+  function canReviewChallengeProof(challenge: Challenge) {
+    if (!session?.user.id) return false;
+    if (isOwnerReviewer || challenge.created_by === session.user.id) return true;
+    return currentRoomStaffRole(challenge.id) === "Proof verifier";
+  }
+
+  function canDeleteChallengeMessage(chatMessage: ChallengeMessage, challenge: Challenge) {
+    if (!session?.user.id) return false;
+    return Boolean(
+      isOwnerReviewer ||
+        challenge.created_by === session.user.id ||
+        chatMessage.user_id === session.user.id ||
+        currentRoomStaffRole(challenge.id) === "Moderator"
+    );
   }
 
   function challengeSchedule(challengeId: string) {
@@ -4922,6 +4997,7 @@ export default function Home() {
     const ids = challengeTeamIds(challenge);
     if (isOwnerReviewer) return true;
     if (challenge.created_by === session?.user.id) return true;
+    if (currentRoomStaffRole(challenge.id) === "Scorekeeper") return true;
     if (ids.length === 0) return false;
 
     return userTeamRoles(challenge).some((item) => resultManagerRoles.includes(item.role));
@@ -4932,6 +5008,7 @@ export default function Home() {
     if (!hasSupabaseConfig) return true;
     if (!session?.user.id) return false;
     if (isOwnerReviewer || challenge.created_by === session.user.id) return true;
+    if (currentRoomStaffRole(challenge.id) === "Camera operator") return true;
 
     const isAcceptedOpponent = invites.some(
       (invite) =>
@@ -4945,7 +5022,21 @@ export default function Home() {
   }
 
   function canManageChallengeVoting(challenge: Challenge) {
-    return canManageChallengeLive(challenge);
+    if (isChallengeClosed(challenge)) return false;
+    if (!hasSupabaseConfig) return true;
+    if (!session?.user.id) return false;
+    if (isOwnerReviewer || challenge.created_by === session.user.id) return true;
+    if (currentRoomStaffRole(challenge.id) === "Moderator") return true;
+
+    const isAcceptedOpponent = invites.some(
+      (invite) =>
+        invite.challenge_id === challenge.id &&
+        invite.invited_user_id === session.user.id &&
+        invite.status === "Accepted"
+    );
+    if (isAcceptedOpponent) return true;
+
+    return userTeamRoles(challenge).some((item) => resultManagerRoles.includes(item.role));
   }
 
   function liveVideoDraft(challengeId: string) {
@@ -4963,7 +5054,7 @@ export default function Home() {
 
   async function setChallengeLiveSession(challenge: Challenge, status: ChallengeLiveStatus) {
     if (!canManageChallengeLive(challenge)) {
-      setMessage("Only the room creator, accepted opponent, authorized team manager, or Talent7 admin can manage this broadcast.", "error");
+      setMessage("Only the room creator, camera operator, accepted opponent, authorized team manager, or Talent7 admin can manage this broadcast.", "error");
       return;
     }
 
@@ -5862,6 +5953,51 @@ export default function Home() {
     }
 
     loadChallengeMessages();
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    async function loadAccessibleChallengeMessages() {
+      if (!supabase) return;
+      const { data, error } = await supabase
+        .from("challenge_messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) setChallengeMessages(data as ChallengeMessage[]);
+    }
+
+    async function loadChallengeStaff() {
+      if (!supabase) return;
+
+      const [{ data: staffData, error: staffError }, { data: scoreData, error: scoreError }] = await Promise.all([
+        supabase.from("challenge_room_staff").select("*").order("created_at", { ascending: true }),
+        supabase.from("challenge_judge_scores").select("*").order("created_at", { ascending: true })
+      ]);
+
+      if (!staffError && staffData) setChallengeRoomStaff(staffData as ChallengeRoomStaff[]);
+      if (!scoreError && scoreData) setChallengeJudgeScores(scoreData as ChallengeJudgeScore[]);
+    }
+
+    void loadChallengeStaff();
+
+    const listener = supabase
+      .channel("challenge-room-staff-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_room_staff" }, () => {
+        void loadChallengeStaff();
+        void loadAccessibleChallengeMessages();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_judge_scores" }, () => {
+        void loadChallengeStaff();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_messages" }, () => {
+        void loadAccessibleChallengeMessages();
+      })
+      .subscribe();
+
+    return () => {
+      void listener.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -10248,6 +10384,253 @@ export default function Home() {
     setEditingProofId(null);
   }
 
+  async function assignChallengeRoomStaff(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    if (!requireLogin("assign challenge room staff")) return;
+    if (!requireProfile("assign challenge room staff")) return;
+
+    if (!canAssignRoomStaff(challenge)) {
+      setMessage("Only the room creator or a Talent7 admin can assign room staff.", "error");
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const username = String(form.get("username") || "").trim().replace(/^@/, "").toLowerCase();
+    const role = String(form.get("role") || "Judge") as ChallengeStaffRole;
+
+    if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+      setMessage("Enter the person’s Talent7 username.", "error");
+      return;
+    }
+
+    if (!challengeStaffRoles.includes(role)) {
+      setMessage("Choose a valid room staff role.", "error");
+      return;
+    }
+
+    const actionKey = `${challenge.id}-assign`;
+    setChallengeStaffActionKey(actionKey);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      const selectedProfile = publicProfiles.find((item) => item.username.toLowerCase() === username);
+      if (!selectedProfile) {
+        setMessage("No Talent7 profile was found for that username.", "error");
+        setChallengeStaffActionKey(null);
+        return;
+      }
+
+      const existing = roomStaff(challenge.id).find((staff) => staff.user_id === selectedProfile.user_id);
+      const nextStaff: ChallengeRoomStaff = {
+        id: existing?.id || crypto.randomUUID(),
+        challenge_id: challenge.id,
+        user_id: selectedProfile.user_id,
+        display_name: selectedProfile.display_name,
+        role,
+        assigned_by: session?.user.id || "preview",
+        created_at: existing?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setChallengeRoomStaff((items) => [
+        ...items.filter((item) => item.id !== nextStaff.id),
+        nextStaff
+      ]);
+      formElement.reset();
+      setMessage(`${selectedProfile.display_name} assigned as ${role}.`);
+      setChallengeStaffActionKey(null);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("assign_challenge_room_staff", {
+      target_challenge_id: challenge.id,
+      target_username: username,
+      target_role: role
+    });
+
+    if (error) {
+      setMessage(`Could not assign room staff: ${error.message}`, "error");
+    } else {
+      const assigned = (data as ChallengeRoomStaff[] | null)?.[0];
+      if (assigned) {
+        setChallengeRoomStaff((items) => [
+          ...items.filter(
+            (item) => item.id !== assigned.id && !(item.challenge_id === assigned.challenge_id && item.user_id === assigned.user_id)
+          ),
+          assigned
+        ]);
+        setMessage(`${assigned.display_name} assigned as ${assigned.role}.`);
+      }
+      formElement.reset();
+    }
+
+    setChallengeStaffActionKey(null);
+  }
+
+  async function removeChallengeRoomStaff(staff: ChallengeRoomStaff, challenge: Challenge) {
+    if (!requireLogin("remove challenge room staff")) return;
+    if (!canAssignRoomStaff(challenge)) {
+      setMessage("Only the room creator or a Talent7 admin can remove room staff.", "error");
+      return;
+    }
+
+    const actionKey = `${staff.id}-remove`;
+    setChallengeStaffActionKey(actionKey);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setChallengeRoomStaff((items) => items.filter((item) => item.id !== staff.id));
+      setChallengeJudgeScores((items) =>
+        items.filter((item) => !(item.challenge_id === challenge.id && item.judge_user_id === staff.user_id))
+      );
+      setMessage(`${staff.display_name} removed from the room staff.`);
+      setChallengeStaffActionKey(null);
+      return;
+    }
+
+    const { error } = await supabase.rpc("remove_challenge_room_staff", { target_staff_id: staff.id });
+    if (error) {
+      setMessage(`Could not remove room staff: ${error.message}`, "error");
+    } else {
+      setChallengeRoomStaff((items) => items.filter((item) => item.id !== staff.id));
+      setChallengeJudgeScores((items) =>
+        items.filter((item) => !(item.challenge_id === challenge.id && item.judge_user_id === staff.user_id))
+      );
+      setMessage(`${staff.display_name} removed from the room staff.`);
+    }
+
+    setChallengeStaffActionKey(null);
+  }
+
+  async function submitChallengeJudgeScore(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    if (!requireLogin("submit a judge score")) return;
+    if (currentRoomStaffRole(challenge.id) !== "Judge") {
+      setMessage("Only an assigned judge can score this room.", "error");
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const teamAScore = Number(form.get("team_a_score"));
+    const teamBScore = Number(form.get("team_b_score"));
+    const notes = String(form.get("notes") || "").trim().slice(0, 500);
+
+    if (!Number.isInteger(teamAScore) || !Number.isInteger(teamBScore) || teamAScore < 0 || teamAScore > 7 || teamBScore < 0 || teamBScore > 7) {
+      setMessage("Both judge scores must be whole numbers from 0 to 7.", "error");
+      return;
+    }
+
+    setJudgeScoreActionId(challenge.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      const existing = challengeJudgeScores.find(
+        (score) => score.challenge_id === challenge.id && score.judge_user_id === session?.user.id
+      );
+      const nextScore: ChallengeJudgeScore = {
+        id: existing?.id || crypto.randomUUID(),
+        challenge_id: challenge.id,
+        judge_user_id: session?.user.id || "preview",
+        team_a_score: teamAScore,
+        team_b_score: teamBScore,
+        notes: notes || null,
+        created_at: existing?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setChallengeJudgeScores((items) => [...items.filter((item) => item.id !== nextScore.id), nextScore]);
+      setMessage("Judge score saved.");
+      setJudgeScoreActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("submit_challenge_judge_score", {
+      target_challenge_id: challenge.id,
+      target_team_a_score: teamAScore,
+      target_team_b_score: teamBScore,
+      target_notes: notes || null
+    });
+
+    if (error) {
+      setMessage(`Could not save judge score: ${error.message}`, "error");
+    } else {
+      const savedScore = (data as ChallengeJudgeScore[] | null)?.[0];
+      if (savedScore) {
+        setChallengeJudgeScores((items) => [
+          ...items.filter(
+            (item) =>
+              item.id !== savedScore.id &&
+              !(item.challenge_id === savedScore.challenge_id && item.judge_user_id === savedScore.judge_user_id)
+          ),
+          savedScore
+        ]);
+      }
+      setMessage("Judge score saved.");
+    }
+
+    setJudgeScoreActionId(null);
+  }
+
+  async function reviewChallengeProof(proof: ChallengeProof, challenge: Challenge, status: "Accepted" | "Rejected") {
+    if (!requireLogin("review challenge proof")) return;
+    if (!canReviewChallengeProof(challenge)) {
+      setMessage("Only the proof verifier, room creator, or Talent7 admin can review proof.", "error");
+      return;
+    }
+
+    setProofReviewActionId(proof.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setProofs((items) => items.map((item) => (item.id === proof.id ? { ...item, review_status: status } : item)));
+      setMessage(`Proof marked ${status.toLowerCase()}.`);
+      setProofReviewActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("review_challenge_proof", {
+      target_proof_id: proof.id,
+      target_status: status
+    });
+
+    if (error) {
+      setMessage(`Could not review proof: ${error.message}`, "error");
+    } else {
+      const reviewed = (data as ChallengeProof[] | null)?.[0];
+      if (reviewed) setProofs((items) => items.map((item) => (item.id === reviewed.id ? reviewed : item)));
+      setMessage(`Proof marked ${status.toLowerCase()}.`);
+    }
+
+    setProofReviewActionId(null);
+  }
+
+  async function deleteChallengeMessage(chatMessage: ChallengeMessage, challenge: Challenge) {
+    if (!requireLogin("remove a room message")) return;
+    if (!canDeleteChallengeMessage(chatMessage, challenge)) {
+      setMessage("Only the author, room moderator, room creator, or Talent7 admin can remove this message.", "error");
+      return;
+    }
+
+    setDeletingChallengeMessageId(chatMessage.id);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setChallengeMessages((items) => items.filter((item) => item.id !== chatMessage.id));
+      setMessage("Room message removed.");
+      setDeletingChallengeMessageId(null);
+      return;
+    }
+
+    const { error } = await supabase.from("challenge_messages").delete().eq("id", chatMessage.id);
+    if (error) {
+      setMessage(`Could not remove message: ${error.message}`, "error");
+    } else {
+      setChallengeMessages((items) => items.filter((item) => item.id !== chatMessage.id));
+      setMessage("Room message removed.");
+    }
+
+    setDeletingChallengeMessageId(null);
+  }
+
   async function sendChallengeMessage(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
     event.preventDefault();
     if (!requireLogin("send a room message")) return;
@@ -11106,6 +11489,8 @@ export default function Home() {
     setProofs((items) => items.filter((item) => item.challenge_id !== challenge.id));
     setInvites((items) => items.filter((item) => item.challenge_id !== challenge.id));
     setChallengeMessages((items) => items.filter((item) => item.challenge_id !== challenge.id));
+    setChallengeRoomStaff((items) => items.filter((item) => item.challenge_id !== challenge.id));
+    setChallengeJudgeScores((items) => items.filter((item) => item.challenge_id !== challenge.id));
     setChallengeReports((items) =>
       items.filter((item) => item.challenge_id !== challenge.id && !proofIds.has(item.proof_id || ""))
     );
@@ -11125,7 +11510,7 @@ export default function Home() {
     }
 
     if (!canManageTeamResult(challenge)) {
-      setMessage("Only a team captain, organizer, or challenge creator can mark this team challenge completed.");
+      setMessage("Only a scorekeeper, team captain, organizer, challenge creator, or Talent7 admin can complete this challenge.");
       return;
     }
 
@@ -16292,6 +16677,19 @@ export default function Home() {
             const resultAllowed = canManageTeamResult(challenge);
             const roleNotice = teamPermissionLabel(challenge);
             const messages = roomMessages[challenge.id] || [];
+            const assignedRoomStaff = roomStaff(challenge.id);
+            const assignedJudges = assignedRoomStaff.filter((staff) => staff.role === "Judge");
+            const judgeScores = challengeJudgeScores.filter((score) => score.challenge_id === challenge.id);
+            const currentStaffRole = currentRoomStaffRole(challenge.id);
+            const currentJudgeScore = session?.user.id
+              ? judgeScores.find((score) => score.judge_user_id === session.user.id) || null
+              : null;
+            const teamAJudgeAverage = judgeScores.length
+              ? (judgeScores.reduce((sum, score) => sum + score.team_a_score, 0) / judgeScores.length).toFixed(1)
+              : null;
+            const teamBJudgeAverage = judgeScores.length
+              ? (judgeScores.reduce((sum, score) => sum + score.team_b_score, 0) / judgeScores.length).toFixed(1)
+              : null;
             const schedule = challengeSchedule(challenge.id);
             const availableSchedulePlayModes = availablePlayModesForChallenge(challenge);
             const preferredSchedulePlayMode =
@@ -16567,6 +16965,129 @@ export default function Home() {
                   <small>Captains and organizers can finish results. Proof uploaders can submit victory proof.</small>
                 </div>
               )}
+              <section className="challengeStaffPanel" aria-label="Challenge room staff">
+                <div className="challengeStaffHeader">
+                  <div>
+                    <span>Room officials</span>
+                    <strong>Independent roles for a fair challenge</strong>
+                    <small>Up to 3 judges. Camera, moderation, proof, and scorekeeping roles are limited to one person each.</small>
+                  </div>
+                  {currentStaffRole && <em>Your role: {currentStaffRole}</em>}
+                </div>
+
+                <div className="challengeStaffRoster">
+                  {assignedRoomStaff.length > 0 ? (
+                    challengeStaffRoles.map((role) => {
+                      const roleMembers = assignedRoomStaff.filter((staff) => staff.role === role);
+                      return (
+                        <div className={roleMembers.length > 0 ? "filled" : "open"} key={role}>
+                          <span>{role}{role === "Judge" ? ` (${roleMembers.length}/3)` : ""}</span>
+                          {roleMembers.length > 0 ? (
+                            roleMembers.map((staff) => (
+                              <p key={staff.id}>
+                                <strong>{staff.display_name}</strong>
+                                {canAssignRoomStaff(challenge) && (
+                                  <button
+                                    disabled={challengeStaffActionKey === `${staff.id}-remove`}
+                                    onClick={() => void removeChallengeRoomStaff(staff, challenge)}
+                                    type="button"
+                                  >
+                                    {challengeStaffActionKey === `${staff.id}-remove` ? "Removing…" : "Remove"}
+                                  </button>
+                                )}
+                              </p>
+                            ))
+                          ) : (
+                            <small>Not assigned</small>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="challengeStaffEmpty">
+                      <strong>No room officials assigned yet</strong>
+                      <small>The creator can run the room alone or appoint separate officials below.</small>
+                    </div>
+                  )}
+                </div>
+
+                {canAssignRoomStaff(challenge) && (
+                  <form className="challengeStaffAssignForm" onSubmit={(event) => assignChallengeRoomStaff(event, challenge)}>
+                    <label>
+                      Talent7 username
+                      <input name="username" placeholder="@username" />
+                    </label>
+                    <label>
+                      Staff role
+                      <select name="role" defaultValue="Judge">
+                        {challengeStaffRoles.map((role) => (
+                          <option key={role} value={role}>
+                            {role}{role === "Judge" ? ` (${assignedJudges.length}/3 assigned)` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button disabled={challengeStaffActionKey === `${challenge.id}-assign`} type="submit">
+                      {challengeStaffActionKey === `${challenge.id}-assign` ? "Assigning…" : "Assign official"}
+                    </button>
+                  </form>
+                )}
+
+                {(assignedJudges.length > 0 || judgeScores.length > 0) && (
+                  <div className="challengeJudgePanel">
+                    <div className="challengeJudgeSummary">
+                      <div>
+                        <span>Judge scores submitted</span>
+                        <strong>{judgeScores.length}/{assignedJudges.length}</strong>
+                      </div>
+                      <div>
+                        <span>{teamADisplay} average</span>
+                        <strong>{teamAJudgeAverage || "—"}{teamAJudgeAverage ? " / 7" : ""}</strong>
+                      </div>
+                      <div>
+                        <span>{teamBDisplay} average</span>
+                        <strong>{teamBJudgeAverage || "—"}{teamBJudgeAverage ? " / 7" : ""}</strong>
+                      </div>
+                    </div>
+
+                    {assignedJudges.length > 0 && (
+                      <div className="challengeJudgeCards">
+                        {assignedJudges.map((judge) => {
+                          const score = judgeScores.find((item) => item.judge_user_id === judge.user_id);
+                          return (
+                            <div key={judge.id}>
+                              <span>{judge.display_name}</span>
+                              <strong>{score ? `${score.team_a_score} – ${score.team_b_score}` : "Waiting for score"}</strong>
+                              {score?.notes && <small>{score.notes}</small>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {currentStaffRole === "Judge" && !isChallengeClosed(challenge) && (
+                      <form className="challengeJudgeScoreForm" onSubmit={(event) => submitChallengeJudgeScore(event, challenge)}>
+                        <strong>{currentJudgeScore ? "Update your judge score" : "Submit your judge score"}</strong>
+                        <label>
+                          {teamADisplay}
+                          <input defaultValue={currentJudgeScore?.team_a_score ?? ""} max={7} min={0} name="team_a_score" required type="number" />
+                        </label>
+                        <label>
+                          {teamBDisplay}
+                          <input defaultValue={currentJudgeScore?.team_b_score ?? ""} max={7} min={0} name="team_b_score" required type="number" />
+                        </label>
+                        <label className="wide">
+                          Judge note (optional)
+                          <textarea defaultValue={currentJudgeScore?.notes || ""} maxLength={500} name="notes" rows={2} />
+                        </label>
+                        <button disabled={judgeScoreActionId === challenge.id} type="submit">
+                          {judgeScoreActionId === challenge.id ? "Saving score…" : "Save judge score"}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
+              </section>
               <div className="scoreBoard">
                 <div>
                   <span>Votes</span>
@@ -17253,7 +17774,7 @@ export default function Home() {
                       <input name="final_score" placeholder="Final score, like 21-18 or 2-1" />
                       <button disabled={completingChallengeId === challenge.id || !resultAllowed || !roster.ready} type="submit">
                         {!resultAllowed
-                          ? "Captain/organizer required"
+                          ? "Scorekeeper or organizer required"
                           : !roster.ready
                             ? "Fill rosters first"
                           : completingChallengeId === challenge.id
@@ -17275,6 +17796,26 @@ export default function Home() {
                         <small>
                           {proof.review_status || "Pending review"} | <a href={proof.proof_url} rel="noreferrer" target="_blank">Open proof</a>
                         </small>
+                        {canReviewChallengeProof(challenge) && !isChallengeClosed(challenge) && (
+                          <div className="proofReviewActions">
+                            <button
+                              className="acceptProofButton"
+                              disabled={proofReviewActionId === proof.id || proof.review_status === "Accepted"}
+                              onClick={() => void reviewChallengeProof(proof, challenge, "Accepted")}
+                              type="button"
+                            >
+                              Accept proof
+                            </button>
+                            <button
+                              className="rejectProofButton"
+                              disabled={proofReviewActionId === proof.id || proof.review_status === "Rejected"}
+                              onClick={() => void reviewChallengeProof(proof, challenge, "Rejected")}
+                              type="button"
+                            >
+                              Reject proof
+                            </button>
+                          </div>
+                        )}
                         {canDeleteUserContent(proof.user_id) && (
                           <>
                             <details className="editPanel proofEditPanel">
@@ -17345,16 +17886,28 @@ export default function Home() {
                       <div className="roomChatMessage" key={chatMessage.id}>
                         <div>
                           <strong>{chatMessage.author_name}</strong>
-                          <small>{new Date(chatMessage.created_at).toLocaleDateString()}</small>
+                          <small>{new Date(chatMessage.created_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</small>
                         </div>
                         <p>{chatMessage.body}</p>
-                        <button
-                          disabled={reportingChatMessageId === chatMessage.id}
-                          onClick={() => reportChallengeMessage(chatMessage, challenge)}
-                          type="button"
-                        >
-                          {reportingChatMessageId === chatMessage.id ? "Reporting..." : "Report"}
-                        </button>
+                        <div className="roomChatMessageActions">
+                          <button
+                            disabled={reportingChatMessageId === chatMessage.id}
+                            onClick={() => reportChallengeMessage(chatMessage, challenge)}
+                            type="button"
+                          >
+                            {reportingChatMessageId === chatMessage.id ? "Reporting..." : "Report"}
+                          </button>
+                          {canDeleteChallengeMessage(chatMessage, challenge) && (
+                            <button
+                              className="dangerAction"
+                              disabled={deletingChallengeMessageId === chatMessage.id}
+                              onClick={() => void deleteChallengeMessage(chatMessage, challenge)}
+                              type="button"
+                            >
+                              {deletingChallengeMessageId === chatMessage.id ? "Removing…" : "Remove"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))
                   ) : (
