@@ -34,7 +34,7 @@ Commit both `package.json` and the updated `package-lock.json`.
 
 ## 4. Apply the Supabase migration
 
-Run `supabase/add-native-livekit-rooms.sql` for challenge broadcasts. For Local Listen rooms, apply `supabase/restore-listen-rooms.sql` only if it has not already been applied, then run `supabase/add-area-voice-listen-rooms.sql`. A GitHub or Vercel deployment does not apply migrations.
+Run `supabase/add-native-livekit-rooms.sql` for challenge broadcasts. For Local Listen rooms, apply `supabase/restore-listen-rooms.sql` only if it has not already been applied, then run `supabase/add-area-voice-listen-rooms.sql` and `supabase/add-listen-microphone-notifications.sql`. A GitHub or Vercel deployment does not apply migrations.
 
 ## 5. Production test
 
