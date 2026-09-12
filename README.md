@@ -62,7 +62,7 @@ Follow [R2_SETUP.md](R2_SETUP.md). The access and secret keys are server-only an
 
 ## Database setup
 
-Run the SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. For a database already current through migration 76, apply migrations 77 through 80 to restore Listen, add locality-based voice rooms and host microphone notifications, and enable staffed challenge rooms. Legacy feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
+Run the SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. For a database already current through migration 76, apply migrations 77 through 81 to restore Listen, add locality-based voice rooms and host microphone notifications, enable staffed challenge rooms, and require invited officials to accept before receiving room powers. Legacy feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
 
 Uploading the repository to GitHub does not apply Supabase migrations. Run them separately in the Supabase SQL editor or through your migration workflow.
 
