@@ -12121,6 +12121,7 @@ export default function Home() {
             <div className="authTabs">
               {(["Sign up", "Log in"] as const).map((mode) => (
                 <button
+                  aria-pressed={authMode === mode}
                   className={authMode === mode ? "active" : ""}
                   key={mode}
                   onClick={() => {

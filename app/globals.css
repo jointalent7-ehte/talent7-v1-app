@@ -2222,7 +2222,19 @@ textarea {
 }
 
 .authTabs button {
+  color: var(--ink);
   background: #eef4f4;
+  border: 1px solid #aebbbc;
+}
+
+.authTabs button:not(.active):hover {
+  background: #e2ecec;
+  border-color: #738486;
+}
+
+.authTabs button:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 2px;
 }
 
 .authTabs button.active,
@@ -2231,6 +2243,10 @@ textarea {
 .profileForm button {
   color: #fff;
   background: var(--ink);
+}
+
+.authTabs button.active {
+  border-color: var(--ink);
 }
 
 .confirmEmailNotice {
