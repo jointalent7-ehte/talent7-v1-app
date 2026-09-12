@@ -401,7 +401,7 @@ const primaryTabs: {
 }[] = [
   {
     id: "settings",
-    label: "Settings",
+    label: "Account",
     firstSection: "account",
     links: [
       { label: "Settings", href: "#account" },
@@ -11958,7 +11958,7 @@ export default function Home() {
             <span className="mobileNavIcon">
               <MobileNavIcon name={tab.id === "settings" ? "settings" : tab.id === "challenges" ? "challenges" : "listen"} />
             </span>
-            <span className="mobileNavLabel">{tab.id === "settings" && !session ? "Account" : tab.label}</span>
+            <span className="mobileNavLabel">{tab.label}</span>
           </button>
         ))}
         <button
@@ -12518,12 +12518,18 @@ export default function Home() {
               </label>
               <label>
                 Role
-                <select name="role" defaultValue={profile?.role || "Challenger"}>
+                <select
+                  name="role"
+                  defaultValue={profile?.role === "Coach / instructor" ? "Challenger" : profile?.role || "Challenger"}
+                >
                   <option>Challenger</option>
                   <option>Audience / voter</option>
-                  <option value="Coach / instructor">Coach / instructor (future Coaching)</option>
                   <option>Sports organizer</option>
                 </select>
+                <small className="fieldHint">
+                  Judge, camera operator, moderator, proof verifier, and scorekeeper are assigned separately for each
+                  challenge under Challenges → Rooms → Open room → Room officials.
+                </small>
               </label>
               <label>
                 Main interest
