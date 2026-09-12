@@ -12683,6 +12683,46 @@ body:has(.publicRoomLanding) {
   background: var(--yellow);
 }
 
+.listenAreaFilters {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin: -4px 0 20px;
+  padding: 12px;
+  overflow-x: auto;
+  background: linear-gradient(110deg, #082f32, #0c5553);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 14px 32px rgba(5, 48, 50, 0.12);
+}
+
+.listenAreaFilters > span {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  color: #fff;
+  font-size: 0.77rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.listenAreaFilters button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 8px 12px;
+  color: #d8eeee;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.listenAreaFilters button.active {
+  color: #052f31;
+  background: var(--yellow);
+  border-color: var(--yellow);
+}
+
 .listenLayout {
   display: grid;
   grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
@@ -12768,6 +12808,37 @@ body:has(.publicRoomLanding) {
 .listenCreateCard textarea {
   min-height: 110px;
   resize: vertical;
+}
+
+.listenVoiceToggle {
+  display: grid !important;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  padding: 14px;
+  color: #e7ffff;
+  background: linear-gradient(135deg, #07373a, #0a5d59);
+  border: 1px solid rgba(45, 212, 191, 0.38);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.listenVoiceToggle input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: var(--yellow);
+}
+
+.listenVoiceToggle span {
+  display: grid;
+  gap: 4px;
+}
+
+.listenVoiceToggle small {
+  color: #b9d7d6;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .listenVisibilityPicker {
@@ -12883,6 +12954,177 @@ body:has(.publicRoomLanding) {
   align-items: start;
 }
 
+.listenLocationBadge {
+  display: inline-flex;
+  max-width: 100%;
+  margin-left: 7px;
+  padding: 5px 9px;
+  color: #075e59;
+  background: #dff8f3;
+  border: 1px solid #9ee6da;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  vertical-align: middle;
+}
+
+.listenVoicePanel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  color: #e8ffff;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(250, 194, 48, 0.2), transparent 34%),
+    linear-gradient(145deg, #061f25, #073f43 58%, #0a5550);
+  border: 1px solid rgba(77, 218, 199, 0.35);
+  border-radius: 14px;
+  box-shadow: 0 18px 38px rgba(4, 37, 41, 0.16);
+}
+
+.listenVoicePanel .muted {
+  color: #bad5d5;
+}
+
+.listenVoicePanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.listenVoicePanelHeader > div {
+  display: grid;
+  gap: 3px;
+}
+
+.listenVoicePanelHeader .eyebrow {
+  color: var(--yellow);
+}
+
+.listenVoicePanelHeader > span {
+  padding: 6px 9px;
+  color: #dffcf8;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 900;
+}
+
+.listenVoiceState {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 13px;
+  color: #d8eded;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+}
+
+.listenVoiceState > div,
+.listenVoiceState:not(.ready) {
+  display: grid;
+  gap: 4px;
+}
+
+.listenVoiceState span {
+  color: #74e0d1;
+  font-size: 0.77rem;
+  font-weight: 900;
+}
+
+.listenVoiceState small {
+  color: #b9d7d6;
+}
+
+.listenVoiceState.error {
+  color: #fff;
+  background: rgba(169, 36, 52, 0.42);
+  border-color: rgba(255, 151, 162, 0.55);
+}
+
+.listenVoiceStage {
+  display: grid;
+  gap: 13px;
+}
+
+.listenVoicePeople {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+  overflow-x: auto;
+}
+
+.listenVoicePeople > span {
+  display: grid;
+  flex: 0 0 70px;
+  gap: 5px;
+  place-items: center;
+  text-align: center;
+}
+
+.listenVoicePeople b {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  color: #072d30;
+  background: linear-gradient(135deg, #5eead4, #fac230);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(94, 234, 212, 0.12);
+}
+
+.listenVoicePeople small {
+  width: 100%;
+  overflow: hidden;
+  color: #d9eeee;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listenVoiceControls {
+  display: grid;
+  gap: 7px;
+}
+
+.listenVoiceControls .lk-control-bar {
+  justify-content: flex-start;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.listenVoiceControls small {
+  color: #b9d7d6;
+}
+
+.listenSpeakerRequests,
+.listenVoiceRoster {
+  display: grid;
+  gap: 8px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.listenSpeakerRequests > div,
+.listenVoiceRoster > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.listenSpeakerRequests button,
+.listenVoiceRoster button {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+
 .nowPlaying {
   padding: 16px;
   border-radius: 8px;
@@ -12957,6 +13199,26 @@ body:has(.publicRoomLanding) {
 
 .listenQueue a:first-of-type {
   border-top: 0;
+}
+
+@media (max-width: 700px) {
+  .listenVoiceState,
+  .listenVoicePanelHeader,
+  .listenSpeakerRequests > div,
+  .listenVoiceRoster > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .listenVoiceState > button,
+  .listenSpeakerRequests button,
+  .listenVoiceRoster button {
+    width: 100%;
+  }
+
+  .listenLocationBadge {
+    margin: 7px 0 0;
+  }
 }
 
 @media (max-width: 900px) {

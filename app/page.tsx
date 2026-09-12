@@ -17,6 +17,7 @@ import { supporterTierLabel, type SupporterTier } from "../lib/supporter-product
 import { containsRetiredGamingContent, isRetiredGamingChallenge } from "../lib/product-scope";
 import ChallengeLiveRoom from "./challenge-live-room";
 import GrowthHub from "./growth-hub";
+import ListenVoiceRoom from "./listen-voice-room";
 import SupporterPayments from "./supporter-payments";
 import TurnstileWidget from "./turnstile-widget";
 
@@ -508,6 +509,7 @@ function sectionForHash(hash: string): string | null {
 type ListenMood = "Chill" | "Workout" | "Focus" | "Romantic" | "Party" | "Road trip" | "Study" | "Open vibe";
 type ListenRoomStatus = "Open" | "Archived";
 type ListenRoomVisibility = "Public" | "Private";
+type ListenMemberRole = "Host" | "Speaker" | "Listener";
 
 type ListenRoom = {
   id: string;
@@ -525,7 +527,22 @@ type ListenRoom = {
   visibility?: ListenRoomVisibility;
   room_code?: string | null;
   requires_passcode?: boolean;
+  area_name: string;
+  area_slug: string;
+  city_name: string;
+  country_name: string;
+  voice_enabled: boolean;
   created_at: string;
+};
+
+type ListenRoomMember = {
+  id: string;
+  room_id: string;
+  user_id: string;
+  display_name: string;
+  joined_at: string;
+  role: ListenMemberRole;
+  speaker_requested: boolean;
 };
 
 type ListenTrack = {
@@ -546,6 +563,10 @@ type ListenRoomDraft = {
   current_track_url: string;
   visibility: ListenRoomVisibility;
   passcode: string;
+  area_name: string;
+  city_name: string;
+  country_name: string;
+  voice_enabled: boolean;
 };
 
 type ListenTrackDraft = {
@@ -564,7 +585,11 @@ const defaultListenDraft: ListenRoomDraft = {
   current_track_title: "",
   current_track_url: "",
   visibility: "Public",
-  passcode: ""
+  passcode: "",
+  area_name: "",
+  city_name: "",
+  country_name: "India",
+  voice_enabled: true
 };
 
 const sampleListenRooms: ListenRoom[] = [
@@ -581,6 +606,11 @@ const sampleListenRooms: ListenRoom[] = [
     vibe_count: 9,
     created_by: null,
     status: "Open",
+    area_name: "Nerul",
+    area_slug: "nerul",
+    city_name: "Navi Mumbai",
+    country_name: "India",
+    voice_enabled: true,
     created_at: "2026-07-17T00:00:00.000Z"
   }
 ];
@@ -590,7 +620,7 @@ const listenRoomsStorageKey = "talent7-listen-rooms";
 const listenTracksStorageKey = "talent7-listen-tracks";
 const colorThemeStorageKey = "talent7-color-theme";
 const listenRoomPublicColumns =
-  "id,created_by,title,host_name,mood,room_note,current_track_title,current_track_url,listener_count,love_count,vibe_count,status,visibility,room_code,requires_passcode,created_at,updated_at";
+  "id,created_by,title,host_name,mood,room_note,current_track_title,current_track_url,listener_count,love_count,vibe_count,status,visibility,room_code,requires_passcode,area_name,area_slug,city_name,country_name,voice_enabled,created_at,updated_at";
 const roomViewerStorageKey = "talent7-room-viewer-id";
 
 function makeLocalListenId(prefix = "listen") {
@@ -1929,7 +1959,9 @@ export default function Home() {
   const confirmationReturnFocusRef = useRef<HTMLElement | null>(null);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
   const [listenTracks, setListenTracks] = useState<ListenTrack[]>(sampleListenTracks);
+  const [listenRoomMembers, setListenRoomMembers] = useState<ListenRoomMember[]>([]);
   const [listenRoomStatus, setListenRoomStatus] = useState<ListenRoomStatus>("Open");
+  const [listenAreaFilter, setListenAreaFilter] = useState("all");
   const [listenRoomDraft, setListenRoomDraft] = useState<ListenRoomDraft>(defaultListenDraft);
   const [listenTrackDrafts, setListenTrackDrafts] = useState<Record<string, ListenTrackDraft>>({});
   const [listenLoading, setListenLoading] = useState(hasSupabaseConfig);
@@ -2038,9 +2070,23 @@ export default function Home() {
     }, {});
   }, [listenTracks]);
 
+  const listenAreaOptions = useMemo(() => {
+    const areas = new Map<string, { slug: string; name: string; city: string }>();
+    listenRooms
+      .filter((room) => (room.status || "Open") === "Open")
+      .forEach((room) => {
+        const slug = room.area_slug || "global";
+        if (!areas.has(slug)) areas.set(slug, { slug, name: room.area_name || "Global", city: room.city_name || "Global" });
+      });
+    return Array.from(areas.values()).sort((left, right) => left.name.localeCompare(right.name));
+  }, [listenRooms]);
+
   const visibleListenRooms = useMemo(
-    () => listenRooms.filter((room) => (room.status || "Open") === listenRoomStatus),
-    [listenRoomStatus, listenRooms]
+    () => listenRooms.filter((room) =>
+      (room.status || "Open") === listenRoomStatus
+      && (listenRoomStatus === "Archived" || listenAreaFilter === "all" || room.area_slug === listenAreaFilter)
+    ),
+    [listenAreaFilter, listenRoomStatus, listenRooms]
   );
 
   const listenRoomCounts = useMemo(
@@ -2055,18 +2101,24 @@ export default function Home() {
     if (!supabase) return;
     if (showLoading) setListenLoading(true);
 
-    const [roomsResult, tracksResult] = await Promise.all([
+    const [roomsResult, tracksResult, membersResult] = await Promise.all([
       supabase.from("listen_rooms").select(listenRoomPublicColumns).order("created_at", { ascending: false }),
-      supabase.from("listen_tracks").select("*").order("created_at", { ascending: false })
+      supabase.from("listen_tracks").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("listen_room_members")
+        .select("id,room_id,user_id,display_name,joined_at,role,speaker_requested")
+        .order("joined_at", { ascending: true })
     ]);
 
-    if (roomsResult.error || tracksResult.error) {
+    if (roomsResult.error || tracksResult.error || membersResult.error) {
       setListenRooms([]);
       setListenTracks([]);
-      setListenLoadError("Shared listen rooms are not available yet. Apply the latest Supabase migration and try again.");
+      setListenRoomMembers([]);
+      setListenLoadError("Local voice rooms are not available yet. Apply the latest Supabase migrations and try again.");
     } else {
       setListenRooms((roomsResult.data || []) as ListenRoom[]);
       setListenTracks((tracksResult.data || []) as ListenTrack[]);
+      setListenRoomMembers((membersResult.data || []) as ListenRoomMember[]);
       setListenLoadError("");
     }
 
@@ -2078,6 +2130,7 @@ export default function Home() {
     if (!listenRoomsEnabled) {
       setListenRooms([]);
       setListenTracks([]);
+      setListenRoomMembers([]);
       setListenLoading(false);
       return;
     }
@@ -7207,6 +7260,10 @@ export default function Home() {
       setMessage("Private listen rooms require the live Talent7 service.");
       return;
     }
+    if (!listenRoomDraft.area_name.trim() || !listenRoomDraft.city_name.trim() || !listenRoomDraft.country_name.trim()) {
+      setMessage("Add the room's area, city, and country so nearby listeners can find it.");
+      return;
+    }
 
     const roomPayload = {
       title: listenRoomDraft.title.trim() || "Untitled listen room",
@@ -7216,7 +7273,16 @@ export default function Home() {
       current_track_title: listenRoomDraft.current_track_title.trim() || "Open the first shared song",
       current_track_url: trackUrl || "https://www.youtube.com",
       created_by: session?.user.id || null,
-      visibility: listenRoomDraft.visibility
+      visibility: listenRoomDraft.visibility,
+      area_name: listenRoomDraft.area_name.trim(),
+      area_slug: listenRoomDraft.area_name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "local-area",
+      city_name: listenRoomDraft.city_name.trim(),
+      country_name: listenRoomDraft.country_name.trim(),
+      voice_enabled: listenRoomDraft.voice_enabled
     };
 
     if (!supabase) {
@@ -7232,7 +7298,7 @@ export default function Home() {
       setListenRooms((current) => [room, ...current]);
     } else {
       setListenActionKey("create");
-      const { data, error } = await supabase.rpc("create_listen_room", {
+      const { data, error } = await supabase.rpc("create_local_listen_room", {
         room_title: roomPayload.title,
         room_host_name: roomPayload.host_name,
         room_mood: roomPayload.mood,
@@ -7240,6 +7306,10 @@ export default function Home() {
         room_track_title: roomPayload.current_track_title,
         room_track_url: roomPayload.current_track_url,
         room_visibility: roomPayload.visibility,
+        room_area_name: roomPayload.area_name,
+        room_city_name: roomPayload.city_name,
+        room_country_name: roomPayload.country_name,
+        room_voice_enabled: roomPayload.voice_enabled,
         room_passcode: roomPayload.visibility === "Private" ? passcode : null
       });
 
@@ -7351,6 +7421,45 @@ export default function Home() {
       member_display_name: profileName()
     });
     return !error || error.code === "23505";
+  }
+
+  async function requestListenMicrophone(roomId: string) {
+    if (!requireProfile("request the microphone")) return;
+    if (!supabase || !session?.user.id) {
+      setMessage("Local voice rooms require the live Talent7 service.");
+      return;
+    }
+
+    setListenActionKey(`request-mic-${roomId}`);
+    const { error } = await supabase.rpc("request_listen_microphone", { target_room_id: roomId });
+    if (error) setMessage(error.message);
+    else {
+      await refreshListenRooms();
+      setMessage("Microphone requested. The room host can now approve you as a speaker.");
+    }
+    setListenActionKey(null);
+  }
+
+  async function setListenMemberVoiceRole(roomId: string, userId: string, nextRole: "Speaker" | "Listener") {
+    if (!supabase || !session || session.user.id !== listenRooms.find((room) => room.id === roomId)?.created_by) return;
+    const accessToken = session.access_token;
+
+    setListenActionKey(`voice-role-${roomId}-${userId}`);
+    const response = await fetch("/api/listen-voice-role", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ roomId, userId, role: nextRole })
+    });
+    const result = await response.json() as { error?: string };
+    if (!response.ok) setMessage(result.error || "Could not update the microphone role.");
+    else {
+      await refreshListenRooms();
+      setMessage(nextRole === "Speaker" ? "Microphone approved." : "Member returned to listener mode.");
+    }
+    setListenActionKey(null);
   }
 
   async function handleReactListenRoom(roomId: string, reaction: "love" | "vibe") {
@@ -12402,11 +12511,11 @@ export default function Home() {
       {listenRoomsEnabled && (
       <section className="section listenSection" id="listen-rooms">
         <div className="sectionHeader">
-          <span className="eyebrow">Listen together</span>
-          <h2>Wanna listen to songs with your specials/buddies?</h2>
+          <span className="eyebrow">Local Listen rooms</span>
+          <h2>Talk, listen, and find your local crowd</h2>
           <p>
-            Create a shared room, add public song links, react together, and build a queue. Each track opens in its original
-            music service, so Talent7 never stores or rebroadcasts the song.
+            Join an audio conversation by area, request the mic, and share public song links without rebroadcasting music.
+            Locality is entered manually—Talent7 does not expose your live or precise location.
           </p>
         </div>
 
@@ -12431,14 +12540,38 @@ export default function Home() {
           </button>
         </div>
 
+        {listenRoomStatus === "Open" && (
+          <div className="listenAreaFilters" aria-label="Filter Listen rooms by area">
+            <span>Explore by area</span>
+            <button
+              className={listenAreaFilter === "all" ? "active" : ""}
+              onClick={() => setListenAreaFilter("all")}
+              type="button"
+            >
+              All areas
+            </button>
+            {listenAreaOptions.map((area) => (
+              <button
+                className={listenAreaFilter === area.slug ? "active" : ""}
+                key={area.slug}
+                onClick={() => setListenAreaFilter(area.slug)}
+                title={area.city}
+                type="button"
+              >
+                #{area.slug}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="listenLayout">
           {listenRoomStatus === "Open" ? (
             <>
             <form className="card listenCreateCard" onSubmit={handleCreateListenRoom}>
             <div>
-              <span className="statusBadge">Public links only</span>
-              <h3>Create a listen room</h3>
-              <p className="muted">Choose who can enter, then use YouTube, Spotify, or another public song link. Talent7 does not store or rebroadcast songs.</p>
+              <span className="statusBadge">Audio + public links</span>
+              <h3>Create a local Listen room</h3>
+              <p className="muted">Pick a locality people recognize, choose who can enter, and decide whether the room includes moderated live audio.</p>
             </div>
 
             <fieldset className="listenVisibilityPicker">
@@ -12520,7 +12653,49 @@ export default function Home() {
                   placeholder="Song or playlist name"
                 />
               </label>
+              <label>
+                Area or locality
+                <input
+                  maxLength={80}
+                  onChange={(event) => updateListenRoomDraft("area_name", event.target.value)}
+                  placeholder="Nerul"
+                  required
+                  value={listenRoomDraft.area_name}
+                />
+              </label>
+              <label>
+                City
+                <input
+                  maxLength={80}
+                  onChange={(event) => updateListenRoomDraft("city_name", event.target.value)}
+                  placeholder="Navi Mumbai"
+                  required
+                  value={listenRoomDraft.city_name}
+                />
+              </label>
+              <label>
+                Country
+                <input
+                  maxLength={80}
+                  onChange={(event) => updateListenRoomDraft("country_name", event.target.value)}
+                  placeholder="India"
+                  required
+                  value={listenRoomDraft.country_name}
+                />
+              </label>
             </div>
+
+            <label className="listenVoiceToggle">
+              <input
+                checked={listenRoomDraft.voice_enabled}
+                onChange={(event) => updateListenRoomDraft("voice_enabled", event.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                <strong>Enable moderated voice chat</strong>
+                <small>People enter as listeners. The host controls who can switch on a microphone.</small>
+              </span>
+            </label>
 
             <label>
               Song link
@@ -12610,7 +12785,9 @@ export default function Home() {
                 actionLabel={listenRoomStatus === "Open" ? "Create the first room" : undefined}
                 detail={
                   listenRoomStatus === "Open"
-                    ? "Start a shared queue for friends, teammates, study buddies, or someone special."
+                    ? listenAreaFilter === "all"
+                      ? "Start a local audio room and shared queue for friends, neighbours, teammates, or study buddies."
+                      : `No open rooms are using #${listenAreaFilter} yet. Create the first one for this area.`
                     : "Rooms you close will keep their song links here until you restore or permanently delete them."
                 }
                 onAction={
@@ -12618,20 +12795,26 @@ export default function Home() {
                     ? () => document.querySelector<HTMLElement>(".listenCreateCard")?.scrollIntoView({ behavior: "smooth" })
                     : undefined
                 }
-                title={listenRoomStatus === "Open" ? "No open listen rooms yet" : "Your archive is empty"}
+                title={listenRoomStatus === "Open" ? "No matching Listen rooms yet" : "Your archive is empty"}
               />
             )}
             {visibleListenRooms.map((room) => {
               const draft = listenTrackDrafts[room.id] || { track_title: "", track_url: "", added_by: profileName() };
               const tracks = listenTracksByRoom[room.id] || [];
+              const members = listenRoomMembers.filter((member) => member.room_id === room.id);
+              const membership = members.find((member) => member.user_id === session?.user.id);
+              const isListenHost = session?.user.id === room.created_by;
+              const microphoneRequests = members.filter((member) => member.speaker_requested);
+              const speakers = members.filter((member) => member.role === "Speaker");
 
               return (
                 <article className="card listenRoomCard" key={room.id}>
                   <div className="listenRoomTop">
                     <div>
                       <span className="pill">{room.mood}</span>
+                      <span className="listenLocationBadge">#{room.area_slug || "global"} · {room.city_name || "Global"}</span>
                       <h3>{room.title}</h3>
-                      <p className="muted">Hosted by {room.host_name}</p>
+                      <p className="muted">Hosted by {room.host_name} · {room.country_name || "Global"}</p>
                     </div>
                       <span className="statusBadge">
                         {room.status === "Archived" ? "Archived queue" : room.visibility === "Private" ? "Private room" : "Public room"}
@@ -12646,6 +12829,83 @@ export default function Home() {
                         Copy code
                       </button>
                       <small>Members still need the passcode chosen by the host.</small>
+                    </div>
+                  )}
+
+                  {room.status === "Open" && room.voice_enabled && (
+                    <div className="listenVoicePanel">
+                      <div className="listenVoicePanelHeader">
+                        <div>
+                          <span className="eyebrow">Live audio</span>
+                          <strong>Host-moderated voice room</strong>
+                        </div>
+                        <span>{speakers.length + (isListenHost ? 1 : 0)} speaker{speakers.length + (isListenHost ? 1 : 0) === 1 ? "" : "s"}</span>
+                      </div>
+
+                      {!session ? (
+                        <p className="muted">Sign in and join this room to enter its voice chat.</p>
+                      ) : !membership ? (
+                        <p className="muted">Join this Listen room first. Audio never starts automatically.</p>
+                      ) : (
+                        <>
+                          <ListenVoiceRoom
+                            accessToken={session.access_token}
+                            areaLabel={`#${room.area_slug || "global"}`}
+                            memberRole={membership.role}
+                            roomId={room.id}
+                            title={room.title}
+                          />
+                          {membership.role === "Listener" && (
+                            <button
+                              disabled={membership.speaker_requested || listenActionKey === `request-mic-${room.id}`}
+                              onClick={() => void requestListenMicrophone(room.id)}
+                              type="button"
+                            >
+                              {membership.speaker_requested
+                                ? "Microphone requested"
+                                : listenActionKey === `request-mic-${room.id}`
+                                  ? "Requesting..."
+                                  : "Request microphone"}
+                            </button>
+                          )}
+                        </>
+                      )}
+
+                      {isListenHost && microphoneRequests.length > 0 && (
+                        <div className="listenSpeakerRequests">
+                          <strong>Microphone requests</strong>
+                          {microphoneRequests.map((member) => (
+                            <div key={member.id}>
+                              <span>{member.display_name}</span>
+                              <button
+                                disabled={listenActionKey === `voice-role-${room.id}-${member.user_id}`}
+                                onClick={() => void setListenMemberVoiceRole(room.id, member.user_id, "Speaker")}
+                                type="button"
+                              >
+                                Approve speaker
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {isListenHost && speakers.length > 0 && (
+                        <div className="listenVoiceRoster">
+                          <strong>Approved speakers</strong>
+                          {speakers.map((member) => (
+                            <div key={member.id}>
+                              <span>{member.display_name}</span>
+                              <button
+                                disabled={listenActionKey === `voice-role-${room.id}-${member.user_id}`}
+                                onClick={() => void setListenMemberVoiceRole(room.id, member.user_id, "Listener")}
+                                type="button"
+                              >
+                                Return to listener
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -12664,11 +12924,15 @@ export default function Home() {
                         <button disabled type="button">Private member ({room.listener_count})</button>
                       ) : (
                         <button
-                          disabled={listenActionKey === `join-${room.id}`}
+                          disabled={Boolean(membership) || listenActionKey === `join-${room.id}`}
                           type="button"
                           onClick={() => void handleJoinListenRoom(room.id)}
                         >
-                          {listenActionKey === `join-${room.id}` ? "Joining..." : `Join room (${room.listener_count})`}
+                          {membership
+                            ? `Joined (${room.listener_count})`
+                            : listenActionKey === `join-${room.id}`
+                              ? "Joining..."
+                              : `Join room (${room.listener_count})`}
                         </button>
                       )}
                       <button
