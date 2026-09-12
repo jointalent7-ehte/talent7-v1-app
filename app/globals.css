@@ -7082,6 +7082,11 @@ body:has(.publicRoomLanding) {
   color: #bdcbd0;
 }
 
+.supporterPaymentActions .supporterPaymentStatusError {
+  color: #ffd879;
+  font-weight: 750;
+}
+
 .supporterTierGrid button,
 .supporterPaymentActions button {
   min-height: 46px;

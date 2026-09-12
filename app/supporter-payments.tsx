@@ -177,6 +177,7 @@ export default function SupporterPayments({
 }) {
   const [status, setStatus] = useState<PaymentStatus>({ entitlement: null, payments: [] });
   const [loadingStatus, setLoadingStatus] = useState(false);
+  const [statusLoadError, setStatusLoadError] = useState("");
   const [actionKey, setActionKey] = useState("");
   const [checkoutPhone, setCheckoutPhone] = useState("");
   const [customAmountInr, setCustomAmountInr] = useState("1");
@@ -190,9 +191,10 @@ export default function SupporterPayments({
     onNoticeRef.current = onNotice;
   }, [onEntitlementChange, onNotice]);
 
-  const refreshStatus = useCallback(async () => {
+  const refreshStatus = useCallback(async ({ showError = false }: { showError?: boolean } = {}) => {
     if (!accessToken) {
       setStatus({ entitlement: null, payments: [] });
+      setStatusLoadError("");
       onEntitlementChangeRef.current(null);
       return null;
     }
@@ -200,10 +202,16 @@ export default function SupporterPayments({
     try {
       const nextStatus = await apiRequest<PaymentStatus>("/api/payments/status", accessToken);
       setStatus(nextStatus);
+      setStatusLoadError("");
       onEntitlementChangeRef.current(nextStatus.entitlement?.active ? nextStatus.entitlement.tier : null);
       return nextStatus;
     } catch (error) {
-      onNoticeRef.current(error instanceof Error ? error.message : "Badge purchase status could not be loaded.", "error");
+      const rawMessage = error instanceof Error ? error.message : "";
+      const message = /failed to fetch|networkerror|load failed/i.test(rawMessage)
+        ? "Payment status could not be refreshed. Check your connection and try again."
+        : rawMessage || "Badge purchase status could not be loaded.";
+      setStatusLoadError(message);
+      if (showError) onNoticeRef.current(message, "error");
       return null;
     } finally {
       setLoadingStatus(false);
@@ -672,7 +680,16 @@ export default function SupporterPayments({
             Restore Google Play purchases
           </button>
         )}
-        {!nativeBilling && <button disabled={loadingStatus || !accessToken} onClick={() => void refreshStatus()} type="button">Refresh payment status</button>}
+        {!nativeBilling && (
+          <button
+            disabled={loadingStatus || !accessToken}
+            onClick={() => void refreshStatus({ showError: true })}
+            type="button"
+          >
+            Refresh payment status
+          </button>
+        )}
+        {statusLoadError && <small className="supporterPaymentStatusError">{statusLoadError}</small>}
       </div>
 
       {capturedPayments.length > 0 && (
