@@ -1,6 +1,6 @@
 # Talent7
 
-Talent7 is a proof-based talent-and-sports challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, free challenge rooms, Local Listen voice rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, founder feedback, and three optional fixed-price digital profile badges. Gaming categories are retired. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
+Talent7 is a proof-based talent-and-sports challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, free challenge rooms, challenge-room officials (up to three judges, camera operator, moderator, proof verifier, and scorekeeper), Local Listen voice rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, founder feedback, and three optional fixed-price digital profile badges. Gaming categories are retired. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
 
 ## Local development
 
@@ -62,7 +62,7 @@ Follow [R2_SETUP.md](R2_SETUP.md). The access and secret keys are server-only an
 
 ## Database setup
 
-Run the SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. For a database already current through migration 76, apply migrations 77 through 79 to restore Listen, add locality-based voice rooms, and notify hosts about microphone requests. Legacy feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
+Run the SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. For a database already current through migration 76, apply migrations 77 through 80 to restore Listen, add locality-based voice rooms and host microphone notifications, and enable staffed challenge rooms. Legacy feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
 
 Uploading the repository to GitHub does not apply Supabase migrations. Run them separately in the Supabase SQL editor or through your migration workflow.
 
