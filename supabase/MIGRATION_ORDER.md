@@ -1,6 +1,6 @@
 # Supabase migration order
 
-This is the canonical inventory for the current source tree: **79 numbered SQL files in dependency order**. For a new project, run every numbered file below from top to bottom in the Supabase SQL editor. For an existing project, back up the database and run only files that have not already been applied. GitHub and Vercel deployments do not apply SQL.
+This is the canonical inventory for the current source tree: **81 numbered SQL files in dependency order**. For a new project, run every numbered file below from top to bottom in the Supabase SQL editor. For an existing project, back up the database and run only files that have not already been applied. GitHub and Vercel deployments do not apply SQL.
 
 1. `schema.sql`
 2. `add-challenge-joins.sql`
@@ -82,11 +82,12 @@ This is the canonical inventory for the current source tree: **79 numbered SQL f
 78. `add-area-voice-listen-rooms.sql`
 79. `add-listen-microphone-notifications.sql`
 80. `add-challenge-room-staff.sql`
+81. `add-challenge-room-staff-invitations.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider.
 
 The Showcase, Coaching, and Guidance migrations remain in this history because production may already contain their records and account deletion still cleans up their data and media. Their launch UI routes are closed and redirected to the Plans roadmap preview. Do not drop, reorder, or replay those migrations merely because the services are not currently active.
 
-`retire-listen-and-gaming.sql` preserves historical rows while closing the earlier Listen implementation and preventing new or changed gaming-category challenges, teams, profiles, and first-wave roles. `restore-listen-rooms.sql` reopens Listen without restoring gaming. `add-area-voice-listen-rooms.sql` then adds locality discovery plus moderated Host, Speaker, and Listener voice roles. `add-listen-microphone-notifications.sql` adds real-time in-app and Android push alerts for new microphone requests. `add-challenge-room-staff.sql` adds up to three judges plus camera operator, moderator, proof verifier, and scorekeeper permissions to challenge rooms.
+`retire-listen-and-gaming.sql` preserves historical rows while closing the earlier Listen implementation and preventing new or changed gaming-category challenges, teams, profiles, and first-wave roles. `restore-listen-rooms.sql` reopens Listen without restoring gaming. `add-area-voice-listen-rooms.sql` then adds locality discovery plus moderated Host, Speaker, and Listener voice roles. `add-listen-microphone-notifications.sql` adds real-time in-app and Android push alerts for new microphone requests. `add-challenge-room-staff.sql` adds up to three judges plus camera operator, moderator, proof verifier, and scorekeeper permissions to challenge rooms. `add-challenge-room-staff-invitations.sql` changes new official assignments into consent-based invitations and activates official powers only after acceptance.
 
 Never rerun the complete list against an existing production database. First compare Supabase migration history with this file, then apply only missing migrations in this order.
