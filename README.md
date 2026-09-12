@@ -1,6 +1,6 @@
 # Talent7
 
-Talent7 is a proof-based talent-and-sports challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, free challenge rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, founder feedback, and three optional fixed-price digital profile badges. Listen and gaming categories are retired. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
+Talent7 is a proof-based talent-and-sports challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, free challenge rooms, Local Listen voice rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, founder feedback, and three optional fixed-price digital profile badges. Gaming categories are retired. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
 
 ## Local development
 
@@ -38,9 +38,9 @@ GOOGLE_PLAY_SERVICE_ACCOUNT_JSON=raw_or_base64_service_account_json
 GOOGLE_PLAY_RTDN_TOKEN=your_long_random_notification_token
 ```
 
-`NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. The Turnstile site key is intentionally public; its matching secret key must be entered only in Supabase Authentication CAPTCHA settings. The service-role key is used only by the authenticated admin account-deletion endpoint. Add it to Vercel Production as a sensitive server-only value; never give it a `NEXT_PUBLIC_` prefix and never commit it.
+`NEXT_PUBLIC_SITE_URL` is used for canonical metadata, the sitemap, and robots directives. The Turnstile site key is intentionally public; its matching secret key must be entered only in Supabase Authentication CAPTCHA settings. The service-role key is used only by authenticated server endpoints, including account deletion and Listen voice authorization. Add it to Vercel Production as a sensitive server-only value; never give it a `NEXT_PUBLIC_` prefix and never commit it.
 
-The three LiveKit values enable native Talent7 camera broadcasts in challenge rooms. Create a LiveKit Cloud project, copy its WebSocket URL and API credentials into Vercel Production, and keep the API key and secret server-only. YouTube remains available in the app as a fallback broadcast method.
+The three LiveKit values enable native Talent7 camera broadcasts in challenge rooms and audio-only Local Listen rooms. Create a LiveKit Cloud project, copy its WebSocket URL and API credentials into Vercel Production, and keep the API key and secret server-only. YouTube remains available in the app as a fallback broadcast method.
 
 Follow [LIVEKIT_SETUP.md](LIVEKIT_SETUP.md) to configure and test native broadcasts on the website and Android wrapper.
 
@@ -62,7 +62,7 @@ Follow [R2_SETUP.md](R2_SETUP.md). The access and secret keys are server-only an
 
 ## Database setup
 
-Run the 75 SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. Legacy feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
+Run the SQL files in `supabase/` in the canonical order documented in [supabase/MIGRATION_ORDER.md](supabase/MIGRATION_ORDER.md). Existing projects must apply only migrations they have not already run. For a database already current through migration 76, apply migrations 77 and 78 to restore Listen and add locality-based voice rooms. Legacy feature schemas remain in the history to preserve existing data; closing their UI routes does not authorize dropping their tables.
 
 Uploading the repository to GitHub does not apply Supabase migrations. Run them separately in the Supabase SQL editor or through your migration workflow.
 

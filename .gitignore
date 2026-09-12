@@ -1,6 +1,7 @@
 node_modules/
 .next/
 out/
+.npm-cache/
 
 .env*
 !.env.example
