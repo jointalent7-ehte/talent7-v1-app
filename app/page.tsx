@@ -921,6 +921,8 @@ type ChallengeRoomStaff = {
   display_name: string;
   role: ChallengeStaffRole;
   assigned_by: string;
+  status: "Pending" | "Accepted" | "Declined";
+  responded_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -3782,6 +3784,39 @@ export default function Home() {
       };
     });
 
+    const roomOfficialInvitationAlerts = challengeRoomStaff
+      .filter((staff) => staff.user_id === userId)
+      .map((staff) => ({
+        id: `notification-room-official-${staff.id}`,
+        label: staff.status === "Pending" ? "Official invitation" : "Official invitation updated",
+        category: "Invites" as const,
+        title: challengeTitle(staff.challenge_id),
+        detail:
+          staff.status === "Pending"
+            ? `You were invited to be ${staff.role}. Open the room to accept or decline.`
+            : staff.status === "Accepted"
+              ? `You accepted the ${staff.role} role. Your official controls are now active.`
+              : `You declined the ${staff.role} role. No official access was granted.`,
+        createdAt: staff.responded_at || staff.updated_at || staff.created_at,
+        href: `#${roomHash(staff.challenge_id)}`,
+        challengeId: staff.challenge_id,
+        challengeTitle: challengeTitle(staff.challenge_id)
+      }));
+
+    const roomOfficialResponseAlerts = challengeRoomStaff
+      .filter((staff) => staff.assigned_by === userId && staff.user_id !== userId && staff.status !== "Pending")
+      .map((staff) => ({
+        id: `notification-room-official-response-${staff.id}-${staff.status}`,
+        label: "Official invitation response",
+        category: "Invites" as const,
+        title: challengeTitle(staff.challenge_id),
+        detail: `${staff.display_name} ${staff.status.toLowerCase()} the ${staff.role} invitation.`,
+        createdAt: staff.responded_at || staff.updated_at || staff.created_at,
+        href: `#${roomHash(staff.challenge_id)}`,
+        challengeId: staff.challenge_id,
+        challengeTitle: challengeTitle(staff.challenge_id)
+      }));
+
     const sentInviteAlerts = inviteInbox.sent
       .filter((invite) => challengeInviteDisplayStatus(invite) !== "Pending")
       .map((invite) => {
@@ -4057,6 +4092,8 @@ export default function Home() {
       ...realtimeRoomAlerts,
       ...receivedInviteAlerts,
       ...sentInviteAlerts,
+      ...roomOfficialInvitationAlerts,
+      ...roomOfficialResponseAlerts,
       ...teamOwnerAlerts,
       ...teamMemberAlerts,
       ...proofAlerts,
@@ -4079,6 +4116,7 @@ export default function Home() {
       .slice(0, 12);
   }, [
     challengeTitle,
+    challengeRoomStaff,
     challenges,
     dismissedNotificationKeys,
     expertHelpRequests,
@@ -4122,19 +4160,24 @@ export default function Home() {
       tone: "urgent" | "attention" | "next" | "ready";
     }> = [];
     const pendingInvites = myDashboard.pendingInvites.length;
+    const pendingOfficialInvites = challengeRoomStaff.filter(
+      (staff) => staff.user_id === session.user.id && staff.status === "Pending"
+    ).length;
     const pendingTeams = myDashboard.pendingTeamRequests;
     const otherUnread = unreadNotifications.filter(
       (notification) => notification.category !== "Invites" && notification.category !== "Teams"
     ).length;
     const nextOnboardingStep = onboardingSteps.find((step) => !step.done);
 
-    if (pendingInvites > 0) {
+    if (pendingInvites + pendingOfficialInvites > 0) {
       priorities.push({
         id: "pending-invites",
         label: "Challenge invite",
-        title: `${pendingInvites} invite${pendingInvites === 1 ? "" : "s"} waiting`,
-        detail: "Accept or decline so the challenger knows whether you are joining.",
-        href: "#invites",
+        title: `${pendingInvites + pendingOfficialInvites} invite${pendingInvites + pendingOfficialInvites === 1 ? "" : "s"} waiting`,
+        detail: pendingOfficialInvites
+          ? "A room official role needs your consent. Open Notifications, then the room, to accept or decline."
+          : "Accept or decline so the challenger knows whether you are joining.",
+        href: pendingOfficialInvites ? "#notifications" : "#invites",
         action: "Review invites",
         tone: "urgent"
       });
@@ -4203,7 +4246,7 @@ export default function Home() {
     }
 
     return priorities.slice(0, 4);
-  }, [myDashboard, onboardingSteps, profile, session, unreadNotifications]);
+  }, [challengeRoomStaff, myDashboard, onboardingSteps, profile, session, unreadNotifications]);
 
   const visibleNotifications = useMemo(() => {
     const readSet = new Set(readNotificationKeys);
@@ -4809,7 +4852,10 @@ export default function Home() {
     return (
       joins.some((join) => join.challenge_id === challenge.id && join.user_id === session.user.id) ||
       challengeRoomStaff.some(
-        (staff) => staff.challenge_id === challenge.id && staff.user_id === session.user.id
+        (staff) =>
+          staff.challenge_id === challenge.id &&
+          staff.user_id === session.user.id &&
+          staff.status === "Accepted"
       )
     );
   }
@@ -4822,7 +4868,10 @@ export default function Home() {
     if (!session?.user.id) return null;
     return (
       challengeRoomStaff.find(
-        (staff) => staff.challenge_id === challengeId && staff.user_id === session.user.id
+        (staff) =>
+          staff.challenge_id === challengeId &&
+          staff.user_id === session.user.id &&
+          staff.status === "Accepted"
       )?.role || null
     );
   }
@@ -10429,6 +10478,8 @@ export default function Home() {
         display_name: selectedProfile.display_name,
         role,
         assigned_by: session?.user.id || "preview",
+        status: "Pending",
+        responded_at: null,
         created_at: existing?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -10437,7 +10488,7 @@ export default function Home() {
         nextStaff
       ]);
       formElement.reset();
-      setMessage(`${selectedProfile.display_name} assigned as ${role}.`);
+      setMessage(`Invitation sent to ${selectedProfile.display_name} for ${role}.`);
       setChallengeStaffActionKey(null);
       return;
     }
@@ -10459,9 +10510,66 @@ export default function Home() {
           ),
           assigned
         ]);
-        setMessage(`${assigned.display_name} assigned as ${assigned.role}.`);
+        setMessage(`Invitation sent to ${assigned.display_name} for ${assigned.role}.`);
       }
       formElement.reset();
+    }
+
+    setChallengeStaffActionKey(null);
+  }
+
+  async function respondChallengeRoomStaffInvitation(
+    staff: ChallengeRoomStaff,
+    challenge: Challenge,
+    status: "Accepted" | "Declined"
+  ) {
+    if (!requireLogin(`${status.toLowerCase()} this room official invitation`)) return;
+    if (staff.user_id !== session?.user.id || staff.status !== "Pending") {
+      setMessage("This room official invitation is no longer waiting for your response.", "error");
+      return;
+    }
+
+    const actionKey = `${staff.id}-${status.toLowerCase()}`;
+    setChallengeStaffActionKey(actionKey);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      const respondedAt = new Date().toISOString();
+      setChallengeRoomStaff((items) =>
+        items.map((item) =>
+          item.id === staff.id
+            ? { ...item, status, responded_at: respondedAt, updated_at: respondedAt }
+            : item
+        )
+      );
+      setMessage(
+        status === "Accepted"
+          ? `You accepted the ${staff.role} role. Your official controls are now active.`
+          : `You declined the ${staff.role} role. No official access was granted.`
+      );
+      setChallengeStaffActionKey(null);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("respond_challenge_room_staff_invitation", {
+      target_staff_id: staff.id,
+      target_status: status
+    });
+
+    if (error) {
+      setMessage(`Could not ${status.toLowerCase()} the official invitation: ${error.message}`, "error");
+    } else {
+      const updatedStaff = (data as ChallengeRoomStaff[] | null)?.[0];
+      if (updatedStaff) {
+        setChallengeRoomStaff((items) =>
+          items.map((item) => (item.id === updatedStaff.id ? updatedStaff : item))
+        );
+      }
+      setMessage(
+        status === "Accepted"
+          ? `You accepted the ${staff.role} role. Your official controls are now active.`
+          : `You declined the ${staff.role} role. No official access was granted.`
+      );
     }
 
     setChallengeStaffActionKey(null);
@@ -16684,9 +16792,16 @@ export default function Home() {
             const roleNotice = teamPermissionLabel(challenge);
             const messages = roomMessages[challenge.id] || [];
             const assignedRoomStaff = roomStaff(challenge.id);
-            const assignedJudges = assignedRoomStaff.filter((staff) => staff.role === "Judge");
+            const activeRoomStaff = assignedRoomStaff.filter((staff) => staff.status === "Accepted");
+            const reservedJudges = assignedRoomStaff.filter(
+              (staff) => staff.role === "Judge" && staff.status !== "Declined"
+            );
+            const assignedJudges = activeRoomStaff.filter((staff) => staff.role === "Judge");
             const judgeScores = challengeJudgeScores.filter((score) => score.challenge_id === challenge.id);
             const currentStaffRole = currentRoomStaffRole(challenge.id);
+            const currentStaffInvitation = session?.user.id
+              ? assignedRoomStaff.find((staff) => staff.user_id === session.user.id) || null
+              : null;
             const currentJudgeScore = session?.user.id
               ? judgeScores.find((score) => score.judge_user_id === session.user.id) || null
               : null;
@@ -16976,10 +17091,38 @@ export default function Home() {
                   <div>
                     <span>Room officials</span>
                     <strong>Independent roles for a fair challenge</strong>
-                    <small>Up to 3 judges. Camera, moderation, proof, and scorekeeping roles are limited to one person each.</small>
+                    <small>Officials receive an invitation first. Their controls activate only after they accept.</small>
                   </div>
                   {currentStaffRole && <em>Your role: {currentStaffRole}</em>}
+                  {currentStaffInvitation?.status === "Pending" && <em className="pending">Your response is needed</em>}
                 </div>
+
+                {currentStaffInvitation?.status === "Pending" && (
+                  <div className="challengeStaffInvitation">
+                    <div>
+                      <span>Official invitation</span>
+                      <strong>You were invited to be {currentStaffInvitation.role}</strong>
+                      <small>Accept to activate the role’s room controls, or decline with no access granted.</small>
+                    </div>
+                    <div>
+                      <button
+                        disabled={Boolean(challengeStaffActionKey)}
+                        onClick={() => void respondChallengeRoomStaffInvitation(currentStaffInvitation, challenge, "Accepted")}
+                        type="button"
+                      >
+                        {challengeStaffActionKey === `${currentStaffInvitation.id}-accepted` ? "Accepting…" : "Accept role"}
+                      </button>
+                      <button
+                        className="decline"
+                        disabled={Boolean(challengeStaffActionKey)}
+                        onClick={() => void respondChallengeRoomStaffInvitation(currentStaffInvitation, challenge, "Declined")}
+                        type="button"
+                      >
+                        {challengeStaffActionKey === `${currentStaffInvitation.id}-declined` ? "Declining…" : "Decline"}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="challengeStaffRoster">
                   {assignedRoomStaff.length > 0 ? (
@@ -16991,7 +17134,12 @@ export default function Home() {
                           {roleMembers.length > 0 ? (
                             roleMembers.map((staff) => (
                               <p key={staff.id}>
-                                <strong>{staff.display_name}</strong>
+                                <span>
+                                  <strong>{staff.display_name}</strong>
+                                  <small className={`challengeStaffStatus ${staff.status.toLowerCase()}`}>
+                                    {staff.status}
+                                  </small>
+                                </span>
                                 {canAssignRoomStaff(challenge) && (
                                   <button
                                     disabled={challengeStaffActionKey === `${staff.id}-remove`}
@@ -17028,13 +17176,13 @@ export default function Home() {
                       <select name="role" defaultValue="Judge">
                         {challengeStaffRoles.map((role) => (
                           <option key={role} value={role}>
-                            {role}{role === "Judge" ? ` (${assignedJudges.length}/3 assigned)` : ""}
+                            {role}{role === "Judge" ? ` (${reservedJudges.length}/3 pending or active)` : ""}
                           </option>
                         ))}
                       </select>
                     </label>
                     <button disabled={challengeStaffActionKey === `${challenge.id}-assign`} type="submit">
-                      {challengeStaffActionKey === `${challenge.id}-assign` ? "Assigning…" : "Assign official"}
+                      {challengeStaffActionKey === `${challenge.id}-assign` ? "Sending invitation…" : "Invite official"}
                     </button>
                   </form>
                 )}

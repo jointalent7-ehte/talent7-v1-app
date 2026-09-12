@@ -14496,6 +14496,68 @@ html[data-talent7-theme="dark"] main > .section :where(
   font-weight: 850;
 }
 
+.challengeStaffHeader em.pending {
+  color: #654900;
+  background: #ffdda0;
+}
+
+.challengeStaffInvitation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 15px;
+  color: #f8fbff;
+  background: linear-gradient(135deg, #113e51, #234d6c 55%, #5545ad);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 13px;
+  box-shadow: 0 12px 26px rgba(31, 62, 91, 0.18);
+}
+
+.challengeStaffInvitation > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.challengeStaffInvitation span {
+  color: #ffd163;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.challengeStaffInvitation strong {
+  color: #fff;
+}
+
+.challengeStaffInvitation small {
+  color: #dcebf2;
+  font-weight: 700;
+}
+
+.challengeStaffInvitation > div:last-child {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.challengeStaffInvitation button {
+  min-height: 39px;
+  padding: 8px 13px;
+  color: #073b38;
+  background: #74e2d5;
+  border: 1px solid #9cf1e7;
+  border-radius: 9px;
+  font-weight: 900;
+}
+
+.challengeStaffInvitation button.decline {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.42);
+}
+
 .challengeStaffRoster {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -14538,6 +14600,36 @@ html[data-talent7-theme="dark"] main > .section :where(
   color: var(--ink);
   font-size: 0.84rem;
   overflow-wrap: anywhere;
+}
+
+.challengeStaffRoster p > span {
+  display: grid;
+  gap: 3px;
+}
+
+.challengeStaffRoster .challengeStaffStatus {
+  justify-self: start;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.challengeStaffStatus.pending {
+  color: #745300;
+  background: #fff0bf;
+}
+
+.challengeStaffStatus.accepted {
+  color: #075d45;
+  background: #dff7ec;
+}
+
+.challengeStaffStatus.declined {
+  color: #922f3b;
+  background: #fff0f2;
 }
 
 .challengeStaffRoster p button {
@@ -14718,6 +14810,21 @@ html[data-talent7-theme="dark"] .challengeStaffPanel :where(small, .challengeJud
   color: #c4cbd9;
 }
 
+html[data-talent7-theme="dark"] .challengeStaffPanel .challengeStaffStatus.pending {
+  color: #ffda78;
+  background: rgba(255, 190, 52, 0.14);
+}
+
+html[data-talent7-theme="dark"] .challengeStaffPanel .challengeStaffStatus.accepted {
+  color: #82e5c5;
+  background: rgba(39, 180, 132, 0.15);
+}
+
+html[data-talent7-theme="dark"] .challengeStaffPanel .challengeStaffStatus.declined {
+  color: #ff9baa;
+  background: rgba(220, 69, 91, 0.15);
+}
+
 @media (max-width: 900px) {
   .challengeStaffRoster {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -14732,6 +14839,10 @@ html[data-talent7-theme="dark"] .challengeStaffPanel :where(small, .challengeJud
   .challengeJudgeScoreForm .wide {
     grid-column: 1 / -1;
   }
+
+  .challengeStaffInvitation {
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 560px) {
@@ -14745,6 +14856,12 @@ html[data-talent7-theme="dark"] .challengeStaffPanel :where(small, .challengeJud
 
   .challengeStaffHeader em {
     justify-self: start;
+  }
+
+  .challengeStaffInvitation,
+  .challengeStaffInvitation > div:last-child {
+    display: grid;
+    width: 100%;
   }
 
   .challengeStaffRoster,
