@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import { containsRetiredGamingContent } from "./product-scope";
 
 export type PublicTalentTeam = {
   team_name: string;
@@ -35,7 +34,5 @@ export async function getPublicTalentTeam(token: string) {
     .maybeSingle();
 
   if (error || !data) return null;
-  const team = data as PublicTalentTeam;
-  if (containsRetiredGamingContent(team.team_type, team.main_activity, team.description)) return null;
-  return team;
+  return data as PublicTalentTeam;
 }

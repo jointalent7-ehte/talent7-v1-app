@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import { isRetiredGamingChallenge } from "./product-scope";
 
 export type PublicChallengeResult = {
   challenge_title: string;
@@ -40,11 +39,5 @@ export async function getPublicChallengeResult(token: string) {
     .maybeSingle();
 
   if (error || !data) return null;
-  const result = data as PublicChallengeResult;
-  if (isRetiredGamingChallenge({
-    lane: result.challenge_lane,
-    sport_type: result.sport_type,
-    title: result.challenge_title
-  })) return null;
-  return result;
+  return data as PublicChallengeResult;
 }
