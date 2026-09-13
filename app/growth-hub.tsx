@@ -76,6 +76,23 @@ type RewardEvent = {
   created_at: string;
 };
 
+type LocalLeaderboardScope = "Area" | "City" | "Country" | "Global";
+
+type LocalLeaderboardEntry = {
+  rank_position: number;
+  user_id: string;
+  display_name: string;
+  username: string;
+  avatar_url: string | null;
+  main_interest: string;
+  location_label: string;
+  rank_points: number;
+  xp: number;
+  tier: string;
+  wins: number;
+  completed_count: number;
+};
+
 const talent7TierSteps = [
   { name: "Rookie", points: 0 },
   { name: "Rising Star", points: 100 },
@@ -96,15 +113,31 @@ function tierProgress(points: number) {
   return { current, next, percent };
 }
 
+function LocalLeaderboardAvatar({ entry }: { entry: LocalLeaderboardEntry }) {
+  if (!entry.avatar_url) return <>{entry.display_name.trim().charAt(0).toUpperCase() || "7"}</>;
+
+  // Member-selected HTTPS media has dynamic hosts, so this cannot use a fixed Next Image host allowlist.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img alt="" src={entry.avatar_url} />;
+}
+
 export default function GrowthHub({
+  area,
+  city,
+  country,
   userId,
   displayName,
+  localLeaderboardVisible,
   mainInterest,
   readyNowUntil,
   onReadyNowChange
 }: {
+  area: string;
+  city: string;
+  country: string;
   userId: string;
   displayName: string;
+  localLeaderboardVisible: boolean;
   mainInterest: string;
   readyNowUntil?: string | null;
   onReadyNowChange: (value: string | null) => void;
@@ -116,6 +149,13 @@ export default function GrowthHub({
   const [activityRanks, setActivityRanks] = useState<ActivityRank[]>([]);
   const [trophies, setTrophies] = useState<Trophy[]>([]);
   const [rewardEvents, setRewardEvents] = useState<RewardEvent[]>([]);
+  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>([]);
+  const [localLeaderboardScope, setLocalLeaderboardScope] = useState<LocalLeaderboardScope>(
+    area ? "Area" : city ? "City" : country ? "Country" : "Global"
+  );
+  const [localLeaderboardActivity, setLocalLeaderboardActivity] = useState<"Overall" | "My activity">("Overall");
+  const [localLeaderboardLoading, setLocalLeaderboardLoading] = useState(false);
+  const [localLeaderboardError, setLocalLeaderboardError] = useState("");
   const [busyAction, setBusyAction] = useState<"ready" | "league" | "refresh" | null>(null);
   const [message, setMessage] = useState("");
   const [readyClock, setReadyClock] = useState(0);
@@ -204,6 +244,43 @@ export default function GrowthHub({
     void loadGrowth();
   }, [loadGrowth]);
 
+  const loadLocalLeaderboard = useCallback(async () => {
+    if (!supabase) return;
+    const locationByScope: Record<LocalLeaderboardScope, string> = { Area: area, City: city, Country: country, Global: "" };
+    const targetLocation = locationByScope[localLeaderboardScope];
+
+    if (localLeaderboardScope !== "Global" && !targetLocation) {
+      setLocalLeaderboard([]);
+      setLocalLeaderboardError(`Add your ${localLeaderboardScope.toLowerCase()} in Account settings to open this board.`);
+      return;
+    }
+
+    setLocalLeaderboardLoading(true);
+    setLocalLeaderboardError("");
+    const { data, error } = await supabase.rpc("get_talent7_local_leaderboard", {
+      target_scope: localLeaderboardScope,
+      target_location: targetLocation || null,
+      target_activity: localLeaderboardActivity === "My activity" ? mainInterest : null,
+      result_limit: 20
+    });
+
+    if (error) {
+      setLocalLeaderboard([]);
+      setLocalLeaderboardError(
+        error.message.includes("get_talent7_local_leaderboard")
+          ? "Local leaderboards are waiting for the latest Supabase migration."
+          : error.message
+      );
+    } else {
+      setLocalLeaderboard((data || []) as LocalLeaderboardEntry[]);
+    }
+    setLocalLeaderboardLoading(false);
+  }, [area, city, country, localLeaderboardActivity, localLeaderboardScope, mainInterest]);
+
+  useEffect(() => {
+    void loadLocalLeaderboard();
+  }, [loadLocalLeaderboard]);
+
   async function setReady(minutes: number) {
     if (!supabase) return;
     setBusyAction("ready");
@@ -234,7 +311,7 @@ export default function GrowthHub({
 
   async function refreshProgress() {
     setBusyAction("refresh");
-    await loadGrowth();
+    await Promise.all([loadGrowth(), loadLocalLeaderboard()]);
     setMessage("Talent7 rank, trophies, achievements, and weekly scores refreshed.");
     setBusyAction(null);
   }
@@ -343,6 +420,84 @@ export default function GrowthHub({
               {latestReward.proof_bonus ? " · Proof bonus" : ""}
               {latestReward.tier_after !== latestReward.tier_before ? ` · ${latestReward.tier_after} unlocked` : ""}
             </small>
+          </div>
+        )}
+      </section>
+
+      <section className="localLeagueBoard" aria-labelledby="local-league-board-title">
+        <div className="localLeagueBoardHeader">
+          <div>
+            <span>Local rankings</span>
+            <h4 id="local-league-board-title">Represent your area. Rise through your city.</h4>
+            <small>Proof-backed Talent7 League results only. Rank Points decide position; wins break ties.</small>
+          </div>
+          <div className="localLeagueBoardIdentity">
+            <strong>{area || city || country || "Choose your location"}</strong>
+            <small>{localLeaderboardVisible ? "You are eligible to appear" : "Browsing privately · opt in from Account settings"}</small>
+          </div>
+        </div>
+
+        <div className="localLeagueBoardControls">
+          <div aria-label="Leaderboard location" role="group">
+            {(["Area", "City", "Country", "Global"] as LocalLeaderboardScope[]).map((scope) => {
+              const unavailable = scope === "Area" ? !area : scope === "City" ? !city : scope === "Country" ? !country : false;
+              return (
+                <button
+                  aria-pressed={localLeaderboardScope === scope}
+                  className={localLeaderboardScope === scope ? "active" : ""}
+                  disabled={unavailable}
+                  key={scope}
+                  onClick={() => setLocalLeaderboardScope(scope)}
+                  type="button"
+                >
+                  {scope}
+                </button>
+              );
+            })}
+          </div>
+          <div aria-label="Leaderboard activity" role="group">
+            {(["Overall", "My activity"] as const).map((filter) => (
+              <button
+                aria-pressed={localLeaderboardActivity === filter}
+                className={localLeaderboardActivity === filter ? "active" : ""}
+                disabled={filter === "My activity" && !mainInterest}
+                key={filter}
+                onClick={() => setLocalLeaderboardActivity(filter)}
+                type="button"
+              >
+                {filter === "My activity" ? mainInterest || "My activity" : filter}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {localLeaderboardError ? (
+          <p className="localLeagueBoardNotice">{localLeaderboardError}</p>
+        ) : localLeaderboardLoading ? (
+          <p className="localLeagueBoardNotice">Loading local standings…</p>
+        ) : localLeaderboard.length > 0 ? (
+          <div className="localLeagueStandings">
+            {localLeaderboard.map((entry) => (
+              <article className={entry.user_id === userId ? "mine" : ""} key={entry.user_id}>
+                <b>#{entry.rank_position}</b>
+                <span className="localLeagueAvatar" aria-hidden="true">
+                  <LocalLeaderboardAvatar entry={entry} />
+                </span>
+                <div>
+                  <strong>{entry.display_name}{entry.user_id === userId ? " · You" : ""}</strong>
+                  <small>@{entry.username} · {entry.main_interest || "Open competition"}</small>
+                  <small>{entry.location_label}</small>
+                </div>
+                <span><strong>{entry.tier}</strong><small>{entry.wins} wins · {entry.completed_count} completed</small></span>
+                <b>{entry.rank_points} RP</b>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="localLeagueBoardEmpty">
+            <strong>Be the first ranked challenger here</strong>
+            <small>Complete a Ranked challenge with saved proof to earn Rank Points and enter this board.</small>
+            <a href="#create">Create a Ranked challenge</a>
           </div>
         )}
       </section>

@@ -1496,6 +1496,10 @@ type TalentProfile = {
   role: string;
   main_interest: string;
   region: string;
+  leaderboard_area?: string | null;
+  leaderboard_city?: string | null;
+  leaderboard_country?: string | null;
+  local_leaderboard_visible?: boolean | null;
   avatar_url?: string | null;
   headline?: string | null;
   bio?: string | null;
@@ -8705,6 +8709,10 @@ export default function Home() {
     const availabilityNote = String(form.get("availability_note") || "").trim();
     const headline = String(form.get("headline") || "").trim();
     const bio = String(form.get("bio") || "").trim();
+    const leaderboardArea = String(form.get("leaderboard_area") || "").trim();
+    const leaderboardCity = String(form.get("leaderboard_city") || "").trim();
+    const leaderboardCountry = String(form.get("leaderboard_country") || "").trim();
+    const localLeaderboardVisible = form.get("local_leaderboard_visible") === "on";
     const passportTheme = String(form.get("passport_theme") || "Aurora") as PassportTheme;
     const featuredActivities = Array.from(new Set(
       form.getAll("passport_featured_activities").map((value) => String(value).trim()).filter(Boolean)
@@ -8732,6 +8740,16 @@ export default function Home() {
 
     if (bio.length > 360) {
       setMessage("Keep your Passport bio under 360 characters.", "warning");
+      return;
+    }
+
+    if ([leaderboardArea, leaderboardCity, leaderboardCountry].some((value) => value.length > 80)) {
+      setMessage("Keep each leaderboard location under 80 characters.", "warning");
+      return;
+    }
+
+    if (localLeaderboardVisible && (!leaderboardArea || !leaderboardCity || !leaderboardCountry)) {
+      setMessage("Add your area, city, and country before joining local leaderboards.", "warning");
       return;
     }
 
@@ -8770,6 +8788,10 @@ export default function Home() {
       role: String(form.get("role") || "Challenger"),
       main_interest: mainInterest,
       region: String(form.get("region") || "").trim() || "Global",
+      leaderboard_area: leaderboardArea || null,
+      leaderboard_city: leaderboardCity || null,
+      leaderboard_country: leaderboardCountry || null,
+      local_leaderboard_visible: localLeaderboardVisible,
       avatar_url: avatarUrl,
       headline,
       bio,
@@ -13530,6 +13552,34 @@ export default function Home() {
                 Region
                 <input name="region" defaultValue={profile?.region || ""} onInput={(event) => updateProfileStudioPreview({ region: event.currentTarget.value })} placeholder="India, UAE, USA, Global..." />
               </label>
+              <fieldset className="localLeaderboardProfileFields wide">
+                <legend>Local leaderboard identity</legend>
+                <p>
+                  Choose the area you want to represent. Talent7 uses only what you type here and never reads your
+                  device location.
+                </p>
+                <div>
+                  <label>
+                    Area or locality
+                    <input defaultValue={profile?.leaderboard_area || ""} maxLength={80} name="leaderboard_area" placeholder="Nerul" />
+                  </label>
+                  <label>
+                    City
+                    <input defaultValue={profile?.leaderboard_city || ""} maxLength={80} name="leaderboard_city" placeholder="Navi Mumbai" />
+                  </label>
+                  <label>
+                    Country
+                    <input defaultValue={profile?.leaderboard_country || ""} maxLength={80} name="leaderboard_country" placeholder="India" />
+                  </label>
+                </div>
+                <label className="passportVisibilityToggle">
+                  <input defaultChecked={profile?.local_leaderboard_visible === true} name="local_leaderboard_visible" type="checkbox" />
+                  <span>
+                    <strong>Appear on local leaderboards</strong>
+                    <small>Your name, activity, tier, score, and selected leaderboard location become visible to signed-in members.</small>
+                  </span>
+                </label>
+              </fieldset>
               <fieldset className="passportAppearance wide">
                 <legend>Passport appearance and privacy</legend>
                 <label>
@@ -16570,7 +16620,11 @@ export default function Home() {
             </details>
             {profile && (
               <GrowthHub
+                area={profile.leaderboard_area || ""}
+                city={profile.leaderboard_city || ""}
+                country={profile.leaderboard_country || ""}
                 displayName={profile.display_name}
+                localLeaderboardVisible={profile.local_leaderboard_visible === true}
                 mainInterest={profile.main_interest}
                 onReadyNowChange={(value) => {
                   setProfile((current) => current ? { ...current, ready_now_until: value } : current);

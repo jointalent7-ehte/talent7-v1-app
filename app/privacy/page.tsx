@@ -29,7 +29,7 @@ export default function PrivacyPage() {
         <h2>Information We Collect</h2>
         <ul>
           <li>Account information such as email address and login status.</li>
-          <li>Profile information such as display name, username, role, main interest, and region.</li>
+          <li>Profile information such as display name, username, role, main interest, region, and any area, city, or country you optionally enter for local leaderboards.</li>
           <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, reports, and team requests.</li>
           <li>Legacy showcase, coaching, or expert-help records you previously submitted. Their public creation/request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
           <li>Optional support or founder feedback messages you submit.</li>
@@ -68,6 +68,11 @@ export default function PrivacyPage() {
           challenge rooms, public votes, ratings, proofs, follows, teams, and results may be visible
           to other users. Your Saved rooms collection is private to your account. Do not submit private information
           you do not want shown publicly.
+        </p>
+        <p>
+          Local leaderboards are optional. Talent7 does not read your device location for them. If you opt in,
+          signed-in members can see the area, city, and country you chose alongside your leaderboard identity,
+          activity, tier, Rank Points, and competition totals.
         </p>
       </section>
 
