@@ -1,6 +1,6 @@
 # Talent7
 
-Talent7 is a proof-based talent-and-sports challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, free challenge rooms, challenge-room officials (up to three judges, camera operator, moderator, proof verifier, and scorekeeper), Local Listen voice rooms, teams, profiles, sharing, Ready Now matching, weekly leagues, achievements, notifications, invitations, moderation, founder feedback, and three optional fixed-price digital profile badges. Gaming categories are retired. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
+Talent7 is a proof-based talent, sports, and multiplayer-gaming challenge platform built with Next.js, React, TypeScript, and Supabase. The active launch product supports accounts, free challenge rooms, challenge-room officials (up to three judges, camera operator, moderator, proof verifier, and scorekeeper), Local Listen voice rooms, sports teams and gaming clans, profiles, sharing, Ready Now matching, open challenger queues, weekly leagues, achievements, notifications, invitations, moderation, founder feedback, and three optional fixed-price digital profile badges. Showcase Talent, Coaching, and Guidance are future previews shown only in Plans and Roadmap; their legacy hashes redirect there and cannot reopen the archived launch UI.
 
 ## Local development
 
