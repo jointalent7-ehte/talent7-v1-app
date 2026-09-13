@@ -16,6 +16,55 @@ export type PublicTalentProfile = {
   completed_count: number;
   proof_count: number;
   supporter_tier: string | null;
+  passport: PublicTalent7Passport | null;
+};
+
+export type PublicTalent7Rank = {
+  tier: string;
+  xp: number;
+  rank_points: number;
+  completed_count: number;
+  wins: number;
+  losses: number;
+};
+
+export type PublicTalent7ActivityRank = PublicTalent7Rank & {
+  activity: string;
+  current_streak: number;
+  best_streak: number;
+};
+
+export type PublicTalent7Trophy = {
+  title: string;
+  detail: string;
+  rarity: string;
+  icon_key: string;
+  earned_at: string;
+};
+
+export type PublicTalent7Result = {
+  challenge_title: string;
+  activity: string;
+  competition_mode: string;
+  won: boolean;
+  proof_bonus: boolean;
+  xp_delta: number;
+  rank_points_delta: number;
+  final_score: string | null;
+  completed_at: string;
+};
+
+export type PublicTalent7Passport = {
+  season: {
+    name?: string;
+    status?: string;
+    starts_at?: string;
+    ends_at?: string;
+  };
+  rank: PublicTalent7Rank;
+  activity_ranks: PublicTalent7ActivityRank[];
+  trophies: PublicTalent7Trophy[];
+  recent_results: PublicTalent7Result[];
 };
 
 function publicSupabaseClient() {
@@ -33,15 +82,19 @@ export async function getPublicTalentProfile(token: string) {
   const client = publicSupabaseClient();
   if (!client) return null;
 
-  const [profileResult, supporterResult] = await Promise.all([
+  const [profileResult, supporterResult, passportResult] = await Promise.all([
     client.rpc("get_public_profile_preview", { target_share_token: token }).maybeSingle(),
-    client.rpc("get_public_supporter_badge", { target_share_token: token })
+    client.rpc("get_public_supporter_badge", { target_share_token: token }),
+    client.rpc("get_public_talent7_passport", { target_share_token: token })
   ]);
 
   if (profileResult.error || !profileResult.data) return null;
-  const profile = profileResult.data as Omit<PublicTalentProfile, "supporter_tier">;
+  const profile = profileResult.data as Omit<PublicTalentProfile, "supporter_tier" | "passport">;
   return {
     ...profile,
-    supporter_tier: supporterResult.error ? null : String(supporterResult.data || "") || null
+    supporter_tier: supporterResult.error ? null : String(supporterResult.data || "") || null,
+    passport: passportResult.error || !passportResult.data
+      ? null
+      : passportResult.data as PublicTalent7Passport
   };
 }
