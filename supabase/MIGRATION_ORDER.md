@@ -94,6 +94,7 @@ This is the canonical inventory for the current source tree: **87 numbered SQL f
 90. `add-rivalries.sql`
 91. `add-automatic-highlight-reels.sql`
 92. `add-clubs-and-scouting.sql`
+93. `add-sponsored-tournament-prizes.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening. `restore-gaming-challenges.sql` reopens multiplayer gaming after the earlier retirement migration and aligns game-specific roster validation with the current UI. `add-talent7-league-rewards.sql` adds proof-gated Ranked and Casual progress, seven seasonal tiers, activity ranks, reward history, and permanent trophies. `add-talent7-passports.sql` exposes a deliberately narrow, privacy-safe public competition summary through existing profile share tokens. `add-profile-passport-studio.sql` adds public presentation fields, Passport visibility controls, and owner-managed profile images.
 
@@ -104,5 +105,7 @@ The Showcase, Coaching, and Guidance migrations remain in this history because p
 `add-automatic-highlight-reels.sql` adds owner-controlled public reels that automatically select recent non-rejected proof media from proof-backed wins without modifying the original files.
 
 `add-clubs-and-scouting.sql` adds a signed-in club directory, accepted club roles, opt-in scouting discovery, official-only private shortlists, and invitations that grant membership only after the invited person accepts. Switching scouting off removes existing shortlist entries.
+
+`add-sponsored-tournament-prizes.sql` adds organizer-approved, skill-based tournament prize offers and a champion-only claim, verification, and manual-fulfilment record. It does not add entry fees, random draws, automated payouts, or collection of address or banking details.
 
 Never rerun the complete list against an existing production database. First compare Supabase migration history with this file, then apply only missing migrations in this order.
