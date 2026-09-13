@@ -18,6 +18,7 @@ import ChallengeLiveRoom from "./challenge-live-room";
 import GrowthHub from "./growth-hub";
 import ListenVoiceRoom from "./listen-voice-room";
 import SupporterPayments from "./supporter-payments";
+import TournamentBrackets from "./tournament-brackets";
 import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
@@ -457,6 +458,7 @@ const primaryTabs: {
       { label: "Rooms", href: "#rooms" },
       { label: "Find opponents", href: "#opponents" },
       { label: "Create", href: "#create" },
+      { label: "Tournaments", href: "#tournaments" },
       { label: "Leaderboard", href: "#leaderboard" }
     ]
   },
@@ -509,6 +511,7 @@ const sectionTabMap: Record<string, AppTabId> = {
   create: "challenges",
   rooms: "challenges",
   opponents: "challenges",
+  tournaments: "challenges",
   leaderboard: "challenges",
   "listen-rooms": "listen",
   teams: "teams",
@@ -19724,6 +19727,14 @@ export default function Home() {
           pageSize={roomPageSize}
           targetId="rooms"
           totalItems={visibleChallenges.length}
+        />
+      </section>
+
+      <section className="section tournamentSection" id="tournaments">
+        <TournamentBrackets
+          activities={challengeActivityOptions}
+          displayName={profile?.display_name || profileName()}
+          userId={session?.user.id || ""}
         />
       </section>
 
