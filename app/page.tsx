@@ -1496,6 +1496,15 @@ type TalentProfile = {
   role: string;
   main_interest: string;
   region: string;
+  avatar_url?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  passport_theme?: PassportTheme | null;
+  passport_featured_activities?: string[] | null;
+  passport_show_avatar?: boolean | null;
+  passport_show_bio?: boolean | null;
+  passport_show_region?: boolean | null;
+  passport_show_activities?: boolean | null;
   challenge_availability?: ChallengeAvailability | null;
   challenge_skill_level?: ChallengeSkillLevel | null;
   challenge_mode?: ChallengeMode | null;
@@ -1507,6 +1516,8 @@ type TalentProfile = {
   updated_at: string;
 };
 
+type PassportTheme = "Aurora" | "Midnight" | "Victory gold";
+
 type ChallengeAvailability = "Open to everyone" | "People I follow" | "Unavailable";
 type ChallengeSkillLevel = "Open" | "Beginner" | "Intermediate" | "Advanced" | "Pro";
 type ChallengeMode = "Either" | "In person" | "Online";
@@ -1516,6 +1527,7 @@ const challengeAvailabilityOptions: ChallengeAvailability[] = ["Open to everyone
 const challengeSkillOptions: ChallengeSkillLevel[] = ["Open", "Beginner", "Intermediate", "Advanced", "Pro"];
 const challengeModeOptions: ChallengeMode[] = ["Either", "In person", "Online"];
 const challengeFormatOptions: ChallengeFormat[] = ["Any", "Singles", "Doubles", "Team"];
+const passportThemeOptions: PassportTheme[] = ["Aurora", "Midnight", "Victory gold"];
 
 function discoveryValuesMatch(candidate: string | null | undefined, preference: string | null | undefined) {
   const normalizedCandidate = candidate?.trim().toLowerCase() || "";
@@ -1584,11 +1596,27 @@ function profileChallengeActivities(item: TalentProfile) {
   );
 }
 
+function profileInitials(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "T7";
+}
+
+function ProfileAvatarImage({ alt, src }: { alt: string; src: string }) {
+  // Profile editing uses local blob previews and owner-selected HTTPS media, whose hosts are intentionally dynamic.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img alt={alt} src={src} />;
+}
+
 function canonicalTalentProfile(item: TalentProfile): TalentProfile {
   return {
     ...item,
     main_interest: canonicalChallengeActivity(item.main_interest),
-    challenge_activities: profileChallengeActivities(item)
+    challenge_activities: profileChallengeActivities(item),
+    passport_theme: item.passport_theme || "Aurora",
+    passport_featured_activities: (item.passport_featured_activities || []).filter(Boolean).slice(0, 3),
+    passport_show_avatar: item.passport_show_avatar !== false,
+    passport_show_bio: item.passport_show_bio !== false,
+    passport_show_region: item.passport_show_region !== false,
+    passport_show_activities: item.passport_show_activities !== false
   };
 }
 
@@ -2566,6 +2594,17 @@ export default function Home() {
   const [loginPrompt, setLoginPrompt] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<TalentProfile | null>(null);
+  const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null);
+  const [profileAvatarPreview, setProfileAvatarPreview] = useState("");
+  const [removeProfileAvatar, setRemoveProfileAvatar] = useState(false);
+  const [profileStudioPreview, setProfileStudioPreview] = useState({
+    displayName: "",
+    username: "",
+    headline: "",
+    bio: "",
+    region: "Global",
+    theme: "Aurora" as PassportTheme
+  });
   useEffect(() => {
     const currentIntent = sharedIntentSearch(window.location.search);
     if (currentIntent) {
@@ -8548,6 +8587,67 @@ export default function Home() {
     loadProfile();
   }, [session]);
 
+  useEffect(() => {
+    setProfileStudioPreview({
+      displayName: profile?.display_name || "",
+      username: profile?.username || "",
+      headline: profile?.headline || "",
+      bio: profile?.bio || "",
+      region: profile?.region || "Global",
+      theme: profile?.passport_theme || "Aurora"
+    });
+    setProfileAvatarPreview(profile?.avatar_url || "");
+    setProfileAvatarFile(null);
+    setRemoveProfileAvatar(false);
+  }, [profile]);
+
+  useEffect(() => {
+    return () => {
+      if (profileAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(profileAvatarPreview);
+    };
+  }, [profileAvatarPreview]);
+
+  function chooseProfileAvatar(file: File | null) {
+    if (!file) return;
+    if (!imageMimeTypes.includes(file.type)) {
+      setMessage("Choose a JPG, PNG, or WebP profile photo.", "warning");
+      return;
+    }
+    if (file.size > maxPhotoUploadBytes) {
+      setMessage("Profile photos must be 10 MB or smaller.", "warning");
+      return;
+    }
+    setProfileAvatarFile(file);
+    setProfileAvatarPreview(URL.createObjectURL(file));
+    setRemoveProfileAvatar(false);
+    setMessage("");
+  }
+
+  function clearProfileAvatarDraft() {
+    setProfileAvatarFile(null);
+    setProfileAvatarPreview("");
+    setRemoveProfileAvatar(true);
+  }
+
+  async function deleteProfileImage(mediaUrl: string) {
+    if (!supabase || !session?.user.id || !mediaUrl) return;
+    const r2Result = await deleteR2MediaFile(mediaUrl);
+    if (r2Result.managed) return;
+
+    try {
+      const parsed = new URL(mediaUrl);
+      const marker = "/storage/v1/object/public/showcase-media/";
+      const markerIndex = parsed.pathname.indexOf(marker);
+      if (markerIndex < 0) return;
+      const objectPath = decodeURIComponent(parsed.pathname.slice(markerIndex + marker.length));
+      if (!objectPath.startsWith(`${session.user.id}/profile-avatar/`)) return;
+      const { error } = await supabase.storage.from("showcase-media").remove([objectPath]);
+      if (error) throw error;
+    } catch (error) {
+      if (error instanceof Error) throw error;
+    }
+  }
+
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -8565,6 +8665,12 @@ export default function Home() {
       ])
     );
     const availabilityNote = String(form.get("availability_note") || "").trim();
+    const headline = String(form.get("headline") || "").trim();
+    const bio = String(form.get("bio") || "").trim();
+    const passportTheme = String(form.get("passport_theme") || "Aurora") as PassportTheme;
+    const featuredActivities = Array.from(new Set(
+      form.getAll("passport_featured_activities").map((value) => String(value).trim()).filter(Boolean)
+    )).slice(0, 3);
 
     if (displayName.length < 2 || displayName.length > 60) {
       setMessage("Use a display name between 2 and 60 characters.");
@@ -8581,6 +8687,21 @@ export default function Home() {
       return;
     }
 
+    if (headline.length > 90) {
+      setMessage("Keep your Passport headline under 90 characters.", "warning");
+      return;
+    }
+
+    if (bio.length > 360) {
+      setMessage("Keep your Passport bio under 360 characters.", "warning");
+      return;
+    }
+
+    if (!passportThemeOptions.includes(passportTheme)) {
+      setMessage("Choose a valid Passport appearance.", "warning");
+      return;
+    }
+
     if (challengeActivities.length > 12) {
       setMessage("Choose no more than 12 challenge activities, including your main interest.");
       return;
@@ -8589,6 +8710,21 @@ export default function Home() {
     setProfileLoading(true);
     setMessage("");
 
+    const previousAvatarUrl = profile?.avatar_url || "";
+    let avatarUrl: string | null = removeProfileAvatar ? null : previousAvatarUrl || null;
+    let uploadedAvatarUrl = "";
+
+    if (profileAvatarFile) {
+      try {
+        uploadedAvatarUrl = await uploadMediaFile("showcase-media", profileAvatarFile, "profile-avatar");
+        avatarUrl = uploadedAvatarUrl;
+      } catch (error) {
+        setMessage(error instanceof Error ? `Could not upload profile photo: ${error.message}` : "Could not upload profile photo.", "error");
+        setProfileLoading(false);
+        return;
+      }
+    }
+
     const profileData = {
       user_id: session.user.id,
       display_name: displayName,
@@ -8596,6 +8732,15 @@ export default function Home() {
       role: String(form.get("role") || "Challenger"),
       main_interest: mainInterest,
       region: String(form.get("region") || "").trim() || "Global",
+      avatar_url: avatarUrl,
+      headline,
+      bio,
+      passport_theme: passportTheme,
+      passport_featured_activities: featuredActivities,
+      passport_show_avatar: form.get("passport_show_avatar") === "on",
+      passport_show_bio: form.get("passport_show_bio") === "on",
+      passport_show_region: form.get("passport_show_region") === "on",
+      passport_show_activities: form.get("passport_show_activities") === "on",
       challenge_availability: String(form.get("challenge_availability") || "Open to everyone") as ChallengeAvailability,
       challenge_skill_level: String(form.get("challenge_skill_level") || "Open") as ChallengeSkillLevel,
       challenge_mode: String(form.get("challenge_mode") || "Either") as ChallengeMode,
@@ -8612,6 +8757,7 @@ export default function Home() {
       .single();
 
     if (error) {
+      if (uploadedAvatarUrl) await deleteProfileImage(uploadedAvatarUrl).catch(() => null);
       setMessage(error.code === "23505" ? "That username is already taken." : `Could not save profile: ${error.message}`);
     } else if (data) {
       setProfile(canonicalTalentProfile(data as TalentProfile));
@@ -8622,8 +8768,12 @@ export default function Home() {
         return [savedProfile, ...others];
       });
       setRoomDiscoveryMode("Trending");
-      setMessage("Profile and challenge preferences saved.");
-      window.setTimeout(() => openSection("rooms", true), 80);
+      setProfileAvatarFile(null);
+      setRemoveProfileAvatar(false);
+      if (previousAvatarUrl && previousAvatarUrl !== avatarUrl) {
+        await deleteProfileImage(previousAvatarUrl).catch(() => null);
+      }
+      setMessage("Profile, Passport design, and challenge preferences saved.", "success");
     }
 
     setProfileLoading(false);
@@ -13105,8 +13255,8 @@ export default function Home() {
       <section className="section authSection" id="account">
         <div className="sectionHeader">
           <p className="eyebrow">Account</p>
-          <h2>Sign up or log in</h2>
-          <p>Your account protects your profile, rooms, votes, proof uploads, teams, and safety reports.</p>
+          <h2>{session ? "Build your Talent7 identity" : "Sign up or log in"}</h2>
+          <p>{session ? "Shape your profile, preview your Passport, and control what other challengers see." : "Your account protects your profile, rooms, votes, proof uploads, teams, and safety reports."}</p>
         </div>
         {session ? (
           <div className="profileStack">
@@ -13253,10 +13403,43 @@ export default function Home() {
                 {updatingPassword ? "Updating..." : "Update password"}
               </button>
             </form>
-            <form className="profileForm" key={profile?.updated_at || session.user.id} onSubmit={saveProfile}>
+            <form className="profileForm passportStudio" key={profile?.updated_at || session.user.id} onSubmit={saveProfile}>
+              <section className={`passportStudioPreview theme${profileStudioPreview.theme.replace(/\s+/g, "")}`}>
+                <div className="passportStudioPreviewTopline"><span>My Passport preview</span><small>Updates live while you edit</small></div>
+                <div className="passportStudioIdentity">
+                  <div className={`passportStudioAvatar${profileAvatarPreview ? " hasPhoto" : ""}`}>
+                    {profileAvatarPreview ? <ProfileAvatarImage alt="Profile preview" src={profileAvatarPreview} /> : profileInitials(profileStudioPreview.displayName || profileName())}
+                  </div>
+                  <div>
+                    <small>Talent7 member</small>
+                    <h3>{profileStudioPreview.displayName || "Your display name"}</h3>
+                    <span>@{profileStudioPreview.username || "username"}</span>
+                    <p>{profileStudioPreview.headline || "Add a short line that tells challengers what you do."}</p>
+                  </div>
+                </div>
+                {profileStudioPreview.bio && <p className="passportStudioBio">{profileStudioPreview.bio}</p>}
+                <div className="passportStudioPreviewActions">
+                  {profile?.share_token ? <a href={`/profile/${profile.share_token}`} rel="noreferrer" target="_blank">View my Passport</a> : <span>Save once to create your Passport link</span>}
+                  {profile?.share_token && <button onClick={() => shareProfile(profile)} type="button">Share Passport</button>}
+                </div>
+              </section>
+
+              <fieldset className="profilePhotoEditor wide">
+                <legend>Profile picture</legend>
+                <div className={`profilePhotoPreview${profileAvatarPreview ? " hasPhoto" : ""}`}>
+                  {profileAvatarPreview ? <ProfileAvatarImage alt="Selected profile" src={profileAvatarPreview} /> : profileInitials(profileStudioPreview.displayName || profileName())}
+                </div>
+                <label>
+                  Choose a photo
+                  <input accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseProfileAvatar(event.target.files?.[0] || null)} type="file" />
+                  <small>JPG, PNG, or WebP. Maximum 10 MB. A square photo works best.</small>
+                </label>
+                {profileAvatarPreview && <button className="profilePhotoRemove" onClick={clearProfileAvatarDraft} type="button">Remove photo</button>}
+              </fieldset>
+
               <label>
                 Display name
-                <input maxLength={60} minLength={2} name="display_name" defaultValue={profile?.display_name || ""} placeholder="Rahul Sharma" required />
+                <input maxLength={60} minLength={2} name="display_name" defaultValue={profile?.display_name || ""} onInput={(event) => setProfileStudioPreview((current) => ({ ...current, displayName: event.currentTarget.value }))} placeholder="Rahul Sharma" required />
               </label>
               <label>
                 Username
@@ -13267,9 +13450,20 @@ export default function Home() {
                   name="username"
                   pattern="[A-Za-z0-9_]+"
                   defaultValue={profile?.username || ""}
+                  onInput={(event) => setProfileStudioPreview((current) => ({ ...current, username: event.currentTarget.value.replace(/^@/, "") }))}
                   placeholder="rahulbadminton"
                   required
                 />
+              </label>
+              <label className="wide">
+                Passport headline
+                <input defaultValue={profile?.headline || ""} maxLength={90} name="headline" onInput={(event) => setProfileStudioPreview((current) => ({ ...current, headline: event.currentTarget.value }))} placeholder="Example: Competitive badminton player · Navi Mumbai" />
+                <small className="fieldHint">Keep it specific and easy to understand at a glance.</small>
+              </label>
+              <label className="wide">
+                About me
+                <textarea defaultValue={profile?.bio || ""} maxLength={360} name="bio" onInput={(event) => setProfileStudioPreview((current) => ({ ...current, bio: event.currentTarget.value }))} placeholder="Share your experience, goals, playing style, or the kind of challenges you want." rows={4} />
+                <small className="fieldHint">Do not include private contact details or a home address.</small>
               </label>
               <label>
                 Role
@@ -13296,8 +13490,33 @@ export default function Home() {
               </label>
               <label className="wide">
                 Region
-                <input name="region" defaultValue={profile?.region || ""} placeholder="India, UAE, USA, Global..." />
+                <input name="region" defaultValue={profile?.region || ""} onInput={(event) => setProfileStudioPreview((current) => ({ ...current, region: event.currentTarget.value }))} placeholder="India, UAE, USA, Global..." />
               </label>
+              <fieldset className="passportAppearance wide">
+                <legend>Passport appearance and privacy</legend>
+                <label>
+                  Visual theme
+                  <select defaultValue={profile?.passport_theme || "Aurora"} name="passport_theme" onChange={(event) => setProfileStudioPreview((current) => ({ ...current, theme: event.currentTarget.value as PassportTheme }))}>
+                    {passportThemeOptions.map((theme) => <option key={theme}>{theme}</option>)}
+                  </select>
+                </label>
+                <label className="passportVisibilityToggle"><input defaultChecked={profile?.passport_show_avatar !== false} name="passport_show_avatar" type="checkbox" /><span><strong>Show my photo</strong><small>Keep the upload saved but hide it from the public Passport.</small></span></label>
+                <label className="passportVisibilityToggle"><input defaultChecked={profile?.passport_show_bio !== false} name="passport_show_bio" type="checkbox" /><span><strong>Show my introduction</strong><small>Controls your public headline and biography.</small></span></label>
+                <label className="passportVisibilityToggle"><input defaultChecked={profile?.passport_show_region !== false} name="passport_show_region" type="checkbox" /><span><strong>Show my region</strong><small>Useful for local opponents; switch it off if you prefer not to publish it.</small></span></label>
+                <label className="passportVisibilityToggle"><input defaultChecked={profile?.passport_show_activities !== false} name="passport_show_activities" type="checkbox" /><span><strong>Show my activities</strong><small>Controls the activities shown on the public Passport, not challenge matching.</small></span></label>
+              </fieldset>
+              <fieldset className="passportFeaturedActivities wide">
+                <legend>Featured Passport activities</legend>
+                <p>Choose up to three activities, in the order you want visitors to see them.</p>
+                {[0, 1, 2].map((index) => (
+                  <label key={index}>#{index + 1}
+                    <select defaultValue={profile?.passport_featured_activities?.[index] || ""} name="passport_featured_activities">
+                      <option value="">Not selected</option>
+                      {challengeActivityOptions.map((activity) => <option key={activity}>{activity}</option>)}
+                    </select>
+                  </label>
+                ))}
+              </fieldset>
               <fieldset className="challengePreferenceFields wide">
                 <legend>Challenge availability</legend>
                 <p>Control who can discover and invite you from Find opponents. You can change this at any time.</p>

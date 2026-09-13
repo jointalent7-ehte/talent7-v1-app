@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
 import { getPublicTalentProfile } from "../../../lib/public-profile-preview";
 
+/* eslint-disable @next/next/no-img-element -- ImageResponse renders the validated remote Passport avatar directly */
+
 export const alt = "Talent7 Passport";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -33,6 +35,7 @@ export default async function ProfileOpenGraphImage({ params }: ProfileImageProp
   const tier = profile?.passport?.rank?.tier || "Rookie";
   const rankPoints = Number(profile?.passport?.rank?.rank_points || 0);
   const wins = Number(profile?.passport?.rank?.wins || 0);
+  const headline = profile?.headline || `${role} · ${interest}`;
 
   return new ImageResponse(
     (
@@ -86,11 +89,14 @@ export default async function ProfileOpenGraphImage({ params }: ProfileImageProp
               fontWeight: 900
             }}
           >
-            {profileInitials(name)}
+            {profile?.avatar_url ? (
+              <img alt="" height="156" src={profile.avatar_url} style={{ height: "156px", width: "156px", objectFit: "cover" }} width="156" />
+            ) : profileInitials(name)}
           </div>
           <div style={{ display: "flex", flexDirection: "column", maxWidth: 850 }}>
             <div style={{ display: "flex", color: "#ffffff", fontSize: 66, fontWeight: 900, lineHeight: 1.04 }}>{name}</div>
             <div style={{ display: "flex", marginTop: 8, color: "#aaa3ff", fontSize: 27, fontWeight: 700 }}>{username}</div>
+            <div style={{ display: "flex", marginTop: 10, color: "#e7ebf5", fontSize: 23, fontWeight: 700 }}>{headline}</div>
             <div style={{ display: "flex", marginTop: 17, color: "#ffd21f", fontSize: 28, fontWeight: 800 }}>
               {role} - {interest} - {region}
             </div>

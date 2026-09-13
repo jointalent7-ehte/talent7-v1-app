@@ -4,6 +4,8 @@ import GrowthEvent from "../../growth-event";
 import { getPublicTalentProfile } from "../../../lib/public-profile-preview";
 import { supporterTierLabel, type SupporterTier } from "../../../lib/supporter-products";
 
+/* eslint-disable @next/next/no-img-element -- Passport avatars are validated HTTPS URLs selected by their owners */
+
 export const dynamic = "force-dynamic";
 
 type ProfilePageProps = { params: Promise<{ token: string }> };
@@ -82,7 +84,10 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
     );
   }
 
-  const activities = (profile.challenge_activities || []).filter(Boolean).slice(0, 8);
+  const activities = Array.from(new Set([
+    ...(profile.passport_featured_activities || []),
+    ...(profile.challenge_activities || [])
+  ])).filter(Boolean).slice(0, 8);
   const passport = profile.passport;
   const rank = passport?.rank || { tier: "Rookie", xp: 0, rank_points: 0, completed_count: 0, wins: 0, losses: 0 };
   const progress = rankProgress(rank.tier, Number(rank.rank_points || 0));
@@ -90,7 +95,7 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
   const winRate = decidedResults > 0 ? Math.round((Number(rank.wins || 0) / decidedResults) * 100) : 0;
 
   return (
-    <main className="profileLanding">
+    <main className={`profileLanding passportTheme${(profile.passport_theme || "Aurora").replace(/\s+/g, "")}`}>
       <GrowthEvent eventName="shared_link_view" resourceToken={token} resourceType="profile" source="talent7_passport" />
       <div className="profileLandingShell">
         <header className="inviteLandingBrand"><Link href="/">Talent<span>7</span></Link><span>Talent7 Passport</span></header>
@@ -98,13 +103,17 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
           <div className="passportStatusLine"><span>Verified competitive identity</span><small>{passport?.season?.name || "Talent7 League"}</small></div>
 
           <div className="profilePreviewIdentity">
-            <div className="profilePreviewAvatar" aria-hidden="true">{profileInitials(profile.display_name)}</div>
+            <div className={`profilePreviewAvatar${profile.avatar_url ? " hasPhoto" : ""}`} aria-hidden="true">
+              {profile.avatar_url ? <img alt="" src={profile.avatar_url} /> : profileInitials(profile.display_name)}
+            </div>
             <div>
               <span className="profilePreviewBadge">{profile.supporter_tier ? `★ ${supporterTierLabel(profile.supporter_tier as SupporterTier)}` : "Talent7 member"}</span>
               <h1>{profile.display_name}</h1><p>@{profile.username}</p>
+              {profile.headline && <strong className="passportHeadline">{profile.headline}</strong>}
             </div>
           </div>
-          <div className="profilePreviewTags" aria-label="Profile details"><span>{profile.role}</span><span>{profile.main_interest || "Exploring challenges"}</span><span>{profile.region || "Global"}</span></div>
+          <div className="profilePreviewTags" aria-label="Profile details"><span>{profile.role}</span><span>{profile.main_interest || "Exploring challenges"}</span>{profile.passport_show_region !== false && profile.region && <span>{profile.region}</span>}</div>
+          {profile.bio && <p className="passportBio">{profile.bio}</p>}
 
           <section className="passportRankCard" aria-label="Talent7 League rank">
             <div className="passportRankTopline"><div><span>Current league tier</span><strong>{rank.tier}</strong></div><b>{Number(rank.rank_points || 0)} RP</b></div>
@@ -156,7 +165,7 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
           )}
 
           <div className="profilePreviewAvailability"><div><span>Challenge availability</span><strong>{profile.challenge_availability || "Open to everyone"}</strong></div><div><span>Preferred setup</span><strong>{profile.challenge_skill_level || "Open"} · {profile.challenge_mode || "Either"} · {profile.challenge_format || "Any"}</strong></div></div>
-          {activities.length > 0 && <div className="profilePreviewActivities"><span>Ready to challenge</span><div>{activities.map((activity) => <strong key={activity}>{activity}</strong>)}</div></div>}
+          {profile.passport_show_activities !== false && activities.length > 0 && <div className="profilePreviewActivities"><span>Ready to challenge</span><div>{activities.map((activity) => <strong key={activity}>{activity}</strong>)}</div></div>}
           <div className="profilePreviewStats" aria-label="Public profile activity"><div><strong>{Number(profile.follower_count || 0)}</strong><span>Followers</span></div><div><strong>{Number(profile.challenge_count || 0)}</strong><span>Challenge rooms</span></div><div><strong>{Number(profile.completed_count || 0)}</strong><span>Completed</span></div><div><strong>{Number(profile.proof_count || 0)}</strong><span>Proofs</span></div></div>
           <div className="profilePreviewActions"><Link href={`/?profile=${encodeURIComponent(token)}&intent=challenge#account`}>Challenge {profile.display_name}</Link><Link href="/#account">Build your Passport</Link></div>
           <small className="profilePreviewSafety">This Passport contains public profile and verified aggregate competition activity only. Email, user ID, private proof media, messages, payments, and coordination are never shown.</small>

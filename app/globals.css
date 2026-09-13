@@ -2264,6 +2264,275 @@ textarea {
   gap: 14px;
 }
 
+.passportStudio {
+  max-width: 1040px;
+  padding: clamp(18px, 4vw, 30px);
+  border-radius: 22px;
+}
+
+.passportStudioPreview {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 18px;
+  padding: clamp(20px, 4vw, 34px);
+  overflow: hidden;
+  color: #f7f9ff;
+  background:
+    radial-gradient(circle at 92% 7%, rgba(255, 210, 31, 0.24), transparent 29%),
+    linear-gradient(135deg, #10162a, #124b4b 62%, #34306c);
+  border: 1px solid rgba(82, 225, 180, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 22px 56px rgba(11, 28, 39, 0.24);
+}
+
+.passportStudioPreview.themeMidnight {
+  background:
+    radial-gradient(circle at 88% 10%, rgba(96, 113, 255, 0.3), transparent 28%),
+    linear-gradient(135deg, #050810, #121a35 60%, #28204b);
+}
+
+.passportStudioPreview.themeVictorygold {
+  background:
+    radial-gradient(circle at 90% 8%, rgba(255, 234, 142, 0.4), transparent 26%),
+    linear-gradient(135deg, #171006, #574013 58%, #7e4d1e);
+  border-color: rgba(255, 210, 31, 0.42);
+}
+
+.passportStudioPreviewTopline,
+.passportStudioPreviewActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.passportStudioPreviewTopline span {
+  color: #ffd21f;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.passportStudioPreviewTopline small {
+  color: rgba(255, 255, 255, 0.68);
+  font-weight: 750;
+}
+
+.passportStudioIdentity {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.passportStudioIdentity > div:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.passportStudioIdentity h3,
+.passportStudioIdentity p,
+.passportStudioBio {
+  margin: 0;
+}
+
+.passportStudioIdentity h3 {
+  overflow-wrap: anywhere;
+  color: #fff;
+  font-size: clamp(1.75rem, 5vw, 3.5rem);
+  line-height: 1;
+}
+
+.passportStudioIdentity > div:last-child > small {
+  width: fit-content;
+  padding: 5px 8px;
+  color: #07120f;
+  background: #52e1b4;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.passportStudioIdentity > div:last-child > span {
+  color: #bcb6ff;
+  font-weight: 850;
+}
+
+.passportStudioIdentity p,
+.passportStudioBio {
+  max-width: 700px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.5;
+}
+
+.passportStudioBio {
+  padding: 13px 15px;
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.passportStudioAvatar,
+.profilePhotoPreview {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #111521;
+  background: linear-gradient(135deg, #ffd21f, #ff8a38);
+  font-weight: 950;
+}
+
+.passportStudioAvatar {
+  width: clamp(88px, 16vw, 126px);
+  height: clamp(88px, 16vw, 126px);
+  border: 3px solid rgba(255, 255, 255, 0.22);
+  border-radius: 30%;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.passportStudioAvatar img,
+.profilePhotoPreview img,
+.profilePreviewAvatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.passportStudioPreviewActions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.passportStudioPreviewActions a,
+.passportStudioPreviewActions button {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 10px 13px;
+  color: #09110e;
+  background: #ffd21f;
+  border: 1px solid #ffd21f;
+  border-radius: 10px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.passportStudioPreviewActions button {
+  color: #fff;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.passportStudioPreviewActions > span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.profilePhotoEditor,
+.passportAppearance,
+.passportFeaturedActivities {
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.profilePhotoEditor {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  background: #f4f8f7;
+}
+
+.profilePhotoEditor legend,
+.passportAppearance legend,
+.passportFeaturedActivities legend {
+  padding: 0 7px;
+  font-weight: 950;
+}
+
+.profilePhotoPreview {
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  font-size: 1.45rem;
+}
+
+.profilePhotoEditor label {
+  min-width: 0;
+}
+
+.profilePhotoEditor input[type="file"] {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.profilePhotoEditor .profilePhotoRemove {
+  min-height: 42px;
+  color: #9e2735;
+  background: #fff;
+  border: 1px solid rgba(178, 47, 63, 0.35);
+}
+
+.passportAppearance {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.75fr) repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(33, 201, 191, 0.08), rgba(121, 92, 255, 0.07));
+}
+
+.passportVisibilityToggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+}
+
+.passportVisibilityToggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.passportVisibilityToggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.passportVisibilityToggle small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.passportFeaturedActivities {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.passportFeaturedActivities > legend,
+.passportFeaturedActivities > p {
+  grid-column: 1 / -1;
+}
+
+.passportFeaturedActivities > p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .authTabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5833,6 +6102,57 @@ body:has(.publicRoomLanding) {
   font-size: clamp(1.7rem, 6vw, 2.8rem);
   font-weight: 950;
   box-shadow: 0 16px 40px rgba(255, 182, 34, 0.18);
+}
+
+.profilePreviewAvatar {
+  overflow: hidden;
+}
+
+.profilePreviewAvatar.hasPhoto {
+  background: #141927;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.passportHeadline {
+  max-width: 620px;
+  margin-top: 4px;
+  color: #dce1ec;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.passportBio {
+  margin: 0;
+  padding: 15px 17px;
+  color: #c4cbd8;
+  background: rgba(255, 255, 255, 0.045);
+  border-left: 3px solid #52e1b4;
+  border-radius: 4px 13px 13px 4px;
+  line-height: 1.6;
+}
+
+.profileLanding.passportThemeMidnight {
+  background:
+    radial-gradient(circle at 82% 10%, rgba(88, 75, 208, 0.35), transparent 34%),
+    radial-gradient(circle at 8% 90%, rgba(40, 66, 132, 0.25), transparent 30%),
+    #050710;
+}
+
+.profileLanding.passportThemeVictorygold {
+  background:
+    radial-gradient(circle at 86% 9%, rgba(255, 205, 66, 0.3), transparent 32%),
+    radial-gradient(circle at 7% 88%, rgba(154, 74, 23, 0.24), transparent 31%),
+    #100b05;
+}
+
+.passportThemeVictorygold .profilePreviewCard {
+  border-color: rgba(255, 210, 31, 0.3);
+  background: linear-gradient(145deg, rgba(39, 28, 15, 0.98), rgba(14, 12, 13, 0.99));
+}
+
+.passportThemeMidnight .profilePreviewCard {
+  border-color: rgba(145, 130, 255, 0.3);
+  background: linear-gradient(145deg, rgba(20, 25, 48, 0.99), rgba(7, 10, 22, 0.99));
 }
 
 .profilePreviewBadge {
@@ -16316,6 +16636,60 @@ html[data-talent7-theme="dark"] .roomCard .openChallengeBadge.matched {
   .queueHostActions button,
   .queueWithdrawButton,
   .openChallengeRequestForm > button {
+    width: 100%;
+  }
+}
+
+html[data-talent7-theme="dark"] .passportStudio {
+  background: rgba(14, 18, 28, 0.96);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-talent7-theme="dark"] .profilePhotoEditor,
+html[data-talent7-theme="dark"] .passportAppearance,
+html[data-talent7-theme="dark"] .passportFeaturedActivities,
+html[data-talent7-theme="dark"] .passportVisibilityToggle {
+  color: #f4f7fb;
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+html[data-talent7-theme="dark"] .profilePhotoEditor .profilePhotoRemove {
+  color: #ffb3bb;
+  background: rgba(183, 45, 62, 0.15);
+  border-color: rgba(255, 128, 143, 0.3);
+}
+
+@media (max-width: 900px) {
+  .passportAppearance,
+  .passportFeaturedActivities {
+    grid-template-columns: 1fr;
+  }
+
+  .passportFeaturedActivities > legend,
+  .passportFeaturedActivities > p {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .passportStudioPreviewTopline,
+  .passportStudioIdentity,
+  .profilePhotoEditor {
+    align-items: flex-start;
+  }
+
+  .passportStudioIdentity {
+    flex-direction: column;
+  }
+
+  .profilePhotoEditor {
+    grid-template-columns: 1fr;
+  }
+
+  .profilePhotoEditor .profilePhotoRemove,
+  .passportStudioPreviewActions a,
+  .passportStudioPreviewActions button {
     width: 100%;
   }
 }
