@@ -22,6 +22,7 @@ import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
 type ChallengeStatusFilter = "All" | "Open" | "Completed" | "Saved";
+type CompetitionMode = "Casual" | "Ranked";
 type RoomDiscoveryMode = "Live" | "Trending" | "For you" | "Newest";
 type ChallengeVotingStatus = "Closed" | "Open";
 type ExpertHelpType =
@@ -691,6 +692,7 @@ type Challenge = {
   roster_size?: number | null;
   opponent_entry_mode?: "Direct join" | "Request queue" | "Matched";
   challenger_queue_limit?: number | null;
+  competition_mode?: CompetitionMode;
   voting_status?: ChallengeVotingStatus;
   voting_opened_at?: string | null;
   voting_closes_at?: string | null;
@@ -1598,6 +1600,7 @@ type ChallengeDraft = {
   openOpponent: boolean;
   opponentEntryMode: "Direct join" | "Request queue";
   challengerQueueLimit: number;
+  competitionMode: CompetitionMode;
   team_a_id: string;
   team_b_id: string;
   rules: string;
@@ -1620,6 +1623,7 @@ const defaultChallengeDraft: ChallengeDraft = {
   openOpponent: true,
   opponentEntryMode: "Direct join",
   challengerQueueLimit: 10,
+  competitionMode: "Ranked",
   team_a_id: "",
   team_b_id: "",
   rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
@@ -8825,6 +8829,7 @@ export default function Home() {
       roster_size: rosterSize,
       opponent_entry_mode: opponentEntryMode,
       challenger_queue_limit: challengerQueueLimit,
+      competition_mode: String(form.get("competition_mode") || "Ranked") as CompetitionMode,
       status: "Open",
       created_by: session?.user.id
     };
@@ -9137,6 +9142,7 @@ export default function Home() {
       openOpponent: false,
       opponentEntryMode: "Direct join",
       challengerQueueLimit: currentDraft.challengerQueueLimit,
+      competitionMode: currentDraft.competitionMode,
       team_a_id: currentDraft.team_a_id || "",
       team_b_id: currentDraft.team_b_id || "",
       rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
@@ -9189,6 +9195,7 @@ export default function Home() {
       openOpponent: isOwnTeam,
       opponentEntryMode: isOwnTeam ? "Request queue" : "Direct join",
       challengerQueueLimit: currentDraft.challengerQueueLimit,
+      competitionMode: currentDraft.competitionMode,
       team_a_id: ownedTeam?.id || "",
       team_b_id: isOwnTeam ? "" : team.id,
       rules: `${activity} team challenge. Upload proof after the match.`,
@@ -12272,7 +12279,10 @@ export default function Home() {
       );
       setSelectedStatus("Completed");
       setRoomDiscoveryMode("Newest");
-      setMessage(`${challenge.title} completed and moved to Archive. Winner: ${challengeWinnerDisplay(challenge, winner)}.`);
+      setMessage(
+        `${challenge.title} completed and moved to Archive. Winner: ${challengeWinnerDisplay(challenge, winner)}. ` +
+        `${challenge.competition_mode === "Ranked" ? "Ranked rewards require saved proof." : "Casual XP requires saved proof."}`
+      );
       formElement.reset();
       setCompletingChallengeId(null);
       return;
@@ -12291,7 +12301,29 @@ export default function Home() {
       setChallenges((items) => items.map((item) => (item.id === challenge.id ? (data as Challenge) : item)));
       setSelectedStatus("Completed");
       setRoomDiscoveryMode("Newest");
-      setMessage(`${challenge.title} completed and moved to Archive. Winner: ${challengeWinnerDisplay(challenge, winner)}.`);
+      await supabase.rpc("refresh_my_talent7_league");
+      const { data: rewardData } = await supabase
+        .from("talent7_reward_events")
+        .select("xp_delta,rank_points_delta,proof_bonus,tier_before,tier_after")
+        .eq("challenge_id", challenge.id)
+        .eq("user_id", session?.user.id || "")
+        .maybeSingle();
+      const reward = rewardData as {
+        xp_delta: number;
+        rank_points_delta: number;
+        proof_bonus: boolean;
+        tier_before: string;
+        tier_after: string;
+      } | null;
+      const rewardSummary = reward
+        ? ` +${reward.xp_delta} XP${reward.rank_points_delta > 0 ? ` · +${reward.rank_points_delta} Rank Points` : ""}${
+            reward.proof_bonus ? " · Proof bonus" : ""
+          }${reward.tier_after !== reward.tier_before ? ` · ${reward.tier_after} unlocked` : ""}.`
+        : " Add proof to unlock League rewards.";
+      setMessage(
+        `${challenge.title} completed and moved to Archive. Winner: ${challengeWinnerDisplay(challenge, winner)}.${rewardSummary}`,
+        "success"
+      );
       formElement.reset();
     }
 
@@ -16957,6 +16989,25 @@ export default function Home() {
               </select>
               <small className="fieldHint">Selected automatically; change it only if needed.</small>
             </label>
+            <label className="competitionModeField wide">
+              League progress
+              <select
+                name="competition_mode"
+                onChange={(event) =>
+                  setChallengeDraft((current) => ({
+                    ...current,
+                    competitionMode: event.currentTarget.value as CompetitionMode
+                  }))
+                }
+                value={challengeDraft.competitionMode}
+              >
+                <option value="Ranked">Ranked — earn XP and Rank Points</option>
+                <option value="Casual">Casual — earn XP without changing rank</option>
+              </select>
+              <small className="fieldHint">
+                Ranked rewards unlock only after the challenge is completed with proof. Casual rooms are ideal for practice.
+              </small>
+            </label>
             <div className="challengeWizardActions wide">
               <span>Step 1 of 3</span>
               <button onClick={(event) => moveChallengeCreateStep(2, event.currentTarget.form)} type="button">Continue to competitors</button>
@@ -17593,6 +17644,9 @@ export default function Home() {
               key={challenge.id}
             >
               <span>{challenge.lane}</span>
+              <em className={`competitionModeBadge ${(challenge.competition_mode || "Casual").toLowerCase()}`}>
+                {challenge.competition_mode || "Casual"}
+              </em>
               {challenge.id === createdChallengeId && <em className="newRoomBadge">New challenge</em>}
               {usesChallengerQueue && <em className="openChallengeBadge">Open challenge · {pendingQueuedRequests.length} queued</em>}
               {wasMatchedFromQueue && <em className="openChallengeBadge matched">Matched from queue</em>}

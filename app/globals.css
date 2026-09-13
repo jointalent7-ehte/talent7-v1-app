@@ -3153,8 +3153,224 @@ textarea {
 
 .growthHubGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+}
+
+.talent7LeagueHero {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) minmax(260px, auto);
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: clamp(18px, 3vw, 26px);
+  color: #f6fbff;
+  background:
+    radial-gradient(circle at 86% 15%, rgba(253, 195, 52, 0.28), transparent 28%),
+    linear-gradient(128deg, #071b25, #103f42 55%, #25295e);
+  border: 1px solid rgba(124, 231, 218, 0.26);
+  border-radius: 22px;
+  box-shadow: 0 22px 50px rgba(8, 25, 38, 0.22);
+}
+
+.talent7RankCrest {
+  display: grid;
+  width: 82px;
+  height: 92px;
+  place-items: center;
+  background: linear-gradient(145deg, #ffd44e, #f38e2f 55%, #7752e8);
+  clip-path: polygon(50% 0, 92% 20%, 84% 76%, 50% 100%, 16% 76%, 8% 20%);
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.25));
+}
+
+.talent7RankCrest span {
+  display: grid;
+  width: 54px;
+  height: 62px;
+  place-items: center;
+  color: #fff;
+  background: #101e35;
+  clip-path: inherit;
+  font-size: 2rem;
+  font-weight: 950;
+}
+
+.talent7RankProgress,
+.talent7RankStats,
+.talent7ActivityRanks,
+.talent7LatestReward,
+.trophyCabinet,
+.trophyCabinet > div,
+.trophyCabinet > div > span {
+  display: grid;
+  gap: 7px;
+}
+
+.talent7RankProgress > span,
+.talent7LatestReward > span {
+  color: #ffd44e;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.talent7RankProgress h4 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+}
+
+.talent7RankProgress small,
+.talent7LatestReward small,
+.talent7ActivityRanks small {
+  color: rgba(242, 251, 255, 0.72);
+}
+
+.talent7RankBar {
+  height: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+.talent7RankBar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffd44e, #6ee8d1, #8b7cff);
+  border-radius: inherit;
+  box-shadow: 0 0 18px rgba(110, 232, 209, 0.55);
+}
+
+.talent7RankStats {
+  grid-template-columns: repeat(2, minmax(90px, 1fr));
+}
+
+.talent7RankStats > div {
+  display: grid;
+  padding: 11px 13px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
+}
+
+.talent7RankStats strong {
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.talent7RankStats small {
+  color: rgba(255, 255, 255, 0.66);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.talent7ActivityRanks,
+.talent7LatestReward {
+  grid-column: 1 / -1;
+}
+
+.talent7TierLadder {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.talent7TierLadder > span {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 10px 8px 9px;
+  color: rgba(255, 255, 255, 0.48);
+  text-align: center;
+  background: rgba(2, 11, 18, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+}
+
+.talent7TierLadder i {
+  width: 8px;
+  height: 8px;
+  margin: 0 auto 3px;
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+}
+
+.talent7TierLadder .reached {
+  color: #eafdfa;
+  border-color: rgba(110, 232, 209, 0.35);
+}
+
+.talent7TierLadder .reached i {
+  background: #6ee8d1;
+  box-shadow: 0 0 12px rgba(110, 232, 209, 0.8);
+}
+
+.talent7TierLadder .current {
+  color: #fff;
+  background: rgba(255, 212, 78, 0.14);
+  border-color: rgba(255, 212, 78, 0.58);
+}
+
+.talent7TierLadder strong {
+  font-size: 0.72rem;
+}
+
+.talent7TierLadder small {
+  color: inherit;
+  font-size: 0.66rem;
+}
+
+.talent7ActivityRanks {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.talent7ActivityRanks > div,
+.talent7LatestReward {
+  padding: 12px 14px;
+  background: rgba(3, 12, 20, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
+}
+
+.talent7ActivityRanks span {
+  color: #76ead7;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.talent7LatestReward {
+  border-color: rgba(255, 212, 78, 0.35);
+}
+
+.trophyCabinet > div {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.trophyCabinet i {
+  display: grid;
+  width: 36px;
+  height: 40px;
+  place-items: center;
+  color: #fff;
+  background: #71808a;
+  clip-path: polygon(50% 0, 92% 20%, 84% 76%, 50% 100%, 16% 76%, 8% 20%);
+  font-style: normal;
+  font-weight: 950;
+}
+
+.trophyCabinet .rare i { background: linear-gradient(145deg, #28a8c7, #4f62df); }
+.trophyCabinet .epic i { background: linear-gradient(145deg, #7b58e8, #cb57ba); }
+.trophyCabinet .legendary i { background: linear-gradient(145deg, #f0af24, #ee6a31); }
+
+.trophyCabinet small {
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .growthHubGrid article {
@@ -3209,6 +3425,30 @@ textarea {
   .growthHubHeader,
   .growthHubGrid {
     grid-template-columns: 1fr;
+  }
+
+  .talent7LeagueHero {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .talent7RankStats,
+  .talent7ActivityRanks,
+  .talent7LatestReward {
+    grid-column: 1 / -1;
+  }
+
+  .talent7ActivityRanks {
+    grid-template-columns: 1fr;
+  }
+
+  .talent7TierLadder {
+    display: flex;
+    padding-bottom: 4px;
+    overflow-x: auto;
+  }
+
+  .talent7TierLadder > span {
+    min-width: 108px;
   }
 
   .growthHubHeader > button {
@@ -12749,6 +12989,28 @@ body:has(.publicRoomLanding) {
 .listenRoomTabs button.active span {
   color: var(--ink);
   background: var(--yellow);
+}
+
+.roomCard .competitionModeBadge {
+  display: inline-flex;
+  width: fit-content;
+  margin-left: 8px;
+  padding: 6px 10px;
+  color: #58636a;
+  background: #f1f4f5;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.roomCard .competitionModeBadge.ranked {
+  color: #5e3a00;
+  background: linear-gradient(135deg, #fff6cc, #ffe29b);
+  border-color: #eac76d;
 }
 
 .listenAreaFilters {
