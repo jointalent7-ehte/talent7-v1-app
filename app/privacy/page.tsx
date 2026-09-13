@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <h2>What Talent7 Is</h2>
         <p>
           Talent7 is a proof-based competition app for free public talent and sports challenge rooms, ratings, teams,
-          profiles, tournaments, consent-based rivalries, live challenge activity, notifications, and launch-wave feedback. Showcase Talent,
+          profiles, tournaments, consent-based rivalries, clubs, consent-based scouting, live challenge activity, notifications, and launch-wave feedback. Showcase Talent,
           Coaching, and Guidance are roadmap previews rather than active launch services.
         </p>
       </section>
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <ul>
           <li>Account information such as email address and login status.</li>
           <li>Profile information such as display name, username, role, main interest, region, and any area, city, or country you optionally enter for local leaderboards.</li>
-          <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, tournament entries, rivalry invitations and records, public highlight-reel settings, reports, and team requests.</li>
+          <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, tournament entries, rivalry invitations and records, public highlight-reel settings, club memberships and invitations, private club shortlists, scouting preferences, reports, and team requests.</li>
           <li>Legacy showcase, coaching, or expert-help records you previously submitted. Their public creation/request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
           <li>Optional support or founder feedback messages you submit.</li>
           <li>Payment records such as provider, selected digital badge product, fixed price, currency, status, provider references, and badge entitlement. Historical payment records may be retained where required for reconciliation, disputes, refunds, or legal obligations. Talent7 does not collect or store your complete card details, UPI PIN, banking password, or payment OTP.</li>
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
         <h2>How We Use Information</h2>
         <ul>
           <li>To create and manage your Talent7 account and profile.</li>
-          <li>To show free talent and sports challenge rooms, public ratings, votes, proof, teams, profiles, tournaments, accepted rivalries, and challenge activity.</li>
+          <li>To show free talent and sports challenge rooms, public ratings, votes, proof, teams, profiles, tournaments, clubs, accepted rivalries, and challenge activity.</li>
           <li>To review current safety reports and feedback, and to preserve or remove legacy records when required.</li>
           <li>To improve Talent7 before and after Play Store launch.</li>
           <li>To contact you about account, support, safety, or launch-wave matters when needed.</li>
@@ -82,6 +82,12 @@ export default function PrivacyPage() {
           Local leaderboards are optional. Talent7 does not read your device location for them. If you opt in,
           signed-in members can see the area, city, and country you chose alongside your leaderboard identity,
           activity, tier, Rank Points, and competition totals.
+        </p>
+        <p>
+          Club scouting is optional and off by default. If you opt in, signed-in club officials can discover the
+          profile information and scouting note you chose to share. A club&apos;s shortlist is private to its Owner,
+          Managers, and Scouts. Invitations remain private to the invited person and relevant club officials, and
+          you become a member only after accepting. Switching scouting off removes you from club shortlists.
         </p>
       </section>
 

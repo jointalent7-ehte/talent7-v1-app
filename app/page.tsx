@@ -15,6 +15,7 @@ import { hasSupabaseConfig, supabase } from "../lib/supabase";
 import { trackGrowthEvent } from "../lib/growth-analytics";
 import { supporterTierLabel, type SupporterTier } from "../lib/supporter-products";
 import ChallengeLiveRoom from "./challenge-live-room";
+import ClubsScouting from "./clubs-scouting";
 import GrowthHub from "./growth-hub";
 import ListenVoiceRoom from "./listen-voice-room";
 import Rivalries from "./rivalries";
@@ -1519,6 +1520,8 @@ type TalentProfile = {
   highlight_reel_title?: string | null;
   highlight_reel_tagline?: string | null;
   highlight_reel_max_clips?: number | null;
+  scouting_open?: boolean | null;
+  scouting_note?: string | null;
   challenge_availability?: ChallengeAvailability | null;
   challenge_skill_level?: ChallengeSkillLevel | null;
   challenge_mode?: ChallengeMode | null;
@@ -1642,7 +1645,9 @@ function canonicalTalentProfile(item: TalentProfile): TalentProfile {
     highlight_reel_public: item.highlight_reel_public === true,
     highlight_reel_title: item.highlight_reel_title || "My Talent7 highlights",
     highlight_reel_tagline: item.highlight_reel_tagline || "",
-    highlight_reel_max_clips: Math.min(10, Math.max(3, Number(item.highlight_reel_max_clips || 6)))
+    highlight_reel_max_clips: Math.min(10, Math.max(3, Number(item.highlight_reel_max_clips || 6))),
+    scouting_open: item.scouting_open === true,
+    scouting_note: item.scouting_note || ""
   };
 }
 
@@ -8731,6 +8736,7 @@ export default function Home() {
     const highlightReelTitle = String(form.get("highlight_reel_title") || "My Talent7 highlights").trim();
     const highlightReelTagline = String(form.get("highlight_reel_tagline") || "").trim();
     const highlightReelMaxClips = Number(form.get("highlight_reel_max_clips") || 6);
+    const scoutingNote = String(form.get("scouting_note") || "").trim();
     const featuredActivities = Array.from(new Set(
       form.getAll("passport_featured_activities").map((value) => String(value).trim()).filter(Boolean)
     )).slice(0, 3);
@@ -8785,6 +8791,11 @@ export default function Home() {
       return;
     }
 
+    if (scoutingNote.length > 180) {
+      setMessage("Keep your scouting note under 180 characters.", "warning");
+      return;
+    }
+
     if (challengeActivities.length > 12) {
       setMessage("Choose no more than 12 challenge activities, including your main interest.");
       return;
@@ -8832,6 +8843,8 @@ export default function Home() {
       highlight_reel_title: highlightReelTitle,
       highlight_reel_tagline: highlightReelTagline,
       highlight_reel_max_clips: highlightReelMaxClips,
+      scouting_open: form.get("scouting_open") === "on",
+      scouting_note: scoutingNote,
       challenge_availability: String(form.get("challenge_availability") || "Open to everyone") as ChallengeAvailability,
       challenge_skill_level: String(form.get("challenge_skill_level") || "Open") as ChallengeSkillLevel,
       challenge_mode: String(form.get("challenge_mode") || "Either") as ChallengeMode,
@@ -13703,6 +13716,23 @@ export default function Home() {
                 </div>
                 {!profile?.highlight_reel_public && <p className="highlightReelPrivateNote">Private until you switch it on and save your profile.</p>}
               </fieldset>
+              <fieldset className="scoutingProfileSettings wide">
+                <legend>Club scouting</legend>
+                <div>
+                  <span>Recruitment is opt-in</span>
+                  <strong>Let verified Talent7 club officials discover your profile.</strong>
+                  <small>Your setting is off by default. A club can privately shortlist you and send an invitation, but you never become a member until you accept.</small>
+                </div>
+                <label className="passportVisibilityToggle">
+                  <input defaultChecked={profile?.scouting_open === true} name="scouting_open" type="checkbox" />
+                  <span><strong>Open to club scouting</strong><small>Shows your profile only in the signed-in scouting workspace. Your email and private account data are never included.</small></span>
+                </label>
+                <label>
+                  What should clubs know?
+                  <textarea defaultValue={profile?.scouting_note || ""} maxLength={180} name="scouting_note" placeholder="For example: Looking for a Navi Mumbai badminton club with weekend training." rows={3} />
+                  <small>Optional, maximum 180 characters.</small>
+                </label>
+              </fieldset>
               <fieldset className="challengePreferenceFields wide">
                 <legend>Challenge availability</legend>
                 <p>Control who can discover and invite you from Find opponents. You can change this at any time.</p>
@@ -15071,6 +15101,7 @@ export default function Home() {
             )}
           </div>
         )}
+        <ClubsScouting activities={challengeActivityOptions} currentUserId={session?.user.id || ""} />
       </section>
 
       <section className="section safetySection" id="safety">
