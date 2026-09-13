@@ -1655,6 +1655,65 @@ main.appView-leaderboard > #leaderboard {
   gap: 8px;
 }
 
+.challengeActivitySearch {
+  position: relative;
+}
+
+.challengeActivitySearch input {
+  padding-left: 38px;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(120deg, #1b9e97, #5768e8) border-box;
+  border: 1px solid transparent;
+}
+
+.challengeActivitySearch::after {
+  position: absolute;
+  bottom: 13px;
+  left: 14px;
+  color: #5b6b71;
+  content: "⌕";
+  font-size: 1.15rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.challengeActivityResults {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  max-height: 250px;
+  padding: 8px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #9bd5ce;
+  border-radius: 8px;
+  box-shadow: 0 14px 28px rgba(8, 53, 58, 0.12);
+}
+
+.challengeActivityResults > button {
+  display: grid;
+  gap: 2px;
+  min-height: 54px;
+  padding: 9px 11px;
+  color: var(--ink);
+  text-align: left;
+  background: #f7fbfb;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.challengeActivityResults > button:hover,
+.challengeActivityResults > button:focus-visible {
+  background: #e7f7f5;
+  border-color: var(--teal);
+}
+
+.challengeActivityResults small {
+  color: #657178;
+}
+
 .useInterestButton {
   justify-self: start;
   min-height: 36px;
@@ -11254,6 +11313,10 @@ body:has(.publicRoomLanding) {
 }
 
 @media (max-width: 900px) {
+  .challengeActivityResults {
+    grid-template-columns: 1fr;
+  }
+
   .accountCard,
   .accountLegalCard,
   .navActions,

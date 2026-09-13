@@ -14,7 +14,6 @@ import type { Session } from "@supabase/supabase-js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 import { trackGrowthEvent } from "../lib/growth-analytics";
 import { supporterTierLabel, type SupporterTier } from "../lib/supporter-products";
-import { containsRetiredGamingContent, isRetiredGamingChallenge } from "../lib/product-scope";
 import ChallengeLiveRoom from "./challenge-live-room";
 import GrowthHub from "./growth-hub";
 import ListenVoiceRoom from "./listen-voice-room";
@@ -116,6 +115,27 @@ const athleticsIndividualEvents = [
   "Pole vault"
 ];
 const athleticsRelayEvents = ["4 × 100 m relay", "4 × 400 m relay"];
+const multiplayerGameOptions = [
+  "PUBG Mobile squad",
+  "Mech Arena 5v5",
+  "BGMI squad",
+  "Free Fire squad",
+  "Call of Duty: Mobile team",
+  "Mobile Legends: Bang Bang",
+  "League of Legends",
+  "Valorant 5v5",
+  "Counter-Strike 2",
+  "Fortnite squads",
+  "Rocket League",
+  "Brawl Stars",
+  "Clash Royale",
+  "eFootball",
+  "EA SPORTS FC",
+  "Minecraft team challenge",
+  "Roblox multiplayer challenge",
+  "Among Us",
+  "Other multiplayer game"
+];
 const challengeActivityGroups = [
   {
     label: "Popular challenges",
@@ -159,11 +179,23 @@ const challengeActivityGroups = [
     options: ["Dance battle", "Singing battle", "Music performance", "Art challenge"]
   },
   {
+    label: "Multiplayer games",
+    options: multiplayerGameOptions
+  },
+  {
     label: "More",
     options: ["Team tournament", "Sports coaching", "Expert help", "Other talent showcase"]
   }
 ];
-const challengeActivityOptions = challengeActivityGroups.flatMap((group) => group.options);
+const challengeActivityOptions = Array.from(new Set(challengeActivityGroups.flatMap((group) => group.options)));
+
+function isGamingActivity(activity: string) {
+  const normalized = activity.toLowerCase().trim();
+  return (
+    multiplayerGameOptions.some((game) => game.toLowerCase() === normalized) ||
+    /(gaming|multiplayer game|pubg|bgmi|mech arena|free fire|call of duty|mobile legends|league of legends|valorant|counter-strike|fortnite|rocket league|brawl stars|clash royale|efootball|ea sports fc|minecraft|roblox|among us)/.test(normalized)
+  );
+}
 const expertHelpTypes: ExpertHelpType[] = [
   "Medical guidance",
   "Fitness injury",
@@ -694,6 +726,17 @@ function activityMatchConfig(activity: string): ActivityMatchConfig {
 
   if (normalized.includes("badminton doubles")) return fixed("Doubles", 2);
   if (normalized.includes("badminton singles")) return fixed("Singles", 1);
+  if (/(pubg|bgmi|free fire|fortnite)/.test(normalized)) return fixed("Team", 4);
+  if (/(mech arena|call of duty|mobile legends|league of legends|valorant|counter-strike)/.test(normalized)) {
+    return fixed("Team", 5);
+  }
+  if (/(rocket league|brawl stars)/.test(normalized)) return fixed("Team", 3);
+  if (/(clash royale|efootball|ea sports fc)/.test(normalized)) {
+    return flexible(["Singles", "Doubles"], "Singles", 1);
+  }
+  if (/(minecraft|roblox|among us|multiplayer game|gaming)/.test(normalized)) {
+    return flexible(["Team"], "Team", 4);
+  }
   if (normalized.includes("volleyball")) return fixed("Team", 6);
   if (normalized.includes("football") || normalized.includes("cricket")) return fixed("Team", 11);
   if (normalized.includes("basketball")) return fixed("Team", 5);
@@ -1594,6 +1637,8 @@ const defaultChallengeDraft: ChallengeDraft = {
 function laneForInterest(interest: string): ChallengeLane {
   const normalized = interest.toLowerCase();
 
+  if (isGamingActivity(interest)) return "Mobile gaming challenge";
+
   if (
     normalized.includes("dance") ||
     normalized.includes("break") ||
@@ -1610,6 +1655,10 @@ function laneForInterest(interest: string): ChallengeLane {
 
 function rulesForActivity(activity: string) {
   const normalized = activity.toLowerCase();
+
+  if (isGamingActivity(activity)) {
+    return `${activity}: agree the game mode, map, server region, lobby settings, and number of rounds before starting. Upload the final result screen or match recording as proof.`;
+  }
 
   if (normalized.includes("relay")) {
     return `${activity}: use four registered runners per side, agree the track, lane allocation, baton exchange rules, and timing method, then upload the official time and finish proof.`;
@@ -1674,6 +1723,8 @@ function rulesForActivity(activity: string) {
 
 function venueForActivity(activity: string) {
   const normalized = activity.toLowerCase();
+
+  if (isGamingActivity(activity)) return "Online game lobby — agree the server region before starting";
 
   if (
     athleticsIndividualEvents.some((event) => event.toLowerCase() === normalized) ||
@@ -2459,6 +2510,16 @@ export default function Home() {
   const [opponentFormat, setOpponentFormat] = useState<ChallengeFormat | "All">("All");
   const [opponentReadyOnly, setOpponentReadyOnly] = useState(false);
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
+  const [challengeActivitySearch, setChallengeActivitySearch] = useState("");
+  const matchingChallengeActivities = useMemo(() => {
+    const search = challengeActivitySearch.trim().toLowerCase();
+    if (!search) return [];
+
+    return challengeActivityGroups
+      .flatMap((group) => group.options.map((activity) => ({ activity, group: group.label })))
+      .filter(({ activity, group }) => `${group} ${activity}`.toLowerCase().includes(search))
+      .slice(0, 12);
+  }, [challengeActivitySearch]);
   const [challengeEditSetups, setChallengeEditSetups] = useState<
     Record<string, { activity: string; format: MatchFormat; rosterSize: number }>
   >({});
@@ -2690,7 +2751,7 @@ export default function Home() {
       setChallengeLoadError(refreshError.message);
       if (showFeedback) setMessage(`Could not refresh challenge rooms: ${refreshError.message}`);
     } else {
-      setChallenges(((challengeResult.data || []) as Challenge[]).filter((challenge) => !isRetiredGamingChallenge(challenge)));
+      setChallenges((challengeResult.data || []) as Challenge[]);
       setJoins((joinResult.data || []) as ChallengeJoin[]);
       setChallengeLoadError("");
       if (showFeedback) setMessage("Challenge rooms refreshed.");
@@ -2983,7 +3044,6 @@ export default function Home() {
     const savedInterest = profile?.main_interest;
 
     const filteredChallenges = challenges.filter((challenge) => {
-      if (isRetiredGamingChallenge(challenge)) return false;
       const laneMatches = selectedLane === "All" || challenge.lane === selectedLane;
       const statusMatches =
         selectedStatus === "All" ||
@@ -3101,7 +3161,6 @@ export default function Home() {
 
   const leaderboard = useMemo(() => {
     return challenges
-      .filter((challenge) => !isRetiredGamingChallenge(challenge))
       .map((challenge) => {
         const joinsTotal =
           (joinCounts[challenge.id]?.challengers || 0) + (joinCounts[challenge.id]?.audience || 0);
@@ -3152,7 +3211,6 @@ export default function Home() {
   const visibleProfiles = useMemo(() => {
     const search = profileSearch.trim().toLowerCase();
     const filteredProfiles = publicProfiles.filter((item) => {
-      if (containsRetiredGamingContent(item.main_interest, ...(item.challenge_activities || []))) return false;
       return !search ||
         [item.display_name, item.username, item.role, item.main_interest, item.region]
           .join(" ")
@@ -3172,7 +3230,6 @@ export default function Home() {
   const visibleTeams = useMemo(() => {
     const search = teamSearch.trim().toLowerCase();
     const filteredTeams = teams.filter((team) => {
-      if (containsRetiredGamingContent(team.team_type, team.main_activity, team.description)) return false;
       return !search ||
         [team.name, team.team_type, team.main_activity, team.region, team.description]
           .join(" ")
@@ -3199,7 +3256,6 @@ export default function Home() {
 
     return publicProfiles
       .filter((item) => item.user_id !== session?.user.id)
-      .filter((item) => !containsRetiredGamingContent(item.main_interest, ...(item.challenge_activities || [])))
       .filter((item) => profileChallengeAvailability(item) !== "Unavailable")
       .filter((item) => {
         const activities = profileChallengeActivities(item);
@@ -6381,13 +6437,7 @@ export default function Home() {
         .limit(30);
 
       if (error) return;
-      if (data) {
-        setTeams(
-          (data as TalentTeam[]).filter(
-            (team) => !containsRetiredGamingContent(team.team_type, team.main_activity, team.description)
-          )
-        );
-      }
+      if (data) setTeams(data as TalentTeam[]);
     }
 
     loadTeams();
@@ -8462,11 +8512,7 @@ export default function Home() {
         .order("updated_at", { ascending: false });
 
       if (data) {
-        setPublicProfiles(
-          (data as TalentProfile[])
-            .map(canonicalTalentProfile)
-            .filter((item) => !containsRetiredGamingContent(item.main_interest, ...(item.challenge_activities || [])))
-        );
+        setPublicProfiles((data as TalentProfile[]).map(canonicalTalentProfile));
       }
     }
 
@@ -8782,13 +8828,6 @@ export default function Home() {
       status: "Open",
       created_by: session?.user.id
     };
-    if (isRetiredGamingChallenge(challenge)) {
-      setMessage("Talent7 now supports talent and sports challenges only.", "warning");
-      challengeCreationLockRef.current = false;
-      setIsSaving(false);
-      return;
-    }
-
     try {
       if (!supabase) {
       const localChallenge: Challenge = {
@@ -8912,6 +8951,7 @@ export default function Home() {
       match_format: matchSetup.format,
       roster_size: matchSetup.rosterSize
     }));
+    setChallengeActivitySearch("");
   }
 
   function applyMatchFormat(format: MatchFormat, formElement: HTMLFormElement | null) {
@@ -8987,11 +9027,6 @@ export default function Home() {
       match_format: updatedMatchFormat,
       roster_size: updatedRosterSize
     };
-    if (isRetiredGamingChallenge(update)) {
-      setMessage("Talent7 now supports talent and sports challenges only.", "warning");
-      return;
-    }
-
     setEditingChallengeId(challenge.id);
     setMessage("");
 
@@ -9670,11 +9705,6 @@ export default function Home() {
       region: String(form.get("region") || profile?.region || "Global").trim(),
       description
     };
-    if (containsRetiredGamingContent(team.team_type, team.main_activity, team.description)) {
-      setMessage("Talent7 teams now support talent, sports, dance, and fitness activities only.", "warning");
-      return;
-    }
-
     setSavingTeam(true);
     setMessage("");
 
@@ -12762,7 +12792,7 @@ export default function Home() {
             <label>
               I want to join as
               <select name="role_goal" defaultValue="Challenger">
-                {(["Challenger", "Audience", "Coach", "Organizer", "Expert helper"] as FirstWaveInterest["role_goal"][]).map(
+                {(["Challenger", "Audience", "Coach", "Organizer", "Expert helper", "Gaming squad"] as FirstWaveInterest["role_goal"][]).map(
                   (role) => (
                     <option key={role} value={role}>
                       {role === "Coach" ? "Coach (future Coaching)" : role === "Expert helper" ? "Expert helper (future Guidance)" : role}
@@ -14266,8 +14296,8 @@ export default function Home() {
       <section className="section teamsSection" id="teams">
         <div className="sectionHeader">
           <p className="eyebrow">Teams & squads</p>
-          <h2>Form sports teams, dance crews, and fitness groups</h2>
-          <p>Create reusable team identities for doubles partners, dance crews, athletics teams, and calisthenics groups.</p>
+          <h2>Form sports teams, dance crews, gaming clans, and fitness groups</h2>
+          <p>Create reusable team identities for doubles partners, dance crews, esports squads, athletics teams, and calisthenics groups.</p>
         </div>
         {session ? (
           <form className="teamForm" onSubmit={createTeam}>
@@ -14280,12 +14310,16 @@ export default function Home() {
               <select name="team_type" defaultValue="Sports team">
                 <option>Sports team</option>
                 <option>Dance crew</option>
+                <option>Gaming clan</option>
                 <option>Fitness group</option>
               </select>
             </label>
             <label>
               Main activity
-              <input name="main_activity" defaultValue={profile?.main_interest || ""} placeholder="Badminton doubles, athletics, breakdance..." />
+              <input name="main_activity" defaultValue={profile?.main_interest || ""} list="team-activity-options" placeholder="PUBG Mobile, Mech Arena, badminton..." />
+              <datalist id="team-activity-options">
+                {challengeActivityOptions.map((activity) => <option key={activity} value={activity} />)}
+              </datalist>
             </label>
             <label>
               Region
@@ -16849,6 +16883,40 @@ export default function Home() {
                 </div>
               </div>
               <div className="challengeTypeControls">
+                <label className="challengeActivitySearch">
+                  Search sports, talent, or games
+                  <input
+                    autoComplete="off"
+                    onChange={(event) => setChallengeActivitySearch(event.currentTarget.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter") return;
+                      event.preventDefault();
+                      const firstMatch = matchingChallengeActivities[0];
+                      if (firstMatch) applyChallengeActivity(firstMatch.activity, event.currentTarget.form);
+                    }}
+                    placeholder="Try PUBG, Mech Arena, badminton..."
+                    type="search"
+                    value={challengeActivitySearch}
+                  />
+                </label>
+                {challengeActivitySearch.trim() && (
+                  <div className="challengeActivityResults" aria-label="Matching challenge activities">
+                    {matchingChallengeActivities.length > 0 ? (
+                      matchingChallengeActivities.map(({ activity, group }) => (
+                        <button
+                          key={activity}
+                          onClick={(event) => applyChallengeActivity(activity, event.currentTarget.form)}
+                          type="button"
+                        >
+                          <strong>{activity}</strong>
+                          <small>{group}</small>
+                        </button>
+                      ))
+                    ) : (
+                      <small>No matching sport, talent activity, or multiplayer game.</small>
+                    )}
+                  </div>
+                )}
                 <label>
                   Challenge type
                   <select
@@ -16885,6 +16953,7 @@ export default function Home() {
               <select name="lane" defaultValue={challengeDraft.lane}>
                 <option>Talent battle</option>
                 <option>Sports challenge</option>
+                <option>Mobile gaming challenge</option>
               </select>
               <small className="fieldHint">Selected automatically; change it only if needed.</small>
             </label>
@@ -17326,7 +17395,7 @@ export default function Home() {
           </label>
           <strong className="filterLabel">Lane</strong>
           <div className="filters">
-            {(["All", "Talent battle", "Sports challenge"] as const).map((lane) => (
+            {(["All", "Talent battle", "Sports challenge", "Mobile gaming challenge"] as const).map((lane) => (
               <button
                 className={selectedLane === lane ? "active" : ""}
                 key={lane}
@@ -17763,6 +17832,7 @@ export default function Home() {
                       <select name="lane" defaultValue={challenge.lane}>
                         <option>Talent battle</option>
                         <option>Sports challenge</option>
+                        <option>Mobile gaming challenge</option>
                       </select>
                     </label>
                     <label>
