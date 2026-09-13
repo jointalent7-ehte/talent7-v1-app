@@ -1517,6 +1517,14 @@ type TalentProfile = {
 };
 
 type PassportTheme = "Aurora" | "Midnight" | "Victory gold";
+type ProfileStudioPreviewDraft = {
+  displayName: string;
+  username: string;
+  headline: string;
+  bio: string;
+  region: string;
+  theme: PassportTheme;
+};
 
 type ChallengeAvailability = "Open to everyone" | "People I follow" | "Unavailable";
 type ChallengeSkillLevel = "Open" | "Beginner" | "Intermediate" | "Advanced" | "Pro";
@@ -2597,7 +2605,7 @@ export default function Home() {
   const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null);
   const [profileAvatarPreview, setProfileAvatarPreview] = useState("");
   const [removeProfileAvatar, setRemoveProfileAvatar] = useState(false);
-  const [profileStudioPreview, setProfileStudioPreview] = useState({
+  const [profileStudioPreview, setProfileStudioPreview] = useState<ProfileStudioPreviewDraft>({
     displayName: "",
     username: "",
     headline: "",
@@ -8623,6 +8631,10 @@ export default function Home() {
     setMessage("");
   }
 
+  function updateProfileStudioPreview(update: Partial<ProfileStudioPreviewDraft>) {
+    setProfileStudioPreview((current) => ({ ...current, ...update }));
+  }
+
   function clearProfileAvatarDraft() {
     setProfileAvatarFile(null);
     setProfileAvatarPreview("");
@@ -13439,7 +13451,7 @@ export default function Home() {
 
               <label>
                 Display name
-                <input maxLength={60} minLength={2} name="display_name" defaultValue={profile?.display_name || ""} onInput={(event) => setProfileStudioPreview((current) => ({ ...current, displayName: event.currentTarget.value }))} placeholder="Rahul Sharma" required />
+                <input maxLength={60} minLength={2} name="display_name" defaultValue={profile?.display_name || ""} onInput={(event) => updateProfileStudioPreview({ displayName: event.currentTarget.value })} placeholder="Rahul Sharma" required />
               </label>
               <label>
                 Username
@@ -13450,19 +13462,19 @@ export default function Home() {
                   name="username"
                   pattern="[A-Za-z0-9_]+"
                   defaultValue={profile?.username || ""}
-                  onInput={(event) => setProfileStudioPreview((current) => ({ ...current, username: event.currentTarget.value.replace(/^@/, "") }))}
+                  onInput={(event) => updateProfileStudioPreview({ username: event.currentTarget.value.replace(/^@/, "") })}
                   placeholder="rahulbadminton"
                   required
                 />
               </label>
               <label className="wide">
                 Passport headline
-                <input defaultValue={profile?.headline || ""} maxLength={90} name="headline" onInput={(event) => setProfileStudioPreview((current) => ({ ...current, headline: event.currentTarget.value }))} placeholder="Example: Competitive badminton player · Navi Mumbai" />
+                <input defaultValue={profile?.headline || ""} maxLength={90} name="headline" onInput={(event) => updateProfileStudioPreview({ headline: event.currentTarget.value })} placeholder="Example: Competitive badminton player · Navi Mumbai" />
                 <small className="fieldHint">Keep it specific and easy to understand at a glance.</small>
               </label>
               <label className="wide">
                 About me
-                <textarea defaultValue={profile?.bio || ""} maxLength={360} name="bio" onInput={(event) => setProfileStudioPreview((current) => ({ ...current, bio: event.currentTarget.value }))} placeholder="Share your experience, goals, playing style, or the kind of challenges you want." rows={4} />
+                <textarea defaultValue={profile?.bio || ""} maxLength={360} name="bio" onInput={(event) => updateProfileStudioPreview({ bio: event.currentTarget.value })} placeholder="Share your experience, goals, playing style, or the kind of challenges you want." rows={4} />
                 <small className="fieldHint">Do not include private contact details or a home address.</small>
               </label>
               <label>
@@ -13490,13 +13502,13 @@ export default function Home() {
               </label>
               <label className="wide">
                 Region
-                <input name="region" defaultValue={profile?.region || ""} onInput={(event) => setProfileStudioPreview((current) => ({ ...current, region: event.currentTarget.value }))} placeholder="India, UAE, USA, Global..." />
+                <input name="region" defaultValue={profile?.region || ""} onInput={(event) => updateProfileStudioPreview({ region: event.currentTarget.value })} placeholder="India, UAE, USA, Global..." />
               </label>
               <fieldset className="passportAppearance wide">
                 <legend>Passport appearance and privacy</legend>
                 <label>
                   Visual theme
-                  <select defaultValue={profile?.passport_theme || "Aurora"} name="passport_theme" onChange={(event) => setProfileStudioPreview((current) => ({ ...current, theme: event.currentTarget.value as PassportTheme }))}>
+                  <select defaultValue={profile?.passport_theme || "Aurora"} name="passport_theme" onChange={(event) => updateProfileStudioPreview({ theme: event.currentTarget.value as PassportTheme })}>
                     {passportThemeOptions.map((theme) => <option key={theme}>{theme}</option>)}
                   </select>
                 </label>
