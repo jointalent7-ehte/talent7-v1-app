@@ -84,8 +84,9 @@ This is the canonical inventory for the current source tree: **81 numbered SQL f
 80. `add-challenge-room-staff.sql`
 81. `add-challenge-room-staff-invitations.sql`
 82. `add-ai-assisted-challenge-judging.sql`
+83. `add-open-challenge-queues.sql`
 
-The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider.
+The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening.
 
 The Showcase, Coaching, and Guidance migrations remain in this history because production may already contain their records and account deletion still cleans up their data and media. Their launch UI routes are closed and redirected to the Plans roadmap preview. Do not drop, reorder, or replay those migrations merely because the services are not currently active.
 
