@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms and Conditions",
-  description: "Terms and Conditions for Talent7 accounts, free talent and sports challenges, and digital badge purchases."
+  description: "Terms and Conditions for Talent7 accounts, free talent and sports challenges, sponsored tournament prizes, and digital badge purchases."
 };
 
 export default function TermsPage() {
@@ -13,7 +13,7 @@ export default function TermsPage() {
       <section className="legalHero">
         <p className="eyebrow">Terms and Conditions</p>
         <h1>Talent7 Terms and Conditions</h1>
-        <p>Last updated: September 4, 2026</p>
+        <p>Last updated: September 14, 2026</p>
       </section>
       <section className="legalCard legalHighlight">
         <h2>Agreement</h2>
@@ -45,6 +45,16 @@ export default function TermsPage() {
         </ul>
         <p><Link href="/shipping">Shipping and Digital Delivery Policy</Link></p>
         <p><Link href="/refunds">Cancellation and Refund Policy</Link></p>
+      </section>
+      <section className="legalCard">
+        <h2>Sponsored Tournament Prizes</h2>
+        <ul>
+          <li>Signed-in users may propose skill-based, non-cash tournament prizes. The tournament organizer must approve an offer before it becomes public.</li>
+          <li>A published prize must not require an entry fee, purchase, wager, random draw, payment, or transfer of money through Talent7.</li>
+          <li>Only the champion recorded by the completed Talent7 bracket can submit a claim. The organizer verifies the claim, and the sponsor or organizer records manual fulfilment.</li>
+          <li>Sponsors are responsible for the accuracy, legality, availability, eligibility, geographic limits, expiry, tax treatment, and fulfilment of their offers. Talent7 does not hold prize funds or guarantee a sponsor&apos;s promise.</li>
+          <li>Do not place addresses, banking information, payment credentials, or other sensitive information in a Talent7 prize claim. A parent or guardian must handle fulfilment for a winner under 18.</li>
+        </ul>
       </section>
       <section className="legalCard">
         <h2>Safety And Availability</h2>

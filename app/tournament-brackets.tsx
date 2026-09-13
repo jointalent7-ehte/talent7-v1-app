@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import SponsoredPrizes from "./sponsored-prizes";
 
 type TournamentStatus = "Registration" | "Live" | "Completed" | "Cancelled";
 type ParticipantMode = "Individuals" | "Teams";
@@ -180,6 +181,12 @@ export default function TournamentBrackets({
   const totalRounds = selectedTournament ? Math.log2(selectedTournament.bracket_size) : 0;
   const rounds = Array.from({ length: totalRounds }, (_, index) => index + 1);
   const champion = selectedEntries.find((entry) => entry.status === "Champion") || null;
+  const canCurrentUserClaimPrize = Boolean(
+    champion && userId && (
+      champion.participant_user_id === userId
+      || (champion.team_id && myTeams.some((team) => team.id === champion.team_id))
+    )
+  );
 
   async function runAction(
     key: string,
@@ -412,6 +419,15 @@ export default function TournamentBrackets({
                 )}
 
                 {champion && <div className="tournamentChampion"><span>🏆 Tournament champion</span><strong>{champion.display_name}</strong><small>{selectedTournament.title} · {selectedTournament.activity}</small></div>}
+                <SponsoredPrizes
+                  canCurrentUserClaim={canCurrentUserClaimPrize}
+                  championName={champion?.display_name || ""}
+                  organizerId={selectedTournament.organizer_id}
+                  tournamentId={selectedTournament.id}
+                  tournamentStatus={selectedTournament.status}
+                  tournamentTitle={selectedTournament.title}
+                  userId={userId}
+                />
               </>
             ) : <div className="tournamentEmpty"><strong>No tournament selected</strong><span>Create the first bracket below or open a tournament from the list.</span></div>}
           </div>

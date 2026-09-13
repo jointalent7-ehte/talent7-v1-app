@@ -19038,3 +19038,374 @@ html[data-talent7-theme="dark"] .profilePhotoEditor .profilePhotoRemove {
     width: 100%;
   }
 }
+
+.sponsoredPrizeVault {
+  --prize-gold: #ffd34f;
+  --prize-mint: #72ead3;
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+  padding: clamp(20px, 3vw, 32px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 211, 79, 0.3);
+  border-radius: 30px;
+  color: #f7fbff;
+  background:
+    radial-gradient(circle at 92% 4%, rgba(255, 211, 79, 0.25), transparent 28%),
+    radial-gradient(circle at 4% 100%, rgba(68, 220, 190, 0.19), transparent 31%),
+    linear-gradient(145deg, #091722, #24204b 58%, #0b4a4a);
+  box-shadow: 0 22px 54px rgba(5, 21, 33, 0.2);
+}
+
+.sponsoredPrizeHeader {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.sponsoredPrizeHeader > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.sponsoredPrizeHeader > div:first-child > span,
+.sponsoredPrizeReview > header span {
+  color: var(--prize-gold);
+  font-size: 0.73rem;
+  font-weight: 950;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.sponsoredPrizeHeader h3 {
+  margin: 0;
+  color: white;
+  font-size: clamp(1.55rem, 3vw, 2.4rem);
+  line-height: 1.05;
+}
+
+.sponsoredPrizeHeader p {
+  max-width: 720px;
+  margin: 0;
+  color: rgba(238, 248, 255, 0.72);
+  line-height: 1.5;
+}
+
+.sponsoredPrizeHeader > div:last-child {
+  display: grid;
+  min-width: 120px;
+  padding: 14px 17px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.sponsoredPrizeHeader > div:last-child strong {
+  color: white;
+  font-size: 1.45rem;
+}
+
+.sponsoredPrizeHeader > div:last-child small {
+  color: rgba(238, 248, 255, 0.7);
+}
+
+.sponsoredPrizeMessage,
+.sponsoredPrizeEmpty,
+.sponsoredPrizeSignIn {
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(114, 234, 211, 0.24);
+  border-radius: 18px;
+  color: #efffff;
+  background: rgba(114, 234, 211, 0.1);
+}
+
+.sponsoredPrizeEmpty {
+  display: grid;
+  gap: 4px;
+}
+
+.sponsoredPrizeEmpty span,
+.sponsoredPrizeSignIn {
+  color: rgba(238, 248, 255, 0.72);
+}
+
+.sponsoredPrizeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sponsoredPrizeGrid > article {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 23px;
+  background: rgba(255, 255, 255, 0.075);
+  backdrop-filter: blur(10px);
+}
+
+.sponsoredPrizeCardTop,
+.sponsoredPrizeGrid footer,
+.sponsoredPrizeActions,
+.sponsoredPrizeReview article,
+.sponsoredPrizeReview article > div:last-child {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sponsoredPrizeCardTop span,
+.sponsoredPrizeCardTop b {
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.sponsoredPrizeCardTop span {
+  color: #0b292a;
+  background: var(--prize-mint);
+}
+
+.sponsoredPrizeCardTop b {
+  color: #3b2b00;
+  background: var(--prize-gold);
+}
+
+.sponsoredPrizeGrid h4 {
+  margin: 0;
+  color: white;
+  font-size: 1.25rem;
+}
+
+.sponsoredPrizeGrid > article > strong {
+  color: var(--prize-gold);
+  font-size: 1.05rem;
+}
+
+.sponsoredPrizeGrid > article > p {
+  margin: 0;
+  color: rgba(238, 248, 255, 0.76);
+  line-height: 1.48;
+}
+
+.sponsoredPrizeGrid dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.sponsoredPrizeGrid dl > div {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 8px;
+  padding: 10px 11px;
+  border-radius: 13px;
+  background: rgba(2, 14, 24, 0.35);
+}
+
+.sponsoredPrizeGrid dt {
+  color: rgba(238, 248, 255, 0.58);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.sponsoredPrizeGrid dd {
+  margin: 0;
+  color: #f5fbff;
+  font-size: 0.86rem;
+}
+
+.sponsoredPrizeGrid footer {
+  align-items: flex-start;
+  color: rgba(238, 248, 255, 0.62);
+  font-size: 0.8rem;
+}
+
+.sponsoredPrizeGrid footer a {
+  flex: 0 0 auto;
+  color: var(--prize-mint);
+  font-weight: 850;
+}
+
+.sponsoredClaimStatus {
+  display: grid;
+  gap: 3px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--prize-gold);
+  border-radius: 4px 13px 13px 4px;
+  color: #f7fbff;
+  background: rgba(255, 211, 79, 0.1);
+}
+
+.sponsoredClaimStatus small {
+  color: rgba(238, 248, 255, 0.7);
+}
+
+.sponsoredClaimForm,
+.sponsoredPrizeProposal form {
+  display: grid;
+  gap: 11px;
+}
+
+.sponsoredClaimForm label,
+.sponsoredPrizeProposal label {
+  display: grid;
+  gap: 6px;
+  color: rgba(238, 248, 255, 0.76);
+  font-weight: 850;
+}
+
+.sponsoredPrizeVault input,
+.sponsoredPrizeVault select,
+.sponsoredPrizeVault textarea {
+  width: 100%;
+  min-height: 45px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: #f7fbff;
+  background: rgba(2, 14, 24, 0.57);
+  font: inherit;
+}
+
+.sponsoredPrizeVault option {
+  color: #0c1d24;
+  background: white;
+}
+
+.sponsoredPrizeVault button {
+  min-height: 43px;
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 12px;
+  color: #092327;
+  background: linear-gradient(135deg, var(--prize-gold), var(--prize-mint));
+  font: inherit;
+  font-weight: 900;
+}
+
+.sponsoredPrizeVault button.secondary,
+.sponsoredWithdrawButton {
+  color: #f7fbff;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sponsoredFulfillButton,
+.sponsoredWithdrawButton {
+  width: 100%;
+}
+
+.sponsoredPrizeReview {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(255, 211, 79, 0.24);
+  border-radius: 21px;
+  background: rgba(255, 211, 79, 0.07);
+}
+
+.sponsoredPrizeReview > header {
+  display: grid;
+  gap: 3px;
+}
+
+.sponsoredPrizeReview article {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(2, 14, 24, 0.42);
+}
+
+.sponsoredPrizeReview article > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.sponsoredPrizeReview article p,
+.sponsoredPrizeReview article small {
+  margin: 0;
+  color: rgba(238, 248, 255, 0.7);
+}
+
+.sponsoredPrizeProposal {
+  padding: 18px;
+  border: 1px dashed rgba(114, 234, 211, 0.35);
+  border-radius: 21px;
+  background: rgba(114, 234, 211, 0.07);
+}
+
+.sponsoredPrizeProposal summary {
+  cursor: pointer;
+  color: white;
+  font-weight: 950;
+}
+
+.sponsoredPrizeProposal > p {
+  color: rgba(238, 248, 255, 0.7);
+  line-height: 1.5;
+}
+
+.sponsoredPrizeProposal form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sponsoredPrizeProposal .wide {
+  grid-column: 1 / -1;
+}
+
+.sponsoredPrizeConfirmation {
+  display: flex !important;
+  grid-template-columns: none;
+  gap: 10px !important;
+  align-items: flex-start;
+  padding: 13px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.sponsoredPrizeConfirmation input {
+  width: 20px;
+  min-height: 20px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  .sponsoredPrizeHeader,
+  .sponsoredPrizeReview article {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sponsoredPrizeGrid,
+  .sponsoredPrizeProposal form {
+    grid-template-columns: 1fr;
+  }
+
+  .sponsoredPrizeProposal .wide {
+    grid-column: auto;
+  }
+
+  .sponsoredPrizeHeader > div:last-child {
+    width: 100%;
+  }
+
+  .sponsoredPrizeReview article > div:last-child,
+  .sponsoredPrizeActions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sponsoredPrizeReview button,
+  .sponsoredPrizeActions button {
+    width: 100%;
+  }
+}
