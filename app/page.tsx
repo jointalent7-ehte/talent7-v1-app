@@ -5073,25 +5073,58 @@ export default function Home() {
     return "";
   }
 
+  async function requestAuthenticatedMediaApi(method: "POST" | "DELETE", body: Record<string, unknown>) {
+    if (!supabase) throw new Error("Supabase is not connected yet.");
+    const client = supabase;
+
+    async function accessToken(forceRefresh: boolean) {
+      const { data } = forceRefresh
+        ? await client.auth.refreshSession()
+        : await client.auth.getSession();
+
+      if (data.session && data.session.access_token !== session?.access_token) {
+        setSession(data.session);
+      }
+
+      return data.session?.access_token || "";
+    }
+
+    async function send(token: string) {
+      return fetch("/api/media", {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+    }
+
+    let token = await accessToken(false);
+    if (!token) token = await accessToken(true);
+    if (!token) throw new Error("Your secure upload session expired. Sign in again before uploading media.");
+
+    let response = await send(token);
+    if (response.status === 401) {
+      token = await accessToken(true);
+      if (token) response = await send(token);
+    }
+
+    return response;
+  }
+
   async function uploadMediaFile(bucket: "challenge-proofs" | "showcase-media", file: File, folder: string) {
     if (!supabase || !session?.user.id) {
       throw new Error("Supabase Storage is not connected yet.");
     }
 
     if (session.access_token) {
-      const r2Response = await fetch("/api/media", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          kind: bucket,
-          folder,
-          fileName: file.name,
-          contentType: file.type,
-          size: file.size
-        })
+      const r2Response = await requestAuthenticatedMediaApi("POST", {
+        kind: bucket,
+        folder,
+        fileName: file.name,
+        contentType: file.type,
+        size: file.size
       });
 
       if (r2Response.ok) {
@@ -5134,16 +5167,9 @@ export default function Home() {
   }
 
   async function deleteR2MediaFile(mediaUrl: string) {
-    if (!session?.access_token || !mediaUrl) return { managed: false, deleted: false };
+    if (!session?.user.id || !mediaUrl) return { managed: false, deleted: false };
 
-    const response = await fetch("/api/media", {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ mediaUrl })
-    });
+    const response = await requestAuthenticatedMediaApi("DELETE", { mediaUrl });
 
     if (response.status === 503) return { managed: false, deleted: false };
     const result = (await response.json().catch(() => null)) as
