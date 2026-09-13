@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import GrowthEvent from "../../growth-event";
+import { getPublicHighlightReel } from "../../../lib/public-highlight-reel";
 import { getPublicTalentProfile } from "../../../lib/public-profile-preview";
 import { supporterTierLabel, type SupporterTier } from "../../../lib/supporter-products";
 
@@ -70,7 +71,10 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
 export default async function PublicProfilePage({ params }: ProfilePageProps) {
   const { token } = await params;
-  const profile = await getPublicTalentProfile(token);
+  const [profile, highlightReel] = await Promise.all([
+    getPublicTalentProfile(token),
+    getPublicHighlightReel(token)
+  ]);
 
   if (!profile) {
     return (
@@ -148,12 +152,19 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
 
           <section className="passportSection">
             <div className="passportSectionHeading"><div><span>Trophy cabinet</span><h2>Permanent achievements</h2></div><small>{passport?.trophies.length || 0} earned</small></div>
-            {passport && passport.trophies.length > 0 ? (
+          {passport && passport.trophies.length > 0 ? (
               <div className="passportTrophyGrid">{passport.trophies.map((trophy) => (
                 <article className={trophy.rarity.toLowerCase()} key={`${trophy.title}-${trophy.earned_at}`}><i aria-hidden="true">{trophyIcon(trophy.icon_key)}</i><div><span>{trophy.rarity}</span><h3>{trophy.title}</h3><p>{trophy.detail}</p><small>Earned {passportDate(trophy.earned_at)}</small></div></article>
               ))}</div>
             ) : <div className="passportEmptyState"><strong>First trophy waiting</strong><span>Complete a challenge with proof to begin this cabinet.</span></div>}
           </section>
+
+          {highlightReel && highlightReel.clips.length > 0 && (
+            <section className="passportHighlightCallout">
+              <div><span>Automatic highlights</span><h2>{highlightReel.title}</h2><p>{highlightReel.tagline || `${highlightReel.clips.length} proof-backed victories, selected automatically.`}</p></div>
+              <Link href={`/highlight/${token}`}>Watch the reel</Link>
+            </section>
+          )}
 
           {passport && passport.recent_results.length > 0 && (
             <section className="passportSection">

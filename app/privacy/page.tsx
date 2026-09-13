@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <ul>
           <li>Account information such as email address and login status.</li>
           <li>Profile information such as display name, username, role, main interest, region, and any area, city, or country you optionally enter for local leaderboards.</li>
-          <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, tournament entries, rivalry invitations and records, reports, and team requests.</li>
+          <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, tournament entries, rivalry invitations and records, public highlight-reel settings, reports, and team requests.</li>
           <li>Legacy showcase, coaching, or expert-help records you previously submitted. Their public creation/request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
           <li>Optional support or founder feedback messages you submit.</li>
           <li>Payment records such as provider, selected digital badge product, fixed price, currency, status, provider references, and badge entitlement. Historical payment records may be retained where required for reconciliation, disputes, refunds, or legal obligations. Talent7 does not collect or store your complete card details, UPI PIN, banking password, or payment OTP.</li>
@@ -72,6 +72,11 @@ export default function PrivacyPage() {
         <p>
           Pending or declined rivalry invitations are visible only to the two people involved. Once accepted, the
           rivalry identity and its proof-backed record become public so other users can follow the matchup.
+        </p>
+        <p>
+          Automatic highlight reels are private by default. If you publish yours, Talent7 may show your selected
+          title and introduction together with recent non-rejected proof media you uploaded for completed wins.
+          Talent7 does not alter the original proof file, and you can switch the public reel off from Account settings.
         </p>
         <p>
           Local leaderboards are optional. Talent7 does not read your device location for them. If you opt in,

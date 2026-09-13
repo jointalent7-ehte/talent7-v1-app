@@ -17523,6 +17523,595 @@ html[data-talent7-theme="dark"] .challengeStaffPanel .challengeStaffStatus.decli
   }
 }
 
+.highlightReelSettings {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 18px;
+  overflow: hidden;
+  color: #f6f8ff;
+  background:
+    radial-gradient(circle at 94% 8%, rgba(255, 204, 55, 0.28), transparent 26%),
+    radial-gradient(circle at 5% 100%, rgba(48, 212, 186, 0.2), transparent 30%),
+    linear-gradient(132deg, #09131e, #27204b 55%, #0a4a4a);
+  border: 1px solid rgba(112, 226, 207, 0.28);
+  border-radius: 18px;
+  box-shadow: 0 18px 42px rgba(8, 23, 35, 0.17);
+}
+
+.highlightReelSettings legend {
+  padding: 0 8px;
+  color: var(--ink);
+  font-weight: 950;
+}
+
+.highlightReelSettingsIntro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.highlightReelSettingsIntro > div {
+  display: grid;
+  gap: 5px;
+  max-width: 660px;
+}
+
+.highlightReelSettingsIntro > div > span {
+  color: #ffd24f;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.highlightReelSettingsIntro > div > strong {
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.highlightReelSettingsIntro small,
+.highlightReelPrivateNote {
+  color: rgba(242, 248, 255, 0.7);
+  line-height: 1.45;
+}
+
+.highlightReelSettingsActions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.highlightReelSettingsActions a,
+.highlightReelSettingsActions button {
+  display: grid;
+  min-height: 40px;
+  place-items: center;
+  padding: 9px 12px;
+  color: #0c1720;
+  background: linear-gradient(135deg, #ffd24f, #69dfc9);
+  border: 0;
+  border-radius: 10px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.highlightReelSettingsActions button {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.highlightReelSettings .highlightReelVisibility {
+  color: #f7f9ff;
+  background: rgba(255, 255, 255, 0.075);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.highlightReelSettings .highlightReelVisibility small {
+  color: rgba(242, 248, 255, 0.68);
+}
+
+.highlightReelFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.6fr);
+  gap: 10px;
+}
+
+.highlightReelFields label {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.highlightReelFields input,
+.highlightReelFields select {
+  color: #15181d;
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.highlightReelFields .wide {
+  grid-column: 1 / -1;
+}
+
+.highlightReelPrivateNote {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid #ffd24f;
+  font-size: 0.82rem;
+}
+
+.highlightLanding {
+  min-height: 100vh;
+  padding: clamp(18px, 4vw, 46px);
+  color: #f6f8ff;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(46, 211, 183, 0.2), transparent 28%),
+    radial-gradient(circle at 92% 15%, rgba(117, 83, 225, 0.32), transparent 30%),
+    #060b12;
+}
+
+.highlightLanding.highlightThemeVictorygold {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 197, 52, 0.27), transparent 29%),
+    radial-gradient(circle at 90% 20%, rgba(160, 79, 31, 0.25), transparent 32%),
+    #0d0905;
+}
+
+.highlightLanding.highlightThemeMidnight {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(64, 102, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 92% 15%, rgba(139, 70, 255, 0.28), transparent 30%),
+    #030611;
+}
+
+body:has(.highlightLanding) {
+  background: #060b12;
+}
+
+.highlightLandingShell {
+  display: grid;
+  gap: 20px;
+  width: min(1160px, 100%);
+  margin: 0 auto;
+}
+
+.highlightBrand,
+.highlightIdentity,
+.highlightLandingFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.highlightBrand > a {
+  color: #fff;
+  font-size: 1.45rem;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.highlightBrand > a span,
+.highlightBrand > span,
+.highlightIdentityCopy > span {
+  color: #ffd34e;
+}
+
+.highlightBrand > span {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.highlightIdentity {
+  align-items: flex-end;
+  padding: clamp(18px, 4vw, 30px);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  backdrop-filter: blur(18px);
+}
+
+.highlightIdentityCopy {
+  display: grid;
+  gap: 6px;
+}
+
+.highlightIdentityCopy > span {
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.highlightIdentity h1,
+.highlightIdentity p {
+  margin: 0;
+}
+
+.highlightIdentity h1 {
+  max-width: 720px;
+  color: #fff;
+  font-size: clamp(2rem, 6vw, 4.8rem);
+  line-height: 0.96;
+}
+
+.highlightIdentity p {
+  color: rgba(242, 248, 255, 0.68);
+}
+
+.highlightOwner {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
+}
+
+.highlightOwner > div {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  overflow: hidden;
+  color: #121722;
+  background: linear-gradient(135deg, #ffd34e, #53dfc4);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 18px;
+  font-weight: 950;
+}
+
+.highlightOwner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.highlightOwner > span {
+  display: grid;
+  gap: 2px;
+}
+
+.highlightOwner small {
+  color: rgba(242, 248, 255, 0.62);
+}
+
+.highlightPlayer {
+  display: grid;
+  gap: 12px;
+  width: min(520px, 100%);
+  margin: 0 auto;
+}
+
+.highlightProgress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20px, 1fr));
+  gap: 5px;
+}
+
+.highlightProgress button {
+  min-height: 4px;
+  padding: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.16);
+  border: 0;
+  border-radius: 999px;
+}
+
+.highlightProgress button.filled {
+  background: linear-gradient(90deg, #ffd34e, #55ddc5);
+}
+
+.highlightMedia {
+  position: relative;
+  aspect-ratio: 9 / 14;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(124, 88, 230, 0.4), transparent 28%),
+    linear-gradient(145deg, #101827, #1f1740 62%, #0b4a4b);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 28px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.highlightMedia > img,
+.highlightMedia > video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.highlightShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 32%, rgba(2, 7, 12, 0.2) 52%, rgba(2, 7, 12, 0.95) 100%);
+  pointer-events: none;
+}
+
+.highlightMedia video + .highlightShade {
+  bottom: 52px;
+}
+
+.highlightMomentCopy {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+  padding: clamp(18px, 5vw, 30px);
+  pointer-events: none;
+}
+
+.highlightMomentCopy > span,
+.highlightLinkMoment > span {
+  color: #62e4cd;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.highlightMomentCopy h2,
+.highlightMomentCopy p,
+.highlightMomentCopy footer {
+  margin: 0;
+}
+
+.highlightMomentCopy h2 {
+  color: #fff;
+  font-size: clamp(1.65rem, 5vw, 2.7rem);
+  line-height: 1;
+}
+
+.highlightMomentCopy > div,
+.highlightMomentCopy footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.highlightMomentCopy > div strong {
+  color: #ffd34e;
+  font-size: 1.5rem;
+}
+
+.highlightMomentCopy small,
+.highlightMomentCopy p,
+.highlightMomentCopy footer span {
+  color: rgba(245, 250, 255, 0.7);
+}
+
+.highlightMomentCopy footer {
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.highlightMomentCopy footer b {
+  color: #15121c;
+  padding: 6px 9px;
+  background: #ffd34e;
+  border-radius: 999px;
+}
+
+.highlightLinkMoment {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 30px;
+  text-align: center;
+}
+
+.highlightLinkMoment strong {
+  color: #fff;
+  font-size: 1.8rem;
+}
+
+.highlightLinkMoment p {
+  color: rgba(245, 250, 255, 0.68);
+}
+
+.highlightLinkMoment a {
+  padding: 11px 14px;
+  color: #111722;
+  background: linear-gradient(135deg, #ffd34e, #5be1c8);
+  border-radius: 10px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.highlightMediaLink .highlightShade,
+.highlightMediaLink .highlightMomentCopy {
+  display: none;
+}
+
+.highlightControls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.highlightControls button {
+  min-height: 44px;
+  color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+.highlightControls button.active {
+  color: #101721;
+  background: linear-gradient(135deg, #ffd34e, #5be1c8);
+  border-color: transparent;
+}
+
+.highlightControls button:disabled {
+  opacity: 0.35;
+}
+
+.highlightEmpty,
+.highlightUnavailable {
+  display: grid;
+  gap: 13px;
+  min-height: min(620px, 75vh);
+  align-content: center;
+  justify-items: start;
+  padding: clamp(28px, 7vw, 78px);
+  background:
+    radial-gradient(circle at 85% 20%, rgba(117, 83, 225, 0.3), transparent 30%),
+    rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px;
+}
+
+.highlightEmpty > span,
+.highlightUnavailable > span {
+  color: #ffd34e;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.highlightEmpty h2,
+.highlightUnavailable h1,
+.highlightEmpty p,
+.highlightUnavailable p {
+  max-width: 760px;
+  margin: 0;
+}
+
+.highlightEmpty h2,
+.highlightUnavailable h1 {
+  color: #fff;
+  font-size: clamp(2rem, 6vw, 4.8rem);
+  line-height: 0.98;
+}
+
+.highlightEmpty p,
+.highlightUnavailable p,
+.highlightLandingFooter span {
+  color: rgba(245, 250, 255, 0.66);
+}
+
+.highlightEmpty a,
+.highlightUnavailable a,
+.highlightLandingFooter a {
+  padding: 10px 13px;
+  color: #111722;
+  background: linear-gradient(135deg, #ffd34e, #5be1c8);
+  border-radius: 10px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.highlightUnavailable > div,
+.highlightLandingFooter nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.highlightLandingFooter {
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+}
+
+.highlightLandingFooter > div {
+  display: grid;
+  gap: 3px;
+}
+
+.highlightLandingFooter a:last-child {
+  color: #fff;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.passportHighlightCallout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  color: #f8f9ff;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(255, 207, 62, 0.25), transparent 34%),
+    linear-gradient(135deg, #151529, #463066 58%, #0a5550);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 18px;
+}
+
+.passportHighlightCallout > div {
+  display: grid;
+  gap: 4px;
+}
+
+.passportHighlightCallout span {
+  color: #ffd34e;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.passportHighlightCallout h2,
+.passportHighlightCallout p {
+  margin: 0;
+}
+
+.passportHighlightCallout p {
+  color: rgba(245, 250, 255, 0.68);
+}
+
+.passportHighlightCallout > a {
+  flex: 0 0 auto;
+  padding: 11px 14px;
+  color: #101721;
+  background: linear-gradient(135deg, #ffd34e, #5be1c8);
+  border-radius: 10px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .highlightReelSettingsIntro,
+  .highlightIdentity,
+  .highlightLandingFooter,
+  .passportHighlightCallout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .highlightReelFields {
+    grid-template-columns: 1fr;
+  }
+
+  .highlightReelFields .wide {
+    grid-column: auto;
+  }
+
+  .highlightOwner {
+    width: 100%;
+  }
+
+  .passportHighlightCallout > a,
+  .highlightReelSettingsActions,
+  .highlightReelSettingsActions a,
+  .highlightReelSettingsActions button {
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .heroMetrics article,
   .pathFinder a,

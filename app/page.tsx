@@ -1515,6 +1515,10 @@ type TalentProfile = {
   passport_show_bio?: boolean | null;
   passport_show_region?: boolean | null;
   passport_show_activities?: boolean | null;
+  highlight_reel_public?: boolean | null;
+  highlight_reel_title?: string | null;
+  highlight_reel_tagline?: string | null;
+  highlight_reel_max_clips?: number | null;
   challenge_availability?: ChallengeAvailability | null;
   challenge_skill_level?: ChallengeSkillLevel | null;
   challenge_mode?: ChallengeMode | null;
@@ -1634,7 +1638,11 @@ function canonicalTalentProfile(item: TalentProfile): TalentProfile {
     passport_show_avatar: item.passport_show_avatar !== false,
     passport_show_bio: item.passport_show_bio !== false,
     passport_show_region: item.passport_show_region !== false,
-    passport_show_activities: item.passport_show_activities !== false
+    passport_show_activities: item.passport_show_activities !== false,
+    highlight_reel_public: item.highlight_reel_public === true,
+    highlight_reel_title: item.highlight_reel_title || "My Talent7 highlights",
+    highlight_reel_tagline: item.highlight_reel_tagline || "",
+    highlight_reel_max_clips: Math.min(10, Math.max(3, Number(item.highlight_reel_max_clips || 6)))
   };
 }
 
@@ -8720,6 +8728,9 @@ export default function Home() {
     const leaderboardCountry = String(form.get("leaderboard_country") || "").trim();
     const localLeaderboardVisible = form.get("local_leaderboard_visible") === "on";
     const passportTheme = String(form.get("passport_theme") || "Aurora") as PassportTheme;
+    const highlightReelTitle = String(form.get("highlight_reel_title") || "My Talent7 highlights").trim();
+    const highlightReelTagline = String(form.get("highlight_reel_tagline") || "").trim();
+    const highlightReelMaxClips = Number(form.get("highlight_reel_max_clips") || 6);
     const featuredActivities = Array.from(new Set(
       form.getAll("passport_featured_activities").map((value) => String(value).trim()).filter(Boolean)
     )).slice(0, 3);
@@ -8761,6 +8772,16 @@ export default function Home() {
 
     if (!passportThemeOptions.includes(passportTheme)) {
       setMessage("Choose a valid Passport appearance.", "warning");
+      return;
+    }
+
+    if (highlightReelTitle.length < 2 || highlightReelTitle.length > 70 || highlightReelTagline.length > 140) {
+      setMessage("Use a highlight title between 2 and 70 characters and keep its introduction under 140 characters.", "warning");
+      return;
+    }
+
+    if (!Number.isInteger(highlightReelMaxClips) || highlightReelMaxClips < 3 || highlightReelMaxClips > 10) {
+      setMessage("Choose between 3 and 10 moments for the automatic highlight reel.", "warning");
       return;
     }
 
@@ -8807,6 +8828,10 @@ export default function Home() {
       passport_show_bio: form.get("passport_show_bio") === "on",
       passport_show_region: form.get("passport_show_region") === "on",
       passport_show_activities: form.get("passport_show_activities") === "on",
+      highlight_reel_public: form.get("highlight_reel_public") === "on",
+      highlight_reel_title: highlightReelTitle,
+      highlight_reel_tagline: highlightReelTagline,
+      highlight_reel_max_clips: highlightReelMaxClips,
       challenge_availability: String(form.get("challenge_availability") || "Open to everyone") as ChallengeAvailability,
       challenge_skill_level: String(form.get("challenge_skill_level") || "Open") as ChallengeSkillLevel,
       challenge_mode: String(form.get("challenge_mode") || "Either") as ChallengeMode,
@@ -8839,7 +8864,7 @@ export default function Home() {
       if (previousAvatarUrl && previousAvatarUrl !== avatarUrl) {
         await deleteProfileImage(previousAvatarUrl).catch(() => null);
       }
-      setMessage("Profile, Passport design, and challenge preferences saved.", "success");
+      setMessage("Profile, Passport, highlight reel, and challenge preferences saved.", "success");
     }
 
     setProfileLoading(false);
@@ -9482,6 +9507,36 @@ export default function Home() {
     }
 
     await copyShareText("Talent7 Passport link", `${shareData.text}\n${url}`);
+  }
+
+  async function shareHighlightReel(item: TalentProfile) {
+    if (!item.share_token) {
+      setMessage("Save your profile once before sharing its highlight reel.", "warning");
+      return;
+    }
+    if (!item.highlight_reel_public) {
+      setMessage("Switch on the public highlight reel and save your profile before sharing it.", "warning");
+      return;
+    }
+
+    const url = siteUrl(`/highlight/${item.share_token}`);
+    const shareData = {
+      title: `${item.display_name}'s Talent7 highlights`,
+      text: `Watch ${item.display_name}'s proof-backed wins on Talent7.`,
+      url
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setMessage("Highlight reel shared.", "success");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShareText("Highlight reel link", `${shareData.text}\n${url}`);
   }
 
   async function shareChallengeRoom(challenge: Challenge) {
@@ -13610,6 +13665,43 @@ export default function Home() {
                     </select>
                   </label>
                 ))}
+              </fieldset>
+              <fieldset className="highlightReelSettings wide">
+                <legend>Automatic highlight reel</legend>
+                <div className="highlightReelSettingsIntro">
+                  <div>
+                    <span>Proof-backed moments</span>
+                    <strong>Your wins become a shareable vertical reel.</strong>
+                    <small>Talent7 selects your newest completed wins that include proof media you uploaded. Rejected proof never appears, and original files are never altered.</small>
+                  </div>
+                  {profile?.share_token && profile.highlight_reel_public && (
+                    <span className="highlightReelSettingsActions">
+                      <a href={`/highlight/${profile.share_token}`} rel="noreferrer" target="_blank">View reel</a>
+                      <button onClick={() => void shareHighlightReel(profile)} type="button">Share reel</button>
+                    </span>
+                  )}
+                </div>
+                <label className="passportVisibilityToggle highlightReelVisibility">
+                  <input defaultChecked={profile?.highlight_reel_public === true} name="highlight_reel_public" type="checkbox" />
+                  <span><strong>Publish my automatic highlight reel</strong><small>Off by default. When enabled, anyone with your reel link can watch the selected proof media.</small></span>
+                </label>
+                <div className="highlightReelFields">
+                  <label>
+                    Reel title
+                    <input defaultValue={profile?.highlight_reel_title || "My Talent7 highlights"} maxLength={70} name="highlight_reel_title" placeholder="My best Talent7 moments" />
+                  </label>
+                  <label>
+                    Number of moments
+                    <select defaultValue={profile?.highlight_reel_max_clips || 6} name="highlight_reel_max_clips">
+                      {[3, 4, 5, 6, 8, 10].map((count) => <option key={count} value={count}>{count} moments</option>)}
+                    </select>
+                  </label>
+                  <label className="wide">
+                    Short introduction
+                    <input defaultValue={profile?.highlight_reel_tagline || ""} maxLength={140} name="highlight_reel_tagline" placeholder="A season of close finishes, comebacks, and verified wins." />
+                  </label>
+                </div>
+                {!profile?.highlight_reel_public && <p className="highlightReelPrivateNote">Private until you switch it on and save your profile.</p>}
               </fieldset>
               <fieldset className="challengePreferenceFields wide">
                 <legend>Challenge availability</legend>
