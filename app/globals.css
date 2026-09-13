@@ -17563,6 +17563,10 @@ html[data-talent7-theme="dark"] .challengeStaffPanel .challengeStaffStatus.decli
   text-transform: uppercase;
 }
 
+.scoutingProfileSettings > div > span {
+  color: #8a5a00;
+}
+
 .scoutingProfileSettings > div > strong {
   color: #09272c;
   font-size: 1.1rem;
@@ -18062,6 +18066,10 @@ html[data-talent7-theme="dark"] .scoutingProfileSettings {
 html[data-talent7-theme="dark"] .scoutingProfileSettings > h3,
 html[data-talent7-theme="dark"] .scoutingProfileSettings > div > strong {
   color: white;
+}
+
+html[data-talent7-theme="dark"] .scoutingProfileSettings > div > span {
+  color: #ffd447;
 }
 
 html[data-talent7-theme="dark"] .scoutingProfileSettings > div > small,
