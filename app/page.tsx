@@ -13679,8 +13679,8 @@ export default function Home() {
                   </label>
                 ))}
               </fieldset>
-              <fieldset className="highlightReelSettings wide">
-                <legend>Automatic highlight reel</legend>
+              <section aria-labelledby="automatic-highlight-reel-heading" className="highlightReelSettings wide">
+                <h3 id="automatic-highlight-reel-heading">Automatic highlight reel</h3>
                 <div className="highlightReelSettingsIntro">
                   <div>
                     <span>Proof-backed moments</span>
@@ -13715,9 +13715,9 @@ export default function Home() {
                   </label>
                 </div>
                 {!profile?.highlight_reel_public && <p className="highlightReelPrivateNote">Private until you switch it on and save your profile.</p>}
-              </fieldset>
-              <fieldset className="scoutingProfileSettings wide">
-                <legend>Club scouting</legend>
+              </section>
+              <section aria-labelledby="club-scouting-heading" className="scoutingProfileSettings wide">
+                <h3 id="club-scouting-heading">Club scouting</h3>
                 <div>
                   <span>Recruitment is opt-in</span>
                   <strong>Let verified Talent7 club officials discover your profile.</strong>
@@ -13732,7 +13732,7 @@ export default function Home() {
                   <textarea defaultValue={profile?.scouting_note || ""} maxLength={180} name="scouting_note" placeholder="For example: Looking for a Navi Mumbai badminton club with weekend training." rows={3} />
                   <small>Optional, maximum 180 characters.</small>
                 </label>
-              </fieldset>
+              </section>
               <fieldset className="challengePreferenceFields wide">
                 <legend>Challenge availability</legend>
                 <p>Control who can discover and invite you from Find opponents. You can change this at any time.</p>
