@@ -307,6 +307,21 @@ export default function GrowthHub({
             </span>
           ))}
         </div>
+        {!talent7Rank?.completed_count && (
+          <div className="talent7StarterGuide">
+            <div>
+              <span>Your first mission</span>
+              <strong>Complete one challenge with proof</strong>
+              <small>A Ranked victory earns 35 RP. Three victories are enough to pass 100 RP and reach Rising Star.</small>
+            </div>
+            <div>
+              <span>First prize</span>
+              <strong>First verified victory trophy</strong>
+              <small>It stays in your trophy cabinet permanently, even after the season changes.</small>
+            </div>
+            <a href="#create">Create a Ranked challenge</a>
+          </div>
+        )}
         {activityRanks.length > 0 && (
           <div className="talent7ActivityRanks">
             {activityRanks.slice(0, 4).map((rank) => (

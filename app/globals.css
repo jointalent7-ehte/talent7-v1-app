@@ -3157,6 +3157,142 @@ textarea {
   gap: 14px;
 }
 
+.leagueDiscoveryBanner {
+  display: grid;
+  grid-template-columns: minmax(270px, 0.85fr) minmax(420px, 1.15fr);
+  gap: 20px;
+  margin-bottom: 26px;
+  padding: clamp(22px, 4vw, 38px);
+  overflow: hidden;
+  color: #f5fbff;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(255, 207, 67, 0.22), transparent 30%),
+    radial-gradient(circle at 96% 100%, rgba(112, 91, 255, 0.26), transparent 36%),
+    linear-gradient(128deg, #071922, #0d3b3c 52%, #272450);
+  border: 1px solid rgba(110, 232, 209, 0.3);
+  border-radius: 26px;
+  box-shadow: 0 24px 58px rgba(7, 24, 33, 0.22);
+}
+
+.leagueDiscoveryLead,
+.leagueDiscoveryRewards,
+.leagueDiscoveryRewards article,
+.leagueDiscoveryTiers span {
+  display: grid;
+  gap: 9px;
+}
+
+.leagueDiscoveryLead {
+  align-content: center;
+}
+
+.leagueDiscoveryLead > span,
+.talent7StarterGuide span {
+  color: #ffd34d;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.leagueDiscoveryLead h2,
+.leagueDiscoveryLead p {
+  margin: 0;
+}
+
+.leagueDiscoveryLead h2 {
+  color: #fff;
+  font-size: clamp(1.75rem, 4vw, 3.2rem);
+  line-height: 1.02;
+}
+
+.leagueDiscoveryLead p {
+  max-width: 620px;
+  color: rgba(241, 251, 255, 0.75);
+  line-height: 1.6;
+}
+
+.leagueDiscoveryLead a,
+.talent7StarterGuide a {
+  width: fit-content;
+  margin-top: 5px;
+  padding: 11px 14px;
+  color: #0b2025;
+  background: linear-gradient(135deg, #ffd34d, #6fe7d1);
+  border-radius: 999px;
+  box-shadow: 0 9px 24px rgba(110, 232, 209, 0.2);
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.leagueDiscoveryRewards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.leagueDiscoveryRewards article {
+  align-content: start;
+  min-height: 148px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 16px;
+}
+
+.leagueDiscoveryRewards article > span {
+  color: #6fe7d1;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.leagueDiscoveryRewards strong {
+  color: #fff;
+}
+
+.leagueDiscoveryRewards small {
+  color: rgba(242, 251, 255, 0.66);
+  line-height: 1.45;
+}
+
+.leagueDiscoveryTiers {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.leagueDiscoveryTiers span {
+  place-items: center;
+  padding: 9px 5px;
+  color: rgba(255, 255, 255, 0.68);
+  background: rgba(3, 13, 20, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.leagueDiscoveryTiers i {
+  display: grid;
+  width: 24px;
+  height: 27px;
+  place-items: center;
+  color: #0e2430;
+  background: linear-gradient(145deg, #ffd34d, #ec8c37);
+  clip-path: polygon(50% 0, 92% 20%, 84% 76%, 50% 100%, 16% 76%, 8% 20%);
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.leagueDiscoveryTiers strong {
+  color: #fff;
+  font-size: 0.72rem;
+}
+
+.leagueDiscoveryTiers small {
+  color: #76e7d6;
+  font-size: 0.66rem;
+}
+
 .talent7LeagueHero {
   display: grid;
   grid-template-columns: auto minmax(220px, 1fr) minmax(260px, auto);
@@ -3269,6 +3405,32 @@ textarea {
 .talent7ActivityRanks,
 .talent7LatestReward {
   grid-column: 1 / -1;
+}
+
+.talent7StarterGuide {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 212, 78, 0.32);
+  border-radius: 15px;
+}
+
+.talent7StarterGuide > div {
+  display: grid;
+  gap: 4px;
+}
+
+.talent7StarterGuide strong {
+  color: #fff;
+}
+
+.talent7StarterGuide small {
+  color: rgba(242, 251, 255, 0.68);
+  line-height: 1.4;
 }
 
 .talent7TierLadder {
@@ -3422,6 +3584,21 @@ textarea {
 }
 
 @media (max-width: 760px) {
+  .leagueDiscoveryBanner,
+  .leagueDiscoveryRewards {
+    grid-template-columns: 1fr;
+  }
+
+  .leagueDiscoveryTiers {
+    display: flex;
+    padding-bottom: 5px;
+    overflow-x: auto;
+  }
+
+  .leagueDiscoveryTiers span {
+    min-width: 110px;
+  }
+
   .growthHubHeader,
   .growthHubGrid {
     grid-template-columns: 1fr;
@@ -3433,8 +3610,13 @@ textarea {
 
   .talent7RankStats,
   .talent7ActivityRanks,
-  .talent7LatestReward {
+  .talent7LatestReward,
+  .talent7StarterGuide {
     grid-column: 1 / -1;
+  }
+
+  .talent7StarterGuide {
+    grid-template-columns: 1fr;
   }
 
   .talent7ActivityRanks {

@@ -16847,6 +16847,51 @@ export default function Home() {
       </section>
 
       <section className="section" id="create">
+        <aside className="leagueDiscoveryBanner" aria-labelledby="league-discovery-title">
+          <div className="leagueDiscoveryLead">
+            <span>Talent7 League</span>
+            <h2 id="league-discovery-title">Your first result can begin a seven-tier journey</h2>
+            <p>
+              Choose Ranked, complete the challenge with proof, and start earning Rank Points, activity ranks,
+              streak trophies, and permanent achievements for your profile.
+            </p>
+            <a href="#challenge-wizard">Start my first Ranked challenge</a>
+          </div>
+          <div className="leagueDiscoveryRewards" aria-label="Talent7 League rewards">
+            <article>
+              <span>01</span>
+              <strong>Compete with proof</strong>
+              <small>Casual gives XP. Ranked gives XP and Rank Points after a proof-backed result.</small>
+            </article>
+            <article>
+              <span>02</span>
+              <strong>Build your identity</strong>
+              <small>Track separate progress in PUBG, Mech Arena, sports, dance, and every activity.</small>
+            </article>
+            <article>
+              <span>03</span>
+              <strong>Unlock your cabinet</strong>
+              <small>Collect victory, winning-streak, activity, and tier-promotion trophies.</small>
+            </article>
+          </div>
+          <div className="leagueDiscoveryTiers" aria-label="Seven Talent7 tiers">
+            {[
+              ["Rookie", "0"],
+              ["Rising Star", "100"],
+              ["Contender", "250"],
+              ["Elite", "500"],
+              ["Champion", "850"],
+              ["Legend", "1300"],
+              ["Talent7 Icon", "2000"]
+            ].map(([tier, points], index) => (
+              <span key={tier}>
+                <i>{index + 1}</i>
+                <strong>{tier}</strong>
+                <small>{points} RP</small>
+              </span>
+            ))}
+          </div>
+        </aside>
         <div className="sectionHeader">
           <p className="eyebrow">Create</p>
           <h2>Start a challenge</h2>
