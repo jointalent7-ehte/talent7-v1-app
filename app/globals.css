@@ -1274,6 +1274,7 @@ main.appTab-challenges > #rooms,
 main.appTab-challenges > #opponents,
 main.appTab-challenges > #create,
 main.appTab-challenges > #tournaments,
+main.appTab-challenges > #rivalries,
 main.appTab-challenges > #leaderboard,
 main.appTab-listen > #listen-rooms,
 main.appTab-teams > #teams,
@@ -1313,6 +1314,7 @@ main.appView-opponents > #opponents,
 main.appView-create > #create,
 main.appView-rooms > #rooms,
 main.appView-tournaments > #tournaments,
+main.appView-rivalries > #rivalries,
 main.appView-leaderboard > #leaderboard {
   display: block !important;
 }
@@ -12991,6 +12993,465 @@ body:has(.publicRoomLanding) {
 
   .tournamentEntryList button {
     grid-column: 1 / -1;
+  }
+}
+
+.rivalrySection {
+  background:
+    radial-gradient(circle at 9% 8%, rgba(255, 204, 53, 0.15), transparent 24%),
+    radial-gradient(circle at 92% 18%, rgba(111, 83, 235, 0.15), transparent 27%),
+    color-mix(in srgb, var(--bg) 92%, #f5f1ff 8%);
+}
+
+.rivalrySectionHeader {
+  max-width: 900px;
+}
+
+.rivalryWorkspace {
+  display: grid;
+  grid-template-columns: minmax(245px, 0.28fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.rivalryRail,
+.rivalryMain,
+.rivalryCreatePanel,
+.rivalryUnavailable {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  box-shadow: 0 18px 42px rgba(25, 35, 60, 0.09);
+}
+
+.rivalryRail {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+}
+
+.rivalryViewTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding-bottom: 5px;
+}
+
+.rivalryViewTabs button {
+  min-height: 38px;
+  color: var(--muted);
+  background: var(--soft);
+  border-color: var(--line);
+}
+
+.rivalryViewTabs button.active {
+  color: #fff;
+  background: linear-gradient(135deg, #db7c20, #7555dd);
+  border-color: transparent;
+}
+
+.rivalryRail > button {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  color: var(--ink);
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+  border-radius: 14px;
+}
+
+.rivalryRail > button:hover,
+.rivalryRail > button.selected {
+  background: linear-gradient(135deg, rgba(255, 192, 52, 0.14), rgba(115, 83, 221, 0.12));
+  border-color: color-mix(in srgb, #7555dd 38%, var(--line));
+}
+
+.rivalryRail > button > span {
+  color: #8b55d9;
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.rivalryRail > button > small,
+.rivalryRail > p {
+  color: var(--muted);
+}
+
+.rivalryMain {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rivalryMessage {
+  margin: 14px 14px 0;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--yellow) 17%, var(--surface));
+  border-left: 4px solid var(--yellow);
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.rivalryHero {
+  display: grid;
+  gap: 17px;
+  padding: clamp(20px, 4vw, 34px);
+  color: #fff;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 202, 60, 0.3), transparent 28%),
+    radial-gradient(circle at 90% 100%, rgba(111, 218, 203, 0.22), transparent 32%),
+    linear-gradient(130deg, #17101f, #44215d 51%, #0b4850);
+}
+
+.rivalryHero > span {
+  color: #ffd452;
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.rivalryVersus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(10px, 3vw, 30px);
+}
+
+.rivalryVersus > div {
+  display: grid;
+  gap: 3px;
+}
+
+.rivalryVersus > div:last-child {
+  text-align: right;
+}
+
+.rivalryVersus small {
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rivalryVersus strong {
+  overflow: hidden;
+  font-size: clamp(1.2rem, 3vw, 2.2rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rivalryVersus b {
+  color: #ffd452;
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  line-height: 0.95;
+}
+
+.rivalryVersus i {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  color: #23162e;
+  background: linear-gradient(135deg, #ffd85a, #71e0d2);
+  border-radius: 50%;
+  box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.rivalryHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rivalryHeroActions button,
+.rivalryHeroActions a {
+  min-height: 42px;
+  padding: 10px 14px;
+  color: #14111d;
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 10px;
+  font-weight: 900;
+}
+
+.rivalryHeroActions a {
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  background: transparent;
+}
+
+.rivalryConsentCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 18px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(255, 210, 73, 0.17), rgba(120, 84, 222, 0.11));
+  border: 1px solid color-mix(in srgb, var(--yellow) 45%, var(--line));
+  border-radius: 15px;
+}
+
+.rivalryConsentCard > div {
+  display: grid;
+  gap: 4px;
+}
+
+.rivalryConsentCard small {
+  color: var(--muted);
+}
+
+.rivalryConsentCard > span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.rivalryConsentCard button {
+  color: #fff;
+  background: #6748ca;
+  border-color: transparent;
+}
+
+.rivalryConsentCard button.secondary {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.rivalryPulseGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 18px;
+}
+
+.rivalryPulseGrid article {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 15px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.rivalryPulseGrid span {
+  color: #7852ce;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.rivalryPulseGrid strong {
+  overflow: hidden;
+  font-size: 1.25rem;
+  text-overflow: ellipsis;
+}
+
+.rivalryPulseGrid small {
+  color: var(--muted);
+}
+
+.rivalryRecordActions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 18px 18px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--teal) 7%, var(--surface));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.rivalryRecordActions form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  flex: 1;
+}
+
+.rivalryRecordActions p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.rivalryEndButton {
+  color: var(--danger);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+}
+
+.rivalryTimeline {
+  display: grid;
+  gap: 8px;
+  padding: 0 18px 20px;
+}
+
+.rivalryTimeline > div:first-child {
+  display: grid;
+  gap: 2px;
+  padding: 4px 0 8px;
+}
+
+.rivalryTimeline > div:first-child span {
+  color: #7852ce;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.rivalryTimeline article {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.rivalryTimeline article > b {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, #d27a1c, #6c4bd2);
+  border-radius: 50%;
+}
+
+.rivalryTimeline article > div {
+  display: grid;
+}
+
+.rivalryTimeline small,
+.rivalryTimeline > p {
+  color: var(--muted);
+}
+
+.rivalryTimeline article > span {
+  font-weight: 850;
+}
+
+.rivalryTimeline article > a {
+  color: var(--teal);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.rivalryEmpty,
+.rivalryUnavailable {
+  display: grid;
+  gap: 5px;
+  padding: 25px;
+  color: var(--muted);
+}
+
+.rivalryEmpty strong,
+.rivalryUnavailable strong {
+  color: var(--ink);
+  font-size: 1.15rem;
+}
+
+.rivalryCreatePanel {
+  margin-top: 16px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.rivalryCreatePanel > summary {
+  padding: 16px 18px;
+  cursor: pointer;
+  font-weight: 950;
+}
+
+.rivalryCreatePanel > form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) repeat(2, minmax(180px, 1fr)) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 0 18px 18px;
+}
+
+@media (max-width: 980px) {
+  .rivalryWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .rivalryRail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rivalryViewTabs,
+  .rivalryRail > p {
+    grid-column: 1 / -1;
+  }
+
+  .rivalryCreatePanel > form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .rivalryRail,
+  .rivalryPulseGrid,
+  .rivalryCreatePanel > form {
+    grid-template-columns: 1fr;
+  }
+
+  .rivalryViewTabs,
+  .rivalryRail > p {
+    grid-column: auto;
+  }
+
+  .rivalryVersus {
+    grid-template-columns: minmax(0, 1fr) 38px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .rivalryVersus i {
+    width: 38px;
+    height: 38px;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+  }
+
+  .rivalryConsentCard,
+  .rivalryRecordActions {
+    display: grid;
+  }
+
+  .rivalryConsentCard button,
+  .rivalryRecordActions form,
+  .rivalryRecordActions form > button,
+  .rivalryEndButton {
+    width: 100%;
+  }
+
+  .rivalryRecordActions form {
+    grid-template-columns: 1fr;
+  }
+
+  .rivalryTimeline article {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .rivalryTimeline article > span,
+  .rivalryTimeline article > a {
+    grid-column: 2;
   }
 }
 

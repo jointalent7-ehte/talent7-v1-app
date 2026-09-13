@@ -17,6 +17,7 @@ import { supporterTierLabel, type SupporterTier } from "../lib/supporter-product
 import ChallengeLiveRoom from "./challenge-live-room";
 import GrowthHub from "./growth-hub";
 import ListenVoiceRoom from "./listen-voice-room";
+import Rivalries from "./rivalries";
 import SupporterPayments from "./supporter-payments";
 import TournamentBrackets from "./tournament-brackets";
 import TurnstileWidget from "./turnstile-widget";
@@ -459,6 +460,7 @@ const primaryTabs: {
       { label: "Find opponents", href: "#opponents" },
       { label: "Create", href: "#create" },
       { label: "Tournaments", href: "#tournaments" },
+      { label: "Rivalries", href: "#rivalries" },
       { label: "Leaderboard", href: "#leaderboard" }
     ]
   },
@@ -512,6 +514,7 @@ const sectionTabMap: Record<string, AppTabId> = {
   rooms: "challenges",
   opponents: "challenges",
   tournaments: "challenges",
+  rivalries: "challenges",
   leaderboard: "challenges",
   "listen-rooms": "listen",
   teams: "teams",
@@ -19735,6 +19738,13 @@ export default function Home() {
           activities={challengeActivityOptions}
           displayName={profile?.display_name || profileName()}
           userId={session?.user.id || ""}
+        />
+      </section>
+
+      <section className="section rivalrySection" id="rivalries">
+        <Rivalries
+          activities={challengeActivityOptions}
+          currentUserId={session?.user.id || ""}
         />
       </section>
 

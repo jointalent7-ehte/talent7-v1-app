@@ -13,14 +13,14 @@ export default function PrivacyPage() {
       <section className="legalHero">
         <p className="eyebrow">Privacy Policy</p>
         <h1>Talent7 Privacy Policy</h1>
-        <p>Last updated: September 4, 2026</p>
+        <p>Last updated: September 13, 2026</p>
       </section>
 
       <section className="legalCard">
         <h2>What Talent7 Is</h2>
         <p>
           Talent7 is a proof-based competition app for free public talent and sports challenge rooms, ratings, teams,
-          profiles, live challenge activity, notifications, and launch-wave feedback. Showcase Talent,
+          profiles, tournaments, consent-based rivalries, live challenge activity, notifications, and launch-wave feedback. Showcase Talent,
           Coaching, and Guidance are roadmap previews rather than active launch services.
         </p>
       </section>
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <ul>
           <li>Account information such as email address and login status.</li>
           <li>Profile information such as display name, username, role, main interest, region, and any area, city, or country you optionally enter for local leaderboards.</li>
-          <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, reports, and team requests.</li>
+          <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, tournament entries, rivalry invitations and records, reports, and team requests.</li>
           <li>Legacy showcase, coaching, or expert-help records you previously submitted. Their public creation/request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
           <li>Optional support or founder feedback messages you submit.</li>
           <li>Payment records such as provider, selected digital badge product, fixed price, currency, status, provider references, and badge entitlement. Historical payment records may be retained where required for reconciliation, disputes, refunds, or legal obligations. Talent7 does not collect or store your complete card details, UPI PIN, banking password, or payment OTP.</li>
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
         <h2>How We Use Information</h2>
         <ul>
           <li>To create and manage your Talent7 account and profile.</li>
-          <li>To show free talent and sports challenge rooms, public ratings, votes, proof, teams, profiles, and challenge activity.</li>
+          <li>To show free talent and sports challenge rooms, public ratings, votes, proof, teams, profiles, tournaments, accepted rivalries, and challenge activity.</li>
           <li>To review current safety reports and feedback, and to preserve or remove legacy records when required.</li>
           <li>To improve Talent7 before and after Play Store launch.</li>
           <li>To contact you about account, support, safety, or launch-wave matters when needed.</li>
@@ -65,9 +65,13 @@ export default function PrivacyPage() {
         <h2>Public Content</h2>
         <p>
           Talent7 is built around public challenge activity. Your display name, username, role, region,
-          challenge rooms, public votes, ratings, proofs, follows, teams, and results may be visible
+          challenge rooms, public votes, ratings, proofs, follows, teams, tournament participation, accepted or ended rivalries, and results may be visible
           to other users. Your Saved rooms collection is private to your account. Do not submit private information
           you do not want shown publicly.
+        </p>
+        <p>
+          Pending or declined rivalry invitations are visible only to the two people involved. Once accepted, the
+          rivalry identity and its proof-backed record become public so other users can follow the matchup.
         </p>
         <p>
           Local leaderboards are optional. Talent7 does not read your device location for them. If you opt in,
