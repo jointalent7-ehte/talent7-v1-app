@@ -657,6 +657,8 @@ type Challenge = {
   booking_region?: string | null;
   match_format?: MatchFormat | null;
   roster_size?: number | null;
+  opponent_entry_mode?: "Direct join" | "Request queue" | "Matched";
+  challenger_queue_limit?: number | null;
   voting_status?: ChallengeVotingStatus;
   voting_opened_at?: string | null;
   voting_closes_at?: string | null;
@@ -1309,6 +1311,20 @@ type TeamRequest = {
   updated_at?: string | null;
 };
 
+type OpenChallengeRequest = {
+  id: string;
+  challenge_id: string;
+  requesting_team_id: string;
+  requested_by: string;
+  requester_name: string;
+  team_name: string;
+  message: string | null;
+  proposed_at: string | null;
+  status: "Pending" | "Accepted" | "Declined" | "Withdrawn" | "Expired";
+  created_at: string;
+  updated_at: string;
+};
+
 type SafetyReportItem = {
   id: string;
   source: "Challenge" | "Showcase";
@@ -1537,6 +1553,8 @@ type ChallengeDraft = {
   team_a: string;
   team_b: string;
   openOpponent: boolean;
+  opponentEntryMode: "Direct join" | "Request queue";
+  challengerQueueLimit: number;
   team_a_id: string;
   team_b_id: string;
   rules: string;
@@ -1557,6 +1575,8 @@ const defaultChallengeDraft: ChallengeDraft = {
   team_a: "",
   team_b: "",
   openOpponent: true,
+  opponentEntryMode: "Direct join",
+  challengerQueueLimit: 10,
   team_a_id: "",
   team_b_id: "",
   rules: "Best of 3 games, 21 points each. Upload victory proof after the match.",
@@ -2580,6 +2600,9 @@ export default function Home() {
   const [teamSearch, setTeamSearch] = useState("");
   const [teamDiscoverySort, setTeamDiscoverySort] = useState<"Best match" | "Newest">("Best match");
   const [teamRequests, setTeamRequests] = useState<TeamRequest[]>([]);
+  const [openChallengeRequests, setOpenChallengeRequests] = useState<OpenChallengeRequest[]>([]);
+  const [openChallengeQueueLoadError, setOpenChallengeQueueLoadError] = useState("");
+  const [openChallengeRequestActionId, setOpenChallengeRequestActionId] = useState<string | null>(null);
   const [isOwnerReviewer, setIsOwnerReviewer] = useState(false);
   const [safetyReportActionId, setSafetyReportActionId] = useState<string | null>(null);
   const [savingCoachOffer, setSavingCoachOffer] = useState(false);
@@ -3708,6 +3731,44 @@ export default function Home() {
     );
   }, [challengeDraft.team_a_id, challengeDraft.team_b_id, myTeamDashboard, teams]);
 
+  const challengeManageableTeams = useMemo(() => {
+    const manageableTeamIds = new Set([
+      ...myTeamDashboard.owned.map((team) => team.id),
+      ...myTeamDashboard.accepted
+        .filter((request) => request.member_role === "Captain" || request.member_role === "Organizer")
+        .map((request) => request.team_id)
+    ]);
+    return teams.filter((team) => manageableTeamIds.has(team.id));
+  }, [myTeamDashboard.accepted, myTeamDashboard.owned, teams]);
+
+  const challengeConnectedTeamIds = useMemo(
+    () => new Set([
+      ...myTeamDashboard.owned.map((team) => team.id),
+      ...myTeamDashboard.accepted.map((request) => request.team_id)
+    ]),
+    [myTeamDashboard.accepted, myTeamDashboard.owned]
+  );
+
+  function openChallengeQueue(challengeId: string) {
+    return openChallengeRequests
+      .filter((request) => request.challenge_id === challengeId)
+      .sort((first, second) => new Date(first.created_at).getTime() - new Date(second.created_at).getTime());
+  }
+
+  function canManageOpenChallengeQueue(challenge: Challenge) {
+    return Boolean(
+      session?.user.id &&
+        (challenge.created_by === session.user.id ||
+          Boolean(challenge.team_a_id && challengeManageableTeams.some((team) => team.id === challenge.team_a_id)))
+    );
+  }
+
+  function canJoinQueuedChallengeSide(challenge: Challenge, side: "Team A" | "Team B") {
+    if (challenge.opponent_entry_mode !== "Request queue" && challenge.opponent_entry_mode !== "Matched") return true;
+    const teamId = side === "Team A" ? challenge.team_a_id : challenge.team_b_id;
+    return Boolean(teamId && challengeConnectedTeamIds.has(teamId));
+  }
+
   const inviteInbox = useMemo(() => {
     if (!session?.user.id) {
       return {
@@ -4003,6 +4064,45 @@ export default function Home() {
         href: "#teams"
       }));
 
+    const managedHostTeamIds = new Set(challengeManageableTeams.map((team) => team.id));
+    const openChallengeHostAlerts = openChallengeRequests
+      .filter((request) => {
+        if (request.status !== "Pending") return false;
+        const challenge = challenges.find((item) => item.id === request.challenge_id);
+        return Boolean(
+          challenge &&
+            (challenge.created_by === userId || Boolean(challenge.team_a_id && managedHostTeamIds.has(challenge.team_a_id)))
+        );
+      })
+      .map((request) => ({
+        id: `notification-open-challenge-host-${request.id}`,
+        label: "Challenger queued",
+        category: "Teams" as const,
+        title: challengeTitle(request.challenge_id),
+        detail: `${request.team_name} is waiting for your decision.`,
+        createdAt: request.created_at,
+        href: `#${roomHash(request.challenge_id)}`,
+        challengeId: request.challenge_id,
+        challengeTitle: challengeTitle(request.challenge_id)
+      }));
+
+    const openChallengeApplicantAlerts = openChallengeRequests
+      .filter((request) => request.requested_by === userId && request.status !== "Pending")
+      .map((request) => ({
+        id: `notification-open-challenge-applicant-${request.id}`,
+        label: "Challenge request updated",
+        category: "Teams" as const,
+        title: challengeTitle(request.challenge_id),
+        detail:
+          request.status === "Accepted"
+            ? `${request.team_name} was accepted. Your team can now enter Team B.`
+            : `The request from ${request.team_name} was ${request.status.toLowerCase()}.`,
+        createdAt: request.updated_at || request.created_at,
+        href: `#${roomHash(request.challenge_id)}`,
+        challengeId: request.challenge_id,
+        challengeTitle: challengeTitle(request.challenge_id)
+      }));
+
     const proofAlerts = proofs
       .filter((proof) => createdChallengeIds.has(proof.challenge_id) && proof.user_id !== userId)
       .map((proof) => ({
@@ -4237,6 +4337,8 @@ export default function Home() {
       ...roomOfficialResponseAlerts,
       ...teamOwnerAlerts,
       ...teamMemberAlerts,
+      ...openChallengeHostAlerts,
+      ...openChallengeApplicantAlerts,
       ...proofAlerts,
       ...savedProofAlerts,
       ...completedAlerts,
@@ -4258,6 +4360,7 @@ export default function Home() {
   }, [
     challengeTitle,
     challengeRoomStaff,
+    challengeManageableTeams,
     challenges,
     dismissedNotificationKeys,
     expertHelpRequests,
@@ -4267,6 +4370,7 @@ export default function Home() {
     isOwnerReviewer,
     joins,
     mySafetyReports,
+    openChallengeRequests,
     pushNotificationEvents,
     proofs,
     savedRoomByChallengeId,
@@ -6745,6 +6849,61 @@ export default function Home() {
   }, [session]);
 
   useEffect(() => {
+    async function loadOpenChallengeRequests() {
+      if (!supabase) {
+        setOpenChallengeQueueLoadError("");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("open_challenge_requests")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        setOpenChallengeQueueLoadError(error.message);
+        return;
+      }
+
+      setOpenChallengeQueueLoadError("");
+      setOpenChallengeRequests((data || []) as OpenChallengeRequest[]);
+    }
+
+    loadOpenChallengeRequests();
+  }, [challengeReloadKey, session]);
+
+  useEffect(() => {
+    if (!supabase || openChallengeQueueLoadError) return;
+
+    const supabaseClient = supabase;
+    const channel = supabaseClient
+      .channel("talent7-open-challenge-queue")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "open_challenge_requests" },
+        (payload) => {
+          const previous = payload.old as Partial<OpenChallengeRequest>;
+          if (payload.eventType === "DELETE") {
+            setOpenChallengeRequests((items) => items.filter((item) => item.id !== previous.id));
+            return;
+          }
+
+          const updatedRequest = payload.new as OpenChallengeRequest;
+          setOpenChallengeRequests((items) =>
+            items.some((item) => item.id === updatedRequest.id)
+              ? items.map((item) => (item.id === updatedRequest.id ? updatedRequest : item))
+              : [...items, updatedRequest]
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabaseClient.removeChannel(channel);
+    };
+  }, [openChallengeQueueLoadError]);
+
+  useEffect(() => {
     async function loadMyReports() {
       if (!supabase || !session?.user.id) {
         setChallengeReports([]);
@@ -7401,6 +7560,7 @@ export default function Home() {
       team_a: profileName(),
       team_b: "",
       openOpponent: true,
+      opponentEntryMode: "Direct join",
       team_a_id: "",
       team_b_id: "",
       rules: rulesForActivity(activity),
@@ -8467,6 +8627,7 @@ export default function Home() {
       const teamAId = challengeFieldValue(formElement, "team_a_id");
       const teamBId = challengeFieldValue(formElement, "team_b_id");
       const openOpponent = challengeCheckboxChecked(formElement, "open_opponent");
+      const opponentEntryMode = challengeFieldValue(formElement, "opponent_entry_mode") || "Direct join";
       if (!challengeFieldValue(formElement, "team_a") && !teamAId) {
         setChallengeStepError("Add your name or team for side A before continuing.");
         focusChallengeField(formElement, "team_a");
@@ -8476,6 +8637,18 @@ export default function Home() {
         setChallengeStepError("Add an opponent for side B, or choose Leave opponent open.");
         focusChallengeField(formElement, "team_b");
         return false;
+      }
+      if (openOpponent && opponentEntryMode === "Request queue") {
+        if (!teamAId) {
+          setChallengeStepError("Link your Talent7 team to side A before using a challenger queue.");
+          focusChallengeField(formElement, "team_a_id");
+          return false;
+        }
+        if (!challengeManageableTeams.some((team) => team.id === teamAId)) {
+          setChallengeStepError("Only a team owner, Captain, or Organizer can publish a challenger queue for that team.");
+          focusChallengeField(formElement, "team_a_id");
+          return false;
+        }
       }
       if (!validMatchFormatForActivity(activity, format)) {
         setChallengeStepError(`${matchFormatLabel(format, activity)} is not a valid format for ${activity}.`);
@@ -8579,6 +8752,9 @@ export default function Home() {
     const teamAId = String(form.get("team_a_id") || "");
     const teamBId = String(form.get("team_b_id") || "");
     const openOpponent = form.get("open_opponent") === "on";
+    const opponentEntryMode: "Direct join" | "Request queue" =
+      openOpponent && form.get("opponent_entry_mode") === "Request queue" ? "Request queue" : "Direct join";
+    const challengerQueueLimit = Math.min(50, Math.max(1, Number(form.get("challenger_queue_limit")) || 10));
     const teamA = linkedTeam(teamAId);
     const teamB = linkedTeam(teamBId);
     if (!Number.isInteger(rosterSize) || rosterSize < 1 || rosterSize > 50) {
@@ -8601,6 +8777,8 @@ export default function Home() {
       booking_region: String(form.get("booking_region") || "").trim() || null,
       match_format: matchFormat,
       roster_size: rosterSize,
+      opponent_entry_mode: opponentEntryMode,
+      challenger_queue_limit: challengerQueueLimit,
       status: "Open",
       created_by: session?.user.id
     };
@@ -8684,7 +8862,9 @@ export default function Home() {
         setMessage(
           inviteMessage
             ? `Challenge created. ${inviteMessage}`
-            : "Challenge created. No invite was sent because no profile invite target was selected."
+            : opponentEntryMode === "Request queue"
+              ? "Open challenge published. Team captains can now join its challenger queue."
+              : "Challenge created. No invite was sent because no profile invite target was selected."
         );
         formElement.reset();
         setChallengeCreateStep(1);
@@ -8920,6 +9100,8 @@ export default function Home() {
       team_a: creatorName,
       team_b: invitedName,
       openOpponent: false,
+      opponentEntryMode: "Direct join",
+      challengerQueueLimit: currentDraft.challengerQueueLimit,
       team_a_id: currentDraft.team_a_id || "",
       team_b_id: currentDraft.team_b_id || "",
       rules: `${interest} challenge with ${invitedName}. Upload proof after the match.`,
@@ -8970,6 +9152,8 @@ export default function Home() {
       team_a: ownedTeam?.name || profileName(),
       team_b: opponentName,
       openOpponent: isOwnTeam,
+      opponentEntryMode: isOwnTeam ? "Request queue" : "Direct join",
+      challengerQueueLimit: currentDraft.challengerQueueLimit,
       team_a_id: ownedTeam?.id || "",
       team_b_id: isOwnTeam ? "" : team.id,
       rules: `${activity} team challenge. Upload proof after the match.`,
@@ -9620,6 +9804,151 @@ export default function Home() {
     setTeamRequestActionId(null);
   }
 
+  async function submitOpenChallengeRequest(event: FormEvent<HTMLFormElement>, challenge: Challenge) {
+    event.preventDefault();
+    if (!requireLogin("challenge this team")) return;
+    if (!requireProfile("challenge this team")) return;
+
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const teamId = String(form.get("requesting_team_id") || "");
+    const requestingTeam = challengeManageableTeams.find((team) => team.id === teamId);
+    if (!requestingTeam) {
+      setMessage("Choose a team that you own or manage as Captain or Organizer.", "warning");
+      return;
+    }
+    if (requestingTeam.id === challenge.team_a_id) {
+      setMessage("The host team cannot challenge itself.", "warning");
+      return;
+    }
+
+    const proposedAtValue = String(form.get("proposed_at") || "");
+    const requestKey = `submit-${challenge.id}`;
+    setOpenChallengeRequestActionId(requestKey);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      const now = new Date().toISOString();
+      const localRequest: OpenChallengeRequest = {
+        id: crypto.randomUUID(),
+        challenge_id: challenge.id,
+        requesting_team_id: requestingTeam.id,
+        requested_by: session?.user.id || "preview-user",
+        requester_name: profileName(),
+        team_name: requestingTeam.name,
+        message: String(form.get("message") || "").trim() || null,
+        proposed_at: proposedAtValue ? new Date(proposedAtValue).toISOString() : null,
+        status: "Pending",
+        created_at: now,
+        updated_at: now
+      };
+      setOpenChallengeRequests((items) => [...items, localRequest]);
+      setMessage(`${requestingTeam.name} joined the challenger queue.`);
+      formElement.reset();
+      setOpenChallengeRequestActionId(null);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("submit_open_challenge_request", {
+      target_challenge_id: challenge.id,
+      target_team_id: requestingTeam.id,
+      target_message: String(form.get("message") || "").trim() || null,
+      target_proposed_at: proposedAtValue ? new Date(proposedAtValue).toISOString() : null
+    });
+
+    if (error) {
+      setMessage(`Could not join the challenger queue: ${error.message}`, "error");
+    } else if (data) {
+      const savedRequest = data as OpenChallengeRequest;
+      setOpenChallengeRequests((items) => [...items.filter((item) => item.id !== savedRequest.id), savedRequest]);
+      setMessage(`${requestingTeam.name} joined the challenger queue.`);
+      formElement.reset();
+    }
+
+    setOpenChallengeRequestActionId(null);
+  }
+
+  async function respondOpenChallengeRequest(
+    challenge: Challenge,
+    request: OpenChallengeRequest,
+    status: "Accepted" | "Declined"
+  ) {
+    if (!requireLogin("manage the challenger queue")) return;
+    const requestKey = `${status}-${request.id}`;
+    setOpenChallengeRequestActionId(requestKey);
+    setMessage("");
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setOpenChallengeRequests((items) =>
+        items.map((item) =>
+          item.id === request.id
+            ? { ...item, status, updated_at: new Date().toISOString() }
+            : status === "Accepted" && item.challenge_id === challenge.id && item.status === "Pending"
+              ? { ...item, status: "Declined", updated_at: new Date().toISOString() }
+              : item
+        )
+      );
+      if (status === "Accepted") {
+        setChallenges((items) =>
+          items.map((item) =>
+            item.id === challenge.id
+              ? { ...item, team_b: request.team_name, team_b_id: request.requesting_team_id, opponent_entry_mode: "Matched" }
+              : item
+          )
+        );
+      }
+      setMessage(status === "Accepted" ? `${request.team_name} accepted. The matchup is now locked.` : `${request.team_name} declined.`);
+      setOpenChallengeRequestActionId(null);
+      return;
+    }
+
+    const { error } = await supabase.rpc("respond_open_challenge_request", {
+      target_request_id: request.id,
+      target_status: status
+    });
+
+    if (error) {
+      setMessage(`Could not update the challenger request: ${error.message}`, "error");
+    } else {
+      await refreshChallengeRooms();
+      setChallengeReloadKey((current) => current + 1);
+      setMessage(status === "Accepted" ? `${request.team_name} accepted. The matchup is now locked.` : `${request.team_name} declined.`);
+    }
+
+    setOpenChallengeRequestActionId(null);
+  }
+
+  async function withdrawOpenChallengeRequest(request: OpenChallengeRequest) {
+    if (!requireLogin("withdraw this challenge request")) return;
+    const requestKey = `Withdrawn-${request.id}`;
+    setOpenChallengeRequestActionId(requestKey);
+    setMessage("");
+
+    if (!supabase || request.challenge_id.startsWith("sample-")) {
+      setOpenChallengeRequests((items) =>
+        items.map((item) =>
+          item.id === request.id ? { ...item, status: "Withdrawn", updated_at: new Date().toISOString() } : item
+        )
+      );
+      setMessage(`${request.team_name} left the challenger queue.`);
+      setOpenChallengeRequestActionId(null);
+      return;
+    }
+
+    const { error } = await supabase.rpc("withdraw_open_challenge_request", {
+      target_request_id: request.id
+    });
+
+    if (error) {
+      setMessage(`Could not withdraw the challenger request: ${error.message}`, "error");
+    } else {
+      setChallengeReloadKey((current) => current + 1);
+      setMessage(`${request.team_name} left the challenger queue.`);
+    }
+
+    setOpenChallengeRequestActionId(null);
+  }
+
   async function rateShowcasePost(post: ShowcasePost, rating: number) {
     if (!requireLogin("rate a showcase post")) return;
 
@@ -10175,6 +10504,15 @@ export default function Home() {
     const role = String(form.get("role") || "Challenger") as JoinRole;
     const requestedSide = String(form.get("side") || "Team A");
     const normalizedSide = requestedSide === "Team B" ? "Team B" : "Team A";
+    if (role === "Challenger" && !canJoinQueuedChallengeSide(challenge, normalizedSide)) {
+      setMessage(
+        challenge.opponent_entry_mode === "Request queue" && normalizedSide === "Team B"
+          ? "Ask to challenge this team through the queue first. Team B opens after the host accepts a request."
+          : "Only accepted members of the linked team can join this side.",
+        "warning"
+      );
+      return;
+    }
     const roster = challengeRosterState(challenge);
     const selectedSideCount = normalizedSide === "Team A" ? roster.teamA : roster.teamB;
     if (role === "Challenger" && selectedSideCount >= roster.required) {
@@ -16634,6 +16972,7 @@ export default function Home() {
                   setChallengeDraft((current) => ({
                     ...current,
                     openOpponent: event.currentTarget.checked,
+                    opponentEntryMode: event.currentTarget.checked ? current.opponentEntryMode : "Direct join",
                     team_b: event.currentTarget.checked ? "" : current.team_b,
                     team_b_id: event.currentTarget.checked ? "" : current.team_b_id
                   }))
@@ -16645,7 +16984,52 @@ export default function Home() {
                 <small>Publish the room without choosing side B. An eligible challenger can join later.</small>
               </span>
             </label>
-            {challengeLinkableTeams.length > 0 && <details className="teamLinkOptions wide">
+            {challengeDraft.openOpponent && (
+              <div className="openChallengeMode wide">
+                <div>
+                  <strong>How should challengers enter?</strong>
+                  <small>Use approval for a public team challenge, or keep the existing first-come room flow.</small>
+                </div>
+                <label>
+                  Entry method
+                  <select
+                    name="opponent_entry_mode"
+                    onChange={(event) =>
+                      setChallengeDraft((current) => ({
+                        ...current,
+                        opponentEntryMode: event.currentTarget.value as ChallengeDraft["opponentEntryMode"]
+                      }))
+                    }
+                    value={challengeDraft.opponentEntryMode}
+                  >
+                    <option disabled={challengeManageableTeams.length === 0} value="Request queue">
+                      Request queue — host approves a team
+                    </option>
+                    <option value="Direct join">Direct join — first eligible players join</option>
+                  </select>
+                </label>
+                {challengeDraft.opponentEntryMode === "Request queue" && (
+                  <label>
+                    Maximum waiting teams
+                    <input
+                      max={50}
+                      min={1}
+                      name="challenger_queue_limit"
+                      onChange={(event) =>
+                        setChallengeDraft((current) => ({
+                          ...current,
+                          challengerQueueLimit: Number(event.currentTarget.value) || 1
+                        }))
+                      }
+                      type="number"
+                      value={challengeDraft.challengerQueueLimit}
+                    />
+                    <small>Link a host team below. Only its owner, Captains, and Organizers can accept requests.</small>
+                  </label>
+                )}
+              </div>
+            )}
+            {challengeLinkableTeams.length > 0 && <details className="teamLinkOptions wide" open={challengeDraft.openOpponent && challengeDraft.opponentEntryMode === "Request queue"}>
               <summary>Link existing Talent7 teams (optional)</summary>
               <p>
                 This connects a side to a team you own or have joined, so Talent7 can apply its saved membership roles.
@@ -16667,7 +17051,9 @@ export default function Home() {
                     value={challengeDraft.team_a_id}
                   >
                     <option value="">No saved team</option>
-                    {challengeLinkableTeams.map((team) => (
+                    {(challengeDraft.openOpponent && challengeDraft.opponentEntryMode === "Request queue"
+                      ? challengeManageableTeams
+                      : challengeLinkableTeams).map((team) => (
                       <option key={team.id} value={team.id}>{team.name} / {team.main_activity}</option>
                     ))}
                   </select>
@@ -16968,6 +17354,12 @@ export default function Home() {
             tone="error"
           />
         )}
+        {openChallengeQueueLoadError && (
+          <div className="savedRoomsSetupNotice" role="status">
+            <strong>Open challenge queues need setup</strong>
+            <small>{openChallengeQueueLoadError} Run `supabase/add-open-challenge-queues.sql` once in the SQL editor.</small>
+          </div>
+        )}
         {savedRoomsLoadError && (
           <div className="savedRoomsSetupNotice" role="status">
             <strong>Saved rooms need setup</strong>
@@ -17106,6 +17498,22 @@ export default function Home() {
               rosterSize: challengeRosterSize(challenge)
             };
             const editMatchConfig = activityMatchConfig(editSetup.activity);
+            const queuedRequests = openChallengeQueue(challenge.id);
+            const pendingQueuedRequests = queuedRequests.filter((request) => request.status === "Pending");
+            const acceptedQueuedRequest = queuedRequests.find((request) => request.status === "Accepted") || null;
+            const usesChallengerQueue = challenge.opponent_entry_mode === "Request queue";
+            const wasMatchedFromQueue = challenge.opponent_entry_mode === "Matched" && Boolean(acceptedQueuedRequest);
+            const managesChallengerQueue = canManageOpenChallengeQueue(challenge);
+            const activeRequestingTeamIds = new Set(
+              queuedRequests
+                .filter((request) => request.status === "Pending" || request.status === "Accepted")
+                .map((request) => request.requesting_team_id)
+            );
+            const eligibleRequestTeams = challengeManageableTeams.filter(
+              (team) => team.id !== challenge.team_a_id && !activeRequestingTeamIds.has(team.id)
+            );
+            const teamASideEligible = canJoinQueuedChallengeSide(challenge, "Team A");
+            const teamBSideEligible = canJoinQueuedChallengeSide(challenge, "Team B");
 
             return (
             <article
@@ -17117,6 +17525,8 @@ export default function Home() {
             >
               <span>{challenge.lane}</span>
               {challenge.id === createdChallengeId && <em className="newRoomBadge">New challenge</em>}
+              {usesChallengerQueue && <em className="openChallengeBadge">Open challenge · {pendingQueuedRequests.length} queued</em>}
+              {wasMatchedFromQueue && <em className="openChallengeBadge matched">Matched from queue</em>}
               {profile?.main_interest && challengeInterestScore(challenge, profile.main_interest) > 0 && (
                 <em className="personalizedRoomBadge">Matches your interest</em>
               )}
@@ -17167,6 +17577,113 @@ export default function Home() {
                 <span>{challengeSideControlLabel(challenge, "Team B")} {roster.teamB}/{roster.required}</span>
                 <em>{roster.ready ? "Roster ready" : "Waiting for registered players"}</em>
               </div>
+              {(usesChallengerQueue || wasMatchedFromQueue) && (
+                <section className={`openChallengeQueue ${wasMatchedFromQueue ? "matched" : ""}`}>
+                  <div className="openChallengeQueueHeader">
+                    <div>
+                      <span>{wasMatchedFromQueue ? "Match agreed" : "Open to teams"}</span>
+                      <strong>{wasMatchedFromQueue ? `${acceptedQueuedRequest?.team_name || challenge.team_b} accepted` : "Challenger queue"}</strong>
+                    </div>
+                    <small>
+                      {wasMatchedFromQueue
+                        ? "Team B is locked"
+                        : `${pendingQueuedRequests.length}/${challenge.challenger_queue_limit || 10} waiting`}
+                    </small>
+                  </div>
+
+                  {usesChallengerQueue && pendingQueuedRequests.length > 0 && (
+                    <ol className="openChallengeQueueList">
+                      {pendingQueuedRequests.map((request, index) => (
+                        <li key={request.id}>
+                          <span className="queuePosition">#{index + 1}</span>
+                          <div>
+                            <strong>{request.team_name}</strong>
+                            <small>
+                              Requested by {request.requester_name}
+                              {request.proposed_at
+                                ? ` · proposes ${new Date(request.proposed_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`
+                                : ""}
+                            </small>
+                            {request.message && <p>{request.message}</p>}
+                          </div>
+                          {managesChallengerQueue ? (
+                            <div className="queueHostActions">
+                              <button
+                                disabled={Boolean(openChallengeRequestActionId)}
+                                onClick={() => void respondOpenChallengeRequest(challenge, request, "Accepted")}
+                                type="button"
+                              >
+                                {openChallengeRequestActionId === `Accepted-${request.id}` ? "Accepting…" : "Accept"}
+                              </button>
+                              <button
+                                className="secondary"
+                                disabled={Boolean(openChallengeRequestActionId)}
+                                onClick={() => void respondOpenChallengeRequest(challenge, request, "Declined")}
+                                type="button"
+                              >
+                                {openChallengeRequestActionId === `Declined-${request.id}` ? "Declining…" : "Decline"}
+                              </button>
+                            </div>
+                          ) : challengeManageableTeams.some((team) => team.id === request.requesting_team_id) ? (
+                            <button
+                              className="queueWithdrawButton"
+                              disabled={Boolean(openChallengeRequestActionId)}
+                              onClick={() => void withdrawOpenChallengeRequest(request)}
+                              type="button"
+                            >
+                              {openChallengeRequestActionId === `Withdrawn-${request.id}` ? "Withdrawing…" : "Withdraw"}
+                            </button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+
+                  {usesChallengerQueue && pendingQueuedRequests.length === 0 && (
+                    <p className="queueEmptyState">No teams are waiting yet. The first approved team becomes Team B.</p>
+                  )}
+
+                  {usesChallengerQueue && !managesChallengerQueue && (
+                    !session ? (
+                      <a className="queueSignInLink" href="#account">Sign in to challenge this team</a>
+                    ) : eligibleRequestTeams.length > 0 ? (
+                      <form className="openChallengeRequestForm" onSubmit={(event) => submitOpenChallengeRequest(event, challenge)}>
+                        <strong>Challenge this team</strong>
+                        <label>
+                          Challenge as
+                          <select name="requesting_team_id" required>
+                            {eligibleRequestTeams.map((team) => (
+                              <option key={team.id} value={team.id}>{team.name}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          Proposed date and time (optional)
+                          <input name="proposed_at" type="datetime-local" />
+                        </label>
+                        <label className="wide">
+                          Message (optional)
+                          <input maxLength={300} name="message" placeholder="Introduce your team and suggest the matchup." />
+                        </label>
+                        <button
+                          disabled={
+                            Boolean(openChallengeRequestActionId) ||
+                            pendingQueuedRequests.length >= (challenge.challenger_queue_limit || 10)
+                          }
+                          type="submit"
+                        >
+                          {openChallengeRequestActionId === `submit-${challenge.id}` ? "Joining queue…" : "Join challenger queue"}
+                        </button>
+                      </form>
+                    ) : (
+                      <p className="queueEligibilityNote">
+                        Own a team—or be its accepted Captain or Organizer—to submit a challenge request.
+                        <a href="#teams"> Open Teams</a>
+                      </p>
+                    )
+                  )}
+                </section>
+              )}
               <div className="roomOverviewStats" aria-label="Room activity summary">
                 <div>
                   <strong>{joinCounts[challenge.id]?.challengers || 0}/{roster.required * 2}</strong>
@@ -18151,6 +18668,7 @@ export default function Home() {
                       {(["Challenger", "Audience"] as JoinRole[]).map((role) => (
                         <button
                           className={joinChoice(challenge.id).role === role ? "active" : ""}
+                          disabled={role === "Challenger" && !teamASideEligible && !teamBSideEligible}
                           key={role}
                           onClick={() =>
                             updateJoinChoice(challenge.id, {
@@ -18177,8 +18695,8 @@ export default function Home() {
                             className={joinChoice(challenge.id).side === side ? "active" : ""}
                             disabled={
                               side === "Team A"
-                                ? roster.teamA >= roster.required
-                                : roster.teamB >= roster.required
+                                ? roster.teamA >= roster.required || !teamASideEligible
+                                : roster.teamB >= roster.required || !teamBSideEligible
                             }
                             key={side}
                             onClick={() => updateJoinChoice(challenge.id, { side })}
@@ -18193,13 +18711,16 @@ export default function Home() {
                     ) : (
                       <small className="formHint">Audience members watch and react without joining either side.</small>
                     )}
+                    {(usesChallengerQueue || wasMatchedFromQueue) && !teamASideEligible && !teamBSideEligible && (
+                      <small className="formHint">Team places are restricted to linked team members. You can still join as Audience.</small>
+                    )}
                     <button
                       disabled={
                         joiningChallengeId === challenge.id ||
                         (joinChoice(challenge.id).role === "Challenger" &&
                           (joinChoice(challenge.id).side === "Team B"
-                            ? roster.teamB >= roster.required
-                            : roster.teamA >= roster.required))
+                            ? roster.teamB >= roster.required || !teamBSideEligible
+                            : roster.teamA >= roster.required || !teamASideEligible))
                       }
                       type="submit"
                     >
