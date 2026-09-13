@@ -6,6 +6,15 @@ export type PublicTalentProfile = {
   role: string;
   main_interest: string;
   region: string;
+  avatar_url: string | null;
+  headline: string;
+  bio: string;
+  passport_theme: string;
+  passport_featured_activities: string[];
+  passport_show_avatar: boolean;
+  passport_show_bio: boolean;
+  passport_show_region: boolean;
+  passport_show_activities: boolean;
   challenge_availability: string;
   challenge_skill_level: string;
   challenge_mode: string;
