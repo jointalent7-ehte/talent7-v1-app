@@ -5748,7 +5748,7 @@ body:has(.publicRoomLanding) {
 }
 
 .profileLandingShell {
-  width: min(100%, 780px);
+  width: min(100%, 1040px);
 }
 
 .profilePreviewCard {
@@ -5961,6 +5961,347 @@ body:has(.publicRoomLanding) {
 .profilePreviewSafety {
   font-size: 0.8rem;
   text-align: center;
+}
+
+.passportStatusLine,
+.passportRankTopline,
+.passportSectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.passportStatusLine > span {
+  color: #ffd21f;
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.passportStatusLine > small {
+  color: #d8dcef;
+  font-weight: 800;
+}
+
+.passportRankCard {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 13px;
+  padding: clamp(20px, 5vw, 34px);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 210, 31, 0.25), transparent 30%),
+    linear-gradient(135deg, rgba(91, 63, 211, 0.95), rgba(18, 111, 121, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 22px;
+  box-shadow: 0 22px 54px rgba(15, 9, 61, 0.32);
+}
+
+.passportRankTopline > div {
+  display: grid;
+  gap: 4px;
+}
+
+.passportRankTopline span,
+.passportSectionHeading span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.passportRankTopline strong {
+  color: #fff;
+  font-size: clamp(2rem, 7vw, 4.25rem);
+  line-height: 0.98;
+}
+
+.passportRankTopline b {
+  padding: 9px 13px;
+  color: #161207;
+  background: #ffd21f;
+  border-radius: 999px;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.passportProgressTrack {
+  height: 10px;
+  overflow: hidden;
+  background: rgba(4, 8, 16, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+.passportProgressTrack span {
+  height: 100%;
+  display: block;
+  background: linear-gradient(90deg, #52e1b4, #ffd21f);
+  border-radius: inherit;
+  box-shadow: 0 0 18px rgba(255, 210, 31, 0.5);
+}
+
+.passportRankCard > small {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 750;
+}
+
+.passportRankStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.passportRankStats div {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  background: rgba(5, 10, 18, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+
+.passportRankStats strong {
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.passportRankStats span {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.65rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.passportSection {
+  display: grid;
+  gap: 14px;
+  padding: clamp(17px, 4vw, 25px);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+}
+
+.passportSectionHeading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.passportSectionHeading h2,
+.passportActivityGrid h3,
+.passportTrophyGrid h3,
+.passportTrophyGrid p,
+.passportResultsList h3,
+.passportResultsList p {
+  margin: 0;
+}
+
+.passportSectionHeading h2 {
+  color: #fff;
+  font-size: clamp(1.15rem, 4vw, 1.65rem);
+}
+
+.passportSectionHeading > small {
+  color: #949caf;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.passportTierRail {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(86px, 1fr));
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.passportTierRail > div {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 11px 7px;
+  color: #747c8e;
+  background: rgba(0, 0, 0, 0.17);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 13px;
+  text-align: center;
+}
+
+.passportTierRail > div.unlocked {
+  color: #fff;
+  background: linear-gradient(145deg, rgba(82, 225, 180, 0.18), rgba(255, 210, 31, 0.09));
+  border-color: rgba(82, 225, 180, 0.32);
+}
+
+.passportTierRail i {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: #09110e;
+  background: #3c4351;
+  border-radius: 50%;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.passportTierRail .unlocked i {
+  background: #52e1b4;
+}
+
+.passportTierRail strong {
+  font-size: 0.72rem;
+  line-height: 1.12;
+}
+
+.passportTierRail small {
+  font-size: 0.63rem;
+}
+
+.passportActivityGrid,
+.passportTrophyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.passportActivityGrid article {
+  display: grid;
+  gap: 5px;
+  padding: 15px;
+  background: linear-gradient(145deg, rgba(82, 225, 180, 0.1), rgba(91, 63, 211, 0.09));
+  border: 1px solid rgba(82, 225, 180, 0.17);
+  border-radius: 14px;
+}
+
+.passportActivityGrid article > span,
+.passportTrophyGrid article span {
+  color: #52e1b4;
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.passportActivityGrid article > strong {
+  color: #ffd21f;
+  font-size: 1.2rem;
+}
+
+.passportActivityGrid article > small,
+.passportTrophyGrid article small,
+.passportResultsList article small {
+  color: #8f96aa;
+  line-height: 1.4;
+}
+
+.passportTrophyGrid article {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+}
+
+.passportTrophyGrid article.epic,
+.passportTrophyGrid article.legendary {
+  background: linear-gradient(145deg, rgba(91, 63, 211, 0.18), rgba(255, 210, 31, 0.09));
+  border-color: rgba(188, 182, 255, 0.3);
+}
+
+.passportTrophyGrid article > i {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #111521;
+  background: #ffd21f;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-style: normal;
+}
+
+.passportTrophyGrid article > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.passportTrophyGrid article p {
+  color: #bdc3d0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.passportEmptyState {
+  display: grid;
+  gap: 4px;
+  padding: 17px;
+  color: #ccd2df;
+  background: rgba(255, 210, 31, 0.055);
+  border: 1px dashed rgba(255, 210, 31, 0.3);
+  border-radius: 14px;
+}
+
+.passportEmptyState strong {
+  color: #ffd21f;
+}
+
+.passportResultsList {
+  display: grid;
+  gap: 8px;
+}
+
+.passportResultsList article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.passportResultsList article > b {
+  padding: 6px 9px;
+  color: #dce2ed;
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  font-size: 0.67rem;
+  text-transform: uppercase;
+}
+
+.passportResultsList article > b.win {
+  color: #07120e;
+  background: #52e1b4;
+}
+
+.passportResultsList article > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.passportResultsList article p {
+  overflow-wrap: anywhere;
+  color: #b9c0ce;
+  font-size: 0.82rem;
+}
+
+.passportResultsList article > strong {
+  color: #ffd21f;
+  font-size: 0.78rem;
+  text-align: right;
 }
 
 .teamLandingShell {
@@ -6433,6 +6774,35 @@ body:has(.publicRoomLanding) {
 
   .profilePreviewStats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .passportStatusLine,
+  .passportRankTopline,
+  .passportSectionHeading {
+    align-items: flex-start;
+  }
+
+  .passportSectionHeading {
+    flex-direction: column;
+  }
+
+  .passportSectionHeading > small {
+    text-align: left;
+  }
+
+  .passportRankStats,
+  .passportActivityGrid,
+  .passportTrophyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .passportResultsList article {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .passportResultsList article > strong {
+    grid-column: 2;
+    text-align: left;
   }
 
   .teamPreviewCard {

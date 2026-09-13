@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getPublicTalentProfile } from "../../../lib/public-profile-preview";
 
-export const alt = "Talent7 public profile";
+export const alt = "Talent7 Passport";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -30,6 +30,9 @@ export default async function ProfileOpenGraphImage({ params }: ProfileImageProp
   const challenges = Number(profile?.challenge_count || 0);
   const completed = Number(profile?.completed_count || 0);
   const proofs = Number(profile?.proof_count || 0);
+  const tier = profile?.passport?.rank?.tier || "Rookie";
+  const rankPoints = Number(profile?.passport?.rank?.rank_points || 0);
+  const wins = Number(profile?.passport?.rank?.wins || 0);
 
   return new ImageResponse(
     (
@@ -62,7 +65,7 @@ export default async function ProfileOpenGraphImage({ params }: ProfileImageProp
               letterSpacing: 1
             }}
           >
-            PUBLIC PROFILE
+            TALENT7 PASSPORT
           </div>
         </div>
 
@@ -90,6 +93,12 @@ export default async function ProfileOpenGraphImage({ params }: ProfileImageProp
             <div style={{ display: "flex", marginTop: 8, color: "#aaa3ff", fontSize: 27, fontWeight: 700 }}>{username}</div>
             <div style={{ display: "flex", marginTop: 17, color: "#ffd21f", fontSize: 28, fontWeight: 800 }}>
               {role} - {interest} - {region}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", marginTop: 18 }}>
+              <span style={{ padding: "9px 16px", color: "#08110e", background: "#52e1b4", borderRadius: 999, fontSize: 22, fontWeight: 900 }}>
+                {tier}
+              </span>
+              <span style={{ marginLeft: 12, color: "#ffffff", fontSize: 22, fontWeight: 850 }}>{rankPoints} RP · {wins} wins</span>
             </div>
           </div>
         </div>

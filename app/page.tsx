@@ -9250,22 +9250,22 @@ export default function Home() {
 
     const url = siteUrl(`/profile/${item.share_token}`);
     const shareData = {
-      title: `${item.display_name} on Talent7`,
-      text: `Meet ${item.display_name}, a ${item.role.toLowerCase()} interested in ${item.main_interest || "new challenges"} on Talent7.`,
+      title: `${item.display_name}'s Talent7 Passport`,
+      text: `See ${item.display_name}'s verified challenges, achievements, and competitive progress on Talent7.`,
       url
     };
 
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-        setMessage(`${item.display_name}'s profile shared.`, "success");
+        setMessage(`${item.display_name}'s Talent7 Passport shared.`, "success");
         return;
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
 
-    await copyShareText("Profile link", `${shareData.text}\n${url}`);
+    await copyShareText("Talent7 Passport link", `${shareData.text}\n${url}`);
   }
 
   async function shareChallengeRoom(challenge: Challenge) {
