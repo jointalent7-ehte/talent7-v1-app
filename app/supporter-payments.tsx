@@ -68,7 +68,16 @@ type NativePurchaseDetail = {
   message?: string;
   productId?: string;
   purchaseToken?: string;
-  state?: "PURCHASED" | "PENDING" | "CANCELLED" | "ERROR";
+  state?: "PURCHASED" | "PENDING" | "CANCELLED" | "EMPTY" | "ERROR";
+};
+
+type GooglePlayVerificationResult = {
+  acknowledged: boolean;
+  entitlementGranted: boolean;
+  known: boolean;
+  productCode?: string;
+  status: "Captured" | "Pending" | "Cancelled" | "Unknown";
+  tier?: SupporterTier;
 };
 
 type NativeProductDetail = {
@@ -183,6 +192,7 @@ export default function SupporterPayments({
   const [customAmountInr, setCustomAmountInr] = useState("1");
   const [nativeBilling, setNativeBilling] = useState(false);
   const [nativePrices, setNativePrices] = useState<Record<string, string>>({});
+  const nativeRestoreTimeoutRef = useRef<number | null>(null);
   const onEntitlementChangeRef = useRef(onEntitlementChange);
   const onNoticeRef = useRef(onNotice);
 
@@ -190,6 +200,12 @@ export default function SupporterPayments({
     onEntitlementChangeRef.current = onEntitlementChange;
     onNoticeRef.current = onNotice;
   }, [onEntitlementChange, onNotice]);
+
+  useEffect(() => () => {
+    if (nativeRestoreTimeoutRef.current !== null) {
+      window.clearTimeout(nativeRestoreTimeoutRef.current);
+    }
+  }, []);
 
   const refreshStatus = useCallback(async ({ showError = false }: { showError?: boolean } = {}) => {
     if (!accessToken) {
@@ -318,6 +334,15 @@ export default function SupporterPayments({
     };
     const handlePurchase = async (event: Event) => {
       const detail = (event as CustomEvent<NativePurchaseDetail>).detail || {};
+      if (nativeRestoreTimeoutRef.current !== null) {
+        window.clearTimeout(nativeRestoreTimeoutRef.current);
+        nativeRestoreTimeoutRef.current = null;
+      }
+      if (detail.state === "EMPTY") {
+        setActionKey("");
+        onNoticeRef.current(detail.message || "No eligible Google Play purchases were found for this Play account.", "info");
+        return;
+      }
       if (detail.state === "PENDING") {
         setActionKey("");
         onNoticeRef.current("Google Play payment is pending. Your badge will appear only after payment completes.", "warning");
@@ -334,15 +359,45 @@ export default function SupporterPayments({
         onNoticeRef.current(detail.message || "Google Play checkout could not be completed.", "error");
         return;
       }
-      if (detail.state !== "PURCHASED" || !detail.productId || !detail.purchaseToken || !accessToken) return;
+      if (detail.state !== "PURCHASED") return;
+      if (!detail.productId || !detail.purchaseToken || !accessToken) {
+        setActionKey("");
+        onNoticeRef.current("Google Play returned an incomplete purchase. Please try Restore again.", "error");
+        return;
+      }
 
       try {
-        await apiRequest("/api/payments/google-play/verify", accessToken, {
+        const verification = await apiRequest<GooglePlayVerificationResult>("/api/payments/google-play/verify", accessToken, {
           method: "POST",
           body: JSON.stringify({ productId: detail.productId, purchaseToken: detail.purchaseToken })
         });
-        onNoticeRef.current("Google Play purchase verified. Your profile badge is active.", "success");
+        const expectedProduct = supporterProducts.find((product) => product.googlePlayProductId === detail.productId);
+        if (
+          verification.status !== "Captured"
+          || !verification.entitlementGranted
+          || !verification.tier
+          || !expectedProduct
+          || verification.productCode !== expectedProduct.code
+          || verification.tier !== expectedProduct.tier
+        ) {
+          throw new Error(
+            verification.status === "Pending"
+              ? "Google Play is still processing this purchase. Your badge will appear after payment completes."
+              : "Google Play did not confirm an eligible badge purchase."
+          );
+        }
         await refreshStatus();
+        if (verification.acknowledged) {
+          onNoticeRef.current(
+            `Google Play purchase verified. Your ${supporterTierLabel(verification.tier)} badge is active.`,
+            "success"
+          );
+        } else {
+          onNoticeRef.current(
+            `Your ${supporterTierLabel(verification.tier)} badge is active, but Google Play confirmation is still pending. Use Restore purchases shortly to retry confirmation.`,
+            "warning"
+          );
+        }
       } catch (error) {
         onNoticeRef.current(error instanceof Error ? error.message : "Google Play verification failed.", "error");
       } finally {
@@ -546,6 +601,24 @@ export default function SupporterPayments({
     startWebsiteCheckout(product);
   }
 
+  function restoreGooglePlayPurchases() {
+    if (!accessToken || !window.Talent7Billing) {
+      onRequireLogin();
+      return;
+    }
+    if (nativeRestoreTimeoutRef.current !== null) {
+      window.clearTimeout(nativeRestoreTimeoutRef.current);
+    }
+    setActionKey("google_play_restore");
+    onNotice("Checking Google Play purchases…", "info");
+    window.Talent7Billing.restorePurchases();
+    nativeRestoreTimeoutRef.current = window.setTimeout(() => {
+      nativeRestoreTimeoutRef.current = null;
+      setActionKey("");
+      onNoticeRef.current("Google Play did not return a purchase result. Check your connection and try again.", "error");
+    }, 15000);
+  }
+
   function purchaseCustomPayUAmount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amount = Number(customAmountInr);
@@ -676,8 +749,8 @@ export default function SupporterPayments({
       <div className="supporterPaymentActions">
         <small>Payments are verified on Talent7 servers before a badge is granted. Never share payment credentials in chat.</small>
         {nativeBilling && (
-          <button disabled={Boolean(actionKey) || !accessToken} onClick={() => window.Talent7Billing?.restorePurchases()} type="button">
-            Restore Google Play purchases
+          <button disabled={Boolean(actionKey) || !accessToken} onClick={restoreGooglePlayPurchases} type="button">
+            {actionKey === "google_play_restore" ? "Checking Google Play…" : "Restore Google Play purchases"}
           </button>
         )}
         {!nativeBilling && (
