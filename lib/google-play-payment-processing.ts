@@ -73,10 +73,23 @@ export async function processGooglePlaySupporterPurchase(input: {
     paymentId = String(data.id);
   }
 
+  let acknowledged = Number(purchase.acknowledgementState) === 1;
   if (status === "Captured") {
     await grantSupporterEntitlement(input.service, paymentId);
-    if (Number(purchase.acknowledgementState) === 0) {
-      await acknowledgeGooglePlayProduct(input.productId, input.purchaseToken, accessToken);
+    if (!acknowledged) {
+      try {
+        await acknowledgeGooglePlayProduct(input.productId, input.purchaseToken, accessToken);
+        acknowledged = true;
+      } catch (error) {
+        // The entitlement has already been delivered. Keep that successful
+        // outcome distinct from acknowledgement so Restore can retry without
+        // showing the buyer a misleading "badge failed" message.
+        console.error("Google Play purchase acknowledgement failed", {
+          error: error instanceof Error ? error.message : "Unknown acknowledgement error",
+          paymentId,
+          productId: input.productId
+        });
+      }
     }
   } else {
     await reconcileSupporterEntitlement(input.service, userId);
@@ -86,6 +99,7 @@ export async function processGooglePlaySupporterPurchase(input: {
     known: true,
     status,
     entitlementGranted: status === "Captured",
+    acknowledged,
     paymentRecordId: paymentId,
     productCode: product.code,
     tier: product.tier
