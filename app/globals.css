@@ -2592,7 +2592,7 @@ textarea {
 }
 
 .authTabs button.active,
-.authForm > button,
+.authForm > button:not(.authTextAction),
 .accountCard button,
 .profileForm button {
   color: #fff;
@@ -16632,7 +16632,7 @@ html:not([data-talent7-theme="dark"]) main > .section :where(button, a[class]) {
 
 html:not([data-talent7-theme="dark"]) main > .section :where(
   button.primary,
-  .authForm > button,
+  .authForm > button:not(.authTextAction),
   .accountCard button,
   .profileForm button,
   .opponentActions button.primary
