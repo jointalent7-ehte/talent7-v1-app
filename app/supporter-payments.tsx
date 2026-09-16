@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatInrSubunits,
   supporterProductByCode,
@@ -101,7 +101,6 @@ declare global {
 let cashfreeScriptPromise: Promise<void> | null = null;
 let razorpayScriptPromise: Promise<void> | null = null;
 const websitePaymentsEnabled = process.env.NEXT_PUBLIC_WEBSITE_PAYMENTS_ENABLED === "true";
-const temporaryCustomAmountsEnabled = process.env.NEXT_PUBLIC_TEMPORARY_PAYU_CUSTOM_AMOUNTS_ENABLED === "true";
 const webPaymentProvider = process.env.NEXT_PUBLIC_WEB_PAYMENT_PROVIDER?.trim().toLowerCase() || "razorpay";
 const configuredCashfreeMode = process.env.NEXT_PUBLIC_CASHFREE_MODE?.trim().toLowerCase();
 const cashfreeMode = configuredCashfreeMode === "sandbox" || configuredCashfreeMode === "production"
@@ -189,7 +188,6 @@ export default function SupporterPayments({
   const [statusLoadError, setStatusLoadError] = useState("");
   const [actionKey, setActionKey] = useState("");
   const [checkoutPhone, setCheckoutPhone] = useState("");
-  const [customAmountInr, setCustomAmountInr] = useState("1");
   const [nativeBilling, setNativeBilling] = useState(false);
   const [nativePrices, setNativePrices] = useState<Record<string, string>>({});
   const nativeRestoreTimeoutRef = useRef<number | null>(null);
@@ -535,7 +533,7 @@ export default function SupporterPayments({
     }
   }
 
-  async function startPayUCheckout(product: SupporterProduct | null, customAmount?: number) {
+  async function startPayUCheckout(product: SupporterProduct) {
     if (!requirePaymentLogin() || !accessToken) return;
     if (!websitePaymentsEnabled || !payuSelected) {
       onNotice("PayU checkout is disabled.", "info");
@@ -546,8 +544,7 @@ export default function SupporterPayments({
       onNotice("Enter a valid mobile number before opening PayU checkout.", "warning");
       return;
     }
-    const action = product?.code || "custom_support";
-    setActionKey(action);
+    setActionKey(product.code);
     try {
       const order = await apiRequest<{
         checkoutUrl: string;
@@ -556,9 +553,8 @@ export default function SupporterPayments({
       }>("/api/payments/payu/order", accessToken, {
         method: "POST",
         body: JSON.stringify({
-          productCode: product?.code || "custom_support",
-          customerPhone: normalizedPhone,
-          ...(product ? {} : { amountInr: customAmount })
+          productCode: product.code,
+          customerPhone: normalizedPhone
         })
       });
       if (!order.checkoutUrl.startsWith("https://")) throw new Error("PayU returned an invalid checkout URL.");
@@ -617,16 +613,6 @@ export default function SupporterPayments({
       setActionKey("");
       onNoticeRef.current("Google Play did not return a purchase result. Check your connection and try again.", "error");
     }, 15000);
-  }
-
-  function purchaseCustomPayUAmount(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const amount = Number(customAmountInr);
-    if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
-      onNotice("Enter a whole-rupee test amount from ₹1 to ₹100.", "warning");
-      return;
-    }
-    void startPayUCheckout(null, amount);
   }
 
   return (
@@ -696,34 +682,6 @@ export default function SupporterPayments({
           );
         })}
       </div>
-
-      {!nativeBilling && payuSelected && websitePaymentsEnabled && temporaryCustomAmountsEnabled && (
-        <form className="customSupportForm" onSubmit={purchaseCustomPayUAmount}>
-          <div>
-            <span>Temporary custom-amount test</span>
-            <small>Direct support to Talent7 only. Amounts below ₹99 test checkout and payment history but do not grant or change a badge.</small>
-          </div>
-          <label>
-            Test amount (₹1–₹100)
-            <div className="customAmountInput">
-              <span>₹</span>
-              <input
-                inputMode="numeric"
-                max={100}
-                min={1}
-                onChange={(event) => setCustomAmountInr(event.target.value)}
-                required
-                step={1}
-                type="number"
-                value={customAmountInr}
-              />
-            </div>
-          </label>
-          <button disabled={Boolean(actionKey)} type="submit">
-            {actionKey === "custom_support" ? "Opening secure checkout…" : "Test with PayU"}
-          </button>
-        </form>
-      )}
 
       {websiteCheckoutPaused && (
         <div className="supporterProviderNotice" role="status">
