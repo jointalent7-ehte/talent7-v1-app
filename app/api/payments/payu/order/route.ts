@@ -15,9 +15,6 @@ import { supporterProductByCode } from "../../../../../lib/supporter-products";
 
 export const runtime = "nodejs";
 
-const temporaryCustomAmountMinimumInr = 1;
-const temporaryCustomAmountMaximumInr = 100;
-
 export async function POST(request: Request) {
   if (
     process.env.WEBSITE_PAYMENTS_ENABLED !== "true"
@@ -37,29 +34,11 @@ export async function POST(request: Request) {
   if (!body) return paymentJsonError("The checkout request was invalid.", 400);
   const requestedProductCode = String(body.productCode || "");
   const fixedProduct = supporterProductByCode(requestedProductCode);
-  const temporaryCustomAmountsEnabled = process.env.TEMPORARY_PAYU_CUSTOM_AMOUNTS_ENABLED === "true";
-  const requestedAmountInr = Number(body.amountInr);
-  const validCustomAmount = temporaryCustomAmountsEnabled
-    && requestedProductCode === "custom_support"
-    && Number.isInteger(requestedAmountInr)
-    && requestedAmountInr >= temporaryCustomAmountMinimumInr
-    && requestedAmountInr <= temporaryCustomAmountMaximumInr;
-  if (!fixedProduct && !validCustomAmount) {
-    return paymentJsonError(
-      temporaryCustomAmountsEnabled
-        ? `Enter a whole-rupee test amount from ₹${temporaryCustomAmountMinimumInr} to ₹${temporaryCustomAmountMaximumInr}.`
-        : "Choose one of the fixed Talent7 badge products.",
-      400
-    );
-  }
-  // A custom test payment at or above the Supporter price should use the
-  // canonical product code. This keeps badge delivery compatible with both
-  // current and previously deployed entitlement functions.
-  const customProductCode = requestedAmountInr >= 99 ? "supporter_99" : "custom_support";
-  const productCode = fixedProduct?.code || customProductCode;
-  const productName = fixedProduct?.name || "Custom Talent7 support";
-  const amountSubunits = fixedProduct?.amountSubunits || requestedAmountInr * 100;
-  const currency = fixedProduct?.currency || "INR";
+  if (!fixedProduct) return paymentJsonError("Choose one of the fixed Talent7 badge products.", 400);
+  const productCode = fixedProduct.code;
+  const productName = fixedProduct.name;
+  const amountSubunits = fixedProduct.amountSubunits;
+  const currency = fixedProduct.currency;
   const customerPhone = normalizePayUPhone(body.customerPhone);
   if (!customerPhone) return paymentJsonError("Enter a valid phone number, including country code when required.", 400);
   if (!authenticated.user.email) return paymentJsonError("A verified email address is required for PayU checkout.", 400);
