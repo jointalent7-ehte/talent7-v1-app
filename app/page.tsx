@@ -17195,6 +17195,7 @@ export default function Home() {
                   {pagedOpponents.map((item) => {
                     const availability = profileChallengeAvailability(item);
                     const canInvite = canUseOpponentInviteAction(item);
+                    const showAvatar = Boolean(item.avatar_url && item.passport_show_avatar !== false);
                     const initials = item.display_name
                       .split(/\s+/)
                       .filter(Boolean)
@@ -17206,7 +17207,10 @@ export default function Home() {
                     return (
                       <article className="opponentCard" key={item.user_id}>
                         <div className="opponentIdentity">
-                          <span aria-hidden="true" className="opponentAvatar">{initials || "T7"}</span>
+                          <span aria-hidden="true" className={`opponentAvatar${showAvatar ? " hasPhoto" : ""}`}>
+                            {initials || "T7"}
+                            {showAvatar && <ProfileAvatarImage alt="" src={item.avatar_url!} />}
+                          </span>
                           <div>
                             <strong>{item.display_name}</strong>
                             <small>@{item.username}</small>

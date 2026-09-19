@@ -13405,32 +13405,34 @@ body:has(.publicRoomLanding) {
 
 .siteFooter {
   display: grid;
-  grid-template-columns: minmax(260px, 1.2fr) 2fr;
-  gap: 18px;
-  padding: 28px clamp(18px, 5vw, 72px);
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 2.2fr);
+  align-items: start;
+  gap: 12px 18px;
+  padding: 18px clamp(16px, 4vw, 56px);
   color: #fff;
   background: var(--ink);
 }
 
 .siteFooter strong {
   display: block;
-  margin-bottom: 8px;
-  font-size: 1.25rem;
+  margin-bottom: 4px;
+  font-size: 1.08rem;
 }
 
 .siteFooter p {
   max-width: 520px;
   margin: 0;
   color: rgba(255, 255, 255, 0.72);
+  font-size: 0.82rem;
   font-weight: 750;
-  line-height: 1.55;
+  line-height: 1.4;
 }
 
 .siteFooter nav,
 .footerSocials {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .siteFooter nav {
@@ -13439,10 +13441,11 @@ body:has(.publicRoomLanding) {
 
 .siteFooter a,
 .footerSocials span {
-  padding: 9px 11px;
+  padding: 6px 9px;
   color: var(--ink);
   background: #fff;
-  border-radius: 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
@@ -13453,11 +13456,14 @@ body:has(.publicRoomLanding) {
 
 .footerSocials {
   grid-column: 1 / -1;
+  margin-top: -2px;
 }
 
 .footerSocials span {
+  padding: 5px 8px;
   color: #fff;
   background: rgba(255, 255, 255, 0.12);
+  font-size: 0.72rem;
 }
 
 .backToTopButton {
@@ -13844,14 +13850,30 @@ body:has(.publicRoomLanding) {
 }
 
 .opponentAvatar {
+  position: relative;
   display: grid;
   width: 48px;
   height: 48px;
+  overflow: hidden;
   place-items: center;
   color: #fff;
   background: linear-gradient(135deg, var(--teal), var(--blue));
   border-radius: 50%;
   font-weight: 950;
+}
+
+.opponentAvatar.hasPhoto {
+  color: transparent;
+  background: #e9f3f3;
+  box-shadow: 0 0 0 2px rgba(18, 157, 151, 0.16);
+}
+
+.opponentAvatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .availabilityBadge {
@@ -14636,11 +14658,19 @@ body:has(.publicRoomLanding) {
   }
 
   .shareStrip button,
-  .issueShortcut button,
-  .siteFooter a,
-  .footerSocials span {
+  .issueShortcut button {
     width: 100%;
     text-align: center;
+  }
+
+  .siteFooter {
+    padding: 16px 14px;
+  }
+
+  .siteFooter a,
+  .footerSocials span {
+    width: auto;
+    text-align: left;
   }
 
   .backToTopButton {
