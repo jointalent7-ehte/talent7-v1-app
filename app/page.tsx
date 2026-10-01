@@ -2573,6 +2573,7 @@ export default function Home() {
   const [opponentFormat, setOpponentFormat] = useState<ChallengeFormat | "All">("All");
   const [opponentReadyOnly, setOpponentReadyOnly] = useState(false);
   const [challengeDraft, setChallengeDraft] = useState<ChallengeDraft>(defaultChallengeDraft);
+  const [challengeTeamAEditVersion, setChallengeTeamAEditVersion] = useState<number | null>(null);
   const [challengeActivitySearch, setChallengeActivitySearch] = useState("");
   const matchingChallengeActivities = useMemo(() => {
     const search = challengeActivitySearch.trim().toLowerCase();
@@ -17557,13 +17558,16 @@ export default function Home() {
                 name="team_a"
                 onChange={(event) => {
                   const teamA = event.currentTarget.value;
+                  setChallengeTeamAEditVersion(challengeDraft.version);
                   setChallengeDraft((current) => ({ ...current, team_a: teamA }));
                 }}
                 placeholder="Your name or team"
                 value={
-                  challengeDraft.team_a ||
-                  profile?.display_name ||
-                  (profile?.username ? `@${profile.username}` : "")
+                  challengeTeamAEditVersion === challengeDraft.version
+                    ? challengeDraft.team_a
+                    : challengeDraft.team_a ||
+                      profile?.display_name ||
+                      (profile?.username ? `@${profile.username}` : "")
                 }
               />
               <small className="fieldHint">This is your side. Your saved profile name is used automatically when available.</small>
