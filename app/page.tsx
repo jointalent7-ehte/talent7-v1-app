@@ -17482,12 +17482,13 @@ export default function Home() {
               League progress
               <select
                 name="competition_mode"
-                onChange={(event) =>
+                onChange={(event) => {
+                  const competitionMode = event.currentTarget.value as CompetitionMode;
                   setChallengeDraft((current) => ({
                     ...current,
-                    competitionMode: event.currentTarget.value as CompetitionMode
-                  }))
-                }
+                    competitionMode
+                  }));
+                }}
                 value={challengeDraft.competitionMode}
               >
                 <option value="Ranked">Ranked — earn XP and Rank Points</option>
@@ -17530,9 +17531,10 @@ export default function Home() {
             <label>
               Registered players per side
               <input
-                onChange={(event) =>
-                  setChallengeDraft((current) => ({ ...current, roster_size: Number(event.currentTarget.value) }))
-                }
+                onChange={(event) => {
+                  const rosterSize = Number(event.currentTarget.value);
+                  setChallengeDraft((current) => ({ ...current, roster_size: rosterSize }));
+                }}
                 max={50}
                 min={1}
                 name="roster_size"
@@ -17553,7 +17555,10 @@ export default function Home() {
               Team or challenger A
               <input
                 name="team_a"
-                onChange={(event) => setChallengeDraft((current) => ({ ...current, team_a: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const teamA = event.currentTarget.value;
+                  setChallengeDraft((current) => ({ ...current, team_a: teamA }));
+                }}
                 placeholder="Your name or team"
                 value={
                   challengeDraft.team_a ||
@@ -17568,7 +17573,10 @@ export default function Home() {
               <input
                 disabled={challengeDraft.openOpponent}
                 name="team_b"
-                onChange={(event) => setChallengeDraft((current) => ({ ...current, team_b: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const teamB = event.currentTarget.value;
+                  setChallengeDraft((current) => ({ ...current, team_b: teamB }));
+                }}
                 placeholder={challengeDraft.openOpponent ? "Open for anyone eligible to join" : "Opponent name or team"}
                 value={challengeDraft.team_b}
               />
@@ -17577,15 +17585,16 @@ export default function Home() {
               <input
                 checked={challengeDraft.openOpponent}
                 name="open_opponent"
-                onChange={(event) =>
+                onChange={(event) => {
+                  const openOpponent = event.currentTarget.checked;
                   setChallengeDraft((current) => ({
                     ...current,
-                    openOpponent: event.currentTarget.checked,
-                    opponentEntryMode: event.currentTarget.checked ? current.opponentEntryMode : "Direct join",
-                    team_b: event.currentTarget.checked ? "" : current.team_b,
-                    team_b_id: event.currentTarget.checked ? "" : current.team_b_id
-                  }))
-                }
+                    openOpponent,
+                    opponentEntryMode: openOpponent ? current.opponentEntryMode : "Direct join",
+                    team_b: openOpponent ? "" : current.team_b,
+                    team_b_id: openOpponent ? "" : current.team_b_id
+                  }));
+                }}
                 type="checkbox"
               />
               <span>
@@ -17603,12 +17612,13 @@ export default function Home() {
                   Entry method
                   <select
                     name="opponent_entry_mode"
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const opponentEntryMode = event.currentTarget.value as ChallengeDraft["opponentEntryMode"];
                       setChallengeDraft((current) => ({
                         ...current,
-                        opponentEntryMode: event.currentTarget.value as ChallengeDraft["opponentEntryMode"]
-                      }))
-                    }
+                        opponentEntryMode
+                      }));
+                    }}
                     value={challengeDraft.opponentEntryMode}
                   >
                     <option disabled={challengeManageableTeams.length === 0} value="Request queue">
@@ -17624,12 +17634,13 @@ export default function Home() {
                       max={50}
                       min={1}
                       name="challenger_queue_limit"
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const challengerQueueLimit = Number(event.currentTarget.value) || 1;
                         setChallengeDraft((current) => ({
                           ...current,
-                          challengerQueueLimit: Number(event.currentTarget.value) || 1
-                        }))
-                      }
+                          challengerQueueLimit
+                        }));
+                      }}
                       type="number"
                       value={challengeDraft.challengerQueueLimit}
                     />
@@ -17650,10 +17661,11 @@ export default function Home() {
                   <select
                     name="team_a_id"
                     onChange={(event) => {
-                      const selected = linkedTeam(event.currentTarget.value);
+                      const teamAId = event.currentTarget.value;
+                      const selected = linkedTeam(teamAId);
                       setChallengeDraft((current) => ({
                         ...current,
-                        team_a_id: event.currentTarget.value,
+                        team_a_id: teamAId,
                         team_a: selected?.name || current.team_a
                       }));
                     }}
@@ -17673,10 +17685,11 @@ export default function Home() {
                     disabled={challengeDraft.openOpponent}
                     name="team_b_id"
                     onChange={(event) => {
-                      const selected = linkedTeam(event.currentTarget.value);
+                      const teamBId = event.currentTarget.value;
+                      const selected = linkedTeam(teamBId);
                       setChallengeDraft((current) => ({
                         ...current,
-                        team_b_id: event.currentTarget.value,
+                        team_b_id: teamBId,
                         team_b: selected?.name || current.team_b,
                         openOpponent: false
                       }));
@@ -18431,12 +18444,13 @@ export default function Home() {
                         max={50}
                         min={1}
                         name="roster_size"
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const rosterSize = Number(event.currentTarget.value);
                           setChallengeEditSetups((current) => ({
                             ...current,
-                            [challenge.id]: { ...editSetup, rosterSize: Number(event.currentTarget.value) }
-                          }))
-                        }
+                            [challenge.id]: { ...editSetup, rosterSize }
+                          }));
+                        }}
                         readOnly={editSetup.format !== "Team" || !editMatchConfig.teamRosterFlexible}
                         type="number"
                         value={editSetup.rosterSize}
@@ -19078,12 +19092,13 @@ export default function Home() {
                             Play mode
                             <select
                               name="play_mode"
-                              onChange={(event) =>
+                              onChange={(event) => {
+                                const playMode = event.currentTarget.value as ChallengePlayMode;
                                 setSchedulePlayModes((current) => ({
                                   ...current,
-                                  [challenge.id]: event.currentTarget.value as ChallengePlayMode
-                                }))
-                              }
+                                  [challenge.id]: playMode
+                                }));
+                              }}
                               value={schedulePlayMode}
                             >
                               {availableSchedulePlayModes.map((mode) => (
