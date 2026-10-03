@@ -16,6 +16,7 @@ import { trackGrowthEvent } from "../lib/growth-analytics";
 import { supporterTierLabel, type SupporterTier } from "../lib/supporter-products";
 import ChallengeLiveRoom from "./challenge-live-room";
 import ChallengeStarterHub, { type ChallengeStarterSeed } from "./challenge-starter-hub";
+import CommunityCompetitionLaunchpad from "./community-competition-launchpad";
 import ClubsScouting from "./clubs-scouting";
 import GrowthHub from "./growth-hub";
 import ListenVoiceRoom from "./listen-voice-room";
@@ -463,6 +464,7 @@ const primaryTabs: {
     firstSection: "challenge-now",
     links: [
       { label: "Challenge now", href: "#challenge-now" },
+      { label: "Vote next", href: "#community-competition" },
       { label: "Rooms", href: "#rooms" },
       { label: "Find opponents", href: "#opponents" },
       { label: "Create", href: "#create" },
@@ -519,6 +521,7 @@ const sectionTabMap: Record<string, AppTabId> = {
   "my-talent7": "settings",
   create: "challenges",
   "challenge-now": "challenges",
+  "community-competition": "challenges",
   rooms: "challenges",
   opponents: "challenges",
   tournaments: "challenges",
@@ -17137,6 +17140,12 @@ export default function Home() {
         playMode={profile?.challenge_mode || "Either"}
         region={profile?.region || "Global"}
         skillLevel={profile?.challenge_skill_level || "Open"}
+        userId={session?.user.id || ""}
+      />
+
+      <CommunityCompetitionLaunchpad
+        displayName={profile?.display_name || ""}
+        region={profile?.region || ""}
         userId={session?.user.id || ""}
       />
 
