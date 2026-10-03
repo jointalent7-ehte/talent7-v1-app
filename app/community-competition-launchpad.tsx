@@ -62,6 +62,30 @@ type CompetitionState = {
   registration: CompetitionRegistration | null;
 };
 
+type OrganizerNomination = CompetitionOption & {
+  created_at: string;
+};
+
+type OrganizerRegistration = CompetitionRegistration & {
+  display_name: string;
+  created_at: string;
+};
+
+type OrganizerAction = {
+  id: string;
+  action: string;
+  details: Record<string, unknown>;
+  created_at: string;
+};
+
+type OrganizerState = {
+  pending_nominations: OrganizerNomination[];
+  registrations: OrganizerRegistration[];
+  selected_day_option_id: string | null;
+  selected_time_option_id: string | null;
+  recent_actions: OrganizerAction[];
+};
+
 const previewCampaign: CompetitionCampaign = {
   id: "preview-community-competition",
   title: "Choose the first Talent7 community competition",
@@ -137,14 +161,394 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function datetimeLocalValue(value?: string | null) {
+  const date = value ? new Date(value) : new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function CompetitionOrganizerConsole({
+  campaign,
+  options,
+  scheduleOptions,
+  onChanged
+}: {
+  campaign: CompetitionCampaign;
+  options: CompetitionOption[];
+  scheduleOptions: ScheduleOption[];
+  onChanged: () => Promise<void>;
+}) {
+  const [organizerState, setOrganizerState] = useState<OrganizerState>({
+    pending_nominations: [],
+    registrations: [],
+    selected_day_option_id: null,
+    selected_time_option_id: null,
+    recent_actions: []
+  });
+  const [busyAction, setBusyAction] = useState("");
+  const [message, setMessage] = useState("");
+
+  const loadOrganizerState = useCallback(async () => {
+    if (!supabase || campaign.id.startsWith("preview-")) return;
+    const { data, error } = await supabase.rpc("get_talent7_competition_organizer_state", {
+      target_campaign_id: campaign.id
+    });
+    if (!error && data) setOrganizerState(data as OrganizerState);
+  }, [campaign.id]);
+
+  useEffect(() => {
+    void loadOrganizerState();
+  }, [loadOrganizerState, campaign.phase, campaign.registration_count]);
+
+  async function finishAction(successMessage: string) {
+    await onChanged();
+    await loadOrganizerState();
+    setMessage(successMessage);
+  }
+
+  async function reviewNomination(optionId: string, decision: "Approved" | "Rejected") {
+    if (!supabase) return;
+    setBusyAction(`nomination-${optionId}`);
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("review_talent7_competition_nomination", {
+        target_option_id: optionId,
+        target_decision: decision
+      });
+      if (error) throw error;
+      await finishAction(`Nomination ${decision.toLowerCase()}.`);
+    } catch (error) {
+      setMessage(readableError(error, "The nomination could not be reviewed."));
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function saveScheduleOption(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase) return;
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const phase = String(data.get("phase") || "Day vote");
+    const label = String(data.get("label") || "").trim();
+    const proposedStart = String(data.get("proposedStart") || "");
+    setBusyAction("schedule-option");
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("save_talent7_competition_schedule_option", {
+        target_campaign_id: campaign.id,
+        target_phase: phase,
+        target_label: label,
+        target_proposed_start: proposedStart ? new Date(proposedStart).toISOString() : null
+      });
+      if (error) throw error;
+      form.reset();
+      await finishAction(`${phase} choice saved.`);
+    } catch (error) {
+      setMessage(readableError(error, "The schedule choice could not be saved."));
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function removeScheduleOption(optionId: string) {
+    if (!supabase) return;
+    setBusyAction(`remove-${optionId}`);
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("remove_talent7_competition_schedule_option", {
+        target_option_id: optionId
+      });
+      if (error) throw error;
+      await finishAction("Schedule choice removed.");
+    } catch (error) {
+      setMessage(readableError(error, "The schedule choice could not be removed."));
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function advancePhase(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase) return;
+    const data = new FormData(event.currentTarget);
+    const nextPhase = String(data.get("nextPhase") || "");
+    const winner = String(data.get("winner") || "");
+    const voteClosesAt = String(data.get("voteClosesAt") || "");
+    const scheduledStart = String(data.get("scheduledStart") || "");
+    setBusyAction("advance");
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("advance_talent7_competition_phase", {
+        target_campaign_id: campaign.id,
+        target_next_phase: nextPhase,
+        target_selected_option_id: winner || null,
+        target_vote_closes_at: voteClosesAt ? new Date(voteClosesAt).toISOString() : null,
+        target_scheduled_start: scheduledStart ? new Date(scheduledStart).toISOString() : null
+      });
+      if (error) throw error;
+      await finishAction(`Competition advanced to ${nextPhase}.`);
+    } catch (error) {
+      setMessage(readableError(error, "The competition phase could not be advanced."));
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function updateEntrantStatus(registrationId: string, status: string) {
+    if (!supabase) return;
+    setBusyAction(`entrant-${registrationId}`);
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("update_talent7_competition_registration_status", {
+        target_registration_id: registrationId,
+        target_status: status
+      });
+      if (error) throw error;
+      await finishAction(`Entrant marked ${status.toLowerCase()}.`);
+    } catch (error) {
+      setMessage(readableError(error, "The entrant status could not be updated."));
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  const phasePlan = (() => {
+    if (campaign.phase === "Activity vote") return {
+      nextPhase: "Day vote",
+      button: "Lock activity and open day vote",
+      choices: options,
+      winnerLabel: "Winning activity",
+      needsVoteDeadline: true,
+      needsScheduledStart: false
+    };
+    if (campaign.phase === "Day vote") return {
+      nextPhase: "Time vote",
+      button: "Lock day and open time vote",
+      choices: scheduleOptions.filter((option) => option.phase === "Day vote"),
+      winnerLabel: "Winning day",
+      needsVoteDeadline: true,
+      needsScheduledStart: false
+    };
+    if (campaign.phase === "Time vote") return {
+      nextPhase: "Registration",
+      button: "Lock time and open confirmation",
+      choices: scheduleOptions.filter((option) => option.phase === "Time vote"),
+      winnerLabel: "Winning time",
+      needsVoteDeadline: false,
+      needsScheduledStart: true
+    };
+    if (campaign.phase === "Registration") return {
+      nextPhase: "Scheduled",
+      button: "Publish final schedule",
+      choices: [],
+      winnerLabel: "",
+      needsVoteDeadline: false,
+      needsScheduledStart: true
+    };
+    if (campaign.phase === "Scheduled") return {
+      nextPhase: "Live",
+      button: "Mark competition live",
+      choices: [],
+      winnerLabel: "",
+      needsVoteDeadline: false,
+      needsScheduledStart: false
+    };
+    if (campaign.phase === "Live") return {
+      nextPhase: "Review",
+      button: "Close event for review",
+      choices: [],
+      winnerLabel: "",
+      needsVoteDeadline: false,
+      needsScheduledStart: false
+    };
+    if (campaign.phase === "Review") return {
+      nextPhase: "Completed",
+      button: "Complete reviewed event",
+      choices: [],
+      winnerLabel: "",
+      needsVoteDeadline: false,
+      needsScheduledStart: false
+    };
+    return null;
+  })();
+
+  const cohortCount = Math.max(1, Math.ceil(campaign.registration_count / campaign.capacity_per_cohort));
+
+  return (
+    <details className="competitionOrganizerConsole" open>
+      <summary>
+        <span>Private organizer control</span>
+        <strong>{campaign.phase} / {organizerState.pending_nominations.length} pending nominations</strong>
+      </summary>
+      <div className="competitionOrganizerBody">
+        {message && <p className="organizerMessage" role="status">{message}</p>}
+
+        <div className="organizerStats">
+          <article><span>Entrants</span><strong>{campaign.registration_count}</strong></article>
+          <article><span>Cohorts</span><strong>{cohortCount}</strong></article>
+          <article><span>Pending ideas</span><strong>{organizerState.pending_nominations.length}</strong></article>
+          <article><span>Current phase</span><strong>{campaign.phase}</strong></article>
+        </div>
+
+        <div className="organizerControlGrid">
+          <section>
+            <div className="organizerPanelHeader">
+              <div><span>Phase control</span><h3>Move the event forward</h3></div>
+              <small>Changes are audited and cannot skip a phase.</small>
+            </div>
+            {phasePlan ? (
+              <form className="organizerPhaseForm" onSubmit={advancePhase}>
+                <input name="nextPhase" type="hidden" value={phasePlan.nextPhase} />
+                {phasePlan.choices.length > 0 && (
+                  <label>
+                    {phasePlan.winnerLabel}
+                    <select name="winner" required>
+                      <option value="">Select the verified winner</option>
+                      {phasePlan.choices.map((choice) => (
+                        <option key={choice.id} value={choice.id}>
+                          {"activity" in choice ? choice.activity : choice.label} ({choice.vote_count} votes)
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {phasePlan.needsVoteDeadline && (
+                  <label>
+                    Next vote closes
+                    <input defaultValue={datetimeLocalValue()} name="voteClosesAt" required type="datetime-local" />
+                  </label>
+                )}
+                {phasePlan.needsScheduledStart && (
+                  <label>
+                    Final event date and time
+                    <input defaultValue={datetimeLocalValue(campaign.scheduled_start)} name="scheduledStart" required type="datetime-local" />
+                  </label>
+                )}
+                <button disabled={busyAction === "advance"} type="submit">
+                  {busyAction === "advance" ? "Updating phase..." : phasePlan.button}
+                </button>
+              </form>
+            ) : (
+              <p className="competitionEmpty">No further public phase is available.</p>
+            )}
+          </section>
+
+          <section>
+            <div className="organizerPanelHeader">
+              <div><span>Ballot builder</span><h3>Add day and time choices</h3></div>
+              <small>Create choices before opening their vote.</small>
+            </div>
+            <form className="organizerScheduleForm" onSubmit={saveScheduleOption}>
+              <label>
+                Ballot
+                <select name="phase"><option>Day vote</option><option>Time vote</option></select>
+              </label>
+              <label>
+                Public label
+                <input maxLength={80} name="label" placeholder="Saturday, 24 October" required />
+              </label>
+              <label>
+                Proposed date/time (optional)
+                <input name="proposedStart" type="datetime-local" />
+              </label>
+              <button disabled={busyAction === "schedule-option"} type="submit">
+                {busyAction === "schedule-option" ? "Saving..." : "Add ballot choice"}
+              </button>
+            </form>
+            <div className="organizerScheduleOptions">
+              {scheduleOptions.map((option) => (
+                <article key={option.id}>
+                  <span>{option.phase}</span>
+                  <strong>{option.label}</strong>
+                  <small>{option.vote_count} votes{option.proposed_start ? ` / ${formatDate(option.proposed_start)}` : ""}</small>
+                  <button
+                    disabled={option.vote_count > 0 || busyAction === `remove-${option.id}`}
+                    onClick={() => removeScheduleOption(option.id)}
+                    type="button"
+                  >
+                    {busyAction === `remove-${option.id}` ? "Removing..." : option.vote_count > 0 ? "Has votes" : "Remove"}
+                  </button>
+                </article>
+              ))}
+              {scheduleOptions.length === 0 && <small>No day or time choices yet.</small>}
+            </div>
+          </section>
+        </div>
+
+        <section className="organizerQueueSection">
+          <div className="organizerPanelHeader">
+            <div><span>Moderation</span><h3>Community nominations</h3></div>
+            <small>Approve only activities with clear, safe, feasible rules.</small>
+          </div>
+          <div className="organizerNominationQueue">
+            {organizerState.pending_nominations.map((nomination) => (
+              <article key={nomination.id}>
+                <div><strong>{nomination.activity}</strong><small>{nomination.pitch}</small><em>Suggested by {nomination.proposer_name || "Talent7 member"}</em></div>
+                <div>
+                  <button disabled={busyAction === `nomination-${nomination.id}`} onClick={() => reviewNomination(nomination.id, "Approved")} type="button">Approve</button>
+                  <button className="secondary" disabled={busyAction === `nomination-${nomination.id}`} onClick={() => reviewNomination(nomination.id, "Rejected")} type="button">Reject</button>
+                </div>
+              </article>
+            ))}
+            {organizerState.pending_nominations.length === 0 && <p className="competitionEmpty">No nominations need review.</p>}
+          </div>
+        </section>
+
+        <section className="organizerQueueSection">
+          <div className="organizerPanelHeader">
+            <div><span>Private roster</span><h3>Entrants by cohort</h3></div>
+            <small>Real names and codes stay inside this organizer view.</small>
+          </div>
+          <div className="organizerRoster">
+            {organizerState.registrations.map((registration) => (
+              <article key={registration.id}>
+                <div>
+                  <span>C{registration.cohort_number} / {registration.slot_number}</span>
+                  <strong>{registration.display_name}</strong>
+                  <small>{registration.public_anonymous ? "Public alias enabled" : "Public profile"} / {registration.shipping_region}</small>
+                </div>
+                <code>{registration.registration_code}</code>
+                <select
+                  aria-label={`Status for ${registration.display_name}`}
+                  disabled={busyAction === `entrant-${registration.id}`}
+                  onChange={(event) => updateEntrantStatus(registration.id, event.target.value)}
+                  value={registration.status}
+                >
+                  <option>Interested</option><option>Confirmed</option><option>Disqualified</option><option>Completed</option>
+                </select>
+              </article>
+            ))}
+            {organizerState.registrations.length === 0 && <p className="competitionEmpty">No one has registered yet.</p>}
+          </div>
+        </section>
+
+        <section className="organizerAuditSection">
+          <div className="organizerPanelHeader">
+            <div><span>Audit trail</span><h3>Recent organizer actions</h3></div>
+          </div>
+          <ol>
+            {organizerState.recent_actions.map((action) => (
+              <li key={action.id}><strong>{action.action}</strong><span>{formatDate(action.created_at)}</span></li>
+            ))}
+            {organizerState.recent_actions.length === 0 && <li><span>No organizer actions recorded yet.</span></li>}
+          </ol>
+        </section>
+      </div>
+    </details>
+  );
+}
+
 export default function CommunityCompetitionLaunchpad({
   userId,
   displayName,
-  region
+  region,
+  isAdmin
 }: {
   userId: string;
   displayName: string;
   region: string;
+  isAdmin: boolean;
 }) {
   const [campaign, setCampaign] = useState<CompetitionCampaign>(previewCampaign);
   const [options, setOptions] = useState<CompetitionOption[]>(previewOptions);
@@ -557,6 +961,15 @@ export default function CommunityCompetitionLaunchpad({
           <p>{campaign.review_policy}</p>
         </article>
       </div>
+
+      {isAdmin && !campaign.id.startsWith("preview-") && (
+        <CompetitionOrganizerConsole
+          campaign={campaign}
+          onChanged={loadCompetition}
+          options={options}
+          scheduleOptions={scheduleOptions}
+        />
+      )}
     </section>
   );
 }

@@ -17145,6 +17145,7 @@ export default function Home() {
 
       <CommunityCompetitionLaunchpad
         displayName={profile?.display_name || ""}
+        isAdmin={isOwnerReviewer}
         region={profile?.region || ""}
         userId={session?.user.id || ""}
       />
