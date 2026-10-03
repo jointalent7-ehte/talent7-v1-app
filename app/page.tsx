@@ -15,6 +15,7 @@ import { hasSupabaseConfig, supabase } from "../lib/supabase";
 import { trackGrowthEvent } from "../lib/growth-analytics";
 import { supporterTierLabel, type SupporterTier } from "../lib/supporter-products";
 import ChallengeLiveRoom from "./challenge-live-room";
+import ChallengeStarterHub, { type ChallengeStarterSeed } from "./challenge-starter-hub";
 import ClubsScouting from "./clubs-scouting";
 import GrowthHub from "./growth-hub";
 import ListenVoiceRoom from "./listen-voice-room";
@@ -148,6 +149,10 @@ const challengeActivityGroups = [
   {
     label: "Sports and fitness",
     options: [
+      "Push-up challenge",
+      "Bodyweight squat challenge",
+      "Plank hold",
+      "Burpee challenge",
       "Swimming race",
       "Volleyball match",
       "Football match",
@@ -455,8 +460,9 @@ const primaryTabs: {
   {
     id: "challenges",
     label: "Challenges",
-    firstSection: "rooms",
+    firstSection: "challenge-now",
     links: [
+      { label: "Challenge now", href: "#challenge-now" },
       { label: "Rooms", href: "#rooms" },
       { label: "Find opponents", href: "#opponents" },
       { label: "Create", href: "#create" },
@@ -512,6 +518,7 @@ const sectionTabMap: Record<string, AppTabId> = {
   account: "settings",
   "my-talent7": "settings",
   create: "challenges",
+  "challenge-now": "challenges",
   rooms: "challenges",
   opponents: "challenges",
   tournaments: "challenges",
@@ -7725,6 +7732,44 @@ export default function Home() {
       version: current.version + 1
     }));
     setMessage(`${activity} challenge draft ready.`);
+    openSection("create", true);
+  }
+
+  function startFromChallengeStarter(seed: ChallengeStarterSeed) {
+    const matchSetup = inferredMatchSetup(seed.activity);
+    const hasOpponent = Boolean(seed.opponentUserId && seed.opponentName);
+    setChallengeCreateStep(1);
+    setChallengeCreateMaxStep(1);
+    setChallengeStepError("");
+    setChallengeTeamAEditVersion(null);
+    setChallengeDraft((current) => ({
+      ...current,
+      title: seed.title,
+      lane: laneForInterest(seed.activity),
+      team_a: profileName(),
+      team_b: seed.opponentName || "",
+      openOpponent: !hasOpponent,
+      opponentEntryMode: "Direct join",
+      challengerQueueLimit: 10,
+      competitionMode: seed.competitionMode,
+      team_a_id: "",
+      team_b_id: "",
+      rules: seed.rules,
+      venue_name: venueForActivity(seed.activity),
+      booking_url: "",
+      sport_type: seed.activity,
+      booking_region: profile?.region || current.booking_region || "Global",
+      match_format: matchSetup.format,
+      roster_size: matchSetup.rosterSize,
+      invitedProfile: seed.opponentName || "",
+      invitedUserId: seed.opponentUserId || "",
+      version: current.version + 1
+    }));
+    setMessage(
+      hasOpponent
+        ? `Matched challenge draft ready with ${seed.opponentName}. Review it before publishing.`
+        : `${seed.title} draft ready. Publish it now and a future rival can answer.`
+    );
     openSection("create", true);
   }
 
@@ -17082,6 +17127,18 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      <ChallengeStarterHub
+        activities={challengeActivityOptions}
+        displayName={profile?.display_name || ""}
+        mainInterest={profile?.main_interest || "Push-up challenge"}
+        matchFormat={profile?.challenge_format || "Any"}
+        onStartChallenge={startFromChallengeStarter}
+        playMode={profile?.challenge_mode || "Either"}
+        region={profile?.region || "Global"}
+        skillLevel={profile?.challenge_skill_level || "Open"}
+        userId={session?.user.id || ""}
+      />
 
       <section className="section opponentsSection" id="opponents">
         <div className="sectionHeader opponentsHeader">
