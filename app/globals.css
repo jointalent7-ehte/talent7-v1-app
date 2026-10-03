@@ -20890,3 +20890,509 @@ html[data-talent7-theme="dark"] #community-competition .competitionOrganizerCons
     flex: 1;
   }
 }
+
+.competitionHeatSection {
+  max-width: 1280px;
+  margin: 22px auto 0;
+  padding: clamp(20px, 3vw, 30px);
+  color: var(--ink);
+  background: #f8fbfb;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 24px;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.23);
+}
+
+.competitionHeatHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+}
+
+.competitionHeatHeader > div:first-child > span,
+.heatDeskTitle > span {
+  color: #167d76;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.competitionHeatHeader h3 {
+  max-width: 720px;
+  margin: 5px 0 9px;
+  color: var(--ink);
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.competitionHeatHeader p {
+  max-width: 790px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.competitionHeatHeader > div:last-child {
+  display: grid;
+  min-width: 150px;
+  justify-items: center;
+  padding: 18px;
+  color: #fff;
+  background: linear-gradient(145deg, #0d6764, #5546bd);
+  border-radius: 18px;
+}
+
+.competitionHeatHeader > div:last-child strong {
+  color: #fff;
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.competitionHeatHeader > div:last-child span {
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.competitionHeatPrinciples {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.competitionHeatPrinciples article {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  background: #eef4f4;
+  border: 1px solid #d7e2e3;
+  border-radius: 13px;
+}
+
+.competitionHeatPrinciples strong {
+  color: var(--ink);
+}
+
+.competitionHeatPrinciples small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.heatDeskMessage {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  color: #074e46;
+  background: #d1faec;
+  border-left: 4px solid #13a497;
+  border-radius: 10px;
+  font-weight: 850;
+}
+
+.heatBoardEmpty {
+  display: grid;
+  gap: 5px;
+  margin-top: 18px;
+  padding: 22px;
+  color: var(--ink);
+  background: #f0f4f5;
+  border: 1px dashed #aebfc1;
+  border-radius: 15px;
+  text-align: center;
+}
+
+.heatBoardEmpty span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.publicHeatBoard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.publicHeatBoard > article {
+  padding: 17px;
+  background: #f0f5f5;
+  border: 1px solid #d7e2e3;
+  border-radius: 15px;
+}
+
+.publicHeatBoard > article.mine {
+  background: linear-gradient(145deg, #e5fff6, #f1edff);
+  border-color: #18a99d;
+  box-shadow: 0 10px 28px rgba(20, 156, 146, 0.14);
+}
+
+.publicHeatTopline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.publicHeatTopline span {
+  color: var(--ink);
+  font-size: 0.77rem;
+  font-weight: 950;
+}
+
+.publicHeatTopline strong {
+  color: #127c75;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.publicHeatBoard > article > p {
+  margin: 6px 0 13px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.publicHeatLanes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.publicHeatLanes > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #dce5e6;
+  border-radius: 10px;
+}
+
+.publicHeatLanes > div.mine {
+  background: #d9fff2;
+  border-color: #19a89d;
+}
+
+.publicHeatLanes span {
+  color: #167d76;
+  font-size: 0.66rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.publicHeatLanes strong {
+  overflow: hidden;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.publicHeatLanes small {
+  color: var(--muted);
+}
+
+.competitionHeatDesk {
+  margin-top: 20px;
+  overflow: hidden;
+  background: #eef2f4;
+  border: 1px solid #ccd9dc;
+  border-radius: 18px;
+}
+
+.competitionHeatDesk > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(115deg, #122f38, #3e316f);
+  list-style: none;
+}
+
+.competitionHeatDesk > summary::-webkit-details-marker {
+  display: none;
+}
+
+.competitionHeatDesk > summary span {
+  color: var(--yellow);
+  font-size: 0.73rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.competitionHeatDesk > summary strong {
+  color: #fff;
+}
+
+.competitionHeatDeskBody {
+  display: grid;
+  gap: 15px;
+  padding: 16px;
+}
+
+.heatGeneratorForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #d6e0e2;
+  border-radius: 14px;
+}
+
+.heatDeskTitle {
+  grid-column: 1 / -1;
+}
+
+.heatDeskTitle h4 {
+  margin: 3px 0 4px;
+  color: var(--ink);
+  font-size: 1.2rem;
+}
+
+.heatGeneratorForm label {
+  display: grid;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.heatGeneratorForm :where(input, select) {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  color: var(--ink);
+  background: #f8fbfb;
+  border: 1px solid #cad8da;
+  border-radius: 9px;
+}
+
+.heatGeneratorForm > button {
+  align-self: end;
+  min-height: 42px;
+  color: #fff;
+  background: linear-gradient(115deg, #10938c, #5749c9);
+  border: 0;
+  border-radius: 10px;
+  font-weight: 950;
+}
+
+.organizerHeatList {
+  display: grid;
+  gap: 12px;
+}
+
+.organizerHeatCard {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #d6e0e2;
+  border-left: 5px solid #829496;
+  border-radius: 14px;
+}
+
+.organizerHeatCard.status-live { border-left-color: #ef6654; }
+.organizerHeatCard.status-review { border-left-color: #f2bd45; }
+.organizerHeatCard.status-final { border-left-color: #20aa80; }
+.organizerHeatCard.status-ready { border-left-color: #6353d0; }
+
+.organizerHeatHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.organizerHeatHeader > div {
+  display: grid;
+  gap: 3px;
+}
+
+.organizerHeatHeader span {
+  color: #167d76;
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.organizerHeatHeader h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.15rem;
+}
+
+.organizerHeatHeader small {
+  color: var(--muted);
+}
+
+.organizerHeatHeader > strong {
+  padding: 6px 9px;
+  color: #fff;
+  background: #314b54;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.organizerHeatEntries {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.organizerHeatEntry {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.65fr) minmax(110px, 0.35fr) minmax(0, 1.4fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: #f3f7f7;
+  border: 1px solid #dce5e6;
+  border-radius: 11px;
+}
+
+.heatEntryIdentity {
+  display: grid;
+  gap: 2px;
+}
+
+.heatEntryIdentity span {
+  color: #167d76;
+  font-size: 0.67rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.heatEntryIdentity strong {
+  color: var(--ink);
+}
+
+.heatEntryIdentity small {
+  color: var(--muted);
+}
+
+.organizerHeatEntry > select {
+  min-width: 0;
+  padding: 9px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #cbd8da;
+  border-radius: 8px;
+}
+
+.organizerHeatEntry form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(70px, 0.4fr)) minmax(130px, 1fr) auto;
+  gap: 7px;
+  align-items: end;
+}
+
+.organizerHeatEntry form label {
+  display: grid;
+  gap: 3px;
+  color: var(--ink);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.organizerHeatEntry form input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #cbd8da;
+  border-radius: 8px;
+}
+
+.organizerHeatEntry form button,
+.organizerHeatActions button {
+  padding: 9px 11px;
+  color: #fff;
+  background: #128e86;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.organizerHeatEntry > em {
+  color: #176d58;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.organizerHeatActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.organizerHeatActions button:last-child {
+  background: linear-gradient(115deg, #0f8f88, #5849ca);
+}
+
+html[data-talent7-theme="dark"] #community-competition .competitionHeatSection,
+html[data-talent7-theme="dark"] #community-competition .competitionHeatSection :where(article, div, form, details) {
+  color: var(--ink);
+}
+
+html[data-talent7-theme="dark"] #community-competition .competitionHeatSection :where(h3, h4, strong, label) {
+  color: var(--ink);
+}
+
+html[data-talent7-theme="dark"] #community-competition .competitionHeatSection :where(p, small) {
+  color: var(--muted);
+}
+
+html[data-talent7-theme="dark"] #community-competition .competitionHeatHeader > div:last-child strong,
+html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > summary strong {
+  color: #fff;
+}
+
+@media (max-width: 1050px) {
+  .heatGeneratorForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .organizerHeatEntry {
+    grid-template-columns: minmax(0, 1fr) minmax(130px, 0.4fr);
+  }
+
+  .organizerHeatEntry form {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .competitionHeatHeader,
+  .competitionHeatPrinciples,
+  .publicHeatBoard {
+    grid-template-columns: 1fr;
+  }
+
+  .competitionHeatHeader > div:last-child {
+    justify-items: start;
+  }
+
+  .heatGeneratorForm,
+  .organizerHeatEntry,
+  .organizerHeatEntry form {
+    grid-template-columns: 1fr;
+  }
+
+  .organizerHeatEntry form,
+  .heatDeskTitle {
+    grid-column: auto;
+  }
+
+  .organizerHeatEntry form .wide {
+    grid-column: auto;
+  }
+
+  .organizerHeatActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

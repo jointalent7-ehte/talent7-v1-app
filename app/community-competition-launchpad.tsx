@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import CompetitionHeatDesk from "./competition-heat-desk";
 
 type CompetitionPhase =
   | "Activity vote"
@@ -961,6 +962,13 @@ export default function CommunityCompetitionLaunchpad({
           <p>{campaign.review_policy}</p>
         </article>
       </div>
+
+      <CompetitionHeatDesk
+        campaignId={campaign.id}
+        campaignPhase={campaign.phase}
+        cohortCount={cohortCount}
+        isAdmin={isAdmin}
+      />
 
       {isAdmin && !campaign.id.startsWith("preview-") && (
         <CompetitionOrganizerConsole
