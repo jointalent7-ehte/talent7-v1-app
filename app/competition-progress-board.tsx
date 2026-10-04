@@ -50,6 +50,22 @@ type AdvancementRule = {
 
 type Champion = { cohort_number: number; display_name: string; verified_at: string };
 type AdvancementState = { rules: AdvancementRule[]; entries: AdvancementEntry[]; champions: Champion[] };
+type CompetitionCertificate = {
+  id: string;
+  certificate_number: string;
+  share_token: string;
+  campaign_id: string;
+  cohort_number: number;
+  recipient_name: string;
+  competition_title: string;
+  activity_name: string;
+  award_type: string;
+  highest_round: string;
+  verified_placement: number | null;
+  verified_score: number | null;
+  sharing_enabled: boolean;
+  issued_at: string;
+};
 
 const roundOrder = ["Qualifier", "Round of 32", "Round of 16", "Quarterfinal", "Semifinal", "Final"];
 
@@ -86,6 +102,7 @@ export default function CompetitionProgressBoard({
 }) {
   const [rows, setRows] = useState<ProgressRow[]>([]);
   const [adminState, setAdminState] = useState<AdvancementState>({ rules: [], entries: [], champions: [] });
+  const [certificates, setCertificates] = useState<CompetitionCertificate[]>([]);
   const [sourceRound, setSourceRound] = useState("Qualifier");
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
@@ -96,6 +113,15 @@ export default function CompetitionProgressBoard({
       target_campaign_id: campaignId
     });
     if (!progressResult.error) setRows((progressResult.data || []) as ProgressRow[]);
+    const sessionResult = await supabase.auth.getSession();
+    if (sessionResult.data.session) {
+      const certificateResult = await supabase.rpc("get_my_talent7_competition_certificates", {
+        target_campaign_id: campaignId
+      });
+      if (!certificateResult.error) setCertificates((certificateResult.data || []) as CompetitionCertificate[]);
+    } else {
+      setCertificates([]);
+    }
     if (isAdmin) {
       const stateResult = await supabase.rpc("get_talent7_competition_advancement_state", {
         target_campaign_id: campaignId
@@ -206,6 +232,51 @@ export default function CompetitionProgressBoard({
     }
   }
 
+  async function issueCertificates(cohort: number) {
+    if (!supabase) return;
+    setBusy(`certificates-${cohort}`);
+    setMessage("");
+    try {
+      const { data: count, error } = await supabase.rpc("issue_talent7_competition_certificates", {
+        target_campaign_id: campaignId,
+        target_cohort_number: cohort
+      });
+      if (error) throw error;
+      await loadProgress();
+      setMessage(`${Number(count) || 0} new proof-backed certificates issued for cohort ${cohort}. Re-running issuance cannot create duplicates.`);
+    } catch (error) {
+      setMessage(readableError(error, "Certificates could not be issued."));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function toggleCertificateSharing(certificate: CompetitionCertificate) {
+    if (!supabase) return;
+    setBusy(`certificate-sharing-${certificate.id}`);
+    setMessage("");
+    try {
+      const nextEnabled = !certificate.sharing_enabled;
+      const { error } = await supabase.rpc("set_my_talent7_competition_certificate_sharing", {
+        target_certificate_id: certificate.id,
+        target_enabled: nextEnabled
+      });
+      if (error) throw error;
+      await loadProgress();
+      setMessage(nextEnabled ? "Your certificate verification link is now public." : "Certificate sharing is off. Your private certificate record is unchanged.");
+    } catch (error) {
+      setMessage(readableError(error, "Certificate sharing could not be changed."));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function copyCertificateLink(certificate: CompetitionCertificate) {
+    const url = `${window.location.origin}/certificate/${certificate.share_token}`;
+    await navigator.clipboard.writeText(url);
+    setMessage("Certificate verification link copied.");
+  }
+
   if (rows.length === 0 && !isAdmin) return null;
 
   return (
@@ -237,6 +308,25 @@ export default function CompetitionProgressBoard({
               </article>
             );
           })}
+        </div>
+      )}
+
+      {certificates.length > 0 && (
+        <div className="myCompetitionCertificates">
+          <div><span>Your permanent awards</span><h4>Proof-backed Talent7 certificates</h4><p>Sharing is private by default. Turn it on only when you want someone to verify a certificate.</p></div>
+          <div className="certificateTicketGrid">
+            {certificates.map((certificate) => (
+              <article className={statusClass(certificate.award_type)} key={certificate.id}>
+                <span>{certificate.award_type}</span>
+                <strong>{certificate.competition_title}</strong>
+                <small>{certificate.highest_round} / Cohort {certificate.cohort_number} / {certificate.certificate_number}</small>
+                <div>
+                  <button disabled={busy === `certificate-sharing-${certificate.id}`} onClick={() => toggleCertificateSharing(certificate)} type="button">{busy === `certificate-sharing-${certificate.id}` ? "Saving..." : certificate.sharing_enabled ? "Make private" : "Enable sharing"}</button>
+                  {certificate.sharing_enabled && <><a href={`/certificate/${certificate.share_token}`} rel="noreferrer" target="_blank">View certificate</a><button onClick={() => copyCertificateLink(certificate)} type="button">Copy link</button></>}
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       )}
 
@@ -279,7 +369,7 @@ export default function CompetitionProgressBoard({
 
             {Array.from(new Set(adminState.entries.filter((entry) => entry.round_name === "Final").map((entry) => entry.cohort_number))).map((cohort) => {
               const champion = adminState.champions.find((item) => item.cohort_number === cohort);
-              return <div className="championVerification" key={cohort}><div><span>Cohort {cohort} final</span><strong>{champion ? `${champion.display_name} is verified champion` : "Ready for final champion verification"}</strong></div>{!champion && <button disabled={busy === `champion-${cohort}`} onClick={() => verifyChampion(cohort)} type="button">{busy === `champion-${cohort}` ? "Verifying..." : "Verify champion"}</button>}</div>;
+              return <div className="championVerification" key={cohort}><div><span>Cohort {cohort} final</span><strong>{champion ? `${champion.display_name} is verified champion` : "Ready for final champion verification"}</strong><small>{champion ? "Issue certificates after all eligible footage reviews are accepted." : "Champion verification must happen before certificates can be issued."}</small></div><div className="championVerificationActions">{!champion && <button disabled={busy === `champion-${cohort}`} onClick={() => verifyChampion(cohort)} type="button">{busy === `champion-${cohort}` ? "Verifying..." : "Verify champion"}</button>}{champion && <button disabled={busy === `certificates-${cohort}`} onClick={() => issueCertificates(cohort)} type="button">{busy === `certificates-${cohort}` ? "Issuing..." : "Issue cohort certificates"}</button>}</div></div>;
             })}
           </div>
         </details>
