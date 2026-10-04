@@ -5,6 +5,7 @@ const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.jointalen
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     "",
+    "/competition/founding-community-competition",
     "/privacy",
     "/terms",
     "/shipping",
