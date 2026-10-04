@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import CompetitionLiveHeatRoom from "./competition-live-heat-room";
 import CompetitionProgressBoard from "./competition-progress-board";
+import CompetitionStandbyCenter from "./competition-standby-center";
 
 type HeatBoardRow = {
   heat_id: string;
@@ -623,6 +624,8 @@ export default function CompetitionHeatDesk({
           })}
         </div>
       )}
+
+      {!campaignId.startsWith("preview-") && <CompetitionStandbyCenter campaignId={campaignId} isAdmin={isAdmin} />}
 
       {isAdmin && !campaignId.startsWith("preview-") && (
         <details className="competitionHeatDesk" open>
