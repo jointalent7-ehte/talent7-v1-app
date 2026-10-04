@@ -99,6 +99,7 @@ This is the canonical inventory for the current source tree: **87 numbered SQL f
 95. `add-community-competition-launchpad.sql`
 96. `add-community-competition-organizer-controls.sql`
 97. `add-community-competition-heat-operations.sql`
+98. `add-community-competition-heat-proof-reminders.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening. `restore-gaming-challenges.sql` reopens multiplayer gaming after the earlier retirement migration and aligns game-specific roster validation with the current UI. `add-talent7-league-rewards.sql` adds proof-gated Ranked and Casual progress, seven seasonal tiers, activity ranks, reward history, and permanent trophies. `add-talent7-passports.sql` exposes a deliberately narrow, privacy-safe public competition summary through existing profile share tokens. `add-profile-passport-studio.sql` adds public presentation fields, Passport visibility controls, and owner-managed profile images.
 
@@ -119,5 +120,7 @@ The Showcase, Coaching, and Guidance migrations remain in this history because p
 `add-community-competition-organizer-controls.sql` adds app-admin-only nomination review, schedule-ballot creation, ordered phase transitions, private cohort rosters, entrant status management, and an append-only organizer audit trail. Every organizer action is enforced in security-definer functions rather than trusting hidden client controls.
 
 `add-community-competition-heat-operations.sql` turns confirmed cohort entrants into timed 2-to-4-person heats across up to eight parallel stages. It adds safe public lane boards, a private check-in and scoring desk, form penalties, provisional review, and organizer-verified placements. Hosts and judges remain outside competitor lanes.
+
+`add-community-competition-heat-proof-reminders.sql` adds participant self check-in, one reviewable footage submission per heat lane, organizer-only proof decisions, and idempotent assignment, 24-hour, 1-hour, and check-in reminders through the existing Firebase outbox. It automatically schedules a five-minute `pg_cron` runner when the extension is available and keeps a safe organizer button as a fallback.
 
 Never rerun the complete list against an existing production database. First compare Supabase migration history with this file, then apply only missing migrations in this order.
