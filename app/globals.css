@@ -618,6 +618,344 @@
   }
 }
 
+/* Community competition check-in, footage review, and reminder operations. */
+.participantHeatControls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px;
+  background: linear-gradient(135deg, #0f313a, #292456 64%, #145f64);
+  border-radius: 18px;
+  box-shadow: 0 18px 42px rgba(14, 45, 54, 0.2);
+}
+
+.participantHeatControlsHeader {
+  grid-column: 1 / -1;
+}
+
+.participantHeatControlsHeader span {
+  color: var(--yellow);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.participantHeatControlsHeader h4 {
+  margin: 4px 0;
+  color: #fff;
+  font-size: clamp(1.22rem, 2.2vw, 1.7rem);
+}
+
+.participantHeatControlsHeader p {
+  max-width: 760px;
+  margin: 0;
+  color: #c3ced7;
+}
+
+.participantHeatCard {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  border-radius: 14px;
+}
+
+.participantHeatTicket {
+  display: grid;
+  gap: 3px;
+}
+
+.participantHeatTicket span,
+.participantProofStatus span {
+  color: #137c75;
+  font-size: 0.69rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.participantHeatTicket strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.participantHeatTicket small,
+.participantProofWaiting {
+  color: var(--muted);
+}
+
+.participantCheckIn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.heatStatusPill {
+  padding: 6px 9px;
+  color: #5e6870;
+  background: #edf1f2;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.heatStatusPill.status-checked-in {
+  color: #08624d;
+  background: #d5f7e8;
+}
+
+.participantCheckIn button,
+.participantProofForm button,
+.heatReminderConsole button,
+.organizerProofReview button {
+  padding: 10px 12px;
+  color: #fff;
+  background: linear-gradient(115deg, #10938c, #5849ca);
+  border: 0;
+  border-radius: 9px;
+  font-weight: 950;
+}
+
+.participantProofStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px;
+  background: #edf6f5;
+  border: 1px solid #cee1df;
+  border-radius: 10px;
+}
+
+.participantProofStatus > div {
+  display: grid;
+  gap: 2px;
+}
+
+.participantProofStatus.status-rejected {
+  background: #fff0ed;
+  border-color: #efb5aa;
+}
+
+.participantProofStatus.status-accepted {
+  background: #e7faef;
+  border-color: #aee4c5;
+}
+
+.participantProofStatus a,
+.organizerProofReview a {
+  color: #087e77;
+  font-weight: 950;
+}
+
+.participantProofWaiting {
+  margin: 0;
+  padding: 10px;
+  background: #f3f6f6;
+  border-radius: 9px;
+  font-size: 0.82rem;
+}
+
+.participantProofForm {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.35fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  padding-top: 3px;
+}
+
+.participantProofForm > span {
+  align-self: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.participantProofForm label {
+  display: grid;
+  gap: 4px;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.participantProofForm label.wide {
+  grid-column: span 2;
+}
+
+.participantProofForm :where(input, select) {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  color: var(--ink);
+  background: #f8fbfb;
+  border: 1px solid #cbd8da;
+  border-radius: 8px;
+}
+
+.heatReminderConsole {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 15px;
+  background: linear-gradient(120deg, #e6fbf7, #eeeaff);
+  border: 1px solid #c8ddd9;
+  border-radius: 14px;
+}
+
+.heatReminderConsole > div {
+  display: grid;
+  gap: 3px;
+}
+
+.heatReminderConsole > div > span {
+  color: #157d76;
+  font-size: 0.7rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.heatReminderConsole > div > strong {
+  color: var(--ink);
+}
+
+.heatReminderConsole > div > small {
+  color: var(--muted);
+}
+
+.heatReminderConsole dl {
+  display: flex;
+  gap: 7px;
+  margin: 0;
+}
+
+.heatReminderConsole dl > div {
+  display: grid;
+  min-width: 66px;
+  padding: 7px 9px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 9px;
+}
+
+.heatReminderConsole :where(dt, dd) {
+  margin: 0;
+}
+
+.heatReminderConsole dt {
+  color: var(--muted);
+  font-size: 0.63rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.heatReminderConsole dd {
+  color: var(--ink);
+  font-weight: 950;
+}
+
+.organizerHeatEntry .organizerProofReview {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, 0.35fr) minmax(200px, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  padding: 10px;
+  background: #fffbea;
+  border: 1px solid #ecd88a;
+  border-radius: 9px;
+}
+
+.organizerHeatEntry .organizerProofReview.status-accepted {
+  background: #eafff2;
+  border-color: #a9ddbd;
+}
+
+.organizerHeatEntry .organizerProofReview.status-rejected {
+  background: #fff0ed;
+  border-color: #ebb4aa;
+}
+
+.organizerProofReview > div {
+  display: grid;
+  gap: 2px;
+}
+
+.organizerProofReview > div > span {
+  color: #7b5c04;
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.organizerProofReview > div > small,
+.organizerProofMissing {
+  color: var(--muted);
+}
+
+.organizerProofMissing {
+  grid-column: 1 / -1;
+  padding-top: 2px;
+}
+
+html[data-talent7-theme="dark"] #community-competition .participantHeatCard,
+html[data-talent7-theme="dark"] #community-competition .heatReminderConsole,
+html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .organizerProofReview {
+  background: var(--panel);
+  border-color: var(--line);
+}
+
+@media (max-width: 1050px) {
+  .heatReminderConsole {
+    grid-template-columns: 1fr auto;
+  }
+
+  .heatReminderConsole > button {
+    grid-column: 1 / -1;
+  }
+
+  .organizerHeatEntry .organizerProofReview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .participantHeatControls,
+  .participantProofForm,
+  .heatReminderConsole,
+  .organizerHeatEntry .organizerProofReview {
+    grid-template-columns: 1fr;
+  }
+
+  .participantHeatControlsHeader,
+  .participantProofForm label.wide,
+  .heatReminderConsole > button,
+  .organizerHeatEntry .organizerProofReview {
+    grid-column: auto;
+  }
+
+  .participantCheckIn,
+  .participantProofStatus {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .heatReminderConsole dl {
+    justify-content: stretch;
+  }
+
+  .heatReminderConsole dl > div {
+    flex: 1;
+  }
+}
+
 /* Challenge Now: cold-start-safe solo benchmarks and individual matchmaking. */
 .challengeStarterSection {
   position: relative;
