@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import CompetitionLiveHeatRoom from "./competition-live-heat-room";
 
 type HeatBoardRow = {
   heat_id: string;
@@ -121,8 +122,6 @@ function futureLocalTime() {
 function nextHeatStatus(status: string) {
   if (status === "Draft") return "Check-in";
   if (status === "Check-in") return "Ready";
-  if (status === "Ready") return "Live";
-  if (status === "Live") return "Review";
   return "";
 }
 
@@ -254,6 +253,12 @@ export default function CompetitionHeatDesk({
     void loadHeatData();
   }, [loadHeatData, campaignPhase]);
 
+  useEffect(() => {
+    if (campaignId.startsWith("preview-")) return;
+    const timer = window.setInterval(() => void loadHeatData(), 15_000);
+    return () => window.clearInterval(timer);
+  }, [campaignId, loadHeatData]);
+
   const publicHeats = useMemo(() => {
     const grouped = new Map<string, { heat: HeatBoardRow; entries: HeatBoardRow[] }>();
     for (const row of board) {
@@ -369,6 +374,43 @@ export default function CompetitionHeatDesk({
       setMessage(`Heat ${heat.heat_number} is verified and placements are locked.`);
     } catch (error) {
       setMessage(readableError(error, "The heat could not be finalized."));
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function startLiveHeat(heat: OrganizerHeat) {
+    if (!supabase) return;
+    setBusyAction(`start-live-${heat.id}`);
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("start_talent7_competition_live_heat", {
+        target_heat_id: heat.id,
+        target_countdown_seconds: 5
+      });
+      if (error) throw error;
+      await loadHeatData();
+      setMessage(`Heat ${heat.heat_number} has a synchronized five-second countdown and is now live.`);
+    } catch (error) {
+      setMessage(readableError(error, "The live heat could not be started."));
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function endLiveHeat(heat: OrganizerHeat) {
+    if (!supabase) return;
+    setBusyAction(`end-live-${heat.id}`);
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("end_talent7_competition_live_heat", {
+        target_heat_id: heat.id
+      });
+      if (error) throw error;
+      await loadHeatData();
+      setMessage(`Heat ${heat.heat_number} is closed and ready for footage and score review.`);
+    } catch (error) {
+      setMessage(readableError(error, "The live heat could not be ended."));
     } finally {
       setBusyAction("");
     }
@@ -512,6 +554,7 @@ export default function CompetitionHeatDesk({
                   </div>
                 ))}
               </div>
+              {["Ready", "Live"].includes(heat.heat_status) && <CompetitionLiveHeatRoom heatId={heat.heat_id} />}
             </article>
           ))}
         </div>
@@ -649,6 +692,8 @@ export default function CompetitionHeatDesk({
                     </div>
                     <div className="organizerHeatActions">
                       {nextStatus && <button disabled={busyAction === `heat-${heat.id}`} onClick={() => updateHeatStatus(heat, nextStatus)} type="button">{busyAction === `heat-${heat.id}` ? "Updating..." : `Move to ${nextStatus}`}</button>}
+                      {heat.status === "Ready" && <button disabled={busyAction === `start-live-${heat.id}`} onClick={() => startLiveHeat(heat)} type="button">{busyAction === `start-live-${heat.id}` ? "Starting..." : "Start 5-second live countdown"}</button>}
+                      {heat.status === "Live" && <button className="dangerAction" disabled={busyAction === `end-live-${heat.id}`} onClick={() => endLiveHeat(heat)} type="button">{busyAction === `end-live-${heat.id}` ? "Ending..." : "End heat and review"}</button>}
                       {heat.status === "Review" && <button disabled={busyAction === `finalize-${heat.id}`} onClick={() => finalizeHeat(heat)} type="button">{busyAction === `finalize-${heat.id}` ? "Finalizing..." : "Verify and lock placements"}</button>}
                     </div>
                   </article>
