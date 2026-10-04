@@ -105,6 +105,7 @@ This is the canonical inventory for the current source tree: **87 numbered SQL f
 101. `add-community-competition-certificates.sql`
 102. `add-community-competition-prize-fulfillment.sql`
 103. `add-community-competition-rehearsal-mode.sql`
+104. `add-community-competition-disputes-safety.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening. `restore-gaming-challenges.sql` reopens multiplayer gaming after the earlier retirement migration and aligns game-specific roster validation with the current UI. `add-talent7-league-rewards.sql` adds proof-gated Ranked and Casual progress, seven seasonal tiers, activity ranks, reward history, and permanent trophies. `add-talent7-passports.sql` exposes a deliberately narrow, privacy-safe public competition summary through existing profile share tokens. `add-profile-passport-studio.sql` adds public presentation fields, Passport visibility controls, and owner-managed profile images.
 
@@ -137,5 +138,7 @@ The Showcase, Coaching, and Guidance migrations remain in this history because p
 `add-community-competition-prize-fulfillment.sql` adds organizer-published physical, trophy, voucher, and digital prizes for verified final placements; private winner claims; optional digital alternatives; courier tracking; and automatic removal of address and phone data 30 days after fulfilment closes.
 
 `add-community-competition-rehearsal-mode.sql` adds organizer-only dry runs with a server-timed countdown, device checks, judging and proof drills, privacy and notification checks, fallback planning, and a strict readiness gate. Rehearsals never create real entrants, results, ranks, prizes, or notifications.
+
+`add-community-competition-disputes-safety.sql` adds private result appeals, technical and conduct reports, urgent safety cases, organizer review holds, confidential case retention, and public under-review indicators. Database triggers pause advancement, champion verification, certificates, and prize fulfilment while an affected result is held.
 
 Never rerun the complete list against an existing production database. First compare Supabase migration history with this file, then apply only missing migrations in this order.
