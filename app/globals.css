@@ -23429,6 +23429,406 @@ html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > su
   background: #b93b4d;
 }
 
+.competitionCaseSection {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.publicReviewHoldBanner {
+  display: grid;
+  gap: 7px;
+  padding: 16px 18px;
+  color: #fff7df;
+  background: linear-gradient(135deg, #532432, #842d3e 60%, #573224);
+  border: 1px solid rgba(255, 213, 96, 0.52);
+  border-radius: 14px;
+  box-shadow: 0 15px 34px rgba(80, 26, 39, 0.2);
+}
+
+.publicReviewHoldBanner > span,
+.competitionCaseIntro > span {
+  color: #ffd052;
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.publicReviewHoldBanner > strong {
+  font-size: 1.08rem;
+}
+
+.publicReviewHoldBanner > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.publicReviewHoldBanner small {
+  padding: 5px 8px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  font-weight: 850;
+}
+
+.publicReviewHoldBanner p,
+.competitionCaseIntro h3,
+.competitionCaseIntro p,
+.organizerCaseBody > p {
+  margin: 0;
+}
+
+.publicReviewHoldBanner p {
+  color: #ead7d7;
+  font-size: 0.82rem;
+}
+
+.caseCenterMessage {
+  margin: 0;
+  padding: 11px 13px;
+  color: #0b4a40;
+  background: #dcf8ef;
+  border: 1px solid #8edbc9;
+  border-radius: 10px;
+  font-weight: 850;
+}
+
+.participantCaseCenter,
+.organizerCaseDesk {
+  overflow: hidden;
+  border: 1px solid #cad9dc;
+  border-radius: 15px;
+  box-shadow: 0 14px 30px rgba(20, 51, 61, 0.08);
+}
+
+.participantCaseCenter {
+  background: #f8fdfc;
+}
+
+.organizerCaseDesk {
+  color: #fff;
+  background: linear-gradient(145deg, #0b2129, #15233a 65%, #103c3c);
+  border-color: rgba(30, 174, 157, 0.42);
+}
+
+.participantCaseCenter > summary,
+.organizerCaseDesk > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 17px;
+  cursor: pointer;
+  font-weight: 950;
+  list-style: none;
+}
+
+.participantCaseCenter > summary::-webkit-details-marker,
+.organizerCaseDesk > summary::-webkit-details-marker {
+  display: none;
+}
+
+.participantCaseCenter > summary::after,
+.organizerCaseDesk > summary::after {
+  content: "+";
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-content: center;
+  border-radius: 50%;
+}
+
+.participantCaseCenter[open] > summary::after,
+.organizerCaseDesk[open] > summary::after {
+  content: "−";
+}
+
+.participantCaseCenter > summary strong,
+.organizerCaseDesk > summary strong {
+  margin-left: auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+
+.participantCaseCenter > summary strong {
+  color: #116c60;
+  background: #daf5ed;
+}
+
+.organizerCaseDesk > summary strong {
+  color: #10272c;
+  background: #ffd052;
+}
+
+.participantCaseCenter > summary::after {
+  color: #116c60;
+  background: #e4f7f2;
+}
+
+.organizerCaseDesk > summary::after {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.participantCaseBody,
+.organizerCaseBody {
+  display: grid;
+  gap: 14px;
+  padding: 17px;
+  border-top: 1px solid #d8e3e5;
+}
+
+.organizerCaseBody {
+  border-top-color: rgba(255, 255, 255, 0.13);
+}
+
+.competitionCaseIntro {
+  display: grid;
+  gap: 5px;
+}
+
+.competitionCaseIntro h3 {
+  color: #142c32;
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+}
+
+.competitionCaseIntro p,
+.organizerCaseBody > p {
+  color: #617177;
+  font-size: 0.86rem;
+}
+
+.organizerCaseBody > p {
+  color: #b9c7cd;
+}
+
+.competitionCaseForm,
+.organizerCaseBody > form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.competitionCaseForm {
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #d7e3e5;
+  border-radius: 12px;
+}
+
+.competitionCaseForm label,
+.organizerCaseBody > form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.competitionCaseForm .wide,
+.organizerCaseBody > form .wide {
+  grid-column: 1 / -1;
+}
+
+.competitionCaseForm input,
+.competitionCaseForm select,
+.competitionCaseForm textarea,
+.organizerCaseBody > form select,
+.organizerCaseBody > form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 11px;
+  color: #172a30;
+  background: #f7fafb;
+  border: 1px solid #bfcfd3;
+  border-radius: 9px;
+  font: inherit;
+}
+
+.competitionCaseForm textarea,
+.organizerCaseBody > form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.competitionCaseForm button,
+.organizerCaseBody > form button,
+.myCompetitionCases button {
+  justify-self: start;
+  padding: 10px 14px;
+  color: #fff;
+  background: linear-gradient(120deg, #118f8d, #5250ca);
+  border: 0;
+  border-radius: 9px;
+  font-weight: 950;
+}
+
+.competitionCaseForm button:disabled,
+.organizerCaseBody > form button:disabled,
+.myCompetitionCases button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.competitionCaseForm > small {
+  color: #68767b;
+}
+
+.myCompetitionCases {
+  display: grid;
+  gap: 9px;
+}
+
+.myCompetitionCases > article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 14px;
+  padding: 12px 13px;
+  background: #fff;
+  border: 1px solid #d6e1e3;
+  border-left: 4px solid #f3b934;
+  border-radius: 10px;
+}
+
+.myCompetitionCases > article.status-resolved,
+.myCompetitionCases > article.status-dismissed,
+.myCompetitionCases > article.status-withdrawn {
+  border-left-color: #789199;
+}
+
+.myCompetitionCases > article > div {
+  display: grid;
+  gap: 3px;
+}
+
+.myCompetitionCases span,
+.organizerCaseBody form header span {
+  color: #168a7e;
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.myCompetitionCases small {
+  color: #708087;
+}
+
+.myCompetitionCases > article > b {
+  align-self: start;
+  padding: 5px 8px;
+  color: #795e10;
+  background: #fff2bd;
+  border-radius: 999px;
+  font-size: 0.7rem;
+}
+
+.myCompetitionCases > article > p,
+.myCompetitionCases > article > button {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.myCompetitionCases > article > p {
+  color: #42575e;
+}
+
+.myCompetitionCases button {
+  color: #7a2634;
+  background: #fae6e9;
+}
+
+.organizerCaseBody > form {
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 4px solid #ffca3b;
+  border-radius: 12px;
+}
+
+.organizerCaseBody > form.priority-urgent {
+  border-left-color: #ff6674;
+  box-shadow: 0 0 0 1px rgba(255, 102, 116, 0.18);
+}
+
+.organizerCaseBody form header,
+.organizerCaseBody form section,
+.organizerCaseBody form > button {
+  grid-column: 1 / -1;
+}
+
+.organizerCaseBody form header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.organizerCaseBody form header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.organizerCaseBody form header span {
+  color: #ffd052;
+}
+
+.organizerCaseBody form header strong,
+.organizerCaseBody form header small {
+  color: #fff;
+}
+
+.organizerCaseBody form header small,
+.organizerCaseBody form section p {
+  color: #b9c7cd;
+}
+
+.organizerCaseBody form header > b {
+  padding: 5px 8px;
+  color: #10272c;
+  background: #d6f5ed;
+  border-radius: 999px;
+  font-size: 0.7rem;
+}
+
+.organizerCaseBody form section {
+  padding: 11px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 9px;
+}
+
+.organizerCaseBody form section p {
+  margin: 0 0 7px;
+  white-space: pre-wrap;
+}
+
+.organizerCaseBody form section a {
+  color: #61e4ce;
+  font-weight: 900;
+}
+
+.organizerCaseBody > form label {
+  color: #e8eff1;
+}
+
+.organizerCaseBody > form button {
+  color: #10272c;
+  background: #ffd052;
+}
+
+.noCompetitionCases {
+  margin: 0;
+  padding: 18px;
+  color: #b9c7cd;
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+}
+
 @media (max-width: 720px) {
   .competitionLiveEntry,
   .competitionLiveStageHeader {
@@ -23458,5 +23858,39 @@ html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > su
   .competitionLaneLabel {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .participantCaseCenter > summary,
+  .organizerCaseDesk > summary,
+  .organizerCaseBody form header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .participantCaseCenter > summary strong,
+  .organizerCaseDesk > summary strong {
+    margin-left: 0;
+  }
+
+  .competitionCaseForm,
+  .organizerCaseBody > form {
+    grid-template-columns: 1fr;
+  }
+
+  .competitionCaseForm .wide,
+  .organizerCaseBody > form .wide,
+  .organizerCaseBody form header,
+  .organizerCaseBody form section,
+  .organizerCaseBody form > button {
+    grid-column: 1;
+  }
+
+  .myCompetitionCases > article {
+    grid-template-columns: 1fr;
+  }
+
+  .myCompetitionCases > article > p,
+  .myCompetitionCases > article > button {
+    grid-column: 1;
   }
 }

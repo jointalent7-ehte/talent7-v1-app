@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import CompetitionPrizeFulfillment from "./competition-prize-fulfillment";
 import CompetitionRehearsalConsole from "./competition-rehearsal-console";
+import CompetitionDisputeCenter from "./competition-dispute-center";
 
 type ProgressRow = {
   cohort_number: number;
@@ -378,6 +379,7 @@ export default function CompetitionProgressBoard({
       )}
       <CompetitionPrizeFulfillment campaignId={campaignId} cohortCount={cohortCount} isAdmin={isAdmin} />
       {isAdmin && !campaignId.startsWith("preview-") && <CompetitionRehearsalConsole campaignId={campaignId} />}
+      {!campaignId.startsWith("preview-") && <CompetitionDisputeCenter campaignId={campaignId} isAdmin={isAdmin} />}
     </section>
   );
 }
