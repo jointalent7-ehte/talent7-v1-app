@@ -101,6 +101,7 @@ This is the canonical inventory for the current source tree: **87 numbered SQL f
 97. `add-community-competition-heat-operations.sql`
 98. `add-community-competition-heat-proof-reminders.sql`
 99. `add-community-competition-live-heat-stages.sql`
+100. `add-community-competition-round-advancement.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening. `restore-gaming-challenges.sql` reopens multiplayer gaming after the earlier retirement migration and aligns game-specific roster validation with the current UI. `add-talent7-league-rewards.sql` adds proof-gated Ranked and Casual progress, seven seasonal tiers, activity ranks, reward history, and permanent trophies. `add-talent7-passports.sql` exposes a deliberately narrow, privacy-safe public competition summary through existing profile share tokens. `add-profile-passport-studio.sql` adds public presentation fields, Passport visibility controls, and owner-managed profile images.
 
@@ -125,5 +126,7 @@ The Showcase, Coaching, and Guidance migrations remain in this history because p
 `add-community-competition-heat-proof-reminders.sql` adds participant self check-in, one reviewable footage submission per heat lane, organizer-only proof decisions, and idempotent assignment, 24-hour, 1-hour, and check-in reminders through the existing Firebase outbox. It automatically schedules a five-minute `pg_cron` runner when the extension is available and keeps a safe organizer button as a fallback.
 
 `add-community-competition-live-heat-stages.sql` connects scheduled heats to native LiveKit rooms with two to four video lanes, organizer microphone access outside the competitor grid, audience-only viewing, and a server-synchronized countdown and event clock. Only checked-in assigned competitors receive camera publishing permission.
+
+`add-community-competition-round-advancement.sql` adds proof-gated qualification, explicit tie and disqualification decisions, balanced next-round heat generation, a privacy-safe public progress board, and verified cohort champion records. It never guesses through a tie and never advances a result whose footage has not been accepted.
 
 Never rerun the complete list against an existing production database. First compare Supabase migration history with this file, then apply only missing migrations in this order.
