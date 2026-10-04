@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import CompetitionLiveHeatRoom from "./competition-live-heat-room";
+import CompetitionProgressBoard from "./competition-progress-board";
 
 type HeatBoardRow = {
   heat_id: string;
@@ -704,6 +705,12 @@ export default function CompetitionHeatDesk({
           </div>
         </details>
       )}
+      <CompetitionProgressBoard
+        campaignId={campaignId}
+        campaignPhase={campaignPhase}
+        cohortCount={cohortCount}
+        isAdmin={isAdmin}
+      />
     </section>
   );
 }

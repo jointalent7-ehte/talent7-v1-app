@@ -618,6 +618,381 @@
   }
 }
 
+/* Proof-gated competition progression and verified champion board. */
+.competitionProgressSection {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+  padding: clamp(16px, 3vw, 26px);
+  color: #eaf5f5;
+  background: linear-gradient(145deg, #081d26, #171b42 58%, #10444a);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 22px;
+  box-shadow: 0 22px 55px rgba(4, 25, 33, 0.24);
+}
+
+.competitionProgressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.competitionProgressHeader > div {
+  display: grid;
+  gap: 5px;
+}
+
+.competitionProgressHeader span,
+.nextRoundGenerator > .wide > span {
+  color: #ffcc35;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.competitionProgressHeader h3,
+.nextRoundGenerator h4,
+.roundRailHeader h4,
+.advancementDecisionGroups h4 {
+  margin: 0;
+  color: #fff;
+}
+
+.competitionProgressHeader p,
+.nextRoundGenerator p {
+  max-width: 760px;
+  margin: 0;
+  color: #b9c7ce;
+}
+
+.competitionProgressHeader > strong {
+  display: grid;
+  min-width: 118px;
+  padding: 14px;
+  color: #101c24;
+  font-size: 2rem;
+  line-height: 1;
+  text-align: center;
+  background: #ffcc35;
+  border-radius: 14px;
+}
+
+.competitionProgressHeader > strong small {
+  margin-top: 5px;
+  font-size: 0.63rem;
+  text-transform: uppercase;
+}
+
+.progressBoardMessage {
+  margin: 0;
+  padding: 11px 13px;
+  color: #fff;
+  background: rgba(24, 167, 154, 0.23);
+  border-left: 4px solid #31ddc4;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.competitionRoundRail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 11px;
+}
+
+.competitionRoundRail > article {
+  min-width: 0;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 13px;
+}
+
+.roundRailHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.roundRailHeader span {
+  grid-column: 1 / -1;
+  color: #52dec8;
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.roundRailHeader small {
+  color: #aebfc6;
+}
+
+.roundRailEntrants {
+  display: grid;
+  gap: 7px;
+  padding-top: 9px;
+}
+
+.roundRailEntrants > div {
+  display: grid;
+  gap: 2px;
+  padding: 8px 9px;
+  background: rgba(4, 18, 25, 0.48);
+  border-radius: 9px;
+}
+
+.roundRailEntrants > div.mine {
+  box-shadow: inset 3px 0 #40dfc8;
+}
+
+.roundRailEntrants > div.champion {
+  color: #152127;
+  background: linear-gradient(115deg, #ffd23e, #ff9e42);
+}
+
+.roundRailEntrants span,
+.roundRailEntrants small {
+  color: #9fb3bc;
+  font-size: 0.67rem;
+}
+
+.roundRailEntrants > div.champion span,
+.roundRailEntrants > div.champion small {
+  color: #263036;
+}
+
+.advancementConsole {
+  overflow: hidden;
+  color: #1b292f;
+  background: #f6faf9;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+}
+
+.advancementConsole > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: #e9f3f1;
+}
+
+.advancementConsole > summary span {
+  font-weight: 950;
+}
+
+.advancementConsole > summary strong {
+  color: #087d75;
+  font-size: 0.78rem;
+}
+
+.advancementConsoleBody {
+  display: grid;
+  gap: 15px;
+  padding: 15px;
+}
+
+.nextRoundGenerator {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
+  padding: 15px;
+  color: #e9f3f4;
+  background: linear-gradient(135deg, #102d38, #292651);
+  border-radius: 13px;
+}
+
+.nextRoundGenerator .wide {
+  grid-column: 1 / -1;
+}
+
+.nextRoundGenerator label,
+.advancementDecision label {
+  display: grid;
+  gap: 5px;
+  font-size: 0.73rem;
+  font-weight: 900;
+}
+
+.nextRoundGenerator input,
+.nextRoundGenerator select,
+.advancementDecision input,
+.advancementDecision select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  color: #17252b;
+  background: #fff;
+  border: 1px solid #bfd0d3;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.nextRoundGenerator button,
+.advancementDecision button,
+.championVerification button {
+  align-self: end;
+  min-height: 41px;
+  padding: 10px 13px;
+  color: #102329;
+  background: #ffca31;
+  border: 0;
+  border-radius: 9px;
+  font-weight: 950;
+}
+
+.nextRoundGenerator button:disabled,
+.advancementDecision button:disabled,
+.championVerification button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.advancementHistory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.advancementHistory span {
+  padding: 7px 10px;
+  color: #155951;
+  background: #dff5ef;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.advancementDecisionGroups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 12px;
+}
+
+.advancementDecisionGroups > article {
+  overflow: hidden;
+  border: 1px solid #d3e0e1;
+  border-radius: 12px;
+}
+
+.advancementDecisionGroups header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  background: #eaf2f2;
+}
+
+.advancementDecisionGroups header span,
+.advancementDecisionGroups header small {
+  color: #63747a;
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.advancementDecisionGroups h4 {
+  color: #16272d;
+}
+
+.advancementDecision {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(130px, 0.7fr) minmax(180px, 1.4fr) auto;
+  align-items: end;
+  gap: 9px;
+  padding: 10px 12px;
+  border-top: 1px solid #e1e9ea;
+}
+
+.advancementDecision > div {
+  display: grid;
+  gap: 2px;
+}
+
+.advancementDecision > div small {
+  color: #68777d;
+}
+
+.advancementDecision.status-qualified {
+  box-shadow: inset 4px 0 #14aa82;
+}
+
+.advancementDecision.status-disqualified,
+.advancementDecision.status-tiebreak {
+  box-shadow: inset 4px 0 #dc6a55;
+}
+
+.championVerification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  background: linear-gradient(105deg, #fff1b3, #ffcf55);
+  border-radius: 12px;
+}
+
+.championVerification > div {
+  display: grid;
+  gap: 3px;
+}
+
+.championVerification span {
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.championVerification button {
+  color: #fff;
+  background: #142c37;
+}
+
+@media (max-width: 900px) {
+  .nextRoundGenerator {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .advancementDecision {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .advancementDecision > div,
+  .advancementDecision .wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .competitionProgressHeader,
+  .advancementConsole > summary,
+  .championVerification,
+  .advancementDecisionGroups header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .competitionProgressHeader > strong {
+    min-width: 0;
+  }
+
+  .nextRoundGenerator,
+  .advancementDecision,
+  .advancementDecisionGroups {
+    grid-template-columns: 1fr;
+  }
+
+  .nextRoundGenerator > *,
+  .advancementDecision > *,
+  .advancementDecision > div,
+  .advancementDecision .wide {
+    grid-column: 1;
+  }
+}
+
 /* Community competition check-in, footage review, and reminder operations. */
 .participantHeatControls {
   display: grid;
