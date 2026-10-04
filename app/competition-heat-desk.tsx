@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import CompetitionLiveHeatRoom from "./competition-live-heat-room";
 import CompetitionProgressBoard from "./competition-progress-board";
 import CompetitionStandbyCenter from "./competition-standby-center";
+import CompetitionParticipantPass from "./competition-participant-pass";
 
 type HeatBoardRow = {
   heat_id: string;
@@ -532,6 +533,8 @@ export default function CompetitionHeatDesk({
         <article><strong>Parallel stages</strong><small>Run multiple heats at once when registrations surge.</small></article>
         <article><strong>Review before ranking</strong><small>Raw scores, form penalties, and organizer notes remain provisional.</small></article>
       </div>
+
+      {!campaignId.startsWith("preview-") && <CompetitionParticipantPass campaignId={campaignId} isAdmin={isAdmin} />}
 
       {message && <p className="heatDeskMessage" role="status">{message}</p>}
 

@@ -293,6 +293,240 @@
   background: #f6dfe3;
 }
 
+.competitionParticipantPass {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 18px;
+  background: linear-gradient(135deg, #fffdf5, #f5fbfa 60%, #f0f2ff);
+  border: 1px solid #d8d8c5;
+  border-radius: 16px;
+  box-shadow: 0 14px 32px rgba(35, 52, 58, 0.08);
+}
+
+.participantPassHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.participantPassHeader > div {
+  display: grid;
+  gap: 5px;
+}
+
+.participantPassHeader span,
+.participantPassForm > div span {
+  color: #b67b12;
+  font-size: 0.69rem;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.participantPassHeader h3,
+.participantPassHeader p,
+.participantPassRules article p,
+.participantRequirementsEditor p {
+  margin: 0;
+}
+
+.participantPassHeader h3 {
+  color: #183139;
+  font-size: clamp(1.12rem, 2vw, 1.48rem);
+}
+
+.participantPassHeader p {
+  max-width: 780px;
+  color: #637378;
+  font-size: 0.85rem;
+}
+
+.participantPassHeader > strong {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  color: #7c5b0b;
+  background: #fff0b8;
+  border-radius: 999px;
+  font-size: 0.73rem;
+}
+
+.participantPassHeader > strong.complete {
+  color: #0d675c;
+  background: #d8f5ed;
+}
+
+.participantPassMessage,
+.participantPassReceipt {
+  margin: 0;
+  padding: 11px 13px;
+  color: #0b4a40;
+  background: #dcf8ef;
+  border: 1px solid #8edbc9;
+  border-radius: 10px;
+  font-weight: 850;
+}
+
+.participantPassRules {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #d8e1e2;
+  border-radius: 12px;
+}
+
+.participantPassRules > summary,
+.participantRequirementsEditor > summary {
+  padding: 13px 15px;
+  cursor: pointer;
+  color: #263d43;
+  font-weight: 950;
+}
+
+.participantPassRules > div {
+  display: grid;
+  gap: 0;
+  padding: 0 15px 10px;
+}
+
+.participantPassRules article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 11px;
+  padding: 12px 0;
+  border-top: 1px solid #e5ebec;
+}
+
+.participantPassRules article > b {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-content: center;
+  color: #fff;
+  background: #178d84;
+  border-radius: 50%;
+  font-size: 0.76rem;
+}
+
+.participantPassRules article > div {
+  display: grid;
+  gap: 4px;
+}
+
+.participantPassRules article strong {
+  color: #1c353c;
+}
+
+.participantPassRules article p {
+  color: #637378;
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.participantPassForm {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  background: #102a34;
+  border-radius: 12px;
+}
+
+.participantPassForm > div {
+  display: grid;
+  gap: 3px;
+}
+
+.participantPassForm > div span {
+  color: #ffd054;
+}
+
+.participantPassForm > div strong {
+  color: #fff;
+}
+
+.participantPassForm label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  padding: 9px 10px;
+  color: #e8f0f2;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.participantPassForm input {
+  width: 18px;
+  height: 18px;
+  accent-color: #32cdb6;
+}
+
+.participantPassForm button,
+.participantRequirementsEditor button {
+  justify-self: start;
+  padding: 11px 15px;
+  color: #10272d;
+  background: #ffd054;
+  border: 0;
+  border-radius: 9px;
+  font-weight: 950;
+}
+
+.participantPassForm button:disabled,
+.participantRequirementsEditor button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.participantPassForm > small {
+  color: #aebdc2;
+}
+
+.participantPassReceipt {
+  font-size: 0.82rem;
+}
+
+.participantRequirementsEditor {
+  overflow: hidden;
+  background: #eef3f4;
+  border: 1px solid #ccd8da;
+  border-radius: 11px;
+}
+
+.participantRequirementsEditor > form {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid #d5dfe1;
+}
+
+.participantRequirementsEditor p {
+  color: #5f7076;
+  font-size: 0.82rem;
+}
+
+.participantRequirementsEditor label {
+  display: grid;
+  gap: 5px;
+  color: #263d43;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.participantRequirementsEditor textarea {
+  min-height: 86px;
+  padding: 10px 11px;
+  color: #172a30;
+  background: #fff;
+  border: 1px solid #bdcccf;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
 @media (max-width: 720px) {
   .participantStandbyCard {
     grid-template-columns: 1fr;
@@ -323,6 +557,20 @@
 
   .standbyOfferLedger > div {
     grid-template-columns: 1fr;
+  }
+
+  .participantPassHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .participantPassHeader > strong {
+    align-self: flex-start;
+  }
+
+  .participantPassForm button,
+  .participantRequirementsEditor button {
+    width: 100%;
   }
 }
 
