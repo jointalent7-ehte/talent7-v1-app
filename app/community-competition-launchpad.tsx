@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import CompetitionHeatDesk from "./competition-heat-desk";
+import CompetitionInviteLoop from "./competition-invite-loop";
 
 type CompetitionPhase =
   | "Activity vote"
@@ -15,6 +16,7 @@ type CompetitionPhase =
 
 type CompetitionCampaign = {
   id: string;
+  slug: string;
   title: string;
   summary: string;
   phase: CompetitionPhase;
@@ -89,6 +91,7 @@ type OrganizerState = {
 
 const previewCampaign: CompetitionCampaign = {
   id: "preview-community-competition",
+  slug: "founding-community-competition",
   title: "Choose the first Talent7 community competition",
   summary: "The community chooses the activity, then the day and time. Every 100 competitors form another cohort, so demand never closes the door.",
   phase: "Activity vote",
@@ -573,7 +576,7 @@ export default function CommunityCompetitionLaunchpad({
 
     const campaignResult = await supabase
       .from("talent7_competition_campaigns")
-      .select("id,title,summary,phase,capacity_per_cohort,registration_count,selected_activity_option_id,vote_closes_at,scheduled_start,prize_summary,eligibility_note,review_policy")
+      .select("id,slug,title,summary,phase,capacity_per_cohort,registration_count,selected_activity_option_id,vote_closes_at,scheduled_start,prize_summary,eligibility_note,review_policy")
       .not("phase", "in", "(Draft,Completed,Cancelled)")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -944,6 +947,14 @@ export default function CommunityCompetitionLaunchpad({
           </div>
         </aside>
       </div>
+
+      <CompetitionInviteLoop
+        campaignId={campaign.id}
+        campaignSlug={campaign.slug}
+        campaignTitle={campaign.title}
+        isAdmin={isAdmin}
+        registered={Boolean(myState.registration)}
+      />
 
       <div className="competitionTrustGrid">
         <article>
