@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import CompetitionPrizeFulfillment from "./competition-prize-fulfillment";
 
 type ProgressRow = {
   cohort_number: number;
@@ -374,6 +375,7 @@ export default function CompetitionProgressBoard({
           </div>
         </details>
       )}
+      <CompetitionPrizeFulfillment campaignId={campaignId} cohortCount={cohortCount} isAdmin={isAdmin} />
     </section>
   );
 }

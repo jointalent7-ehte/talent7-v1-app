@@ -1366,6 +1366,377 @@
   }
 }
 
+/* Private fulfilment workflow for community competition prizes. */
+.competitionPrizeSection {
+  display: grid;
+  gap: 15px;
+  padding: clamp(16px, 3vw, 24px);
+  color: #172b31;
+  background: linear-gradient(135deg, #f5fcfa, #eef1ff);
+  border: 1px solid #cee1df;
+  border-radius: 18px;
+}
+
+.competitionPrizeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.competitionPrizeHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.competitionPrizeHeader span,
+.prizeOfferForm > .wide > span,
+.privatePrizeClaimsHeader span {
+  color: #118d80;
+  font-size: 0.69rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.competitionPrizeHeader h3,
+.competitionPrizeHeader p,
+.prizeOfferForm h4 {
+  margin: 0;
+}
+
+.competitionPrizeHeader p {
+  max-width: 760px;
+  color: #65777c;
+}
+
+.competitionPrizeHeader > strong {
+  display: grid;
+  min-width: 110px;
+  padding: 12px;
+  color: #fff;
+  text-align: center;
+  background: #173b45;
+  border-radius: 12px;
+}
+
+.competitionPrizeHeader > strong small {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+
+.prizeFulfillmentMessage {
+  margin: 0;
+  padding: 10px 12px;
+  color: #134f49;
+  background: #d8f4ed;
+  border-left: 4px solid #1eb59f;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.competitionPrizeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 12px;
+}
+
+.competitionPrizeGrid > article {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #d5e2e2;
+  border-radius: 13px;
+  box-shadow: 0 10px 24px rgba(23, 59, 69, 0.07);
+}
+
+.competitionPrizeGrid > article.eligible {
+  border-color: #deb33a;
+  box-shadow: 0 0 0 3px rgba(222, 179, 58, 0.13);
+}
+
+.competitionPrizeTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.competitionPrizeTopline span,
+.competitionPrizeTopline strong {
+  padding: 5px 8px;
+  font-size: 0.68rem;
+  border-radius: 999px;
+}
+
+.competitionPrizeTopline span {
+  color: #fff;
+  background: #173b45;
+}
+
+.competitionPrizeTopline strong {
+  color: #74540e;
+  background: #fff0b8;
+}
+
+.competitionPrizeGrid h4,
+.competitionPrizeGrid p {
+  margin: 0;
+}
+
+.competitionPrizeGrid p,
+.competitionPrizeGrid > article > small {
+  color: #66787d;
+}
+
+.competitionPrizeFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.competitionPrizeFacts span {
+  padding: 5px 7px;
+  color: #155b54;
+  background: #e1f5f0;
+  border-radius: 7px;
+  font-size: 0.67rem;
+  font-weight: 850;
+}
+
+.myPrizeClaimStatus {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  background: #eef3ff;
+  border-radius: 9px;
+}
+
+.myPrizeClaimStatus span {
+  color: #5c5f99;
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.prizeClaimForm,
+.prizeOfferForm,
+.privatePrizeClaims > form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  padding-top: 10px;
+  border-top: 1px solid #dfe9e8;
+}
+
+.prizeClaimForm .wide,
+.prizeOfferForm .wide,
+.privatePrizeClaims > form .wide {
+  grid-column: 1 / -1;
+}
+
+.prizeClaimForm label,
+.prizeOfferForm label,
+.privatePrizeClaims > form label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.prizeClaimForm input,
+.prizeClaimForm select,
+.prizeOfferForm input,
+.prizeOfferForm select,
+.prizeOfferForm textarea,
+.privatePrizeClaims input,
+.privatePrizeClaims select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  color: #172a30;
+  background: #fff;
+  border: 1px solid #c5d5d6;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.prizeOfferForm textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.prizeClaimForm button,
+.prizeOfferForm button,
+.privatePrizeClaims button {
+  align-self: end;
+  min-height: 40px;
+  padding: 9px 12px;
+  color: #fff;
+  background: linear-gradient(110deg, #14988d, #4e48bf);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 950;
+}
+
+.prizeClaimForm > small {
+  color: #738287;
+  font-size: 0.66rem;
+}
+
+.prizeOrganizerConsole {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #cedede;
+  border-radius: 14px;
+}
+
+.prizeOrganizerConsole > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 15px;
+  cursor: pointer;
+  background: #e7f3f1;
+}
+
+.prizeOrganizerConsole > summary span {
+  font-weight: 950;
+}
+
+.prizeOrganizerConsole > summary strong {
+  color: #128578;
+  font-size: 0.75rem;
+}
+
+.prizeOrganizerBody {
+  display: grid;
+  gap: 15px;
+  padding: 14px;
+}
+
+.prizeOfferForm {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 14px;
+  color: #eaf4f4;
+  background: linear-gradient(135deg, #153843, #282a58);
+  border: 0;
+  border-radius: 12px;
+}
+
+.prizeBoolean {
+  display: flex !important;
+  align-items: center;
+  align-self: end;
+  min-height: 40px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.prizeBoolean input {
+  width: 18px;
+}
+
+.privatePrizeClaims {
+  display: grid;
+  gap: 10px;
+}
+
+.privatePrizeClaimsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.privatePrizeClaimsHeader > div {
+  display: grid;
+}
+
+.privatePrizeClaimsHeader button {
+  min-height: auto;
+  color: #244047;
+  background: #e4eeee;
+}
+
+.privatePrizeClaims > form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 12px;
+  background: #f7faf9;
+  border: 1px solid #dce6e5;
+  border-radius: 10px;
+}
+
+.privateClaimIdentity,
+.privatePrizeClaims address,
+.privatePrizeClaims > form > p {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 9px;
+  margin: 0;
+  background: #fff;
+  border-radius: 8px;
+  font-style: normal;
+}
+
+.privateClaimIdentity span {
+  color: #118579;
+  font-size: 0.64rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.privatePrizeClaims address span,
+.privatePrizeClaims address strong,
+.privatePrizeClaims > form > p {
+  font-size: 0.73rem;
+}
+
+.noPrizeClaims {
+  margin: 0;
+  padding: 14px;
+  color: #66777c;
+  background: #f1f6f5;
+  border-radius: 9px;
+}
+
+@media (max-width: 900px) {
+  .prizeOfferForm,
+  .privatePrizeClaims > form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .competitionPrizeHeader,
+  .prizeOrganizerConsole > summary,
+  .privatePrizeClaimsHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .competitionPrizeHeader > strong {
+    min-width: 0;
+  }
+
+  .prizeClaimForm,
+  .prizeOfferForm,
+  .privatePrizeClaims > form {
+    grid-template-columns: 1fr;
+  }
+
+  .prizeClaimForm .wide,
+  .prizeOfferForm .wide,
+  .privatePrizeClaims > form .wide {
+    grid-column: 1;
+  }
+}
+
 /* Community competition check-in, footage review, and reminder operations. */
 .participantHeatControls {
   display: grid;
