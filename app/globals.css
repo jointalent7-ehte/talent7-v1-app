@@ -1093,6 +1093,354 @@
   }
 }
 
+/* Organizer-only rehearsal and readiness gate. */
+.competitionRehearsalConsole {
+  overflow: hidden;
+  color: #172a30;
+  background: #fff;
+  border: 1px solid #cadcdd;
+  border-radius: 16px;
+}
+
+.competitionRehearsalConsole > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: linear-gradient(110deg, #e0f5f0, #ecebff);
+}
+
+.competitionRehearsalConsole > summary span {
+  font-weight: 950;
+}
+
+.competitionRehearsalConsole > summary strong {
+  color: #167f75;
+  font-size: 0.76rem;
+}
+
+.competitionRehearsalBody {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.rehearsalMessage {
+  margin: 0;
+  padding: 10px 12px;
+  color: #134e48;
+  background: #dff5ef;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.rehearsalCreateForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  padding: 13px;
+  color: #edf6f6;
+  background: linear-gradient(135deg, #123640, #292755);
+  border-radius: 12px;
+}
+
+.rehearsalCreateForm .wide {
+  grid-column: 1 / -1;
+}
+
+.rehearsalCreateForm > .wide > span,
+.rehearsalRunHeader > div:first-child > span,
+.rehearsalMediaTest > div > span,
+.rehearsalChecks form > div > span {
+  color: #f6c83c;
+  font-size: 0.67rem;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.rehearsalCreateForm h4,
+.rehearsalRunHeader h4 {
+  margin: 0;
+}
+
+.rehearsalCreateForm label,
+.rehearsalChecks label,
+.rehearsalCompletion label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.rehearsalCreateForm input,
+.rehearsalCreateForm select,
+.rehearsalChecks input,
+.rehearsalChecks select,
+.rehearsalCompletion textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  color: #172a30;
+  background: #fff;
+  border: 1px solid #c5d6d7;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.rehearsalCreateForm button,
+.rehearsalRunHeader > button,
+.rehearsalMediaTest button,
+.rehearsalChecks button,
+.rehearsalCompletion button {
+  align-self: end;
+  min-height: 40px;
+  padding: 9px 12px;
+  color: #112b32;
+  background: #f4c735;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 950;
+}
+
+.rehearsalHistory {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.rehearsalHistory button {
+  display: grid;
+  flex: 0 0 190px;
+  gap: 2px;
+  padding: 10px;
+  text-align: left;
+  background: #f1f5f5;
+  border: 1px solid #d3dfdf;
+  border-radius: 9px;
+}
+
+.rehearsalHistory button.selected {
+  color: #fff;
+  background: #173d47;
+}
+
+.rehearsalHistory span {
+  color: #169384;
+  font-size: 0.63rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.activeRehearsal {
+  display: grid;
+  gap: 12px;
+}
+
+.rehearsalRunHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  color: #fff;
+  background: #0f2d37;
+  border-radius: 11px;
+}
+
+.rehearsalRunHeader > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.rehearsalRunHeader small {
+  color: #b6c4c8;
+}
+
+.rehearsalClock {
+  display: grid;
+  min-width: 116px;
+  padding: 9px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+}
+
+.rehearsalClock.countdown {
+  color: #172a30;
+  background: #f4c735;
+}
+
+.rehearsalClock span {
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.rehearsalClock strong {
+  font-size: 1.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rehearsalMediaTest {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+  gap: 12px;
+  padding: 12px;
+  background: #eef5f4;
+  border-radius: 11px;
+}
+
+.rehearsalMediaTest > div {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+}
+
+.rehearsalMediaTest p {
+  margin: 0;
+  color: #64767b;
+}
+
+.rehearsalMediaTest > div > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.rehearsalMediaTest video {
+  width: 100%;
+  min-height: 180px;
+  object-fit: cover;
+  background: #09161b;
+  border-radius: 9px;
+}
+
+.rehearsalReadinessTopline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 10px;
+}
+
+.rehearsalReadinessTopline > div {
+  grid-column: 1 / -1;
+  height: 9px;
+  overflow: hidden;
+  background: #dce7e6;
+  border-radius: 99px;
+}
+
+.rehearsalReadinessTopline i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #18ab97, #5147c4);
+}
+
+.rehearsalChecks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 9px;
+}
+
+.rehearsalChecks form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px;
+  gap: 8px;
+  padding: 11px;
+  background: #f7faf9;
+  border: 1px solid #dce6e5;
+  border-left: 4px solid #aebcbe;
+  border-radius: 9px;
+}
+
+.rehearsalChecks form.status-passed {
+  border-left-color: #17aa80;
+}
+
+.rehearsalChecks form.status-failed {
+  border-left-color: #d64e55;
+}
+
+.rehearsalChecks form > div {
+  display: grid;
+  gap: 3px;
+}
+
+.rehearsalChecks form > div small {
+  color: #65767b;
+}
+
+.rehearsalChecks .wide {
+  grid-column: 1 / -1;
+}
+
+.rehearsalCompletion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 12px;
+  background: #eef3ff;
+  border-radius: 10px;
+}
+
+.rehearsalCompletion textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.rehearsalCompletion > div {
+  display: grid;
+  align-content: end;
+  gap: 7px;
+}
+
+.rehearsalCompletion button:last-child {
+  color: #fff;
+  background: #a83d4a;
+}
+
+.rehearsalCompletedNote {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 12px;
+  background: #e4f5ef;
+  border-radius: 9px;
+}
+
+@media (max-width: 800px) {
+  .rehearsalCreateForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rehearsalRunHeader,
+  .rehearsalMediaTest,
+  .rehearsalCompletion {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .competitionRehearsalConsole > summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rehearsalCreateForm,
+  .rehearsalChecks,
+  .rehearsalChecks form {
+    grid-template-columns: 1fr;
+  }
+
+  .rehearsalCreateForm .wide,
+  .rehearsalChecks .wide {
+    grid-column: 1;
+  }
+}
+
 /* Public, recipient-controlled competition certificate. */
 .certificateLanding {
   min-height: 100vh;
