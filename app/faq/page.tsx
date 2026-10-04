@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import FaqExplorer from "./faq-explorer";
 
 export const metadata: Metadata = {
   title: "Frequently Asked Questions",
@@ -213,30 +214,7 @@ export default function FaqPage() {
         <p>Clear answers about joining Talent7, competing fairly, going live, earning recognition, and staying safe.</p>
       </section>
 
-      <nav aria-label="FAQ topics" className="faqTopics">
-        {faqSections.map((section) => (
-          <a href={`#${section.id}`} key={section.id}>{section.label}</a>
-        ))}
-      </nav>
-
-      <div className="faqLayout">
-        {faqSections.map((section, sectionIndex) => (
-          <section className="faqSection" id={section.id} key={section.id}>
-            <header>
-              <span>{String(sectionIndex + 1).padStart(2, "0")}</span>
-              <div><p>Talent7 FAQ</p><h2>{section.label}</h2></div>
-            </header>
-            <div className="faqQuestions">
-              {section.questions.map((item, questionIndex) => (
-                <details key={item.question} open={sectionIndex === 0 && questionIndex === 0}>
-                  <summary>{item.question}<span aria-hidden="true">+</span></summary>
-                  <p>{item.answer}</p>
-                </details>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+      <FaqExplorer sections={faqSections} />
 
       <section className="faqContact">
         <div><p className="eyebrow">Still need help?</p><h2>Tell us what happened.</h2><p>For account, payment, privacy, safety, or technical help, contact Talent7 with the relevant room or competition details.</p></div>

@@ -7087,6 +7087,78 @@ textarea {
   max-width: 900px;
 }
 
+.faqSearch {
+  display: grid;
+  max-width: 1120px;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: clamp(18px, 3vw, 26px);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(20, 23, 25, 0.07);
+}
+
+.faqSearch > label {
+  color: var(--faq-navy);
+  font-size: 1.02rem;
+  font-weight: 950;
+}
+
+.faqSearch > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  overflow: hidden;
+  background: #f2f7f7;
+  border: 2px solid transparent;
+  border-radius: 12px;
+}
+
+.faqSearch > div:focus-within {
+  background: #fff;
+  border-color: var(--faq-teal);
+  box-shadow: 0 0 0 4px rgba(20, 150, 143, 0.12);
+}
+
+.faqSearch > div > span {
+  padding-left: 15px;
+  color: var(--faq-teal);
+  font-size: 1.7rem;
+  font-weight: 950;
+}
+
+.faqSearch input {
+  min-width: 0;
+  min-height: 54px;
+  padding: 12px;
+  color: var(--faq-navy);
+  background: transparent;
+  border: 0;
+  outline: none;
+  font: inherit;
+  font-weight: 850;
+}
+
+.faqSearch button,
+.faqEmpty button {
+  margin-right: 8px;
+  padding: 9px 12px;
+  color: #fff;
+  background: var(--faq-navy);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.faqSearch > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
 .faqTopics {
   position: sticky;
   top: 12px;
@@ -7125,6 +7197,47 @@ textarea {
   display: grid;
   gap: 18px;
   max-width: 1120px;
+}
+
+.faqEmpty {
+  display: grid;
+  max-width: 1120px;
+  min-height: 300px;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 32px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.faqEmpty > span {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  color: var(--faq-navy);
+  background: var(--faq-yellow);
+  border-radius: 18px;
+  font-size: 1.65rem;
+  font-weight: 950;
+}
+
+.faqEmpty h2,
+.faqEmpty p {
+  margin: 0;
+}
+
+.faqEmpty p {
+  max-width: 560px;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.faqEmpty button {
+  margin: 6px 0 0;
 }
 
 .faqSection {
