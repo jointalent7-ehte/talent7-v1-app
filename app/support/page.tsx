@@ -17,6 +17,12 @@ export default function SupportPage() {
       </section>
 
       <section className="legalGrid">
+        <article className="legalCard legalHighlight">
+          <h2>Frequently Asked Questions</h2>
+          <p>Start with quick answers about challenges, competitions, live rooms, prizes, supporter badges, and accounts.</p>
+          <Link href="/faq">Read the FAQ</Link>
+        </article>
+
         <article className="legalCard">
           <h2>Account Help</h2>
           <p>Use this for login, email confirmation, profile, username, or account deletion questions.</p>

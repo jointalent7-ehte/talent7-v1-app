@@ -86,7 +86,7 @@ export default async function PublicCompetitionPage({ params, searchParams }: Co
         </section>
 
         {!isCancelled && <section className="publicCompetitionFinalCta"><div><span>{referral ? "You were invited" : "The first move is yours"}</span><h2>Vote now, then reserve a free place.</h2><p>You can withdraw before competing. Registration does not guarantee a physical prize, and results stay provisional until review.</p></div><Link href={joinHref}>{referral ? "Open my invitation" : "Open the competition"}</Link></section>}
-        <footer className="publicCompetitionFooter"><span>Talent7</span><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/support">Support</Link></footer>
+        <footer className="publicCompetitionFooter"><span>Talent7</span><Link href="/faq">FAQ</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/support">Support</Link></footer>
       </div>
     </main>
   );

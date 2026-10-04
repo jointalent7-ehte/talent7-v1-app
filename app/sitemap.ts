@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/terms",
     "/shipping",
     "/refunds",
+    "/faq",
     "/support",
     "/child-safety",
     "/delete-account"

@@ -16462,6 +16462,7 @@ export default function Home() {
           <a href="/shipping">Shipping Policy</a>
           <a href="/refunds">Cancellation and Refunds</a>
           <a href="/delete-account">Delete account</a>
+          <a href="/faq">FAQ</a>
           <a href="/support">Contact Us</a>
           <a href="/child-safety">Child safety standards</a>
           <a href="mailto:jointalent7@gmail.com">jointalent7@gmail.com</a>
