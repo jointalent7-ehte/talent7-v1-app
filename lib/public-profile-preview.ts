@@ -86,6 +86,18 @@ function publicSupabaseClient() {
   });
 }
 
+function currentProfileRole(role: string) {
+  const normalized = role.trim().toLowerCase();
+  return normalized.includes("coach") || normalized.includes("expert") ? "Challenger" : role;
+}
+
+function currentChallengeActivity(activity: string) {
+  const normalized = activity.trim().toLowerCase();
+  return ["sports coaching", "expert help", "other talent showcase"].includes(normalized)
+    ? "Other skill challenge"
+    : activity;
+}
+
 export async function getPublicTalentProfile(token: string) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) return null;
   const client = publicSupabaseClient();
@@ -101,6 +113,10 @@ export async function getPublicTalentProfile(token: string) {
   const profile = profileResult.data as Omit<PublicTalentProfile, "supporter_tier" | "passport">;
   return {
     ...profile,
+    role: currentProfileRole(profile.role),
+    main_interest: currentChallengeActivity(profile.main_interest),
+    passport_featured_activities: (profile.passport_featured_activities || []).map(currentChallengeActivity),
+    challenge_activities: (profile.challenge_activities || []).map(currentChallengeActivity),
     supporter_tier: supporterResult.error ? null : String(supporterResult.data || "") || null,
     passport: passportResult.error || !passportResult.data
       ? null
