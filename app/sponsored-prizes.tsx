@@ -9,7 +9,7 @@ type PrizeOffer = {
   sponsor_user_id: string | null;
   sponsor_name: string;
   title: string;
-  prize_type: "Equipment" | "Voucher" | "Coaching" | "Digital reward" | "Other";
+  prize_type: "Equipment" | "Voucher" | "Digital reward" | "Other";
   description: string;
   value_label: string;
   eligibility_text: string;
@@ -274,10 +274,10 @@ export default function SponsoredPrizes({
               <p>Your Talent7 display name appears as the sponsor. The organizer reviews the offer; Talent7 does not guarantee or process its monetary value.</p>
               <form onSubmit={proposePrize}>
                 <label>Prize title<input maxLength={100} minLength={3} name="title" placeholder="Champion equipment kit" required /></label>
-                <label>Prize type<select defaultValue="Equipment" name="prize_type"><option>Equipment</option><option>Voucher</option><option>Coaching</option><option>Digital reward</option><option>Other</option></select></label>
+                <label>Prize type<select defaultValue="Equipment" name="prize_type"><option>Equipment</option><option>Voucher</option><option>Digital reward</option><option>Other</option></select></label>
                 <label>Value description<input maxLength={80} minLength={2} name="value_label" placeholder="₹5,000 equipment voucher" required /></label>
                 <label>Sponsor link<input maxLength={300} name="sponsor_url" placeholder="https://... (optional)" type="url" /></label>
-                <label className="wide">What is included?<textarea maxLength={500} minLength={10} name="description" placeholder="Describe the exact product, voucher, coaching session, or digital reward." required rows={3} /></label>
+                <label className="wide">What is included?<textarea maxLength={500} minLength={10} name="description" placeholder="Describe the exact product, voucher, equipment, or digital reward." required rows={3} /></label>
                 <label className="wide">Who earns it?<input defaultValue="Recorded first-place tournament champion" maxLength={240} minLength={5} name="eligibility_text" required /></label>
                 <label className="wide">How will it be fulfilled?<textarea maxLength={300} minLength={5} name="fulfillment_text" placeholder="Explain timing, geographic limits, expiry, and redemption. A parent or guardian must handle fulfilment for a winner under 18." required rows={3} /></label>
                 <label className="sponsoredPrizeConfirmation wide"><input required type="checkbox" /><span>I confirm this is a genuine skill-based non-cash prize, requires no entry fee or random draw, and does not ask users to submit payment, address, or banking information inside Talent7.</span></label>

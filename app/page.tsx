@@ -48,7 +48,7 @@ type ExpertHelpType =
   | "Pet care guidance"
   | "Other urgent help";
 
-const teamMemberRoles = ["Player", "Captain", "Dancer", "Coach", "Substitute", "Proof uploader", "Organizer"];
+const teamMemberRoles = ["Player", "Captain", "Dancer", "Substitute", "Proof uploader", "Organizer"];
 const proofManagerRoles = ["Captain", "Organizer", "Proof uploader"];
 const resultManagerRoles = ["Captain", "Organizer"];
 const challengeStaffRoles = ["Judge", "Camera operator", "Moderator", "Proof verifier", "Scorekeeper"] as const;
@@ -194,7 +194,7 @@ const challengeActivityGroups = [
   },
   {
     label: "More",
-    options: ["Team tournament", "Sports coaching", "Expert help", "Other talent showcase"]
+    options: ["Team tournament", "Other skill challenge"]
   }
 ];
 const challengeActivityOptions = Array.from(new Set(challengeActivityGroups.flatMap((group) => group.options)));
@@ -790,8 +790,7 @@ function activityMatchConfig(activity: string): ActivityMatchConfig {
     normalized.includes("calisthenics") ||
     normalized.includes("gym / fitness") ||
     normalized.includes("parkour") ||
-    normalized.includes("yoga") ||
-    normalized.includes("sports coaching")
+    normalized.includes("yoga")
   ) {
     return flexible(["Singles", "Team"], "Singles", 1);
   }
@@ -1402,7 +1401,7 @@ type SafetyReportItem = {
 type AppNotification = {
   id: string;
   label: string;
-  category: "Invites" | "Teams" | "Live" | "Voting" | "Proof" | "Results" | "Weekly" | "Reports" | "Showcase" | "Expert help" | "Feedback";
+  category: "Invites" | "Teams" | "Live" | "Voting" | "Proof" | "Results" | "Weekly" | "Reports" | "Feedback";
   title: string;
   detail: string;
   createdAt: string;
@@ -1489,8 +1488,6 @@ const notificationFilterOptions: NotificationFilter[] = [
   "Results",
   "Weekly",
   "Reports",
-  "Showcase",
-  "Expert help",
   "Feedback"
 ];
 
@@ -1621,7 +1618,19 @@ function profileChallengeAvailability(item: TalentProfile): ChallengeAvailabilit
 }
 
 function canonicalChallengeActivity(activity: string) {
+  const normalized = activity.trim().toLowerCase();
+  if (["sports coaching", "expert help", "other talent showcase"].includes(normalized)) return "Other skill challenge";
   return activity;
+}
+
+function canonicalProfileRole(role: string) {
+  const normalized = role.trim().toLowerCase();
+  if (normalized.includes("coach") || normalized.includes("expert")) return "Challenger";
+  return role;
+}
+
+function firstWaveRoleLabel(role: FirstWaveInterest["role_goal"]) {
+  return role === "Coach" || role === "Expert helper" ? "Early tester" : role;
 }
 
 function profileChallengeActivities(item: TalentProfile) {
@@ -1644,6 +1653,7 @@ function ProfileAvatarImage({ alt, src }: { alt: string; src: string }) {
 function canonicalTalentProfile(item: TalentProfile): TalentProfile {
   return {
     ...item,
+    role: canonicalProfileRole(item.role),
     main_interest: canonicalChallengeActivity(item.main_interest),
     challenge_activities: profileChallengeActivities(item),
     passport_theme: item.passport_theme || "Aurora",
@@ -4083,10 +4093,6 @@ export default function Home() {
     const joinedChallengeIds = new Set(
       joins.filter((join) => join.user_id === userId).map((join) => join.challenge_id)
     );
-    const myPostIds = new Set(showcasePosts.filter((post) => post.user_id === userId).map((post) => post.id));
-    const myExpertProfileIds = new Set(
-      expertProfiles.filter((expert) => expert.user_id === userId).map((expert) => expert.id)
-    );
 
     const realtimeRoomAlerts = pushNotificationEvents
       .filter((event) => event.category === "Live room" || event.category === "Voting" || event.category === "Weekly summary")
@@ -4343,133 +4349,6 @@ export default function Home() {
         href: "#feedback"
       }));
 
-    const commentAlerts = showcaseComments
-      .filter((comment) => myPostIds.has(comment.post_id) && comment.user_id !== userId)
-      .map((comment) => ({
-        id: `notification-comment-${comment.id}`,
-        label: "Showcase comment",
-        category: "Showcase" as const,
-        title: showcasePosts.find((post) => post.id === comment.post_id)?.caption || "Showcase post",
-        detail: comment.body,
-        createdAt: comment.created_at,
-        href: "#plans"
-      }));
-
-    const requesterAssignedAlerts = expertHelpRequests
-      .filter((request) => request.requester_id === userId && request.status === "Assigned" && request.assigned_expert_name)
-      .map((request) => ({
-        id: `notification-expert-assigned-requester-${request.id}`,
-        label: "Expert assigned",
-        category: "Expert help" as const,
-        title: request.help_type,
-        detail: `${request.assigned_expert_name} was assigned to your help request.`,
-        createdAt: request.updated_at || request.created_at,
-        href: "#expert-help"
-      }));
-
-    const assignedExpertAlerts = expertHelpRequests
-      .filter(
-        (request) =>
-          request.status === "Assigned" &&
-          request.assigned_expert_id &&
-          myExpertProfileIds.has(request.assigned_expert_id)
-      )
-      .map((request) => ({
-        id: `notification-expert-assigned-helper-${request.id}`,
-        label: "Assigned to you",
-        category: "Expert help" as const,
-        title: request.help_type,
-        detail: `${request.requester_name} needs guidance: ${request.details}`,
-        createdAt: request.updated_at || request.created_at,
-        href: "#expert-help"
-      }));
-
-    const expertResponseAlerts = expertHelpRequests
-      .filter((request) => request.requester_id === userId && Boolean(request.expert_response))
-      .map((request) => ({
-        id: `notification-expert-response-${request.id}`,
-        label: "Expert responded",
-        category: "Expert help" as const,
-        title: request.help_type,
-        detail: request.expert_response || "Your assigned expert added a response.",
-        createdAt: request.expert_response_at || request.updated_at || request.created_at,
-        href: "#expert-help"
-      }));
-
-    const expertSessionProposalAlerts = expertHelpRequests
-      .filter(
-        (request) =>
-          request.session_status === "Proposed" &&
-          request.proposed_session_at &&
-          request.session_updated_by !== userId &&
-          (request.requester_id === userId ||
-            Boolean(request.assigned_expert_id && myExpertProfileIds.has(request.assigned_expert_id)))
-      )
-      .map((request) => ({
-        id: `notification-expert-session-proposed-${request.id}`,
-        label: "Session proposed",
-        category: "Expert help" as const,
-        title: request.help_type,
-        detail: `Proposed time: ${formatSessionTime(request.proposed_session_at)}.`,
-        createdAt: request.updated_at || request.proposed_session_at || request.created_at,
-        href: "#expert-help"
-      }));
-
-    const expertSessionConfirmedAlerts = expertHelpRequests
-      .filter(
-        (request) =>
-          request.session_status === "Confirmed" &&
-          request.confirmed_session_at &&
-          (request.requester_id === userId ||
-            Boolean(request.assigned_expert_id && myExpertProfileIds.has(request.assigned_expert_id)))
-      )
-      .map((request) => ({
-        id: `notification-expert-session-confirmed-${request.id}`,
-        label: "Session confirmed",
-        category: "Expert help" as const,
-        title: request.help_type,
-        detail: `Confirmed for ${formatSessionTime(request.confirmed_session_at)}.`,
-        createdAt: request.updated_at || request.confirmed_session_at || request.created_at,
-        href: "#expert-help"
-      }));
-
-    const expertSessionLinkAlerts = expertHelpRequests
-      .filter(
-        (request) =>
-          Boolean(request.session_link) &&
-          request.session_link_added_by !== userId &&
-          (request.requester_id === userId ||
-            Boolean(request.assigned_expert_id && myExpertProfileIds.has(request.assigned_expert_id)))
-      )
-      .map((request) => ({
-        id: `notification-expert-session-link-${request.id}`,
-        label: "Session link added",
-        category: "Expert help" as const,
-        title: request.help_type,
-        detail: "Your confirmed expert session has a meeting link.",
-        createdAt: request.session_link_added_at || request.updated_at || request.created_at,
-        href: "#expert-help"
-      }));
-
-    const expertSessionCompletedAlerts = expertHelpRequests
-      .filter(
-        (request) =>
-          Boolean(request.session_completed_at) &&
-          request.assigned_expert_id &&
-          myExpertProfileIds.has(request.assigned_expert_id)
-      )
-      .map((request) => ({
-        id: `notification-expert-session-completed-${request.id}`,
-        label: "Session completed",
-        category: "Expert help" as const,
-        title: request.help_type,
-        detail: request.expert_rating
-          ? `Requester rated your help ${request.expert_rating}/7.`
-          : "Requester marked the expert session completed.",
-        createdAt: request.session_completed_at || request.updated_at || request.created_at,
-        href: "#expert-help"
-      }));
-
     return [
       ...realtimeRoomAlerts,
       ...receivedInviteAlerts,
@@ -4485,15 +4364,7 @@ export default function Home() {
       ...completedAlerts,
       ...savedCompletedAlerts,
       ...reportAlerts,
-      ...feedbackAlerts,
-      ...commentAlerts,
-      ...requesterAssignedAlerts,
-      ...assignedExpertAlerts,
-      ...expertResponseAlerts,
-      ...expertSessionProposalAlerts,
-      ...expertSessionConfirmedAlerts,
-      ...expertSessionLinkAlerts,
-      ...expertSessionCompletedAlerts
+      ...feedbackAlerts
     ]
       .filter((notification) => !dismissedNotificationKeys.includes(notificationKey(notification)))
       .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
@@ -4504,8 +4375,6 @@ export default function Home() {
     challengeManageableTeams,
     challenges,
     dismissedNotificationKeys,
-    expertHelpRequests,
-    expertProfiles,
     founderFeedback,
     inviteInbox,
     isOwnerReviewer,
@@ -4516,8 +4385,6 @@ export default function Home() {
     proofs,
     savedRoomByChallengeId,
     session,
-    showcaseComments,
-    showcasePosts,
     teamInbox,
       teamRequests,
       teams
@@ -4586,7 +4453,7 @@ export default function Home() {
         id: "unread-updates",
         label: "New activity",
         title: `${otherUnread} unread update${otherUnread === 1 ? "" : "s"}`,
-        detail: "Check results, proof, showcase, guidance, report, and feedback updates.",
+        detail: "Check challenge results, proof, reports, and feedback updates.",
         href: "#notifications",
         action: "View updates",
         tone: "attention"
@@ -4839,21 +4706,17 @@ export default function Home() {
     const userId = item.user_id;
     const badges: string[] = [];
     const ownsTeam = teams.some((team) => team.owner_user_id === userId);
-    const hasCoachOffer = coachOffers.some((offer) => offer.user_id === userId);
     const hasProof = proofs.some((proof) => proof.user_id === userId);
     const createdCount = challenges.filter((challenge) => challenge.created_by === userId).length;
     const hasWin = challenges.some(
       (challenge) => challenge.status === "Completed" && challenge.winner && challengeMatchesProfileActivity(challenge, item)
     );
-    const hasShowcase = showcasePosts.some((post) => post.user_id === userId);
     const hasVotes = votes.some((vote) => vote.user_id === userId);
 
     if (ownsTeam) badges.push("Team captain");
-    if (item.role.toLowerCase().includes("coach") || hasCoachOffer) badges.push("Coach");
     if (hasProof) badges.push("Proof creator");
     if (createdCount > 0) badges.push("Challenge maker");
     if (hasWin) badges.push("Winner");
-    if (hasShowcase) badges.push("Rising talent");
     if (hasVotes) badges.push("Trusted voter");
 
     return badges.slice(0, 6);
@@ -7561,7 +7424,7 @@ export default function Home() {
     return [
       "Talent7 is preparing for Play Store launch at jointalent7.com.",
       `Current build: ${challenges.length} challenge rooms, ${publicProfiles.length} talent profiles, ${proofs.length} proof uploads, and ${firstWaveInterests.length} first-wave launch signups.`,
-      "You can join now as a challenger, audience voter, organizer, or sports team. Showcase Talent, Coaching, and Guidance are planned future experiences.",
+      "You can join now as a challenger, audience voter, organizer, gaming squad, or sports team.",
       "Try a challenge room, rate out of 7, upload proof, and help shape the launch version."
     ].join("\n\n");
   }
@@ -13139,7 +13002,7 @@ export default function Home() {
               <p className="eyebrow">First wave list</p>
               <h3>Tell Talent7 what you want first</h3>
               <p>
-                This helps the owner prioritize core challenge flows and future Showcase Talent, Coaching, and Guidance releases.
+                This helps the owner prioritize challenge and Listen room experiences for the first community.
               </p>
             </div>
             <label>
@@ -13157,13 +13020,9 @@ export default function Home() {
             <label>
               I want to join as
               <select name="role_goal" defaultValue="Challenger">
-                {(["Challenger", "Audience", "Coach", "Organizer", "Expert helper", "Gaming squad"] as FirstWaveInterest["role_goal"][]).map(
-                  (role) => (
-                    <option key={role} value={role}>
-                      {role === "Coach" ? "Coach (future Coaching)" : role === "Expert helper" ? "Expert helper (future Guidance)" : role}
-                    </option>
-                  )
-                )}
+                {(["Challenger", "Audience", "Organizer", "Gaming squad"] as FirstWaveInterest["role_goal"][]).map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
               </select>
             </label>
             <label>
@@ -13204,7 +13063,7 @@ export default function Home() {
                 <span>{myFirstWaveInterest.status}</span>
                 <strong>{myFirstWaveInterest.main_interest}</strong>
                 <small>
-                  {myFirstWaveInterest.role_goal} Â· {myFirstWaveInterest.region} Â· {myFirstWaveInterest.availability}
+                  {firstWaveRoleLabel(myFirstWaveInterest.role_goal)} Â· {myFirstWaveInterest.region} Â· {myFirstWaveInterest.availability}
                 </small>
               </div>
             ) : (
@@ -13213,8 +13072,8 @@ export default function Home() {
             <div className="firstWaveStats">
               <small>{firstWaveInterests.length} total</small>
               <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Challenger").length} challengers</small>
-              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Coach").length} future Coaching interests</small>
-              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Expert helper").length} future Guidance interests</small>
+              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Organizer").length} organizers</small>
+              <small>{firstWaveInterests.filter((interest) => interest.role_goal === "Gaming squad").length} gaming squads</small>
             </div>
           </aside>
         </div>
@@ -13233,7 +13092,7 @@ export default function Home() {
                 {firstWaveInterests.slice(0, 12).map((interest) => (
                   <article key={interest.id}>
                     <div>
-                      <span>{interest.role_goal}</span>
+                      <span>{firstWaveRoleLabel(interest.role_goal)}</span>
                       <strong>{interest.display_name}</strong>
                       <small>
                         {interest.main_interest} Â· {interest.region} Â· {interest.availability}
@@ -13361,8 +13220,7 @@ export default function Home() {
                 />
               </label>
               <div className="notificationFilters">
-                {(["All", "Unread", "Invites", "Teams", "Live", "Voting", "Proof", "Results", "Reports", "Showcase", "Expert help"] as NotificationFilter[]).map(
-                  (filter) => (
+                {notificationFilterOptions.map((filter) => (
                     <button
                       className={selectedNotificationFilter === filter ? "active" : ""}
                       key={filter}
@@ -13371,8 +13229,7 @@ export default function Home() {
                     >
                       {filter}
                     </button>
-                  )
-                )}
+                  ))}
               </div>
               <div className="notificationList">
                 {visibleNotifications.length === 0 && (
@@ -13945,7 +13802,7 @@ export default function Home() {
         )}
       </section>
 
-      <section className="section showcaseSection" id="showcase">
+      <section aria-hidden="true" className="section showcaseSection" hidden id="showcase">
         <div className="sectionHeader">
           <p className="eyebrow">Showcase</p>
           <h2>Post talent photos, videos, and links</h2>
@@ -13968,7 +13825,7 @@ export default function Home() {
                 <option>Dance</option>
                 <option>Sports</option>
                 <option>Gaming</option>
-                <option>Coaching</option>
+                <option>Athletics</option>
                 <option>Fitness</option>
               </select>
             </label>
@@ -14045,7 +13902,7 @@ export default function Home() {
                           <option>Dance</option>
                           <option>Sports</option>
                           <option>Gaming</option>
-                          <option>Coaching</option>
+                          <option>Athletics</option>
                           <option>Fitness</option>
                           {challengeActivityOptions.map((interest) => (
                             <option key={interest}>{interest}</option>
@@ -14654,7 +14511,7 @@ export default function Home() {
       </section>
       )}
 
-      <section className="section coachingSection" id="coaching">
+      <section aria-hidden="true" className="section coachingSection" hidden id="coaching">
         <div className="sectionHeader">
           <p className="eyebrow">Coaching</p>
           <h2>Find coaches or offer training</h2>
@@ -15182,7 +15039,7 @@ export default function Home() {
           </article>
           <article>
             <strong>Emergency help caution</strong>
-            <p>Talent7 guidance is informational only. For medical or urgent danger, call local emergency services first.</p>
+            <p>For medical emergencies, serious injury, or urgent danger, contact local emergency services first.</p>
           </article>
         </div>
         {isOwnerReviewer && (
@@ -15191,7 +15048,7 @@ export default function Home() {
               <div>
                 <p className="eyebrow">Owner admin</p>
                 <h3>Moderation panel</h3>
-                <small>Review reports from challenge rooms, proofs, showcase posts, and comments.</small>
+                <small>Review reports from challenge rooms, proof submissions, and retained legacy content.</small>
               </div>
               <a href="#notifications">View alerts</a>
             </div>
@@ -15386,7 +15243,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section expertHelpSection" id="expert-help">
+      <section aria-hidden="true" className="section expertHelpSection" hidden id="expert-help">
         <div className="sectionHeader">
           <p className="eyebrow">Expert guidance</p>
           <h2>Get guidance from someone who knows the problem</h2>
@@ -15951,7 +15808,7 @@ export default function Home() {
         <div className="paymentStatusPanel">
           <div>
             <span>Future subscription research</span>
-            <strong>{currentPaymentInterest ? currentPaymentInterest.label : "Free audience"}</strong>
+            <strong>{currentPaymentInterest?.label === "Coach Pro" ? "Legacy concept" : currentPaymentInterest?.label || "Free audience"}</strong>
             <small>
               {currentPaymentInterest
                 ? `${currentPaymentInterest.amount_label} · interest recorded`
@@ -16072,7 +15929,7 @@ export default function Home() {
                 <strong>{paymentInterests.filter((interest) => interest.label === "Challenge Plus").length}</strong>
               </article>
               <article>
-                <span>Future Coach Pro interest</span>
+                <span>Retired concept interest</span>
                 <strong>{paymentInterests.filter((interest) => interest.label === "Coach Pro").length}</strong>
               </article>
               <article>
@@ -16090,7 +15947,7 @@ export default function Home() {
                   <article key={interest.id}>
                     <div>
                       <span>{interest.intent_type === "Contribution" ? "Legacy payment" : interest.intent_type}</span>
-                      <strong>{interest.label}</strong>
+                      <strong>{interest.label === "Coach Pro" ? "Legacy concept" : interest.label}</strong>
                       <small>{interest.display_name} / {interest.amount_label}</small>
                     </div>
                     <small>{new Date(interest.created_at).toLocaleDateString()}</small>
@@ -16441,11 +16298,6 @@ export default function Home() {
             <p>Talent7 does not operate courts, pools, gyms, or events. Check local rules, safety, costs, and permissions before recording or playing.</p>
           </article>
           <article>
-            <span>Future Guidance</span>
-            <strong>Emergency services come first</strong>
-            <p>Future Guidance will not replace professional or emergency services. For danger, serious injury, or urgent risk, contact local emergency services first.</p>
-          </article>
-          <article>
             <span>Payments</span>
             <strong>Digital badge purchases are optional</strong>
             <p>Core access remains free. An approved website payment provider and Google Play can process the same three fixed-price, one-time digital badge products. Talent7 stores only provider references, verification state, product price, and badge entitlement.</p>
@@ -16481,7 +16333,7 @@ export default function Home() {
           Search profiles
           <input
             onChange={(event) => setProfileSearch(event.target.value)}
-            placeholder="Search coach, badminton, India, dance..."
+            placeholder="Search badminton, India, dance, gaming..."
             type="search"
             value={profileSearch}
           />

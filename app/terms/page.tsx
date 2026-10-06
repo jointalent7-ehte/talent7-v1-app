@@ -58,7 +58,7 @@ export default function TermsPage() {
       </section>
       <section className="legalCard">
         <h2>Safety And Availability</h2>
-        <p>Use appropriate precautions before participating in challenges, broadcasts, or meetups. Talent7 does not supervise real-world activity or replace emergency, medical, legal, coaching, or professional services. Features may be updated, suspended, or discontinued, and uninterrupted operation is not guaranteed.</p>
+        <p>Use appropriate precautions before participating in challenges, broadcasts, or meetups. Talent7 does not supervise real-world activity or replace emergency, medical, legal, or other professional services. Features may be updated, suspended, or discontinued, and uninterrupted operation is not guaranteed.</p>
       </section>
       <section className="legalCard">
         <h2>Responsibility And Statutory Rights</h2>

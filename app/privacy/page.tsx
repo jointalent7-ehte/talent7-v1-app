@@ -20,8 +20,7 @@ export default function PrivacyPage() {
         <h2>What Talent7 Is</h2>
         <p>
           Talent7 is a proof-based competition app for free public talent and sports challenge rooms, ratings, teams,
-          profiles, tournaments, consent-based rivalries, clubs, consent-based scouting, live challenge activity, notifications, and launch-wave feedback. Showcase Talent,
-          Coaching, and Guidance are roadmap previews rather than active launch services.
+          profiles, tournaments, consent-based rivalries, clubs, consent-based scouting, live challenge activity, Listen rooms, notifications, and launch-wave feedback.
         </p>
       </section>
 
@@ -31,7 +30,7 @@ export default function PrivacyPage() {
           <li>Account information such as email address and login status.</li>
           <li>Profile information such as display name, username, role, main interest, region, and any area, city, or country you optionally enter for local leaderboards.</li>
           <li>User content and preferences such as challenge rooms, saved-room selections, joins, votes, ratings, proof links, tournament entries, sponsored prize proposals and claim records, rivalry invitations and records, public highlight-reel settings, club memberships and invitations, private club shortlists, scouting preferences, reports, and team requests.</li>
-          <li>Legacy showcase, coaching, or expert-help records you previously submitted. Their public creation/request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
+          <li>Records previously submitted through retired experimental features. Their public creation and request routes are closed, but existing records may be retained for account history, moderation, and deletion processing.</li>
           <li>Optional support or founder feedback messages you submit.</li>
           <li>Payment records such as provider, selected digital badge product, fixed price, currency, status, provider references, and badge entitlement. Historical payment records may be retained where required for reconciliation, disputes, refunds, or legal obligations. Talent7 does not collect or store your complete card details, UPI PIN, banking password, or payment OTP.</li>
           <li>Basic technical information needed to run, secure, and improve the app.</li>
