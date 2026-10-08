@@ -7,6 +7,8 @@ type PushEvent = {
   title: string;
   body: string;
   href: string;
+  resource_type?: string | null;
+  resource_id?: string | null;
 };
 
 type WebhookBody = {
@@ -91,6 +93,21 @@ function preferenceColumn(category: PushEvent["category"]) {
   return "social_updates";
 }
 
+function deliveryProfile(event: PushEvent) {
+  if (event.category === "Weekly summary") {
+    return { channelId: "talent7_digest_v1", priority: "normal", sound: undefined };
+  }
+  if (event.category === "Social") {
+    return { channelId: "talent7_social_v1", priority: "normal", sound: undefined };
+  }
+  return { channelId: "talent7_action_v2", priority: "high", sound: "talent7_signal" };
+}
+
+function notificationTag(event: PushEvent) {
+  const resource = event.resource_id || event.id;
+  return `${event.resource_type || event.category}:${resource}`.slice(0, 120);
+}
+
 Deno.serve(async (request) => {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
@@ -145,6 +162,7 @@ Deno.serve(async (request) => {
     const deliveryErrors: string[] = [];
 
     for (const device of devices) {
+      const profile = deliveryProfile(event);
       const response = await fetch(
         `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(firebaseProjectId)}/messages:send`,
         {
@@ -160,13 +178,17 @@ Deno.serve(async (request) => {
               data: {
                 href: event.href,
                 notificationEventId: event.id,
-                category: event.category
+                category: event.category,
+                channelId: profile.channelId
               },
               android: {
-                priority: "high",
+                priority: profile.priority,
+                collapse_key: notificationTag(event),
                 notification: {
-                  channel_id: "talent7_updates",
-                  click_action: "OPEN_TALENT7_NOTIFICATION"
+                  channel_id: profile.channelId,
+                  click_action: "OPEN_TALENT7_NOTIFICATION",
+                  tag: notificationTag(event),
+                  ...(profile.sound ? { sound: profile.sound } : {})
                 }
               }
             }

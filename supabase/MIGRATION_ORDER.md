@@ -109,6 +109,7 @@ This is the canonical inventory for the current source tree: **87 numbered SQL f
 105. `add-community-competition-standby-replacements.sql`
 106. `add-community-competition-participant-entry-pass.sql`
 107. `add-community-competition-invite-growth-loop.sql`
+108. `add-social-push-notifications.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening. `restore-gaming-challenges.sql` reopens multiplayer gaming after the earlier retirement migration and aligns game-specific roster validation with the current UI. `add-talent7-league-rewards.sql` adds proof-gated Ranked and Casual progress, seven seasonal tiers, activity ranks, reward history, and permanent trophies. `add-talent7-passports.sql` exposes a deliberately narrow, privacy-safe public competition summary through existing profile share tokens. `add-profile-passport-studio.sql` adds public presentation fields, Passport visibility controls, and owner-managed profile images.
 
@@ -149,5 +150,7 @@ The Showcase, Coaching, and Guidance migrations remain in this history because p
 `add-community-competition-participant-entry-pass.sql` adds public versioned event rules plus participant acknowledgements for safety, recording, conduct, and eligibility. A database trigger blocks check-in until the registered participant accepts the current version, while collecting no medical details.
 
 `add-community-competition-invite-growth-loop.sql` adds separate share-safe invitation codes, one-time registration attribution, participant conversion counts, and a private organizer acquisition dashboard. Invitations never alter rankings, cohort priority, prizes, XP, or eligibility.
+
+`add-social-push-notifications.sql` adds deduplicated notifications for new followers, challenges posted by followed creators, replies in a creator's challenge room, team join requests, and open challenge-team requests. Global challenge posts, ordinary views, votes, reactions, and the user's own actions intentionally remain silent.
 
 Never rerun the complete list against an existing production database. First compare Supabase migration history with this file, then apply only missing migrations in this order.
