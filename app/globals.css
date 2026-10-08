@@ -8739,14 +8739,16 @@ textarea {
 
 .pushPreferencesCard {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   max-width: 980px;
   margin-bottom: 18px;
-  padding: 18px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 14px 38px rgba(20, 23, 25, 0.07);
+  padding: 22px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(86, 77, 211, 0.11), transparent 32%),
+    #fff;
+  border: 1px solid #cbd9d9;
+  border-radius: 22px;
+  box-shadow: 0 18px 48px rgba(20, 23, 25, 0.09);
 }
 
 .pushPreferencesHeader {
@@ -8756,12 +8758,33 @@ textarea {
   gap: 16px;
 }
 
-.pushPreferencesHeader > div {
+.pushPreferencesIntro {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.pushPreferencesIcon {
+  display: grid;
+  flex: 0 0 50px;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  color: #081716;
+  background: linear-gradient(145deg, #ffd22f, #ffb924);
+  border: 2px solid #101717;
+  border-radius: 15px;
+  box-shadow: 5px 5px 0 #101717;
+  font-size: 1.55rem;
+  font-weight: 1000;
+}
+
+.pushPreferencesIntro > div {
   display: grid;
   gap: 5px;
 }
 
-.pushPreferencesHeader > div > span {
+.pushPreferencesIntro > div > span {
   color: var(--teal);
   font-size: 0.78rem;
   font-weight: 900;
@@ -8797,34 +8820,212 @@ textarea {
   border-color: #8ad5b7;
 }
 
-.pushPreferenceGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+.pushDeviceStatus.blocked {
+  color: #9a2731;
+  background: #fff0f1;
+  border-color: #edb1b7;
 }
 
-.pushPreferenceGrid label {
+.pushPermissionPitch {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 11px 12px;
-  background: #f7fafa;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font-weight: 820;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px;
+  color: #fff;
+  background: linear-gradient(120deg, #0b4f4c, #17315e 58%, #403bb2);
+  border-radius: 16px;
+}
+
+.pushPermissionPitch > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pushPermissionPitch > div > span {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: #10201e;
+  background: #ffd23c;
+  border-radius: 13px;
+  font-size: 1.15rem;
+}
+
+.pushPermissionPitch div div {
+  display: grid;
+  gap: 3px;
+}
+
+.pushPermissionPitch small {
+  color: rgba(255, 255, 255, 0.77);
+  line-height: 1.4;
+}
+
+.pushPermissionPitch button,
+.pushSoundCard button {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 10px 13px;
+  color: #111817;
+  background: #fff;
+  border: 1px solid rgba(8, 20, 20, 0.14);
+  border-radius: 11px;
+  font-weight: 900;
   cursor: pointer;
 }
 
-.pushPreferenceGrid label.disabled {
+.pushMasterSwitch,
+.pushPreferenceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+  cursor: pointer;
+}
+
+.pushMasterSwitch {
+  padding: 15px 16px;
+  background: #eef8f7;
+  border: 1px solid #b9d9d5;
+  border-radius: 15px;
+}
+
+.pushMasterSwitch > span,
+.pushPreferenceRow > span {
+  display: grid;
+  gap: 3px;
+  padding-right: 12px;
+}
+
+.pushMasterSwitch small,
+.pushPreferenceRow small,
+.pushPreferenceGroup header small,
+.pushSoundCard small {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.pushMasterSwitch input,
+.pushPreferenceRow input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.pushMasterSwitch i,
+.pushPreferenceRow i {
+  position: relative;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 28px;
+  background: #aebbbb;
+  border-radius: 999px;
+  transition: background 160ms ease;
+}
+
+.pushMasterSwitch i::after,
+.pushPreferenceRow i::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 7px rgba(10, 25, 24, 0.24);
+  transition: transform 160ms ease;
+}
+
+.pushMasterSwitch input:checked + i,
+.pushPreferenceRow input:checked + i {
+  background: var(--teal);
+}
+
+.pushMasterSwitch input:checked + i::after,
+.pushPreferenceRow input:checked + i::after {
+  transform: translateX(20px);
+}
+
+.pushMasterSwitch:focus-within,
+.pushPreferenceRow:focus-within {
+  outline: 3px solid rgba(20, 153, 149, 0.24);
+  outline-offset: 2px;
+}
+
+.pushPreferenceGroups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pushPreferenceGroups.disabled {
   opacity: 0.55;
+}
+
+.pushPreferenceGroup {
+  overflow: hidden;
+  background: #f8fafa;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+}
+
+.pushPreferenceGroup header {
+  display: grid;
+  gap: 3px;
+  padding: 14px;
+  background: #edf3f3;
+  border-bottom: 1px solid var(--line);
+}
+
+.pushPreferenceRow {
+  min-height: 78px;
+  padding: 12px 14px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+
+.pushPreferenceRow:last-child {
+  border-bottom: 0;
+}
+
+.pushPreferenceRow:has(input:disabled) {
   cursor: not-allowed;
 }
 
-.pushPreferenceGrid input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--teal);
+.pushSoundCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 15px;
+  background: #fff9e5;
+  border: 1px solid #ead48a;
+  border-radius: 15px;
+}
+
+.pushSoundCard > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: #13201e;
+  background: #ffd43d;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  font-weight: 1000;
+}
+
+.pushSoundCard > div {
+  display: grid;
+  gap: 3px;
 }
 
 .pushPreferencesActions {
@@ -8868,7 +9069,22 @@ textarea {
     width: fit-content;
   }
 
-  .pushPreferenceGrid {
+  .pushPermissionPitch,
+  .pushSoundCard {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .pushPermissionPitch {
+    display: grid;
+  }
+
+  .pushPermissionPitch button,
+  .pushSoundCard button {
+    width: 100%;
+  }
+
+  .pushPreferenceGroups {
     grid-template-columns: 1fr;
   }
 

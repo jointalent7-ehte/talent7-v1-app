@@ -1433,7 +1433,11 @@ type PushNotificationPreferences = {
 
 type Talent7PushBridge = {
   requestPermissionAndToken: () => void;
+  getPermissionStatus?: () => void;
+  openNotificationSettings?: () => void;
 };
+
+type NativePushPermissionStatus = "unknown" | "granted" | "denied" | "unavailable";
 
 declare global {
   interface Window {
@@ -2809,6 +2813,7 @@ export default function Home() {
   const [pushDeviceConnected, setPushDeviceConnected] = useState(false);
   const lastRegisteredPushTokenRef = useRef<string | null>(null);
   const [nativePushAvailable, setNativePushAvailable] = useState(false);
+  const [nativePushPermission, setNativePushPermission] = useState<NativePushPermissionStatus>("unknown");
   const [pushPreferencesLoading, setPushPreferencesLoading] = useState(false);
   const [savingPushPreferences, setSavingPushPreferences] = useState(false);
 
@@ -4943,12 +4948,24 @@ export default function Home() {
       .update({ enabled: pushPreferences.push_enabled, updated_at: new Date().toISOString() })
       .eq("user_id", session.user.id);
 
-    if (pushPreferences.push_enabled) {
-      window.Talent7Push?.requestPermissionAndToken();
-    }
-
     setMessage("Notification preferences saved.", "success");
     setSavingPushPreferences(false);
+  }
+
+  function requestPushPermissionFromUser() {
+    window.Talent7Push?.requestPermissionAndToken();
+  }
+
+  function openAndroidNotificationSettings() {
+    window.Talent7Push?.openNotificationSettings?.();
+  }
+
+  function previewTalent7NotificationSound() {
+    const preview = new Audio("/talent7-signal.wav");
+    preview.volume = 0.72;
+    void preview.play().catch(() => {
+      setMessage("Your browser blocked the sound preview. Tap again after interacting with the page.", "warning");
+    });
   }
 
   function validateUploadFile(file: File) {
@@ -5688,6 +5705,7 @@ export default function Home() {
     if (!pushNotificationsEnabled || !supabase || !session?.user.id) {
       setPushPreferences(defaultPushNotificationPreferences);
       setPushDeviceConnected(false);
+      setNativePushPermission("unknown");
       lastRegisteredPushTokenRef.current = null;
       return;
     }
@@ -5696,6 +5714,7 @@ export default function Home() {
     const userId = session.user.id;
     let cancelled = false;
     setNativePushAvailable(Boolean(window.Talent7Push));
+    setNativePushPermission(window.Talent7Push ? "unknown" : "unavailable");
     setPushPreferencesLoading(true);
 
     async function loadPushSettings() {
@@ -5745,15 +5764,26 @@ export default function Home() {
         setMessage(`Push registration failed: ${error.message}`, "error");
         return;
       }
+      setNativePushPermission("granted");
       setPushDeviceConnected(true);
     }
 
+    function handleNativePushStatus(event: Event) {
+      const status = (event as CustomEvent<{ status?: NativePushPermissionStatus }>).detail?.status;
+      if (!status || !["granted", "denied", "unavailable"].includes(status)) return;
+      setNativePushPermission(status);
+      if (status === "denied") setPushDeviceConnected(false);
+    }
+
     window.addEventListener("talent7-native-push-token", handleNativePushToken);
+    window.addEventListener("talent7-native-push-status", handleNativePushStatus);
     void loadPushSettings();
+    window.Talent7Push?.getPermissionStatus?.();
 
     return () => {
       cancelled = true;
       window.removeEventListener("talent7-native-push-token", handleNativePushToken);
+      window.removeEventListener("talent7-native-push-status", handleNativePushStatus);
     };
   }, [session?.user.id]);
 
@@ -13135,54 +13165,132 @@ export default function Home() {
           <>
             {pushNotificationsEnabled && <div className="pushPreferencesCard">
               <div className="pushPreferencesHeader">
-                <div>
-                  <span>Android push notifications</span>
-                  <strong>{pushDeviceConnected ? "This device is connected" : "Connect the Talent7 Android app"}</strong>
-                  <small>
-                    {pushDeviceConnected
-                      ? "Important updates can reach this phone even when Talent7 is closed."
-                      : "Open this account in the updated Android app and allow notifications to connect the phone."}
-                  </small>
+                <div className="pushPreferencesIntro">
+                  <span className="pushPreferencesIcon" aria-hidden="true">7</span>
+                  <div>
+                    <span>Push notifications</span>
+                    <strong>Stay ready without being interrupted by everything</strong>
+                    <small>Talent7 asks Android for permission only after you tap Enable. It never needs to ask on app startup.</small>
+                  </div>
                 </div>
-                <span className={pushDeviceConnected ? "pushDeviceStatus connected" : "pushDeviceStatus"}>
-                  {pushPreferencesLoading ? "Checking..." : pushDeviceConnected ? "Connected" : "Not connected"}
+                <span className={pushDeviceConnected && nativePushPermission !== "denied" ? "pushDeviceStatus connected" : nativePushPermission === "denied" ? "pushDeviceStatus blocked" : "pushDeviceStatus"}>
+                  {pushPreferencesLoading
+                    ? "Checking..."
+                    : nativePushPermission === "denied"
+                      ? "Blocked by Android"
+                      : pushDeviceConnected
+                        ? "Phone connected"
+                        : nativePushAvailable
+                          ? "Not enabled"
+                          : "Android app required"}
                 </span>
               </div>
-              <div className="pushPreferenceGrid">
+
+              {nativePushAvailable && (!pushDeviceConnected || nativePushPermission === "denied") && (
+                <div className="pushPermissionPitch">
+                  <div>
+                    <span aria-hidden="true">⚡</span>
+                    <div>
+                      <strong>Never miss your turn</strong>
+                      <small>Get direct challenges, room-start reminders, replies, proof decisions, and competition results.</small>
+                    </div>
+                  </div>
+                  <button
+                    onClick={nativePushPermission === "denied" ? openAndroidNotificationSettings : requestPushPermissionFromUser}
+                    type="button"
+                  >
+                    {nativePushPermission === "denied" ? "Open Android settings" : "Enable on this phone"}
+                  </button>
+                </div>
+              )}
+
+              <label className="pushMasterSwitch">
+                <span>
+                  <strong>Allow Talent7 notifications</strong>
+                  <small>Master control for notifications sent to your connected phones.</small>
+                </span>
+                <input
+                  checked={pushPreferences.push_enabled}
+                  onChange={(event) => setPushPreferences((current) => ({ ...current, push_enabled: event.target.checked }))}
+                  type="checkbox"
+                />
+                <i aria-hidden="true" />
+              </label>
+
+              <div className={!pushPreferences.push_enabled ? "pushPreferenceGroups disabled" : "pushPreferenceGroups"}>
                 {([
-                  ["push_enabled", "Allow push notifications"],
-                  ["challenge_invites", "Challenge invitations"],
-                  ["challenge_updates", "Accepted, declined, and completed challenges"],
-                  ["live_rooms", "Rooms going live"],
-                  ["voting_windows", "Voting windows opening"],
-                  ["proof_results", "Proof and result updates"],
-                  ["social_updates", "Social updates"],
-                  ["weekly_summary", "Weekly activity summary"]
-                ] as Array<[keyof PushNotificationPreferences, string]>).map(([key, label]) => (
-                  <label className={key !== "push_enabled" && !pushPreferences.push_enabled ? "disabled" : ""} key={key}>
-                    <input
-                      checked={pushPreferences[key]}
-                      disabled={key !== "push_enabled" && !pushPreferences.push_enabled}
-                      onChange={(event) =>
-                        setPushPreferences((current) => ({ ...current, [key]: event.target.checked }))
-                      }
-                      type="checkbox"
-                    />
-                    <span>{label}</span>
-                  </label>
+                  {
+                    title: "Challenges",
+                    description: "Direct activity involving you or a room you joined.",
+                    items: [
+                      ["challenge_invites", "Invites and challenge-backs", "A person or team directly challenges you."],
+                      ["challenge_updates", "Replies and challenge updates", "Comments on your room plus accepted, declined, and completed challenges."]
+                    ]
+                  },
+                  {
+                    title: "Live and competitions",
+                    description: "Time-sensitive moments where arriving late matters.",
+                    items: [
+                      ["live_rooms", "Rooms going live", "Saved or joined rooms starting now."],
+                      ["voting_windows", "Voting and schedule windows", "Voting opens or a competition time needs your response."],
+                      ["proof_results", "Proof, results, and prizes", "Review decisions, qualification, certificates, and prize actions."]
+                    ]
+                  },
+                  {
+                    title: "Community",
+                    description: "Lower-urgency discovery, kept separate from direct activity.",
+                    items: [
+                      ["social_updates", "People you follow", "New followers and new challenges from creators you chose to follow."],
+                      ["weekly_summary", "Weekly recap", "One compact summary instead of many small alerts."]
+                    ]
+                  }
+                ] as Array<{
+                  title: string;
+                  description: string;
+                  items: Array<[keyof PushNotificationPreferences, string, string]>;
+                }>).map((group) => (
+                  <section className="pushPreferenceGroup" key={group.title}>
+                    <header>
+                      <strong>{group.title}</strong>
+                      <small>{group.description}</small>
+                    </header>
+                    {group.items.map(([key, label, description]) => (
+                      <label className="pushPreferenceRow" key={key}>
+                        <span>
+                          <strong>{label}</strong>
+                          <small>{description}</small>
+                        </span>
+                        <input
+                          checked={pushPreferences[key]}
+                          disabled={!pushPreferences.push_enabled}
+                          onChange={(event) => setPushPreferences((current) => ({ ...current, [key]: event.target.checked }))}
+                          type="checkbox"
+                        />
+                        <i aria-hidden="true" />
+                      </label>
+                    ))}
+                  </section>
                 ))}
               </div>
+
+              <div className="pushSoundCard">
+                <span aria-hidden="true">♪</span>
+                <div>
+                  <strong>Talent7 Signal</strong>
+                  <small>A short original sound is reserved for direct and time-sensitive alerts. Social updates and the weekly recap stay quiet.</small>
+                </div>
+                <button className="secondary" onClick={previewTalent7NotificationSound} type="button">Preview sound</button>
+              </div>
+
               <div className="pushPreferencesActions">
                 <button disabled={savingPushPreferences || pushPreferencesLoading} onClick={savePushNotificationPreferences} type="button">
-                  {savingPushPreferences ? "Saving..." : "Save notification preferences"}
+                  {savingPushPreferences ? "Saving..." : "Save choices"}
                 </button>
-                {pushPreferences.push_enabled && !pushDeviceConnected && nativePushAvailable && (
-                  <button className="secondary" onClick={() => window.Talent7Push?.requestPermissionAndToken()} type="button">
-                    Connect this phone
-                  </button>
+                {nativePushAvailable && nativePushPermission === "granted" && (
+                  <button className="secondary" onClick={openAndroidNotificationSettings} type="button">Android notification settings</button>
                 )}
               </div>
-              <small className="pushPrivacyNote">Device tokens are private, linked only to your signed-in account, and removed when the account is deleted.</small>
+              <small className="pushPrivacyNote">We do not push profile views, every reaction or vote, your own actions, typing activity, routine edits, or unrelated public posts. Device tokens are private and deleted with your account.</small>
             </div>}
             {notifications.length > 0 ? (
             <>
