@@ -48,13 +48,18 @@ Do not enable update or delete events.
 
 ## 5. Test safely
 
-1. Install Android version 1.6.0 on a test phone.
-2. Log in and open **More > Notifications**.
-3. Allow Android notifications and confirm the device status changes to **Connected**.
-4. From a second account, send the first account a challenge invitation.
-5. Confirm the phone receives a notification and tapping it opens Talent7 Invites.
-6. Test accepting/declining, Go Live, opening voting, and completing a room.
-7. From the first account, save a room owned by the second account. Confirm Go Live, voting, proof, and result notifications open that exact saved room.
-8. Run `select public.queue_weekly_activity_summaries();` and confirm an opted-in account receives one weekly summary. Run it again and confirm no duplicate is created for the same week.
+1. Run `supabase/add-social-push-notifications.sql` after all earlier migrations.
+2. Redeploy `send-push` so delivery uses the action, social, and digest Android channels.
+3. Install Android version 1.6.4 on a test phone.
+4. Log in and open **More > Notifications**. Confirm Android does not ask for permission by itself.
+5. Tap **Enable on this phone**, allow Android notifications, and confirm the status changes to **Phone connected**.
+6. From a second account, send the first account a challenge invitation. Confirm the Talent7 Signal sound plays and tapping the notification opens Talent7 Invites.
+7. Add two replies to the first account's challenge within 90 seconds. Confirm only one push is queued for that short burst.
+8. Follow the second account, enable **People you follow**, and publish a challenge from the second account. Confirm the follower receives one quiet social notification.
+9. Test accepting/declining, Go Live, opening voting, completing a room, team requests, and open challenge-team requests.
+10. From the first account, save a room owned by the second account. Confirm Go Live, voting, proof, and result notifications open that exact saved room.
+11. Run `select public.queue_weekly_activity_summaries();` and confirm an opted-in account receives one silent weekly summary. Run it again and confirm no duplicate is created for the same week.
+
+Android 8 and newer preserve sound and vibration choices per channel. Talent7 therefore uses the versioned `talent7_action_v2` channel for the original bundled sound, plus quiet `talent7_social_v1` and `talent7_digest_v1` channels. Changing the bundled action sound again requires a new action channel ID.
 
 If a device token becomes invalid, the delivery function disables it automatically.
