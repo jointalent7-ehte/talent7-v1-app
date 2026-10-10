@@ -294,7 +294,6 @@ begin
   end + case when has_personal_proof then 5 else 0 end;
   earned_rank := case
     when target_challenge.competition_mode = 'Ranked' and did_win then 35
-    when target_challenge.competition_mode = 'Ranked' then 5
     else 0
   end;
 
