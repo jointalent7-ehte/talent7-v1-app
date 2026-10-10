@@ -17302,7 +17302,7 @@ export default function Home() {
             <article>
               <span>01</span>
               <strong>Compete with proof</strong>
-              <small>Casual gives XP. Ranked gives XP and Rank Points after a proof-backed result.</small>
+              <small>Proof-backed finishers earn XP. Ranked winners also earn Rank Points; Ranked losses earn no Rank Points.</small>
             </article>
             <article>
               <span>02</span>
@@ -17488,7 +17488,7 @@ export default function Home() {
                 }}
                 value={challengeDraft.competitionMode}
               >
-                <option value="Ranked">Ranked — earn XP and Rank Points</option>
+                <option value="Ranked">Ranked — earn XP; winners gain Rank Points</option>
                 <option value="Casual">Casual — earn XP without changing rank</option>
               </select>
               <small className="fieldHint">

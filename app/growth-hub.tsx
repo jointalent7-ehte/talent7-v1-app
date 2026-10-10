@@ -333,7 +333,7 @@ export default function GrowthHub({
         <div>
           <p className="eyebrow">Talent7 League</p>
           <h3 id="growth-hub-title">Compete, rank up, and build your trophy cabinet</h3>
-          <small>Proof-backed results become visible progress. Casual rooms earn XP; Ranked rooms also earn Rank Points.</small>
+          <small>Proof-backed finishers earn XP. Ranked victories also earn Rank Points; Ranked losses do not.</small>
         </div>
         <button disabled={busyAction !== null} onClick={refreshProgress} type="button">
           {busyAction === "refresh" ? "Refreshing…" : "Refresh progress"}
