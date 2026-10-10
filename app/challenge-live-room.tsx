@@ -13,6 +13,7 @@ import {
   useTracks
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
+import { openTalent7Share } from "./talent7-share-sheet";
 
 type JoinCredentials = {
   server_url: string;
@@ -141,38 +142,16 @@ function Talent7VideoStage({
     };
   }, [expanded]);
 
-  async function shareLiveRoom() {
-    const shareData = {
+  function shareLiveRoom() {
+    openTalent7Share({
       title: `${title} live on Talent7`,
       text: `Watch ${sideLabels[0]} vs ${sideLabels[1]} live on Talent7.`,
-      url: shareUrl
-    };
-
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share(shareData);
-        return;
+      url: shareUrl,
+      onShare: () => {
+        setShareLabel("Shared");
+        window.setTimeout(() => setShareLabel("Share"), 2200);
       }
-
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = shareUrl;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        textarea.remove();
-      }
-      setShareLabel("Link copied");
-      window.setTimeout(() => setShareLabel("Share"), 2200);
-    } catch (shareError) {
-      if (shareError instanceof DOMException && shareError.name === "AbortError") return;
-      setShareLabel("Try again");
-      window.setTimeout(() => setShareLabel("Share"), 2200);
-    }
+    });
   }
 
   function selectScreenLayout(layout: BattleScreenLayout) {

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "@livekit/components-styles";
 import "./globals.css";
+import Talent7ShareSheetHost from "./talent7-share-sheet";
 
 const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.jointalent7.com";
 
@@ -84,7 +85,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Talent7ShareSheetHost />
+      </body>
     </html>
   );
 }

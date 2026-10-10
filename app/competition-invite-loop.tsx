@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { openTalent7Share } from "./talent7-share-sheet";
 
 type MyInviteState = {
   registered: boolean;
@@ -48,7 +49,6 @@ export default function CompetitionInviteLoop({
   const [adminState, setAdminState] = useState<AdminInviteState>({ attributed_registrations: 0, attributed_confirmed: 0, top_inviters: [] });
   const [capturedInvite, setCapturedInvite] = useState("");
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
   const claimAttempted = useRef("");
 
   const loadInviteState = useCallback(async () => {
@@ -102,28 +102,16 @@ export default function CompetitionInviteLoop({
     return `${window.location.origin}/competition/${encodeURIComponent(campaignSlug)}?ref=${encodeURIComponent(myState.invite_code)}`;
   }
 
-  async function shareInvite() {
+  function shareInvite() {
     const url = inviteUrl();
     if (!url) return;
-    setBusy(true);
     setMessage("");
-    try {
-      const shareData = {
-        title: campaignTitle,
-        text: `Help choose and join ${campaignTitle} on Talent7. Registration is free.`,
-        url
-      };
-      if (navigator.share) await navigator.share(shareData);
-      else {
-        await navigator.clipboard.writeText(url);
-        setMessage("Invitation link copied.");
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setMessage("Sharing was unavailable. Use the copy button instead.");
-    } finally {
-      setBusy(false);
-    }
+    openTalent7Share({
+      title: campaignTitle,
+      text: `Help choose and join ${campaignTitle} on Talent7. Registration is free.`,
+      url,
+      onShare: () => setMessage("Invitation shared. Your private registration code was not included.")
+    });
   }
 
   async function copyInvite() {
@@ -155,7 +143,7 @@ export default function CompetitionInviteLoop({
             <p>The link opens this competition directly. Talent7 records only completed registration attribution—there are no referral payments, entry advantages, or ranking boosts.</p>
           </div>
           <div className="competitionInviteStats"><article><strong>{myState.registration_count}</strong><span>joined</span></article><article><strong>{myState.confirmed_count}</strong><span>confirmed</span></article></div>
-          <div className="competitionInviteActions"><code>{myState.invite_code}</code><button disabled={busy} onClick={shareInvite} type="button">{busy ? "Opening..." : "Share invitation"}</button><button className="secondary" onClick={copyInvite} type="button">Copy link</button></div>
+          <div className="competitionInviteActions"><code>{myState.invite_code}</code><button onClick={shareInvite} type="button">Share invitation</button><button className="secondary" onClick={copyInvite} type="button">Copy link</button></div>
           <small>Share this invitation code. Keep your separate registration code private.</small>
         </div>
       )}

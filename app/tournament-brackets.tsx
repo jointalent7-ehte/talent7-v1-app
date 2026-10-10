@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import SponsoredPrizes from "./sponsored-prizes";
+import { openTalent7Share } from "./talent7-share-sheet";
 
 type TournamentStatus = "Registration" | "Live" | "Completed" | "Cancelled";
 type ParticipantMode = "Individuals" | "Teams";
@@ -289,14 +290,14 @@ export default function TournamentBrackets({
     );
   }
 
-  async function shareTournament(tournament: Tournament) {
+  function shareTournament(tournament: Tournament) {
     const url = `${window.location.origin}${window.location.pathname}?tournament=${tournament.id}#tournaments`;
-    if (navigator.share) {
-      await navigator.share({ title: tournament.title, text: `Follow the ${tournament.title} bracket on Talent7.`, url }).catch(() => null);
-    } else {
-      await navigator.clipboard.writeText(url);
-      setMessage("Tournament link copied.");
-    }
+    openTalent7Share({
+      title: tournament.title,
+      text: `Follow the ${tournament.title} bracket on Talent7.`,
+      url,
+      onShare: () => setMessage("Tournament shared.")
+    });
   }
 
   return (

@@ -25646,3 +25646,178 @@ html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > su
     grid-column: 1;
   }
 }
+
+/* Shared social sheet used by every user-facing Share action. */
+.talent7ShareBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: end center;
+  padding: 20px;
+  background: rgba(5, 15, 17, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.talent7ShareSheet {
+  width: min(620px, 100%);
+  max-height: min(760px, calc(100dvh - 24px));
+  overflow: auto;
+  padding: 12px 22px 18px;
+  border: 1px solid rgba(15, 148, 151, 0.3);
+  border-radius: 28px;
+  background: #fff;
+  color: #182427;
+  box-shadow: 0 28px 80px rgba(4, 17, 20, 0.38);
+  animation: talent7ShareUp 180ms ease-out both;
+}
+
+.talent7ShareHandle {
+  width: 48px;
+  height: 5px;
+  margin: 0 auto 12px;
+  border-radius: 99px;
+  background: #cad6d8;
+}
+
+.talent7ShareSheet > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.talent7ShareSheet > header span {
+  color: #087f83;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.talent7ShareSheet > header h2 {
+  margin: 5px 0 0;
+  font-size: clamp(1.2rem, 4vw, 1.55rem);
+  line-height: 1.15;
+}
+
+.talent7ShareClose {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #eef4f4;
+  color: #182427;
+  font-size: 1.65rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.talent7ShareGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 10px;
+  margin-top: 24px;
+}
+
+.talent7ShareGrid button {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #273438;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.talent7ShareGrid button:hover i,
+.talent7ShareGrid button:focus-visible i {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 10px 22px rgba(18, 37, 42, 0.2);
+}
+
+.talent7ShareGrid i {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: #25363a;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 1.35rem;
+  font-style: normal;
+  font-weight: 900;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.talent7ShareGrid i.whatsapp { background: #25d366; }
+.talent7ShareGrid i.instagram { background: linear-gradient(135deg, #7c3aed, #e1306c 55%, #f6a51c); font-size: 2rem; }
+.talent7ShareGrid i.facebook { background: #1877f2; font-size: 1.8rem; }
+.talent7ShareGrid i.x { background: #111; }
+.talent7ShareGrid i.telegram { background: #249bd7; }
+.talent7ShareGrid i.email { background: #ef5b5b; }
+.talent7ShareGrid i.copy { background: linear-gradient(135deg, #109b98, #524ac9); }
+.talent7ShareGrid i.more { background: #e9eff0; color: #26363a; font-size: 1rem; letter-spacing: 0.08em; }
+
+.talent7SharePreview {
+  display: grid;
+  gap: 5px;
+  margin-top: 22px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f0f6f6;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.talent7SharePreview span {
+  font-weight: 750;
+}
+
+.talent7SharePreview small {
+  overflow: hidden;
+  color: #667579;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.talent7ShareStatus {
+  min-height: 1.2em;
+  margin: 10px 0 0;
+  color: #087f83;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+@keyframes talent7ShareUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 700px) {
+  .talent7ShareBackdrop { place-items: center; }
+}
+
+@media (max-width: 520px) {
+  .talent7ShareBackdrop { padding: 0; }
+  .talent7ShareSheet {
+    max-height: calc(100dvh - 16px);
+    padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
+    border-radius: 26px 26px 0 0;
+  }
+  .talent7ShareGrid { gap: 16px 5px; }
+  .talent7ShareGrid i { width: 50px; height: 50px; border-radius: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .talent7ShareSheet { animation: none; }
+}

@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import { openTalent7Share } from "./talent7-share-sheet";
 
 type Club = {
   id: string;
@@ -255,15 +256,10 @@ export default function ClubsScouting({ activities, currentUserId }: { activitie
     );
   }
 
-  async function shareClub(club: Club) {
+  function shareClub(club: Club) {
     const url = `${window.location.origin}${window.location.pathname}?club=${club.id}#teams`;
     const shareData = { title: `${club.name} on Talent7`, text: `Explore ${club.name}, a ${club.main_activity} club on Talent7.`, url };
-    if (navigator.share) {
-      await navigator.share(shareData).catch(() => null);
-      return;
-    }
-    await navigator.clipboard.writeText(`${shareData.text}\n${url}`);
-    setMessage("Club link copied.");
+    openTalent7Share({ ...shareData, onShare: () => setMessage("Club shared.") });
   }
 
   function clubName(clubId: string) {

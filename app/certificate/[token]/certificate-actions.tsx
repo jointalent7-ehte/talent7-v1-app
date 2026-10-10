@@ -1,13 +1,14 @@
 "use client";
 
+import { openTalent7Share } from "../../talent7-share-sheet";
+
 export default function CertificateActions() {
-  async function shareCertificate() {
-    const url = window.location.href;
-    if (navigator.share) {
-      await navigator.share({ title: "Verified Talent7 certificate", url }).catch(() => undefined);
-      return;
-    }
-    await navigator.clipboard.writeText(url).catch(() => undefined);
+  function shareCertificate() {
+    openTalent7Share({
+      title: "Verified Talent7 certificate",
+      text: "View this verified achievement certificate on Talent7.",
+      url: window.location.href
+    });
   }
 
   return (

@@ -23,6 +23,7 @@ import ListenVoiceRoom from "./listen-voice-room";
 import Rivalries from "./rivalries";
 import SupporterPayments from "./supporter-payments";
 import TournamentBrackets from "./tournament-brackets";
+import { openTalent7Share } from "./talent7-share-sheet";
 import TurnstileWidget from "./turnstile-widget";
 
 type ChallengeLane = "Talent battle" | "Sports challenge" | "Mobile gaming challenge";
@@ -7473,7 +7474,7 @@ export default function Home() {
     }
   }
 
-  async function shareChallengeInvite(invite: ChallengeInvite) {
+  function shareChallengeInvite(invite: ChallengeInvite) {
     if (!invite.share_token) {
       setMessage("This invitation does not have a share link yet. Apply the invitation-sharing Supabase migration first.", "warning");
       return;
@@ -7487,20 +7488,13 @@ export default function Home() {
       url
     };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        setMessage("Challenge invitation shared.", "success");
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
-
-    await copyShareText("Challenge invite link", `${shareData.text}\n${url}`);
+    openTalent7Share({
+      ...shareData,
+      onShare: () => setMessage("Challenge invitation shared.", "success")
+    });
   }
 
-  async function shareChallengeResult(challenge: Challenge) {
+  function shareChallengeResult(challenge: Challenge) {
     if (!challenge.result_share_token) {
       setMessage("This result does not have a share link yet. Apply the result-sharing Supabase migration first.", "warning");
       return;
@@ -7508,26 +7502,25 @@ export default function Home() {
 
     const winner = challengeWinnerDisplay(challenge);
     const score = challenge.final_score?.trim();
-    const url = siteUrl(`/result/${challenge.result_share_token}`);
+    const resultShareToken = challenge.result_share_token;
+    const url = siteUrl(`/result/${resultShareToken}`);
     const shareData = {
       title: `${winner} won ${challenge.title} on Talent7`,
       text: `${winner} won ${challenge.title}${score ? ` (${score})` : ""} on Talent7. See the official result, audience votes, rating, and proof count:`,
       url
     };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        void trackGrowthEvent("result_shared", { resourceType: "challenge", resourceToken: challenge.result_share_token, source: "native_share" });
+    openTalent7Share({
+      ...shareData,
+      onShare: (channel) => {
+        void trackGrowthEvent("result_shared", {
+          resourceType: "challenge",
+          resourceToken: resultShareToken,
+          source: channel
+        });
         setMessage("Challenge result shared.", "success");
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
       }
-    }
-
-    await copyShareText("Challenge result link", `${shareData.text}\n${url}`);
-    void trackGrowthEvent("result_shared", { resourceType: "challenge", resourceToken: challenge.result_share_token, source: "copy_link" });
+    });
   }
 
   function openSection(sectionId: string, updateHash = false, historyState: Talent7HistoryState | null = null) {
@@ -9438,7 +9431,7 @@ export default function Home() {
     setTimeout(() => document.getElementById("profile-detail")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
-  async function shareProfile(item: TalentProfile) {
+  function shareProfile(item: TalentProfile) {
     if (!item.share_token) {
       setMessage("This profile does not have a public share link yet. Apply the profile-sharing Supabase migration first.", "warning");
       return;
@@ -9451,20 +9444,13 @@ export default function Home() {
       url
     };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        setMessage(`${item.display_name}'s Talent7 Passport shared.`, "success");
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
-
-    await copyShareText("Talent7 Passport link", `${shareData.text}\n${url}`);
+    openTalent7Share({
+      ...shareData,
+      onShare: () => setMessage(`${item.display_name}'s Talent7 Passport shared.`, "success")
+    });
   }
 
-  async function shareHighlightReel(item: TalentProfile) {
+  function shareHighlightReel(item: TalentProfile) {
     if (!item.share_token) {
       setMessage("Save your profile once before sharing its highlight reel.", "warning");
       return;
@@ -9481,20 +9467,13 @@ export default function Home() {
       url
     };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        setMessage("Highlight reel shared.", "success");
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
-
-    await copyShareText("Highlight reel link", `${shareData.text}\n${url}`);
+    openTalent7Share({
+      ...shareData,
+      onShare: () => setMessage("Highlight reel shared.", "success")
+    });
   }
 
-  async function shareChallengeRoom(challenge: Challenge) {
+  function shareChallengeRoom(challenge: Challenge) {
     if (!challenge.room_share_token) {
       setMessage("This room does not have a public share link yet. Apply the room-sharing Supabase migration first.", "warning");
       return;
@@ -9509,17 +9488,10 @@ export default function Home() {
       url
     };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        setMessage(`${challenge.title} shared.`, "success");
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
-
-    await copyShareText("Challenge room link", `${shareData.text}\n${url}`);
+    openTalent7Share({
+      ...shareData,
+      onShare: () => setMessage(`${challenge.title} shared.`, "success")
+    });
   }
 
   async function toggleSavedRoom(challenge: Challenge) {
@@ -9574,7 +9546,7 @@ export default function Home() {
     setSavingRoomId(null);
   }
 
-  async function shareTeam(team: TalentTeam) {
+  function shareTeam(team: TalentTeam) {
     if (!team.share_token) {
       setMessage("This team does not have a public share link yet. Apply the team-sharing Supabase migration first.", "warning");
       return;
@@ -9587,36 +9559,22 @@ export default function Home() {
       url
     };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        setMessage(`${team.name} shared.`, "success");
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
-
-    await copyShareText("Team link", `${shareData.text}\n${url}`);
+    openTalent7Share({
+      ...shareData,
+      onShare: () => setMessage(`${team.name} shared.`, "success")
+    });
   }
 
-  async function copyShowcaseLink(post: ShowcasePost) {
+  function shareShowcasePost(post: ShowcasePost) {
     const link = `${window.location.origin}${window.location.pathname}#${showcaseHash(post.id)}`;
-
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = link;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    }
-
     setHighlightedShowcasePostId(post.id);
-    setMessage("Showcase post link copied.");
     window.setTimeout(() => setHighlightedShowcasePostId(null), 2600);
+    openTalent7Share({
+      title: `${profileDisplayName(post.user_id)} on Talent7`,
+      text: post.caption || `View this ${post.category.toLowerCase()} post on Talent7.`,
+      url: link,
+      onShare: () => setMessage("Showcase post shared.", "success")
+    });
   }
 
   async function toggleFollow(item: TalentProfile) {
@@ -12722,17 +12680,27 @@ export default function Home() {
           <details className="heroTools">
             <summary>Share and launch tools</summary>
             <div className="heroToolsGrid">
-              <button onClick={() => copyShareText("Talent7 link", siteUrl())} type="button">Copy invite link</button>
+              <button
+                onClick={() => openTalent7Share({
+                  title: "Join Talent7",
+                  text: "Compete in proof-based talent and sports challenges, vote, rate performances, and build your Talent7 Passport.",
+                  url: siteUrl()
+                })}
+                type="button"
+              >
+                Share Talent7
+              </button>
               <button
                 onClick={() =>
-                  copyShareText(
-                    "Challenge invite",
-                    `Join me on Talent7 for proof-based challenge rooms. You can compete, vote winners, rate out of 7, and upload victory proof.\n\nStart here: ${siteUrl("#rooms")}`
-                  )
+                  openTalent7Share({
+                    title: "Challenge me on Talent7",
+                    text: "Join me on Talent7 for proof-based challenge rooms. You can compete, vote for winners, rate out of 7, and upload victory proof.",
+                    url: siteUrl("#rooms")
+                  })
                 }
                 type="button"
               >
-                Copy challenge invite
+                Share challenge invite
               </button>
               <button onClick={() => startFounderFeedback("Bug")} type="button">Report a bug</button>
               <a href="#plans">Support Talent7</a>
@@ -13979,7 +13947,7 @@ export default function Home() {
                 <div className="showcaseMeta">
                   <small>{post.media_type}</small>
                   <a href={post.media_url} rel="noreferrer" target="_blank">Open post</a>
-                  <button onClick={() => copyShowcaseLink(post)} type="button">Copy post link</button>
+                  <button onClick={() => shareShowcasePost(post)} type="button">Share post</button>
                   {canDeleteUserContent(post.user_id) && (
                     <button
                       className="dangerAction"

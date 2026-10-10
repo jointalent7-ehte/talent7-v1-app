@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { openTalent7Share } from "./talent7-share-sheet";
 
 type RivalryStatus = "Pending" | "Active" | "Declined" | "Ended";
 
@@ -224,14 +225,14 @@ export default function Rivalries({
     );
   }
 
-  async function shareRivalry(rivalry: Rivalry) {
+  function shareRivalry(rivalry: Rivalry) {
     const url = `${window.location.origin}${window.location.pathname}?rivalry=${rivalry.id}#rivalries`;
-    if (navigator.share) {
-      await navigator.share({ title: `${rivalry.requester_name} vs ${rivalry.opponent_name}`, text: `Follow this ${rivalry.activity} rivalry on Talent7.`, url }).catch(() => null);
-    } else {
-      await navigator.clipboard.writeText(url);
-      setMessage("Rivalry link copied.");
-    }
+    openTalent7Share({
+      title: `${rivalry.requester_name} vs ${rivalry.opponent_name}`,
+      text: `Follow this ${rivalry.activity} rivalry on Talent7.`,
+      url,
+      onShare: () => setMessage("Rivalry shared.")
+    });
   }
 
   function rivalName(rivalry: Rivalry, userId: string) {

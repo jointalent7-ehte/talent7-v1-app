@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
+import { openTalent7Share } from "./talent7-share-sheet";
 
 type ChallengeSkillLevel = "Open" | "Beginner" | "Intermediate" | "Advanced" | "Pro";
 type ChallengeMode = "Either" | "In person" | "Online";
@@ -327,19 +328,15 @@ export default function ChallengeStarterHub({
     }
   }
 
-  async function shareActivity() {
+  function shareActivity() {
     const url = `${window.location.origin}/?activity=${encodeURIComponent(selectedActivity)}#challenge-now`;
     const text = `Challenge me in ${selectedActivity} on Talent7.`;
-    try {
-      if (navigator.share) await navigator.share({ title: "Talent7 challenge", text, url });
-      else {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
-        setMessage("Challenge invite copied.");
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setMessage("Could not share this challenge link.");
-    }
+    openTalent7Share({
+      title: "Talent7 challenge",
+      text,
+      url,
+      onShare: () => setMessage("Challenge link shared.")
+    });
   }
 
   return (
