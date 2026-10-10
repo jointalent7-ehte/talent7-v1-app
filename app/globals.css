@@ -3759,6 +3759,11 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   border-radius: 18px;
 }
 
+.challengeBenchmarkCard.sharedBenchmarkCard {
+  border-color: #0f9b98;
+  box-shadow: 0 0 0 4px rgba(15, 155, 152, 0.13), 0 16px 34px rgba(20, 74, 77, 0.12);
+}
+
 .challengeBenchmarkTopline {
   display: flex;
   align-items: center;
@@ -3841,6 +3846,12 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   color: #111719;
   background: #eef3f3;
   border-color: #d6e0e1;
+}
+
+.challengeBenchmarkActions button.benchmarkShareButton {
+  color: #fff;
+  background: linear-gradient(135deg, #0f9794, #5147c8);
+  border-color: transparent;
 }
 
 .benchmarkAttemptForm,

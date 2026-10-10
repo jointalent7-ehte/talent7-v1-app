@@ -152,6 +152,7 @@ export default function ChallengeStarterHub({
   const [attempts, setAttempts] = useState<BenchmarkAttempt[]>([]);
   const [queue, setQueue] = useState<MatchQueueItem[]>([]);
   const [selectedBenchmarkId, setSelectedBenchmarkId] = useState("");
+  const [sharedBenchmarkId, setSharedBenchmarkId] = useState("");
   const [selectedActivity, setSelectedActivity] = useState(initialActivity);
   const [selectedSkill, setSelectedSkill] = useState<ChallengeSkillLevel>(skillLevel);
   const [selectedMode, setSelectedMode] = useState<ChallengeMode>(playMode);
@@ -169,6 +170,18 @@ export default function ChallengeStarterHub({
       setSelectedActivity(mainInterest);
     }
   }, [activities, mainInterest]);
+
+  useEffect(() => {
+    const sharedBenchmarkSlug = new URLSearchParams(window.location.search).get("benchmark");
+    if (!sharedBenchmarkSlug) return;
+    const sharedBenchmark = benchmarks.find((benchmark) => benchmark.slug === sharedBenchmarkSlug);
+    if (!sharedBenchmark) return;
+    setSharedBenchmarkId(sharedBenchmark.id);
+    setSelectedActivity(sharedBenchmark.activity);
+    window.setTimeout(() => {
+      document.getElementById(`benchmark-${sharedBenchmark.slug}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+  }, [benchmarks]);
 
   useEffect(() => setSelectedSkill(skillLevel), [skillLevel]);
   useEffect(() => setSelectedMode(playMode), [playMode]);
@@ -339,6 +352,18 @@ export default function ChallengeStarterHub({
     });
   }
 
+  function shareBenchmark(benchmark: Benchmark, personalBest?: number) {
+    const result = personalBest === undefined ? "" : formatResult(personalBest, benchmark.unit);
+    openTalent7Share({
+      title: personalBest === undefined ? benchmark.title : `${displayName || "Talent7 challenger"}'s benchmark`,
+      text: personalBest === undefined
+        ? `Try the ${benchmark.title} with me on Talent7. Read the rules, record your result, and challenge someone to beat it.`
+        : `${displayName || "A Talent7 challenger"} recorded a self-reported personal best of ${result} on the ${benchmark.title}. Can you beat it?`,
+      url: `${window.location.origin}/?benchmark=${encodeURIComponent(benchmark.slug)}#challenge-now`,
+      onShare: () => setMessage(personalBest === undefined ? "Benchmark shared." : "Personal best shared.")
+    });
+  }
+
   return (
     <section className="section challengeStarterSection" id="challenge-now">
       <div className="sectionHeader challengeStarterHeader">
@@ -377,7 +402,11 @@ export default function ChallengeStarterHub({
               const personalBest = personalBests.get(benchmark.id);
               const recording = selectedBenchmarkId === benchmark.id;
               return (
-                <article className="challengeBenchmarkCard" key={benchmark.id}>
+                <article
+                  className={`challengeBenchmarkCard${sharedBenchmarkId === benchmark.id ? " sharedBenchmarkCard" : ""}`}
+                  id={`benchmark-${benchmark.slug}`}
+                  key={benchmark.id}
+                >
                   <div className="challengeBenchmarkTopline">
                     <span>{benchmark.duration_seconds ? `${benchmark.duration_seconds}s` : "Open timer"}</span>
                     {personalBest !== undefined && <strong>Best: {formatResult(personalBest, benchmark.unit)}</strong>}
@@ -422,6 +451,9 @@ export default function ChallengeStarterHub({
                         type="button"
                       >
                         Open to a rival
+                      </button>
+                      <button className="benchmarkShareButton" onClick={() => shareBenchmark(benchmark, personalBest)} type="button">
+                        {personalBest === undefined ? "Share benchmark" : "Share my best"}
                       </button>
                     </div>
                   )}
