@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
+import BrandedBenchmarkVideo from "./branded-benchmark-video";
 import { openTalent7Share } from "./talent7-share-sheet";
 
 type ChallengeSkillLevel = "Open" | "Beginner" | "Intermediate" | "Advanced" | "Pro";
@@ -156,6 +157,18 @@ function readableError(error: unknown, fallback: string) {
     return error.message;
   }
   return fallback;
+}
+
+function cleanUploadFileName(name: string) {
+  return name
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 90) || "benchmark-video.mp4";
+}
+
+function isTalent7UploadedVideo(url: string | null) {
+  return Boolean(url && (url.includes("/challenge-proofs/") || url.includes("/storage/v1/object/public/challenge-proofs/")));
 }
 
 export default function ChallengeStarterHub({
@@ -504,37 +517,111 @@ export default function ChallengeStarterHub({
     setBusyAction("");
   }
 
+  async function uploadBenchmarkProofVideo(file: File, attemptId: string) {
+    if (!supabase || !userId) throw new Error("Log in again before uploading benchmark footage.");
+    const contentType = file.type.toLowerCase() || (file.name.toLowerCase().endsWith(".mov") ? "video/quicktime" : "video/mp4");
+    if (!["video/mp4", "video/quicktime"].includes(contentType)) {
+      throw new Error("Use an MP4 or MOV video for benchmark proof.");
+    }
+    if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
+      throw new Error("Benchmark videos must be 50 MB or smaller.");
+    }
+
+    let { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session?.access_token) {
+      const refreshed = await supabase.auth.refreshSession();
+      sessionData = refreshed.data;
+    }
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) throw new Error("Your upload session expired. Sign in again before uploading footage.");
+
+    const prepareResponse = await fetch("/api/media", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        kind: "challenge-proofs",
+        folder: `benchmark-${attemptId}`,
+        fileName: cleanUploadFileName(file.name),
+        contentType,
+        size: file.size
+      })
+    });
+
+    if (prepareResponse.ok) {
+      const prepared = (await prepareResponse.json()) as { uploadUrl?: string; publicUrl?: string };
+      if (!prepared.uploadUrl || !prepared.publicUrl) throw new Error("The media service returned an incomplete upload address.");
+      const uploadResponse = await fetch(prepared.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": contentType },
+        body: file
+      });
+      if (!uploadResponse.ok) throw new Error(`Video upload failed with status ${uploadResponse.status}.`);
+      return prepared.publicUrl;
+    }
+
+    if (prepareResponse.status !== 503) {
+      const result = (await prepareResponse.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(result?.error || "Talent7 could not prepare the video upload.");
+    }
+
+    const storagePath = `${userId}/benchmark-proofs/${attemptId}/${crypto.randomUUID()}-${cleanUploadFileName(file.name)}`;
+    const { error } = await supabase.storage.from("challenge-proofs").upload(storagePath, file, {
+      cacheControl: "3600",
+      contentType,
+      upsert: false
+    });
+    if (error) throw error;
+    return supabase.storage.from("challenge-proofs").getPublicUrl(storagePath).data.publicUrl;
+  }
+
   async function submitBenchmarkProof(event: FormEvent<HTMLFormElement>, attempt: BenchmarkAttempt) {
     event.preventDefault();
     if (!supabase || !userId) return;
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const proofType = String(form.get("proof_type") || "Video");
-    const proofUrl = String(form.get("proof_url") || "").trim();
+    const proofFile = form.get("proof_file");
+    let proofType = String(form.get("proof_type") || "Video");
+    let proofUrl = String(form.get("proof_url") || "").trim();
     setBusyAction(`proof-${attempt.id}`);
     setMessage("");
-    const { data, error } = await supabase.rpc("submit_talent7_benchmark_proof", {
-      target_attempt_id: attempt.id,
-      target_proof_type: proofType,
-      target_proof_url: proofUrl
-    });
-    if (error) {
+    try {
+      if (proofFile instanceof File && proofFile.size > 0) {
+        proofType = "Video";
+        setMessage("Uploading your original benchmark video…");
+        proofUrl = await uploadBenchmarkProofVideo(proofFile, attempt.id);
+      }
+      if (!proofUrl) throw new Error("Upload a video or enter an HTTPS proof link.");
+
+      const { data, error } = await supabase.rpc("submit_talent7_benchmark_proof", {
+        target_attempt_id: attempt.id,
+        target_proof_type: proofType,
+        target_proof_url: proofUrl
+      });
+      if (error) throw error;
+      if (data) {
+        const updatedAttempt = data as BenchmarkAttempt;
+        setAttempts((items) => items.map((item) => (
+          item.benchmark_id === attempt.benchmark_id
+            ? item.id === updatedAttempt.id
+              ? updatedAttempt
+              : { ...item, leaderboard_visible: false }
+            : item
+        )));
+        setMessage(proofFile instanceof File && proofFile.size > 0
+          ? "Video uploaded for review. You can now create a Talent7-branded share copy below."
+          : "Proof submitted privately for review. Your link is not shown on the public leaderboard.");
+        formElement.reset();
+        void loadBenchmarkLeaderboard();
+        void loadBenchmarkProofQueue();
+      }
+    } catch (error) {
       setMessage(readableError(error, "The proof could not be submitted."));
-    } else if (data) {
-      const updatedAttempt = data as BenchmarkAttempt;
-      setAttempts((items) => items.map((item) => (
-        item.benchmark_id === attempt.benchmark_id
-          ? item.id === updatedAttempt.id
-            ? updatedAttempt
-            : { ...item, leaderboard_visible: false }
-          : item
-      )));
-      setMessage("Proof submitted privately for review. Your link is not shown on the public leaderboard.");
-      formElement.reset();
-      void loadBenchmarkLeaderboard();
-      void loadBenchmarkProofQueue();
+    } finally {
+      setBusyAction("");
     }
-    setBusyAction("");
   }
 
   async function reviewBenchmarkProof(attemptId: string, decision: "Verified" | "Rejected") {
@@ -687,6 +774,12 @@ export default function ChallengeStarterHub({
                           {personalBestAttempt.review_note && <p>{personalBestAttempt.review_note}</p>}
                           <form onSubmit={(event) => void submitBenchmarkProof(event, personalBestAttempt)}>
                             <label>
+                              Upload repetition video (recommended)
+                              <input accept="video/mp4,video/quicktime" name="proof_file" type="file" />
+                            </label>
+                            <small>MP4 or MOV, up to 50 MB. Use a stable angle with your full movement visible.</small>
+                            <span className="benchmarkProofOr">or use an existing link</span>
+                            <label>
                               Proof type
                               <select defaultValue="Video" name="proof_type">
                                 <option>Video</option>
@@ -696,14 +789,23 @@ export default function ChallengeStarterHub({
                             </label>
                             <label>
                               Public or unlisted HTTPS link
-                              <input name="proof_url" placeholder="https://…" required type="url" />
+                              <input name="proof_url" placeholder="https://…" type="url" />
                             </label>
                             <small>The link is visible only to you and Talent7 reviewers, never on the public leaderboard.</small>
                             <button disabled={busyAction === `proof-${personalBestAttempt.id}`} type="submit">
-                              {busyAction === `proof-${personalBestAttempt.id}` ? "Submitting…" : "Submit proof privately"}
+                              {busyAction === `proof-${personalBestAttempt.id}` ? "Uploading and submitting…" : "Upload and submit proof"}
                             </button>
                           </form>
                         </details>
+                      )}
+                      {personalBestAttempt.proof_type === "Video" && isTalent7UploadedVideo(personalBestAttempt.proof_url) && (
+                        <BrandedBenchmarkVideo
+                          benchmarkTitle={benchmark.title}
+                          challengerName={displayName || "Anonymous challenger"}
+                          scoreLabel={formatResult(Number(personalBestAttempt.score), benchmark.unit)}
+                          verificationStatus={personalBestAttempt.verification_status}
+                          videoUrl={personalBestAttempt.proof_url || ""}
+                        />
                       )}
                     </div>
                   )}
