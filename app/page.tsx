@@ -12567,7 +12567,9 @@ export default function Home() {
       ? founderFeedback.filter((feedback) => feedback.status === "New").length
       : 0
   };
-  const moreAttentionSections = Object.values(moreTabCounts).filter((count) => (count || 0) > 0).length;
+  const moreAttentionSections = Object.entries(moreTabCounts).filter(
+    ([tabId, count]) => tabId !== "notifications" && (count || 0) > 0,
+  ).length;
 
   if (isPasswordRecovery && session) {
     return (
