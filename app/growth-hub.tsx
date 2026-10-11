@@ -76,6 +76,18 @@ type RewardEvent = {
   created_at: string;
 };
 
+type WeeklyMission = {
+  mission_key: string;
+  title: string;
+  detail: string;
+  progress: number;
+  target: number;
+  completed: boolean;
+  week_start: string;
+  week_ends_at: string;
+  reward_claimed: boolean;
+};
+
 type LocalLeaderboardScope = "Area" | "City" | "Country" | "Global";
 
 type LocalLeaderboardEntry = {
@@ -149,6 +161,7 @@ export default function GrowthHub({
   const [activityRanks, setActivityRanks] = useState<ActivityRank[]>([]);
   const [trophies, setTrophies] = useState<Trophy[]>([]);
   const [rewardEvents, setRewardEvents] = useState<RewardEvent[]>([]);
+  const [weeklyMissions, setWeeklyMissions] = useState<WeeklyMission[]>([]);
   const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>([]);
   const [localLeaderboardScope, setLocalLeaderboardScope] = useState<LocalLeaderboardScope>(
     area ? "Area" : city ? "City" : country ? "Country" : "Global"
@@ -182,6 +195,9 @@ export default function GrowthHub({
       .eq("status", "Active")
       .maybeSingle();
     const currentSeason = (seasonRow || null) as Talent7Season | null;
+    // Claim a newly completed weekly set before reading the rank profile so the
+    // awarded XP is reflected immediately in the same refresh.
+    const { data: weeklyMissionRows } = await supabase.rpc("get_my_weekly_missions");
     const [
       { data: achievementRows },
       { data: leagueRows },
@@ -234,6 +250,7 @@ export default function GrowthHub({
     setActivityRanks((activityRows || []) as ActivityRank[]);
     setTrophies((trophyRows || []) as Trophy[]);
     setRewardEvents((rewardRows || []) as RewardEvent[]);
+    setWeeklyMissions((weeklyMissionRows || []) as WeeklyMission[]);
     setAchievements((achievementRows || []) as Achievement[]);
     setLeagues(((leagueRows || []) as League[]).map((league) => ({
       ...league,
@@ -325,6 +342,7 @@ export default function GrowthHub({
   const rankProgress = tierProgress(talent7Rank?.rank_points || 0);
   const latestReward = rewardEvents[0] || null;
   const masteryTitles = trophies.filter((trophy) => trophy.icon_key.startsWith("mastery-"));
+  const weeklyMissionComplete = weeklyMissions.length > 0 && weeklyMissions.every((mission) => mission.completed);
   const winRate = talent7Rank?.completed_count
     ? Math.round((talent7Rank.wins / talent7Rank.completed_count) * 100)
     : 0;
@@ -505,6 +523,28 @@ export default function GrowthHub({
       </section>
 
       <div className="growthHubGrid">
+        <article className={`weeklyMissionCard ${weeklyMissionComplete ? "complete" : ""}`}>
+          <span>{weeklyMissionComplete ? "30 XP claimed" : "Weekly charge · 30 XP"}</span>
+          <h4>{weeklyMissionComplete ? "Mission set complete" : "Three moves this week"}</h4>
+          {weeklyMissions.length > 0 ? (
+            <div className="weeklyMissionList">
+              {weeklyMissions.map((mission) => (
+                <div className={mission.completed ? "done" : ""} key={mission.mission_key}>
+                  <i aria-hidden="true">{mission.completed ? "✓" : mission.progress}</i>
+                  <span>
+                    <strong>{mission.title}</strong>
+                    <small>{mission.detail}</small>
+                  </span>
+                  <b>{mission.progress}/{mission.target}</b>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>Run the weekly-missions Supabase update to activate this checklist.</p>
+          )}
+          <small className="weeklyMissionNote">Resets Monday · seasonal XP only · no Rank Points</small>
+        </article>
+
         <article>
           <span className={`growthStatus ${readyNow ? "live" : ""}`}>{readyNow ? "Ready Now" : "Not active"}</span>
           <h4>Play soon</h4>
