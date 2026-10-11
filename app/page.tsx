@@ -19,6 +19,7 @@ import ChallengeStarterHub, { type ChallengeStarterSeed } from "./challenge-star
 import CommunityCompetitionLaunchpad from "./community-competition-launchpad";
 import ClubsScouting from "./clubs-scouting";
 import GrowthHub from "./growth-hub";
+import ColdStartFunnel from "./cold-start-funnel";
 import ListenVoiceRoom from "./listen-voice-room";
 import Rivalries from "./rivalries";
 import SupporterPayments from "./supporter-payments";
@@ -16824,6 +16825,7 @@ export default function Home() {
                 userId={session.user.id}
               />
             )}
+            {isOwnerReviewer && <ColdStartFunnel />}
             <div className="dashboardSectionHeader">
               <div>
                 <span>Quick actions</span>

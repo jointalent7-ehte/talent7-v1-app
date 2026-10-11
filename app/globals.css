@@ -9083,6 +9083,131 @@ textarea {
   font-weight: 800;
 }
 
+.coldStartFunnel {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(91, 130, 245, 0.16), transparent 36%),
+    color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+.coldStartFunnel > header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.coldStartFunnel > header span {
+  color: var(--teal);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coldStartFunnel > header h3 {
+  margin: 5px 0;
+}
+
+.coldStartFunnel > header small,
+.coldStartFunnelRows small {
+  color: var(--muted);
+}
+
+.coldStartFunnel > header > div:last-child {
+  display: flex;
+  gap: 6px;
+}
+
+.coldStartFunnel > header button {
+  min-height: 36px;
+  padding: 7px 11px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.coldStartFunnel > header button.active {
+  color: #fff;
+  background: #315fcf;
+  border-color: #315fcf;
+}
+
+.coldStartFunnelRows {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.coldStartFunnelRows article {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto 58px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.coldStartFunnelRows article > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: #17332e;
+  background: #79e2c3;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 950;
+}
+
+.coldStartFunnelRows article > div {
+  display: grid;
+  gap: 7px;
+}
+
+.coldStartFunnelRows i {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 65%, var(--line));
+  border-radius: 999px;
+}
+
+.coldStartFunnelRows i b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #31cfa6, #5b82f5);
+  border-radius: inherit;
+}
+
+.coldStartFunnelRows article > small {
+  text-align: right;
+}
+
+.coldStartFunnelNotice {
+  color: #a65b00;
+}
+
+@media (max-width: 640px) {
+  .coldStartFunnel > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .coldStartFunnelRows article {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+  }
+
+  .coldStartFunnelRows article > small {
+    grid-column: 2;
+    text-align: left;
+  }
+}
+
 .growthHubGrid article > span,
 .growthStatus {
   color: var(--muted);
