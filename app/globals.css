@@ -26653,13 +26653,25 @@ html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > su
   .appTabs button[data-primary-tab="create"] {
     position: relative;
     display: grid;
-    min-height: 70px;
-    margin: -22px 0 1px;
+    width: calc(100% + 12px);
+    min-height: 78px;
+    justify-self: center;
+    margin: -29px -6px 0;
+    padding: 10px 4px 8px;
     color: #fff;
     background: linear-gradient(145deg, #0a918d, #4f46c5);
     border: 4px solid #fff;
-    border-radius: 23px;
+    border-radius: 25px;
     box-shadow: 0 14px 30px rgba(25, 70, 87, 0.32);
+  }
+
+  .appTabs button[data-primary-tab="create"] .mobileNavIcon {
+    width: 27px;
+    height: 27px;
+  }
+
+  .appTabs button[data-primary-tab="create"] .mobileNavLabel {
+    font-size: 0.68rem;
   }
 
   .appTabs button[data-primary-tab="create"].active {
