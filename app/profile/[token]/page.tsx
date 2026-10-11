@@ -104,7 +104,7 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
       <GrowthEvent eventName="shared_link_view" resourceToken={token} resourceType="profile" source="talent7_passport" />
       <div className="profileLandingShell">
         <header className="inviteLandingBrand"><Link href="/">Talent<span>7</span></Link><span>Talent7 Passport</span></header>
-        <section className="profilePreviewCard">
+        <section className="profilePreviewCard" data-supporter-tier={profile.supporter_tier || undefined}>
           <div className="passportStatusLine"><span>Verified competitive identity</span><small>{passport?.season?.name || "Talent7 League"}</small></div>
 
           <div className="profilePreviewIdentity">
@@ -112,7 +112,9 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
               {profile.avatar_url ? <img alt="" src={profile.avatar_url} /> : profileInitials(profile.display_name)}
             </div>
             <div>
-              <span className="profilePreviewBadge">{profile.supporter_tier ? `★ ${supporterTierLabel(profile.supporter_tier as SupporterTier)}` : "Talent7 member"}</span>
+              <span className="profilePreviewBadge" data-supporter-tier={profile.supporter_tier || undefined}>
+                {profile.supporter_tier ? `★ ${supporterTierLabel(profile.supporter_tier as SupporterTier)}` : "Talent7 member"}
+              </span>
               <h1>{profile.display_name}</h1><p>@{profile.username}</p>
               {profile.headline && <strong className="passportHeadline">{profile.headline}</strong>}
             </div>

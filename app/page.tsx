@@ -16513,7 +16513,11 @@ export default function Home() {
           </small>
         </div>
         {selectedProfile && selectedProfileSummary && (
-          <div className="profileDetailPanel" id="profile-detail">
+          <div
+            className="profileDetailPanel"
+            data-supporter-tier={supporterTierByUser[selectedProfile.user_id] || undefined}
+            id="profile-detail"
+          >
             <div className="profileDetailHeader">
               <div>
                 <p className="eyebrow">Profile detail</p>
@@ -16544,7 +16548,9 @@ export default function Home() {
             </div>
             <div className="trustBadgeRow">
               {supporterTierByUser[selectedProfile.user_id] && (
-                <span className="supporterProfileBadge">★ {supporterTierLabel(supporterTierByUser[selectedProfile.user_id])}</span>
+                <span className="supporterProfileBadge" data-supporter-tier={supporterTierByUser[selectedProfile.user_id]}>
+                  ★ {supporterTierLabel(supporterTierByUser[selectedProfile.user_id])}
+                </span>
               )}
               {profileTrustBadges(selectedProfile).length > 0 ? (
                 profileTrustBadges(selectedProfile).map((badge) => <span key={badge}>{badge}</span>)
@@ -16665,7 +16671,7 @@ export default function Home() {
               {pagedProfiles.map((item) => {
                 const matchReasons = profileDiscoveryReasons(item, profile);
                 return (
-              <article key={item.user_id}>
+              <article data-supporter-tier={supporterTierByUser[item.user_id] || undefined} key={item.user_id}>
                 <strong>{item.display_name}</strong>
                 <span>@{item.username}</span>
                 {matchReasons.length > 0 && (
@@ -16684,7 +16690,9 @@ export default function Home() {
                 </div>
                 <div className="trustBadgeRow compact">
                   {supporterTierByUser[item.user_id] && (
-                    <span className="supporterProfileBadge">★ {supporterTierLabel(supporterTierByUser[item.user_id])}</span>
+                    <span className="supporterProfileBadge" data-supporter-tier={supporterTierByUser[item.user_id]}>
+                      ★ {supporterTierLabel(supporterTierByUser[item.user_id])}
+                    </span>
                   )}
                   {profileTrustBadges(item).length > 0 ? (
                     profileTrustBadges(item).slice(0, 3).map((badge) => <span key={badge}>{badge}</span>)
@@ -17279,7 +17287,11 @@ export default function Home() {
                       .toUpperCase();
 
                     return (
-                      <article className="opponentCard" key={item.user_id}>
+                      <article
+                        className="opponentCard"
+                        data-supporter-tier={supporterTierByUser[item.user_id] || undefined}
+                        key={item.user_id}
+                      >
                         <div className="opponentIdentity">
                           <span aria-hidden="true" className={`opponentAvatar${showAvatar ? " hasPhoto" : ""}`}>
                             {initials || "T7"}
@@ -17309,6 +17321,11 @@ export default function Home() {
                         {item.availability_note && <p>{item.availability_note}</p>}
                         <div className="trustBadgeRow compact">
                           <span>{followCounts[item.user_id]?.followers || 0} followers</span>
+                          {supporterTierByUser[item.user_id] && (
+                            <span className="supporterProfileBadge" data-supporter-tier={supporterTierByUser[item.user_id]}>
+                              ★ {supporterTierLabel(supporterTierByUser[item.user_id])}
+                            </span>
+                          )}
                           {profileTrustBadges(item).slice(0, 2).map((badge) => <span key={badge}>{badge}</span>)}
                         </div>
                         <div className="opponentActions">

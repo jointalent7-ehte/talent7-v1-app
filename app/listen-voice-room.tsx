@@ -15,6 +15,10 @@ type JoinCredentials = {
   role: "Host" | "Speaker" | "Listener";
 };
 
+type VoiceParticipantMetadata = {
+  supporterTier?: "Supporter" | "Champion Supporter" | "Founder Supporter" | null;
+};
+
 type ListenVoiceRoomProps = {
   accessToken: string;
   areaLabel: string;
@@ -22,6 +26,20 @@ type ListenVoiceRoomProps = {
   roomId: string;
   title: string;
 };
+
+function participantSupporterTier(metadata?: string) {
+  if (!metadata) return null;
+  try {
+    const parsed = JSON.parse(metadata) as VoiceParticipantMetadata;
+    return (["Supporter", "Champion Supporter", "Founder Supporter"] as const).includes(
+      parsed.supporterTier as "Supporter" | "Champion Supporter" | "Founder Supporter"
+    )
+      ? parsed.supporterTier || null
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 function AudioRoomStage({ can_publish: canPublish, role }: Pick<JoinCredentials, "can_publish" | "role">) {
   const participants = useParticipants();
@@ -31,10 +49,12 @@ function AudioRoomStage({ can_publish: canPublish, role }: Pick<JoinCredentials,
       <div className="listenVoicePeople" aria-label={`${participants.length} people in the voice room`}>
         {participants.map((participant) => {
           const name = participant.name || "Talent7 member";
+          const supporterTier = participantSupporterTier(participant.metadata);
           return (
-            <span key={participant.identity} title={name}>
+            <span data-supporter-tier={supporterTier || undefined} key={participant.identity} title={name}>
               <b aria-hidden="true">{name.trim().slice(0, 1).toUpperCase()}</b>
               <small>{name}</small>
+              {supporterTier && <em className="listenSupporterFlair">★ {supporterTier}</em>}
             </span>
           );
         })}

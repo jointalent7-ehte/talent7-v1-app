@@ -8948,6 +8948,66 @@ textarea {
   background: color-mix(in srgb, var(--surface) 88%, transparent);
 }
 
+.weeklyMissionCard {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 208, 67, 0.2), transparent 42%),
+    color-mix(in srgb, var(--surface) 88%, transparent) !important;
+}
+
+.weeklyMissionCard.complete {
+  border-color: rgba(55, 201, 159, 0.55);
+}
+
+.weeklyMissionList,
+.weeklyMissionList > div,
+.weeklyMissionList > div > span {
+  display: grid;
+  gap: 6px;
+}
+
+.weeklyMissionList > div {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.weeklyMissionList i {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 72%, var(--line));
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.weeklyMissionList .done i {
+  color: #063e31;
+  background: #75e4c4;
+  border-color: #75e4c4;
+}
+
+.weeklyMissionList small,
+.weeklyMissionNote {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.weeklyMissionList b {
+  color: var(--teal);
+  font-size: 0.75rem;
+}
+
+.weeklyMissionNote {
+  padding-top: 3px;
+  font-weight: 750;
+}
+
 .growthHubGrid article > span,
 .growthStatus {
   color: var(--muted);
@@ -13908,6 +13968,35 @@ body:has(.publicRoomLanding) {
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 900;
+}
+
+:where(.profileGrid article, .profileDetailPanel, .opponentCard, .profilePreviewCard)[data-supporter-tier="Supporter"] {
+  border-color: rgba(64, 205, 191, 0.72);
+  box-shadow: 0 16px 42px rgba(39, 177, 164, 0.15);
+}
+
+:where(.profileGrid article, .profileDetailPanel, .opponentCard, .profilePreviewCard)[data-supporter-tier="Champion Supporter"] {
+  border-color: rgba(102, 111, 236, 0.78);
+  box-shadow: 0 16px 46px rgba(77, 91, 218, 0.2), inset 0 3px 0 rgba(86, 211, 201, 0.72);
+}
+
+:where(.profileGrid article, .profileDetailPanel, .opponentCard, .profilePreviewCard)[data-supporter-tier="Founder Supporter"] {
+  border-color: rgba(239, 179, 49, 0.9);
+  box-shadow: 0 18px 52px rgba(224, 142, 27, 0.24), inset 0 3px 0 rgba(255, 215, 91, 0.9);
+}
+
+.supporterProfileBadge[data-supporter-tier="Champion Supporter"],
+.profilePreviewBadge[data-supporter-tier="Champion Supporter"] {
+  color: #f6f5ff;
+  background: linear-gradient(135deg, #2e9e9a, #5559d8);
+  border-color: rgba(139, 220, 226, 0.68);
+}
+
+.supporterProfileBadge[data-supporter-tier="Founder Supporter"],
+.profilePreviewBadge[data-supporter-tier="Founder Supporter"] {
+  color: #281803;
+  background: linear-gradient(135deg, #ffe27a, #e99b2e);
+  border-color: rgba(255, 225, 117, 0.95);
 }
 
 @media (max-width: 820px) {
@@ -20701,6 +20790,45 @@ body:has(.publicRoomLanding) {
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.listenVoicePeople > span[data-supporter-tier] b {
+  box-shadow: 0 0 0 4px rgba(94, 234, 212, 0.22), 0 0 20px rgba(94, 234, 212, 0.28);
+}
+
+.listenVoicePeople > span[data-supporter-tier="Champion Supporter"] b {
+  color: #fff;
+  background: linear-gradient(135deg, #2e9e9a, #5559d8);
+  border-color: #a6eced;
+}
+
+.listenVoicePeople > span[data-supporter-tier="Founder Supporter"] b {
+  color: #321b00;
+  background: linear-gradient(135deg, #ffe27a, #e99b2e);
+  border-color: #fff0b2;
+  box-shadow: 0 0 0 4px rgba(255, 210, 78, 0.2), 0 0 22px rgba(255, 178, 47, 0.32);
+}
+
+.listenSupporterFlair {
+  width: max-content;
+  max-width: 92px;
+  padding: 3px 6px;
+  overflow: hidden;
+  color: #9cf2e7;
+  background: rgba(77, 101, 219, 0.2);
+  border: 1px solid rgba(111, 226, 215, 0.28);
+  border-radius: 999px;
+  font-size: 0.56rem;
+  font-style: normal;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listenVoicePeople > span[data-supporter-tier="Founder Supporter"] .listenSupporterFlair {
+  color: #ffdc6b;
+  background: rgba(255, 188, 53, 0.1);
+  border-color: rgba(255, 214, 99, 0.34);
 }
 
 .listenVoiceControls {
