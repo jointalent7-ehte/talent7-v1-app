@@ -27161,7 +27161,7 @@ html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > su
   .appTabs button[data-primary-tab="live"] { order: 4; }
   .appTabs button[data-primary-tab="profile"] { order: 5; }
 
-  .appTabs button[data-primary-tab="create"] {
+  html:not([data-talent7-theme="dark"]) .appTabs button[data-primary-tab="create"] {
     position: relative;
     display: grid;
     width: calc(100% + 12px);
@@ -27176,16 +27176,16 @@ html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > su
     box-shadow: 0 14px 30px rgba(25, 70, 87, 0.32);
   }
 
-  .appTabs button[data-primary-tab="create"] .mobileNavIcon {
+  html:not([data-talent7-theme="dark"]) .appTabs button[data-primary-tab="create"] .mobileNavIcon {
     width: 27px;
     height: 27px;
   }
 
-  .appTabs button[data-primary-tab="create"] .mobileNavLabel {
+  html:not([data-talent7-theme="dark"]) .appTabs button[data-primary-tab="create"] .mobileNavLabel {
     font-size: 0.68rem;
   }
 
-  .appTabs button[data-primary-tab="create"].active {
+  html:not([data-talent7-theme="dark"]) .appTabs button[data-primary-tab="create"].active {
     color: #101719;
     background: linear-gradient(145deg, #ffe172, #f5c742);
     border-color: #fff;
