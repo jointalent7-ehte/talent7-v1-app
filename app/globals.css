@@ -9008,6 +9008,39 @@ textarea {
   font-weight: 750;
 }
 
+.reviewerProgressCard {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(110, 232, 209, 0.18), transparent 43%),
+    color-mix(in srgb, var(--surface) 88%, transparent) !important;
+}
+
+.reviewerProgressBar {
+  display: block;
+  height: 9px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 70%, var(--line));
+}
+
+.reviewerProgressBar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2fd3aa, #5b82f5);
+  box-shadow: 0 0 14px rgba(47, 211, 170, 0.32);
+}
+
+.reviewerProgressNote,
+.reviewerProgressSafety {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.reviewerProgressSafety {
+  font-weight: 800;
+}
+
 .growthHubGrid article > span,
 .growthStatus {
   color: var(--muted);

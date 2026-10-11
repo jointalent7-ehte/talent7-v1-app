@@ -56,6 +56,11 @@ const faqSections = [
           "The room format determines how the result is recorded. A result may use participant submissions, uploaded proof, room voting, ratings, or an assigned reviewer. Results can be held for review if proof or conduct is disputed."
       },
       {
+        question: "How does Reviewer XP work?",
+        answer:
+          "Reviewer XP is a separate recognition track for accepted room judges. It is credited once only after the judge submits a score, the challenge is completed, and proof is accepted. Creators and participants cannot earn Reviewer XP for that room, and it never changes Rank Points, results, prizes, or participant progression."
+      },
+      {
         question: "Do recorded-video challenges offer physical prizes?",
         answer:
           "Not automatically. Regular recorded challenges can award profile progress, wins, and recognition, but a prize is offered only when an official competition or approved sponsor clearly publishes one."

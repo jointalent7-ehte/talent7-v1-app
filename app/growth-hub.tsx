@@ -88,6 +88,12 @@ type WeeklyMission = {
   reward_claimed: boolean;
 };
 
+type ReviewerProgress = {
+  review_xp: number;
+  completed_reviews: number;
+  tier: "Observer" | "Reviewer" | "Trusted Reviewer" | "Senior Reviewer" | "Review Captain";
+};
+
 type LocalLeaderboardScope = "Area" | "City" | "Country" | "Global";
 
 type LocalLeaderboardEntry = {
@@ -113,6 +119,14 @@ const talent7TierSteps = [
   { name: "Champion", points: 850 },
   { name: "Legend", points: 1300 },
   { name: "Talent7 Icon", points: 2000 }
+];
+
+const reviewerTierSteps = [
+  { name: "Observer", points: 0 },
+  { name: "Reviewer", points: 50 },
+  { name: "Trusted Reviewer", points: 150 },
+  { name: "Senior Reviewer", points: 350 },
+  { name: "Review Captain", points: 700 }
 ];
 
 function tierProgress(points: number) {
@@ -162,6 +176,7 @@ export default function GrowthHub({
   const [trophies, setTrophies] = useState<Trophy[]>([]);
   const [rewardEvents, setRewardEvents] = useState<RewardEvent[]>([]);
   const [weeklyMissions, setWeeklyMissions] = useState<WeeklyMission[]>([]);
+  const [reviewerProgress, setReviewerProgress] = useState<ReviewerProgress | null>(null);
   const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>([]);
   const [localLeaderboardScope, setLocalLeaderboardScope] = useState<LocalLeaderboardScope>(
     area ? "Area" : city ? "City" : country ? "Country" : "Global"
@@ -187,7 +202,8 @@ export default function GrowthHub({
       supabase.rpc("refresh_my_achievements"),
       supabase.rpc("refresh_my_weekly_league_scores"),
       supabase.rpc("refresh_my_talent7_league"),
-      supabase.rpc("refresh_my_activity_mastery_titles")
+      supabase.rpc("refresh_my_activity_mastery_titles"),
+      supabase.rpc("refresh_my_talent7_reviewer_progress")
     ]);
     const { data: seasonRow } = await supabase
       .from("talent7_seasons")
@@ -204,7 +220,8 @@ export default function GrowthHub({
       { data: rankRow },
       { data: activityRows },
       { data: trophyRows },
-      { data: rewardRows }
+      { data: rewardRows },
+      { data: reviewerRow }
     ] = await Promise.all([
       supabase
         .from("user_achievements")
@@ -243,7 +260,15 @@ export default function GrowthHub({
         .select("id,activity,competition_mode,won,proof_bonus,xp_delta,rank_points_delta,tier_before,tier_after,created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(5)
+        .limit(5),
+      currentSeason
+        ? supabase
+            .from("talent7_reviewer_profiles")
+            .select("review_xp,completed_reviews,tier")
+            .eq("season_id", currentSeason.id)
+            .eq("user_id", userId)
+            .maybeSingle()
+        : Promise.resolve({ data: null })
     ]);
     setTalent7Season(currentSeason);
     setTalent7Rank((rankRow || null) as Talent7Rank | null);
@@ -251,6 +276,7 @@ export default function GrowthHub({
     setTrophies((trophyRows || []) as Trophy[]);
     setRewardEvents((rewardRows || []) as RewardEvent[]);
     setWeeklyMissions((weeklyMissionRows || []) as WeeklyMission[]);
+    setReviewerProgress((reviewerRow || null) as ReviewerProgress | null);
     setAchievements((achievementRows || []) as Achievement[]);
     setLeagues(((leagueRows || []) as League[]).map((league) => ({
       ...league,
@@ -330,7 +356,7 @@ export default function GrowthHub({
   async function refreshProgress() {
     setBusyAction("refresh");
     await Promise.all([loadGrowth(), loadLocalLeaderboard()]);
-    setMessage("Talent7 rank, trophies, achievements, and weekly scores refreshed.");
+    setMessage("Talent7 rank, Reviewer XP, trophies, achievements, and weekly scores refreshed.");
     setBusyAction(null);
   }
 
@@ -343,6 +369,22 @@ export default function GrowthHub({
   const latestReward = rewardEvents[0] || null;
   const masteryTitles = trophies.filter((trophy) => trophy.icon_key.startsWith("mastery-"));
   const weeklyMissionComplete = weeklyMissions.length > 0 && weeklyMissions.every((mission) => mission.completed);
+  const reviewerTierIndex = Math.max(
+    0,
+    reviewerTierSteps.findLastIndex((step) => (reviewerProgress?.review_xp || 0) >= step.points)
+  );
+  const currentReviewerTier = reviewerTierSteps[reviewerTierIndex];
+  const nextReviewerTier = reviewerTierSteps[reviewerTierIndex + 1] || null;
+  const reviewerProgressPercent = nextReviewerTier
+    ? Math.min(
+        100,
+        Math.max(
+          0,
+          (((reviewerProgress?.review_xp || 0) - currentReviewerTier.points) /
+            (nextReviewerTier.points - currentReviewerTier.points)) * 100
+        )
+      )
+    : 100;
   const winRate = talent7Rank?.completed_count
     ? Math.round((talent7Rank.wins / talent7Rank.completed_count) * 100)
     : 0;
@@ -543,6 +585,32 @@ export default function GrowthHub({
             <p>Run the weekly-missions Supabase update to activate this checklist.</p>
           )}
           <small className="weeklyMissionNote">Resets Monday · seasonal XP only · no Rank Points</small>
+        </article>
+
+        <article className="reviewerProgressCard">
+          <span>{reviewerProgress?.review_xp || 0} Reviewer XP</span>
+          <h4>{reviewerProgress?.tier || "Observer"}</h4>
+          <p>
+            {reviewerProgress?.completed_reviews || 0} protected room review
+            {(reviewerProgress?.completed_reviews || 0) === 1 ? "" : "s"} credited this season.
+          </p>
+          <div
+            aria-label={`Reviewer progress${nextReviewerTier ? ` to ${nextReviewerTier.name}` : " at maximum tier"}`}
+            aria-valuemax={nextReviewerTier?.points || Math.max(reviewerProgress?.review_xp || 0, currentReviewerTier.points)}
+            aria-valuemin={0}
+            aria-valuenow={reviewerProgress?.review_xp || 0}
+            className="reviewerProgressBar"
+            role="progressbar"
+          >
+            <i style={{ width: `${reviewerProgressPercent}%` }} />
+          </div>
+          <small className="reviewerProgressNote">
+            {nextReviewerTier
+              ? `${nextReviewerTier.points - (reviewerProgress?.review_xp || 0)} XP to ${nextReviewerTier.name}`
+              : "Highest reviewer tier reached"}
+            {" · "}Accepted judge role + submitted score + completed room + accepted proof
+          </small>
+          <small className="reviewerProgressSafety">Separate from competition XP and Rank Points</small>
         </article>
 
         <article>
