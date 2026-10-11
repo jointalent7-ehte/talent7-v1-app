@@ -17063,6 +17063,7 @@ export default function Home() {
       <ChallengeStarterHub
         activities={challengeActivityOptions}
         displayName={profile?.display_name || ""}
+        isAdmin={isOwnerReviewer}
         mainInterest={profile?.main_interest || "Push-up challenge"}
         matchFormat={profile?.challenge_format || "Any"}
         onStartChallenge={startFromChallengeStarter}

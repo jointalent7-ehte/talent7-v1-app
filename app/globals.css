@@ -3854,6 +3854,407 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   border-color: transparent;
 }
 
+.benchmarkAttemptPublication {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.benchmarkAttemptPublication > small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.benchmarkAttemptPublication > strong {
+  color: #08786f;
+  font-size: 0.78rem;
+}
+
+.benchmarkVerificationStatus {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #5a6264;
+  background: #edf1f2;
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.benchmarkVerificationStatus.proof-submitted {
+  color: #805805;
+  background: #fff2c6;
+}
+
+.benchmarkVerificationStatus.verified {
+  color: #086b52;
+  background: #dff7eb;
+}
+
+.benchmarkVerificationStatus.rejected {
+  color: #9d3131;
+  background: #ffe2e2;
+}
+
+.benchmarkProofSubmission {
+  flex: 1 0 100%;
+  padding: 11px 12px;
+  border: 1px solid #d6e2e3;
+  border-radius: 13px;
+  background: #f8fbfb;
+}
+
+.benchmarkProofSubmission summary {
+  color: #126f6b;
+  font-size: 0.8rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.benchmarkProofSubmission > p {
+  margin: 8px 0;
+  color: #9d3131;
+  font-size: 0.78rem;
+}
+
+.benchmarkProofSubmission form {
+  display: grid;
+  grid-template-columns: 0.65fr 1.35fr;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.benchmarkProofSubmission label {
+  display: grid;
+  gap: 5px;
+  color: #4e5b5f;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.benchmarkProofSubmission input,
+.benchmarkProofSubmission select {
+  min-width: 0;
+  min-height: 39px;
+  padding: 8px 10px;
+  border: 1px solid #cddadb;
+  border-radius: 9px;
+  background: #fff;
+  color: #172124;
+  font: inherit;
+}
+
+.benchmarkProofSubmission form > small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.benchmarkProofSubmission form > button {
+  grid-column: 1 / -1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: #111719;
+  font-weight: 900;
+}
+
+.benchmarkLeaderboard,
+.benchmarkProofReview {
+  margin-top: 24px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid #d6e2e3;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #ffffff, #f3faf9);
+  box-shadow: 0 18px 42px rgba(25, 58, 62, 0.09);
+}
+
+.benchmarkLeaderboard > header,
+.benchmarkProofReview > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.benchmarkLeaderboard > header span,
+.benchmarkProofReview > header span {
+  color: #087d79;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.benchmarkLeaderboard > header h3,
+.benchmarkProofReview > header h3 {
+  margin: 4px 0 5px;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.benchmarkLeaderboard > header p {
+  max-width: 690px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.benchmarkLeaderboard > header > button {
+  min-height: 42px;
+  padding: 9px 15px;
+  border: 1px solid #cbd8da;
+  border-radius: 11px;
+  color: #172124;
+  background: #fff;
+  font-weight: 900;
+}
+
+.benchmarkLeaderboardControls {
+  display: grid;
+  grid-template-columns: minmax(210px, 1.5fr) auto minmax(140px, 0.7fr);
+  align-items: end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.benchmarkLeaderboardControls > label {
+  display: grid;
+  gap: 6px;
+  color: #4e5c5f;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.benchmarkLeaderboardControls select {
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #cddadb;
+  border-radius: 12px;
+  color: #172124;
+  background: #fff;
+  font: inherit;
+  font-weight: 800;
+}
+
+.benchmarkBoardTabs {
+  display: flex;
+  padding: 4px;
+  border-radius: 13px;
+  background: #e6eeee;
+}
+
+.benchmarkBoardTabs button {
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 10px;
+  color: #536164;
+  background: transparent;
+  font-weight: 900;
+}
+
+.benchmarkBoardTabs button.active {
+  color: #fff;
+  background: linear-gradient(135deg, #0f9794, #5147c8);
+  box-shadow: 0 7px 16px rgba(36, 75, 119, 0.18);
+}
+
+.benchmarkBoardMeaning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 11px 13px;
+  border-radius: 12px;
+  color: #425155;
+  background: #eaf4f3;
+  font-size: 0.8rem;
+}
+
+.benchmarkBoardMeaning strong {
+  flex: 0 0 auto;
+  color: #096f6b;
+}
+
+.benchmarkLeaderboardRows {
+  display: grid;
+  gap: 8px;
+}
+
+.benchmarkLeaderboardRows article {
+  display: grid;
+  grid-template-columns: 44px 44px minmax(150px, 1fr) auto minmax(95px, auto);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid #dce5e6;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.benchmarkLeaderboardRows article.mine {
+  border-color: #13a09b;
+  background: #effbf8;
+  box-shadow: inset 4px 0 #159c98;
+}
+
+.benchmarkLeaderboardRows article > b:first-child {
+  color: #0c817d;
+  font-size: 1.08rem;
+}
+
+.benchmarkLeaderboardRows article > div {
+  display: grid;
+  min-width: 0;
+}
+
+.benchmarkLeaderboardRows article > div strong,
+.benchmarkLeaderboardRows article > div small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.benchmarkLeaderboardRows article > div small {
+  color: var(--muted);
+}
+
+.benchmarkLeaderboardRows article > b:last-child {
+  justify-self: end;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.benchmarkLeaderboardAvatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #109c99, #5549cf);
+  background-position: center;
+  background-size: cover;
+  font-weight: 950;
+}
+
+.benchmarkLeaderboardNotice {
+  margin: 14px 0 0;
+  padding: 18px;
+  border-radius: 14px;
+  color: #5d696c;
+  background: #f1f5f5;
+  text-align: center;
+}
+
+.benchmarkProofReview > header > strong {
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #7d5604;
+  background: #fff0bd;
+}
+
+.benchmarkProofReview > div {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.benchmarkProofReview article {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #dce5e6;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.benchmarkProofReview article > div:first-child {
+  display: grid;
+}
+
+.benchmarkProofReview article span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.benchmarkProofReview article a {
+  color: #087d79;
+  font-weight: 900;
+}
+
+.benchmarkProofReview article > div:last-child {
+  display: flex;
+  gap: 7px;
+}
+
+.benchmarkProofReview button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #111719;
+  border-radius: 9px;
+  color: #fff;
+  background: #111719;
+  font-weight: 900;
+}
+
+.benchmarkProofReview button.secondary {
+  color: #8f2f2f;
+  background: #fff;
+  border-color: #e3bcbc;
+}
+
+@media (max-width: 800px) {
+  .benchmarkLeaderboardControls { grid-template-columns: 1fr; }
+  .benchmarkBoardTabs { width: fit-content; }
+  .benchmarkLeaderboardRows article {
+    grid-template-columns: 38px 42px minmax(0, 1fr) auto;
+  }
+  .benchmarkLeaderboardRows article > .benchmarkVerificationStatus {
+    grid-column: 3;
+    justify-self: start;
+  }
+  .benchmarkLeaderboardRows article > b:last-child {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+  }
+  .benchmarkProofReview article { grid-template-columns: 1fr; }
+  .benchmarkProofReview article > div:last-child { justify-self: start; }
+}
+
+@media (max-width: 560px) {
+  .benchmarkProofSubmission form { grid-template-columns: 1fr; }
+  .benchmarkProofSubmission form > small,
+  .benchmarkProofSubmission form > button { grid-column: 1; }
+  .benchmarkLeaderboard > header { align-items: stretch; flex-direction: column; }
+  .benchmarkLeaderboard > header > button { align-self: flex-start; }
+  .benchmarkBoardMeaning { align-items: flex-start; flex-direction: column; }
+  .benchmarkLeaderboardRows article {
+    grid-template-columns: 34px 38px minmax(0, 1fr);
+    gap: 9px;
+  }
+  .benchmarkLeaderboardRows article > .benchmarkVerificationStatus { grid-column: 3; }
+  .benchmarkLeaderboardRows article > b:last-child {
+    grid-column: 3;
+    grid-row: auto;
+    justify-self: start;
+  }
+  .benchmarkLeaderboardAvatar { width: 38px; height: 38px; border-radius: 12px; }
+}
+
 .benchmarkAttemptForm,
 .challengeMatchForm {
   display: grid;

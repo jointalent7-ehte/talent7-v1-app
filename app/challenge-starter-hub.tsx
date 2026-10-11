@@ -36,7 +36,39 @@ type BenchmarkAttempt = {
   id: string;
   benchmark_id: string;
   score: number;
+  verification_status: "Self reported" | "Proof submitted" | "Verified" | "Rejected";
+  leaderboard_visible: boolean;
+  proof_type: "Video" | "Image" | "Link" | null;
+  proof_url: string | null;
+  review_note: string | null;
+  reviewed_at: string | null;
   created_at: string;
+};
+
+type BenchmarkLeaderboardEntry = {
+  rank_position: number;
+  attempt_id: string;
+  user_id: string;
+  display_name: string;
+  username: string;
+  avatar_url: string | null;
+  region: string | null;
+  score: number;
+  verification_status: "Self reported" | "Proof submitted" | "Verified";
+  attempted_at: string;
+};
+
+type BenchmarkProofQueueItem = {
+  attempt_id: string;
+  benchmark_id: string;
+  benchmark_title: string;
+  display_name: string;
+  username: string;
+  score: number;
+  unit: string;
+  proof_type: "Video" | "Image" | "Link";
+  proof_url: string;
+  submitted_at: string;
 };
 
 type MatchQueueItem = {
@@ -135,6 +167,7 @@ export default function ChallengeStarterHub({
   skillLevel,
   playMode,
   matchFormat,
+  isAdmin,
   onStartChallenge
 }: {
   activities: string[];
@@ -145,6 +178,7 @@ export default function ChallengeStarterHub({
   skillLevel: ChallengeSkillLevel;
   playMode: ChallengeMode;
   matchFormat: ChallengeFormat;
+  isAdmin: boolean;
   onStartChallenge: (seed: ChallengeStarterSeed) => void;
 }) {
   const initialActivity = activities.includes(mainInterest) ? mainInterest : activities[0] || "Push-up challenge";
@@ -153,6 +187,13 @@ export default function ChallengeStarterHub({
   const [queue, setQueue] = useState<MatchQueueItem[]>([]);
   const [selectedBenchmarkId, setSelectedBenchmarkId] = useState("");
   const [sharedBenchmarkId, setSharedBenchmarkId] = useState("");
+  const [leaderboardBenchmarkId, setLeaderboardBenchmarkId] = useState("");
+  const [leaderboardBoard, setLeaderboardBoard] = useState<"Community" | "Verified">("Community");
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<"Daily" | "Weekly" | "Season" | "All time">("All time");
+  const [leaderboardEntries, setLeaderboardEntries] = useState<BenchmarkLeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [leaderboardError, setLeaderboardError] = useState("");
+  const [proofQueue, setProofQueue] = useState<BenchmarkProofQueueItem[]>([]);
   const [selectedActivity, setSelectedActivity] = useState(initialActivity);
   const [selectedSkill, setSelectedSkill] = useState<ChallengeSkillLevel>(skillLevel);
   const [selectedMode, setSelectedMode] = useState<ChallengeMode>(playMode);
@@ -188,6 +229,13 @@ export default function ChallengeStarterHub({
   useEffect(() => setSelectedFormat(matchFormat), [matchFormat]);
   useEffect(() => setQueueRegion(region || "Global"), [region]);
 
+  useEffect(() => {
+    if (benchmarks.length === 0) return;
+    if (!benchmarks.some((benchmark) => benchmark.id === leaderboardBenchmarkId)) {
+      setLeaderboardBenchmarkId(benchmarks[0].id);
+    }
+  }, [benchmarks, leaderboardBenchmarkId]);
+
   const loadStarterData = useCallback(async () => {
     if (!supabase) {
       setBenchmarks(fallbackBenchmarks);
@@ -218,31 +266,84 @@ export default function ChallengeStarterHub({
 
     const attemptResult = await supabase
       .from("talent7_benchmark_attempts")
-      .select("id,benchmark_id,score,created_at")
+      .select("id,benchmark_id,score,verification_status,leaderboard_visible,proof_type,proof_url,review_note,reviewed_at,created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    if (!attemptResult.error) setAttempts((attemptResult.data || []) as BenchmarkAttempt[]);
+    if (!attemptResult.error) {
+      setAttempts((attemptResult.data || []) as BenchmarkAttempt[]);
+    } else if (attemptResult.error.message.includes("leaderboard_visible")) {
+      setLoadWarning("Run add-benchmark-leaderboards.sql in Supabase to enable public benchmark standings and proof review.");
+    }
   }, [userId]);
 
   useEffect(() => {
     void loadStarterData();
   }, [loadStarterData]);
 
-  const personalBests = useMemo(() => {
-    const best = new Map<string, number>();
+  const loadBenchmarkLeaderboard = useCallback(async () => {
+    if (!supabase || !leaderboardBenchmarkId || leaderboardBenchmarkId.startsWith("preview-")) {
+      setLeaderboardEntries([]);
+      return;
+    }
+
+    setLeaderboardLoading(true);
+    setLeaderboardError("");
+    const { data, error } = await supabase.rpc("get_talent7_benchmark_leaderboard", {
+      target_benchmark_id: leaderboardBenchmarkId,
+      target_board: leaderboardBoard,
+      target_period: leaderboardPeriod,
+      result_limit: 50
+    });
+    if (error) {
+      setLeaderboardEntries([]);
+      setLeaderboardError(
+        error.message.includes("get_talent7_benchmark_leaderboard")
+          ? "Run add-benchmark-leaderboards.sql in Supabase to activate these standings."
+          : error.message
+      );
+    } else {
+      setLeaderboardEntries((data || []) as BenchmarkLeaderboardEntry[]);
+    }
+    setLeaderboardLoading(false);
+  }, [leaderboardBenchmarkId, leaderboardBoard, leaderboardPeriod]);
+
+  useEffect(() => {
+    void loadBenchmarkLeaderboard();
+  }, [loadBenchmarkLeaderboard]);
+
+  const loadBenchmarkProofQueue = useCallback(async () => {
+    if (!supabase || !isAdmin) {
+      setProofQueue([]);
+      return;
+    }
+    const { data, error } = await supabase.rpc("get_talent7_benchmark_proof_queue", { result_limit: 30 });
+    if (!error) setProofQueue((data || []) as BenchmarkProofQueueItem[]);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    void loadBenchmarkProofQueue();
+  }, [loadBenchmarkProofQueue]);
+
+  const personalBestAttempts = useMemo(() => {
+    const best = new Map<string, BenchmarkAttempt>();
     for (const attempt of attempts) {
       const benchmark = benchmarks.find((item) => item.id === attempt.benchmark_id);
       const current = best.get(attempt.benchmark_id);
-      if (current === undefined) best.set(attempt.benchmark_id, Number(attempt.score));
-      else if (benchmark?.score_direction === "Lower") best.set(attempt.benchmark_id, Math.min(current, Number(attempt.score)));
-      else best.set(attempt.benchmark_id, Math.max(current, Number(attempt.score)));
+      if (!current) best.set(attempt.benchmark_id, attempt);
+      else if (benchmark?.score_direction === "Lower" && Number(attempt.score) < Number(current.score)) best.set(attempt.benchmark_id, attempt);
+      else if (benchmark?.score_direction !== "Lower" && Number(attempt.score) > Number(current.score)) best.set(attempt.benchmark_id, attempt);
     }
     return best;
   }, [attempts, benchmarks]);
 
+  const personalBests = useMemo(() => {
+    return new Map(Array.from(personalBestAttempts, ([benchmarkId, attempt]) => [benchmarkId, Number(attempt.score)]));
+  }, [personalBestAttempts]);
+
   const myRequest = queue.find((item) => item.is_mine && ["Waiting", "Matched"].includes(item.request_status));
   const waitingRequests = queue.filter((item) => item.request_status === "Waiting" && !item.is_mine).slice(0, 8);
+  const selectedLeaderboardBenchmark = benchmarks.find((benchmark) => benchmark.id === leaderboardBenchmarkId) || benchmarks[0];
 
   async function recordAttempt(event: FormEvent<HTMLFormElement>, benchmark: Benchmark) {
     event.preventDefault();
@@ -268,6 +369,12 @@ export default function ChallengeStarterHub({
           id: crypto.randomUUID(),
           benchmark_id: benchmark.id,
           score,
+          verification_status: "Self reported",
+          leaderboard_visible: false,
+          proof_type: null,
+          proof_url: null,
+          review_note: null,
+          reviewed_at: null,
           created_at: new Date().toISOString()
         };
         setAttempts((items) => [localAttempt, ...items]);
@@ -364,6 +471,90 @@ export default function ChallengeStarterHub({
     });
   }
 
+  async function setBenchmarkLeaderboardVisibility(attempt: BenchmarkAttempt, visible: boolean) {
+    if (!supabase || !userId) {
+      setMessage("Log in before joining a benchmark leaderboard.");
+      return;
+    }
+    if (attempt.benchmark_id.startsWith("preview-")) {
+      setMessage("Connect Supabase before publishing preview benchmark attempts.");
+      return;
+    }
+
+    setBusyAction(`leaderboard-${attempt.id}`);
+    setMessage("");
+    const { data, error } = await supabase.rpc("set_talent7_benchmark_leaderboard_visibility", {
+      target_attempt_id: attempt.id,
+      target_visible: visible
+    });
+    if (error) {
+      setMessage(readableError(error, "The benchmark leaderboard setting could not be changed."));
+    } else if (data) {
+      const updatedAttempt = data as BenchmarkAttempt;
+      setAttempts((items) => items.map((item) => (
+        item.benchmark_id === attempt.benchmark_id
+          ? item.id === updatedAttempt.id
+            ? updatedAttempt
+            : { ...item, leaderboard_visible: false }
+          : item
+      )));
+      setMessage(visible ? "Your personal best is now on the Community leaderboard." : "Your benchmark attempts are now private.");
+      void loadBenchmarkLeaderboard();
+    }
+    setBusyAction("");
+  }
+
+  async function submitBenchmarkProof(event: FormEvent<HTMLFormElement>, attempt: BenchmarkAttempt) {
+    event.preventDefault();
+    if (!supabase || !userId) return;
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const proofType = String(form.get("proof_type") || "Video");
+    const proofUrl = String(form.get("proof_url") || "").trim();
+    setBusyAction(`proof-${attempt.id}`);
+    setMessage("");
+    const { data, error } = await supabase.rpc("submit_talent7_benchmark_proof", {
+      target_attempt_id: attempt.id,
+      target_proof_type: proofType,
+      target_proof_url: proofUrl
+    });
+    if (error) {
+      setMessage(readableError(error, "The proof could not be submitted."));
+    } else if (data) {
+      const updatedAttempt = data as BenchmarkAttempt;
+      setAttempts((items) => items.map((item) => (
+        item.benchmark_id === attempt.benchmark_id
+          ? item.id === updatedAttempt.id
+            ? updatedAttempt
+            : { ...item, leaderboard_visible: false }
+          : item
+      )));
+      setMessage("Proof submitted privately for review. Your link is not shown on the public leaderboard.");
+      formElement.reset();
+      void loadBenchmarkLeaderboard();
+      void loadBenchmarkProofQueue();
+    }
+    setBusyAction("");
+  }
+
+  async function reviewBenchmarkProof(attemptId: string, decision: "Verified" | "Rejected") {
+    if (!supabase || !isAdmin) return;
+    setBusyAction(`review-${attemptId}`);
+    setMessage("");
+    const { error } = await supabase.rpc("review_talent7_benchmark_attempt", {
+      target_attempt_id: attemptId,
+      target_decision: decision,
+      target_review_note: decision === "Rejected" ? "The submitted evidence did not verify the recorded benchmark score." : null
+    });
+    if (error) {
+      setMessage(readableError(error, "The benchmark proof decision could not be saved."));
+    } else {
+      setMessage(decision === "Verified" ? "Benchmark proof verified." : "Benchmark proof rejected and removed from public standings.");
+      await Promise.all([loadBenchmarkProofQueue(), loadStarterData(), loadBenchmarkLeaderboard()]);
+    }
+    setBusyAction("");
+  }
+
   return (
     <section className="section challengeStarterSection" id="challenge-now">
       <div className="sectionHeader challengeStarterHeader">
@@ -395,11 +586,14 @@ export default function ChallengeStarterHub({
               <span>Official starters</span>
               <h3>Talent7 benchmarks</h3>
             </div>
-            <small>Self-reported attempts build your private history but award no Rise Points or prizes.</small>
+            <small>Attempts stay private unless you join a leaderboard. They award no Rise Points or prizes.</small>
           </div>
           <div className="challengeBenchmarkGrid">
             {benchmarks.map((benchmark) => {
               const personalBest = personalBests.get(benchmark.id);
+              const personalBestAttempt = personalBestAttempts.get(benchmark.id);
+              const publishedAttempt = attempts.find((attempt) => attempt.benchmark_id === benchmark.id && attempt.leaderboard_visible);
+              const visibilityAttempt = publishedAttempt || personalBestAttempt;
               const recording = selectedBenchmarkId === benchmark.id;
               return (
                 <article
@@ -455,6 +649,62 @@ export default function ChallengeStarterHub({
                       <button className="benchmarkShareButton" onClick={() => shareBenchmark(benchmark, personalBest)} type="button">
                         {personalBest === undefined ? "Share benchmark" : "Share my best"}
                       </button>
+                      {visibilityAttempt && (
+                        <button
+                          className="secondary"
+                          disabled={busyAction === `leaderboard-${visibilityAttempt.id}`}
+                          onClick={() => void setBenchmarkLeaderboardVisibility(visibilityAttempt, !publishedAttempt)}
+                          type="button"
+                        >
+                          {busyAction === `leaderboard-${visibilityAttempt.id}`
+                            ? "Updating…"
+                            : publishedAttempt
+                              ? "Leave leaderboard"
+                              : "Join leaderboard"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {personalBestAttempt && (
+                    <div className="benchmarkAttemptPublication">
+                      <span className={`benchmarkVerificationStatus ${personalBestAttempt.verification_status.toLowerCase().replace(" ", "-")}`}>
+                        {personalBestAttempt.verification_status}
+                      </span>
+                      {publishedAttempt && (
+                        <small>
+                          {publishedAttempt.id === personalBestAttempt.id
+                            ? "Visible on the Community board"
+                            : `Older best visible: ${formatResult(Number(publishedAttempt.score), benchmark.unit)}`}
+                        </small>
+                      )}
+                      {personalBestAttempt.verification_status === "Verified" ? (
+                        <strong>Approved for the Verified board</strong>
+                      ) : personalBestAttempt.verification_status === "Proof submitted" ? (
+                        <strong>Proof is waiting for private review</strong>
+                      ) : (
+                        <details className="benchmarkProofSubmission">
+                          <summary>{personalBestAttempt.verification_status === "Rejected" ? "Submit replacement proof" : "Submit proof for verification"}</summary>
+                          {personalBestAttempt.review_note && <p>{personalBestAttempt.review_note}</p>}
+                          <form onSubmit={(event) => void submitBenchmarkProof(event, personalBestAttempt)}>
+                            <label>
+                              Proof type
+                              <select defaultValue="Video" name="proof_type">
+                                <option>Video</option>
+                                <option>Image</option>
+                                <option>Link</option>
+                              </select>
+                            </label>
+                            <label>
+                              Public or unlisted HTTPS link
+                              <input name="proof_url" placeholder="https://…" required type="url" />
+                            </label>
+                            <small>The link is visible only to you and Talent7 reviewers, never on the public leaderboard.</small>
+                            <button disabled={busyAction === `proof-${personalBestAttempt.id}`} type="submit">
+                              {busyAction === `proof-${personalBestAttempt.id}` ? "Submitting…" : "Submit proof privately"}
+                            </button>
+                          </form>
+                        </details>
+                      )}
                     </div>
                   )}
                 </article>
@@ -570,6 +820,98 @@ export default function ChallengeStarterHub({
           </div>
         </aside>
       </div>
+
+      <section className="benchmarkLeaderboard" aria-labelledby="benchmark-leaderboard-title">
+        <header>
+          <div>
+            <span>Benchmark rankings</span>
+            <h3 id="benchmark-leaderboard-title">Set the score everyone wants to beat</h3>
+            <p>Each person appears once with their best opted-in result. Verified proof links stay private.</p>
+          </div>
+          <button disabled={leaderboardLoading} onClick={() => void loadBenchmarkLeaderboard()} type="button">
+            {leaderboardLoading ? "Refreshing…" : "Refresh"}
+          </button>
+        </header>
+
+        <div className="benchmarkLeaderboardControls">
+          <label>
+            Benchmark
+            <select onChange={(event) => setLeaderboardBenchmarkId(event.target.value)} value={leaderboardBenchmarkId}>
+              {benchmarks.map((benchmark) => <option key={benchmark.id} value={benchmark.id}>{benchmark.title}</option>)}
+            </select>
+          </label>
+          <div aria-label="Leaderboard verification" className="benchmarkBoardTabs" role="group">
+            <button className={leaderboardBoard === "Community" ? "active" : ""} onClick={() => setLeaderboardBoard("Community")} type="button">Community</button>
+            <button className={leaderboardBoard === "Verified" ? "active" : ""} onClick={() => setLeaderboardBoard("Verified")} type="button">Verified</button>
+          </div>
+          <label>
+            Period
+            <select onChange={(event) => setLeaderboardPeriod(event.target.value as typeof leaderboardPeriod)} value={leaderboardPeriod}>
+              <option>Daily</option>
+              <option>Weekly</option>
+              <option>Season</option>
+              <option>All time</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="benchmarkBoardMeaning">
+          <strong>{leaderboardBoard === "Verified" ? "Verified board" : "Community board"}</strong>
+          <span>{leaderboardBoard === "Verified" ? "Only scores approved from privately submitted proof." : "Opt-in self-reported and verified scores, clearly labelled."}</span>
+        </div>
+
+        {leaderboardError ? (
+          <p className="benchmarkLeaderboardNotice">{leaderboardError}</p>
+        ) : leaderboardLoading ? (
+          <p className="benchmarkLeaderboardNotice">Loading benchmark standings…</p>
+        ) : leaderboardEntries.length > 0 && selectedLeaderboardBenchmark ? (
+          <div className="benchmarkLeaderboardRows">
+            {leaderboardEntries.map((entry) => (
+              <article className={entry.user_id === userId ? "mine" : ""} key={entry.attempt_id}>
+                <b>#{entry.rank_position}</b>
+                <span
+                  className={`benchmarkLeaderboardAvatar${entry.avatar_url ? " hasImage" : ""}`}
+                  style={entry.avatar_url ? { backgroundImage: `url(${entry.avatar_url})` } : undefined}
+                  aria-hidden="true"
+                >
+                  {!entry.avatar_url && entry.display_name.slice(0, 1).toUpperCase()}
+                </span>
+                <div>
+                  <strong>{entry.display_name}{entry.user_id === userId ? " · You" : ""}</strong>
+                  <small>@{entry.username}{entry.region ? ` · ${entry.region}` : ""}</small>
+                </div>
+                <span className={`benchmarkVerificationStatus ${entry.verification_status.toLowerCase().replace(" ", "-")}`}>
+                  {entry.verification_status === "Verified" ? "✓ Verified" : entry.verification_status}
+                </span>
+                <b>{formatResult(Number(entry.score), selectedLeaderboardBenchmark.unit)}</b>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="challengeStarterEmpty">
+            <strong>No scores are on this board yet.</strong>
+            <p>Record a benchmark, choose Join leaderboard, and become the first score people try to beat.</p>
+          </div>
+        )}
+      </section>
+
+      {isAdmin && proofQueue.length > 0 && (
+        <section className="benchmarkProofReview" aria-label="Benchmark proof review">
+          <header><div><span>Admin review</span><h3>Benchmark proof queue</h3></div><strong>{proofQueue.length} pending</strong></header>
+          <div>
+            {proofQueue.map((item) => (
+              <article key={item.attempt_id}>
+                <div><strong>{item.display_name} · {formatResult(Number(item.score), item.unit)}</strong><span>{item.benchmark_title} · @{item.username}</span></div>
+                <a href={item.proof_url} rel="noreferrer" target="_blank">Open {item.proof_type.toLowerCase()} proof ↗</a>
+                <div>
+                  <button disabled={busyAction === `review-${item.attempt_id}`} onClick={() => void reviewBenchmarkProof(item.attempt_id, "Verified")} type="button">Verify</button>
+                  <button className="secondary" disabled={busyAction === `review-${item.attempt_id}`} onClick={() => void reviewBenchmarkProof(item.attempt_id, "Rejected")} type="button">Reject</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="openMatchBoard">
         <div className="challengeStarterSubhead">
