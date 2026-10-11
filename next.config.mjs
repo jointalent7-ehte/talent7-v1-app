@@ -2,6 +2,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.PLAYWRIGHT_TEST === "1" ? ".next-smoke" : ".next",
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
