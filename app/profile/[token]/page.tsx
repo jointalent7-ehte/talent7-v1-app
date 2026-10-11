@@ -46,6 +46,7 @@ function passportDate(value: string) {
 }
 
 function trophyIcon(icon: string) {
+  if (icon.startsWith("mastery-")) return "✦";
   if (icon === "victory") return "★";
   if (icon === "streak") return "⚡";
   if (icon === "tier") return "◆";

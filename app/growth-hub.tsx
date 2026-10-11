@@ -173,7 +173,8 @@ export default function GrowthHub({
     await Promise.all([
       supabase.rpc("refresh_my_achievements"),
       supabase.rpc("refresh_my_weekly_league_scores"),
-      supabase.rpc("refresh_my_talent7_league")
+      supabase.rpc("refresh_my_talent7_league"),
+      supabase.rpc("refresh_my_activity_mastery_titles")
     ]);
     const { data: seasonRow } = await supabase
       .from("talent7_seasons")
@@ -323,6 +324,7 @@ export default function GrowthHub({
   const standings = joinedLeague?.weekly_league_entries || [];
   const rankProgress = tierProgress(talent7Rank?.rank_points || 0);
   const latestReward = rewardEvents[0] || null;
+  const masteryTitles = trophies.filter((trophy) => trophy.icon_key.startsWith("mastery-"));
   const winRate = talent7Rank?.completed_count
     ? Math.round((talent7Rank.wins / talent7Rank.completed_count) * 100)
     : 0;
@@ -550,6 +552,27 @@ export default function GrowthHub({
               </button>
             </>
           )}
+        </article>
+
+        <article className="masteryTitlesCard">
+          <span>{masteryTitles.length} unlocked</span>
+          <h4>Mastery titles</h4>
+          {masteryTitles.length > 0 ? (
+            <div className="masteryTitleList">
+              {masteryTitles.slice(0, 4).map((title) => (
+                <div className={title.rarity.toLowerCase()} key={title.id} title={title.detail}>
+                  <i aria-hidden="true">✦</i>
+                  <span>
+                    <strong>{title.title}</strong>
+                    <small>{title.detail}</small>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>Add your own proof to completed challenges or submit a benchmark for verification to begin.</p>
+          )}
+          <small className="masteryTitlesNote">Permanent and cosmetic · no effect on XP, Rank Points, prizes, or results</small>
         </article>
 
         <article className="trophyCabinetCard">

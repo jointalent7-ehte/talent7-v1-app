@@ -8659,6 +8659,9 @@ textarea {
 .talent7RankStats,
 .talent7ActivityRanks,
 .talent7LatestReward,
+.masteryTitleList,
+.masteryTitleList > div,
+.masteryTitleList > div > span,
 .trophyCabinet,
 .trophyCabinet > div,
 .trophyCabinet > div > span {
@@ -8853,6 +8856,49 @@ textarea {
 .trophyCabinet .rare i { background: linear-gradient(145deg, #28a8c7, #4f62df); }
 .trophyCabinet .epic i { background: linear-gradient(145deg, #7b58e8, #cb57ba); }
 .trophyCabinet .legendary i { background: linear-gradient(145deg, #f0af24, #ee6a31); }
+
+.masteryTitlesCard {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(110, 232, 209, 0.18), transparent 44%),
+    color-mix(in srgb, var(--surface) 88%, transparent) !important;
+}
+
+.masteryTitleList > div {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.masteryTitleList i {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  color: #071b25;
+  background: linear-gradient(145deg, #6ee8d1, #51a8ef);
+  border-radius: 50%;
+  box-shadow: 0 7px 18px rgba(81, 168, 239, 0.2);
+  font-style: normal;
+  font-weight: 950;
+}
+
+.masteryTitleList .epic i,
+.masteryTitleList .legendary i {
+  color: #fff;
+  background: linear-gradient(145deg, #7b58e8, #f0af24);
+}
+
+.masteryTitleList small,
+.masteryTitlesNote {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.masteryTitlesNote {
+  padding-top: 4px;
+  font-weight: 750;
+}
 
 .trophyCabinet small {
   color: var(--muted);
