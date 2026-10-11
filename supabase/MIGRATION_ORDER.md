@@ -115,6 +115,7 @@ This is the canonical inventory for the current source tree: **87 numbered SQL f
 111. `add-benchmark-spectator-feed.sql`
 112. `add-activity-mastery-titles.sql`
 113. `add-local-match-discovery.sql`
+114. `add-weekly-retention-missions.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening. `restore-gaming-challenges.sql` reopens multiplayer gaming after the earlier retirement migration and aligns game-specific roster validation with the current UI. `add-talent7-league-rewards.sql` adds proof-gated Ranked and Casual progress, seven seasonal tiers, activity ranks, reward history, and permanent trophies. `add-talent7-passports.sql` exposes a deliberately narrow, privacy-safe public competition summary through existing profile share tokens. `add-profile-passport-studio.sql` adds public presentation fields, Passport visibility controls, and owner-managed profile images.
 
@@ -135,6 +136,8 @@ The Showcase, Coaching, and Guidance migrations remain in this history because p
 `add-activity-mastery-titles.sql` adds permanent cosmetic titles for proof-backed activity milestones, including push-ups, squats, planks, burpees, running, swimming, badminton, and table tennis. Titles unlock from participant proof or administrator-verified benchmarks and never change XP, Rank Points, prizes, or official results.
 
 `add-local-match-discovery.sql` upgrades the existing opponent queue with member-entered Area, City, Country, and Global discovery. Matching honours both members' selected range, exposes only the chosen location label, and never collects device location or precise GPS.
+
+`add-weekly-retention-missions.sql` adds a three-step weekly checklist for one proof-backed completion, one benchmark attempt, and two positive reactions on verified community videos. Completing the set grants 30 seasonal XP once, plus a one-time cosmetic trophy; it never grants Rank Points or changes a result.
 
 `add-community-competition-launchpad.sql` adds staged community voting for the next activity, day, and time; moderated member nominations; free early-interest registration; private registration codes; public-alias participation; and automatic 100-person cohort allocation as demand grows. It does not add entry fees, tokens, gifts, or automatic prize payouts.
 
