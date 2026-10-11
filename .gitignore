@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.next-smoke/
 out/
 .npm-cache/
 
@@ -10,6 +11,9 @@ out/
 *.log
 *.tsbuildinfo
 .vercel/
+playwright-report/
+test-results/
+blob-report/
 .DS_Store
 Thumbs.db
 
