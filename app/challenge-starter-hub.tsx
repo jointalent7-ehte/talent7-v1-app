@@ -41,9 +41,34 @@ type BenchmarkAttempt = {
   leaderboard_visible: boolean;
   proof_type: "Video" | "Image" | "Link" | null;
   proof_url: string | null;
+  feed_visible: boolean;
+  feed_caption: string | null;
+  feed_published_at: string | null;
   review_note: string | null;
   reviewed_at: string | null;
   created_at: string;
+};
+
+type BenchmarkFeedEntry = {
+  attempt_id: string;
+  benchmark_id: string;
+  benchmark_title: string;
+  activity: string;
+  display_name: string;
+  username: string;
+  avatar_url: string | null;
+  region: string | null;
+  score: number;
+  unit: string;
+  proof_url: string;
+  feed_caption: string | null;
+  published_at: string;
+  reaction_closes_at: string;
+  reactions_open: boolean;
+  respect_count: number;
+  strong_form_count: number;
+  motivating_count: number;
+  viewer_reaction: "Respect" | "Strong form" | "Motivating" | null;
 };
 
 type BenchmarkLeaderboardEntry = {
@@ -152,6 +177,14 @@ function formatResult(score: number, unit: string) {
   return `${Number.isInteger(score) ? score : score.toFixed(2)} ${unit}`;
 }
 
+function formatReactionWindow(closesAt: string) {
+  const remaining = new Date(closesAt).getTime() - Date.now();
+  if (remaining <= 0) return "Reaction window closed";
+  const hours = Math.floor(remaining / (60 * 60 * 1000));
+  const minutes = Math.max(1, Math.ceil((remaining % (60 * 60 * 1000)) / (60 * 1000)));
+  return hours > 0 ? `${hours}h ${minutes}m left to react` : `${minutes}m left to react`;
+}
+
 function readableError(error: unknown, fallback: string) {
   if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
     return error.message;
@@ -207,6 +240,10 @@ export default function ChallengeStarterHub({
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [leaderboardError, setLeaderboardError] = useState("");
   const [proofQueue, setProofQueue] = useState<BenchmarkProofQueueItem[]>([]);
+  const [feedBenchmarkId, setFeedBenchmarkId] = useState("all");
+  const [feedEntries, setFeedEntries] = useState<BenchmarkFeedEntry[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedError, setFeedError] = useState("");
   const [selectedActivity, setSelectedActivity] = useState(initialActivity);
   const [selectedSkill, setSelectedSkill] = useState<ChallengeSkillLevel>(skillLevel);
   const [selectedMode, setSelectedMode] = useState<ChallengeMode>(playMode);
@@ -279,12 +316,14 @@ export default function ChallengeStarterHub({
 
     const attemptResult = await supabase
       .from("talent7_benchmark_attempts")
-      .select("id,benchmark_id,score,verification_status,leaderboard_visible,proof_type,proof_url,review_note,reviewed_at,created_at")
+      .select("id,benchmark_id,score,verification_status,leaderboard_visible,proof_type,proof_url,feed_visible,feed_caption,feed_published_at,review_note,reviewed_at,created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (!attemptResult.error) {
       setAttempts((attemptResult.data || []) as BenchmarkAttempt[]);
+    } else if (attemptResult.error.message.includes("feed_visible")) {
+      setLoadWarning("Run add-benchmark-spectator-feed.sql in Supabase to enable the verified video feed.");
     } else if (attemptResult.error.message.includes("leaderboard_visible")) {
       setLoadWarning("Run add-benchmark-leaderboards.sql in Supabase to enable public benchmark standings and proof review.");
     }
@@ -338,6 +377,35 @@ export default function ChallengeStarterHub({
     void loadBenchmarkProofQueue();
   }, [loadBenchmarkProofQueue]);
 
+  const loadBenchmarkFeed = useCallback(async () => {
+    if (!supabase) {
+      setFeedEntries([]);
+      return;
+    }
+    setFeedLoading(true);
+    setFeedError("");
+    const { data, error } = await supabase.rpc("get_talent7_benchmark_spectator_feed", {
+      target_benchmark_id: feedBenchmarkId === "all" ? null : feedBenchmarkId,
+      result_limit: 24,
+      result_offset: 0
+    });
+    if (error) {
+      setFeedEntries([]);
+      setFeedError(
+        error.message.includes("get_talent7_benchmark_spectator_feed")
+          ? "Run add-benchmark-spectator-feed.sql in Supabase to activate the verified video feed."
+          : error.message
+      );
+    } else {
+      setFeedEntries((data || []) as BenchmarkFeedEntry[]);
+    }
+    setFeedLoading(false);
+  }, [feedBenchmarkId]);
+
+  useEffect(() => {
+    void loadBenchmarkFeed();
+  }, [loadBenchmarkFeed]);
+
   const personalBestAttempts = useMemo(() => {
     const best = new Map<string, BenchmarkAttempt>();
     for (const attempt of attempts) {
@@ -386,6 +454,9 @@ export default function ChallengeStarterHub({
           leaderboard_visible: false,
           proof_type: null,
           proof_url: null,
+          feed_visible: false,
+          feed_caption: null,
+          feed_published_at: null,
           review_note: null,
           reviewed_at: null,
           created_at: new Date().toISOString()
@@ -515,6 +586,80 @@ export default function ChallengeStarterHub({
       void loadBenchmarkLeaderboard();
     }
     setBusyAction("");
+  }
+
+  async function publishBenchmarkToFeed(event: FormEvent<HTMLFormElement>, attempt: BenchmarkAttempt) {
+    event.preventDefault();
+    if (!supabase || !userId) {
+      setMessage("Log in before publishing a benchmark video.");
+      return;
+    }
+    const caption = String(new FormData(event.currentTarget).get("feed_caption") || "").trim();
+    setBusyAction(`feed-${attempt.id}`);
+    setMessage("");
+    const { data, error } = await supabase.rpc("set_talent7_benchmark_feed_visibility", {
+      target_attempt_id: attempt.id,
+      target_visible: true,
+      target_caption: caption || null
+    });
+    if (error) {
+      setMessage(readableError(error, "The benchmark video could not be published."));
+    } else if (data) {
+      const updatedAttempt = data as BenchmarkAttempt;
+      setAttempts((items) => items.map((item) => item.id === updatedAttempt.id ? updatedAttempt : item));
+      setMessage("Your verified video is now in the spectator feed. Reactions stay open for 24 hours and never affect your score.");
+      void loadBenchmarkFeed();
+    }
+    setBusyAction("");
+  }
+
+  async function hideBenchmarkFromFeed(attempt: BenchmarkAttempt) {
+    if (!supabase || !userId) return;
+    setBusyAction(`feed-${attempt.id}`);
+    setMessage("");
+    const { data, error } = await supabase.rpc("set_talent7_benchmark_feed_visibility", {
+      target_attempt_id: attempt.id,
+      target_visible: false,
+      target_caption: null
+    });
+    if (error) {
+      setMessage(readableError(error, "The benchmark video could not be removed from the feed."));
+    } else if (data) {
+      const updatedAttempt = data as BenchmarkAttempt;
+      setAttempts((items) => items.map((item) => item.id === updatedAttempt.id ? updatedAttempt : item));
+      setMessage("Your benchmark video is no longer public in the spectator feed.");
+      void loadBenchmarkFeed();
+    }
+    setBusyAction("");
+  }
+
+  async function reactToBenchmarkFeed(entry: BenchmarkFeedEntry, reaction: "Respect" | "Strong form" | "Motivating") {
+    if (!supabase || !userId) {
+      setMessage("Log in before reacting to a benchmark video.");
+      return;
+    }
+    setBusyAction(`reaction-${entry.attempt_id}`);
+    setMessage("");
+    const { error } = await supabase.rpc("react_to_talent7_benchmark_feed", {
+      target_attempt_id: entry.attempt_id,
+      target_reaction: entry.viewer_reaction === reaction ? "Remove" : reaction
+    });
+    if (error) {
+      setMessage(readableError(error, "Your reaction could not be saved."));
+    } else {
+      await loadBenchmarkFeed();
+    }
+    setBusyAction("");
+  }
+
+  function shareFeedEntry(entry: BenchmarkFeedEntry) {
+    const benchmark = benchmarks.find((item) => item.id === entry.benchmark_id);
+    openTalent7Share({
+      title: `${entry.display_name}'s verified benchmark`,
+      text: `${entry.display_name} recorded ${formatResult(Number(entry.score), entry.unit)} in ${entry.benchmark_title}. Watch the verified Talent7 benchmark and try to beat it.`,
+      url: `${window.location.origin}/?benchmark=${encodeURIComponent(benchmark?.slug || "") }#challenge-now`,
+      onShare: () => setMessage("Verified benchmark shared.")
+    });
   }
 
   async function uploadBenchmarkProofVideo(file: File, attemptId: string) {
@@ -765,7 +910,35 @@ export default function ChallengeStarterHub({
                         </small>
                       )}
                       {personalBestAttempt.verification_status === "Verified" ? (
-                        <strong>Approved for the Verified board</strong>
+                        <>
+                          <strong>Approved for the Verified board</strong>
+                          {personalBestAttempt.proof_type === "Video" && isTalent7UploadedVideo(personalBestAttempt.proof_url) && (
+                            personalBestAttempt.feed_visible ? (
+                              <div className="benchmarkFeedOwnerStatus">
+                                <span>Public in the spectator feed</span>
+                                <button
+                                  className="secondary"
+                                  disabled={busyAction === `feed-${personalBestAttempt.id}`}
+                                  onClick={() => void hideBenchmarkFromFeed(personalBestAttempt)}
+                                  type="button"
+                                >
+                                  {busyAction === `feed-${personalBestAttempt.id}` ? "Updating…" : "Remove from feed"}
+                                </button>
+                              </div>
+                            ) : (
+                              <form className="benchmarkFeedPublishForm" onSubmit={(event) => void publishBenchmarkToFeed(event, personalBestAttempt)}>
+                                <label>
+                                  Optional spectator caption
+                                  <input maxLength={180} name="feed_caption" placeholder="What did this attempt mean to you?" />
+                                </label>
+                                <small>Your verified video becomes public by choice. Positive reactions remain open for 24 hours and never change your score.</small>
+                                <button disabled={busyAction === `feed-${personalBestAttempt.id}`} type="submit">
+                                  {busyAction === `feed-${personalBestAttempt.id}` ? "Publishing…" : "Publish verified video"}
+                                </button>
+                              </form>
+                            )
+                          )}
+                        </>
                       ) : personalBestAttempt.verification_status === "Proof submitted" ? (
                         <strong>Proof is waiting for private review</strong>
                       ) : (
@@ -791,7 +964,7 @@ export default function ChallengeStarterHub({
                               Public or unlisted HTTPS link
                               <input name="proof_url" placeholder="https://…" type="url" />
                             </label>
-                            <small>The link is visible only to you and Talent7 reviewers, never on the public leaderboard.</small>
+                            <small>The link stays private during review. A verified Talent7-uploaded video becomes public only if you later choose Publish verified video.</small>
                             <button disabled={busyAction === `proof-${personalBestAttempt.id}`} type="submit">
                               {busyAction === `proof-${personalBestAttempt.id}` ? "Uploading and submitting…" : "Upload and submit proof"}
                             </button>
@@ -993,6 +1166,95 @@ export default function ChallengeStarterHub({
           <div className="challengeStarterEmpty">
             <strong>No scores are on this board yet.</strong>
             <p>Record a benchmark, choose Join leaderboard, and become the first score people try to beat.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="benchmarkSpectatorFeed" aria-labelledby="benchmark-feed-title">
+        <header>
+          <div>
+            <span>Watch and encourage</span>
+            <h3 id="benchmark-feed-title">Verified benchmark feed</h3>
+            <p>Real, owner-published benchmark videos. Reactions are encouragement only and never decide a score.</p>
+          </div>
+          <div>
+            <label>
+              Show
+              <select onChange={(event) => setFeedBenchmarkId(event.target.value)} value={feedBenchmarkId}>
+                <option value="all">All benchmarks</option>
+                {benchmarks.filter((benchmark) => !benchmark.id.startsWith("preview-")).map((benchmark) => (
+                  <option key={benchmark.id} value={benchmark.id}>{benchmark.title}</option>
+                ))}
+              </select>
+            </label>
+            <button disabled={feedLoading} onClick={() => void loadBenchmarkFeed()} type="button">
+              {feedLoading ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+        </header>
+
+        {feedError ? (
+          <p className="benchmarkLeaderboardNotice">{feedError}</p>
+        ) : feedLoading ? (
+          <p className="benchmarkLeaderboardNotice">Loading verified benchmark videos…</p>
+        ) : feedEntries.length > 0 ? (
+          <div className="benchmarkSpectatorGrid">
+            {feedEntries.map((entry) => {
+              const reactionOptions = [
+                { label: "Respect" as const, icon: "⚡", count: Number(entry.respect_count) },
+                { label: "Strong form" as const, icon: "✓", count: Number(entry.strong_form_count) },
+                { label: "Motivating" as const, icon: "🔥", count: Number(entry.motivating_count) }
+              ];
+              return (
+                <article key={entry.attempt_id}>
+                  <div className="benchmarkSpectatorVideo">
+                    <video controls playsInline preload="metadata" src={entry.proof_url} />
+                    <span>✓ Verified</span>
+                  </div>
+                  <div className="benchmarkSpectatorIdentity">
+                    <span
+                      aria-hidden="true"
+                      className={entry.avatar_url ? "hasImage" : ""}
+                      style={entry.avatar_url ? { backgroundImage: `url(${entry.avatar_url})` } : undefined}
+                    >
+                      {!entry.avatar_url && entry.display_name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <div>
+                      <strong>{entry.display_name}</strong>
+                      <small>@{entry.username}{entry.region ? ` · ${entry.region}` : ""}</small>
+                    </div>
+                    <b>{formatResult(Number(entry.score), entry.unit)}</b>
+                  </div>
+                  <div className="benchmarkSpectatorCopy">
+                    <strong>{entry.benchmark_title}</strong>
+                    {entry.feed_caption && <p>{entry.feed_caption}</p>}
+                    <small>{formatReactionWindow(entry.reaction_closes_at)}</small>
+                  </div>
+                  <div className="benchmarkSpectatorReactions" aria-label="Encourage this benchmark">
+                    {reactionOptions.map((reaction) => (
+                      <button
+                        aria-pressed={entry.viewer_reaction === reaction.label}
+                        className={entry.viewer_reaction === reaction.label ? "active" : ""}
+                        disabled={!entry.reactions_open || busyAction === `reaction-${entry.attempt_id}`}
+                        key={reaction.label}
+                        onClick={() => void reactToBenchmarkFeed(entry, reaction.label)}
+                        type="button"
+                      >
+                        <span aria-hidden="true">{reaction.icon}</span>
+                        <small>{reaction.label}</small>
+                        <b>{reaction.count}</b>
+                      </button>
+                    ))}
+                  </div>
+                  <button className="benchmarkSpectatorShare" onClick={() => shareFeedEntry(entry)} type="button">Share benchmark</button>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="challengeStarterEmpty">
+            <strong>No verified videos are public yet.</strong>
+            <p>After Talent7 verifies an uploaded benchmark video, its owner can choose to publish it here.</p>
           </div>
         )}
       </section>

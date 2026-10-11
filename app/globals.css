@@ -26757,3 +26757,362 @@ html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > su
     border-color: #090c16;
   }
 }
+
+/* Verified, owner-opted-in benchmark spectator feed. */
+.benchmarkFeedPublishForm {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 14px;
+  background: rgba(18, 151, 145, 0.08);
+  border: 1px solid rgba(18, 151, 145, 0.22);
+  border-radius: 14px;
+}
+
+.benchmarkFeedPublishForm label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.benchmarkFeedPublishForm input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+}
+
+.benchmarkFeedPublishForm small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.benchmarkFeedPublishForm button,
+.benchmarkFeedOwnerStatus button {
+  min-height: 42px;
+  padding: 9px 13px;
+  color: #fff;
+  background: linear-gradient(125deg, #0b918d, #5348c8);
+  border: 0;
+  border-radius: 11px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.benchmarkFeedOwnerStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 11px 12px;
+  color: #075e55;
+  background: #dcf7ef;
+  border: 1px solid #95decc;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.benchmarkFeedOwnerStatus button.secondary {
+  min-height: 36px;
+  color: #75404a;
+  background: #fff;
+  border: 1px solid #e1b3bb;
+}
+
+.benchmarkSpectatorFeed {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+  padding: clamp(18px, 3vw, 28px);
+  background:
+    radial-gradient(circle at 92% 2%, rgba(255, 211, 77, 0.2), transparent 16rem),
+    linear-gradient(145deg, rgba(8, 47, 50, 0.98), rgba(30, 35, 79, 0.98));
+  border: 1px solid rgba(99, 225, 207, 0.26);
+  border-radius: 26px;
+  box-shadow: 0 20px 50px rgba(13, 39, 49, 0.2);
+}
+
+.benchmarkSpectatorFeed > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.benchmarkSpectatorFeed > header > div:first-child {
+  display: grid;
+  gap: 4px;
+  max-width: 720px;
+}
+
+.benchmarkSpectatorFeed > header > div:first-child > span {
+  color: #ffd34d;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.benchmarkSpectatorFeed > header h3,
+.benchmarkSpectatorFeed > header p {
+  margin: 0;
+}
+
+.benchmarkSpectatorFeed > header h3 {
+  color: #fff;
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
+}
+
+.benchmarkSpectatorFeed > header p {
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.45;
+}
+
+.benchmarkSpectatorFeed > header > div:last-child {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.benchmarkSpectatorFeed > header label {
+  display: grid;
+  gap: 5px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.benchmarkSpectatorFeed > header select,
+.benchmarkSpectatorFeed > header button {
+  min-height: 42px;
+  padding: 9px 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 11px;
+  font: inherit;
+  font-weight: 850;
+}
+
+.benchmarkSpectatorFeed > header select option {
+  color: #111719;
+}
+
+.benchmarkSpectatorGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.benchmarkSpectatorGrid > article {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  color: #182326;
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 19px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+}
+
+.benchmarkSpectatorVideo {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 9 / 13;
+  background: #070b0d;
+  border-radius: 14px;
+}
+
+.benchmarkSpectatorVideo video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.benchmarkSpectatorVideo > span {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 6px 9px;
+  color: #063b35;
+  background: #67ecd1;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 950;
+}
+
+.benchmarkSpectatorIdentity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.benchmarkSpectatorIdentity > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(145deg, #0b9893, #5849ca);
+  background-position: center;
+  background-size: cover;
+  border-radius: 12px;
+  font-weight: 950;
+}
+
+.benchmarkSpectatorIdentity > div {
+  display: grid;
+  min-width: 0;
+}
+
+.benchmarkSpectatorIdentity strong,
+.benchmarkSpectatorIdentity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.benchmarkSpectatorIdentity small,
+.benchmarkSpectatorCopy small {
+  color: #6b777a;
+  font-size: 0.72rem;
+}
+
+.benchmarkSpectatorIdentity > b {
+  color: #087f7c;
+  font-size: 0.82rem;
+}
+
+.benchmarkSpectatorCopy {
+  display: grid;
+  gap: 5px;
+}
+
+.benchmarkSpectatorCopy p {
+  margin: 0;
+  color: #59666a;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.benchmarkSpectatorReactions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.benchmarkSpectatorReactions button {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 62px;
+  padding: 7px 3px;
+  color: #344246;
+  background: #edf4f3;
+  border: 1px solid #d8e4e3;
+  border-radius: 11px;
+  font: inherit;
+}
+
+.benchmarkSpectatorReactions button.active {
+  color: #075b58;
+  background: #d4f4ec;
+  border-color: #6bcdbd;
+  box-shadow: inset 0 0 0 1px rgba(15, 143, 140, 0.18);
+}
+
+.benchmarkSpectatorReactions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.benchmarkSpectatorReactions button > span {
+  font-size: 1rem;
+}
+
+.benchmarkSpectatorReactions button small {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 0.62rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.benchmarkSpectatorReactions button b {
+  font-size: 0.72rem;
+}
+
+.benchmarkSpectatorShare {
+  min-height: 40px;
+  color: #fff;
+  background: linear-gradient(125deg, #0d8e8a, #5148c5);
+  border: 0;
+  border-radius: 11px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.benchmarkSpectatorFeed > .challengeStarterEmpty,
+.benchmarkSpectatorFeed > .benchmarkLeaderboardNotice {
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+@media (max-width: 980px) {
+  .benchmarkSpectatorGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .benchmarkSpectatorFeed {
+    padding: 16px;
+    border-radius: 21px;
+  }
+
+  .benchmarkSpectatorFeed > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .benchmarkSpectatorFeed > header > div:last-child {
+    align-items: stretch;
+  }
+
+  .benchmarkSpectatorFeed > header label {
+    flex: 1 1 auto;
+  }
+
+  .benchmarkSpectatorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .benchmarkSpectatorVideo {
+    max-height: 68vh;
+  }
+
+  .benchmarkFeedOwnerStatus {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+html[data-talent7-theme="dark"] .benchmarkFeedOwnerStatus {
+  color: #b9f4e7;
+  background: #102b2c;
+  border-color: #25665f;
+}
