@@ -18,7 +18,7 @@ export const supporterProducts: readonly SupporterProduct[] = [
     amountSubunits: 9_900,
     currency: "INR",
     googlePlayProductId: "talent7_supporter_99",
-    description: "A permanent Supporter badge on your Talent7 profile."
+    description: "A permanent Supporter badge, profile frame, and Listen-room flair."
   },
   {
     code: "champion_supporter_299",
@@ -27,7 +27,7 @@ export const supporterProducts: readonly SupporterProduct[] = [
     amountSubunits: 29_900,
     currency: "INR",
     googlePlayProductId: "talent7_champion_supporter_299",
-    description: "A permanent Champion Supporter badge on your Talent7 profile."
+    description: "A permanent Champion Supporter badge, profile frame, and Listen-room flair."
   },
   {
     code: "founder_supporter_999",
@@ -36,7 +36,7 @@ export const supporterProducts: readonly SupporterProduct[] = [
     amountSubunits: 99_900,
     currency: "INR",
     googlePlayProductId: "talent7_founder_supporter_999",
-    description: "A permanent Founder Supporter badge on your Talent7 profile."
+    description: "A permanent Founder Supporter badge, profile frame, and Listen-room flair."
   }
 ] as const;
 
