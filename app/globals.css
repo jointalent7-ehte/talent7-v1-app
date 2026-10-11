@@ -4542,6 +4542,41 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   margin-top: 20px;
 }
 
+.openMatchScopeTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  margin: 12px 0 14px;
+}
+
+.openMatchScopeTabs button {
+  min-height: 36px;
+  padding: 7px 12px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 850;
+}
+
+.openMatchScopeTabs button.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--teal), #5661d9);
+  border-color: transparent;
+}
+
+.openMatchScopeTabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.openMatchScopeTabs small {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 750;
+}
+
 .openMatchBoardGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

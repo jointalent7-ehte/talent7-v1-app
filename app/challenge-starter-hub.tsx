@@ -112,6 +112,18 @@ type MatchQueueItem = {
   is_mine: boolean;
   matched_user_id: string | null;
   matched_display_name: string | null;
+  location_scope?: MatchDiscoveryScope;
+  location_label?: string;
+  proximity_level?: MatchDiscoveryScope;
+};
+
+type MatchDiscoveryScope = "Area" | "City" | "Country" | "Global";
+
+const matchScopeRank: Record<MatchDiscoveryScope, number> = {
+  Global: 0,
+  Country: 1,
+  City: 2,
+  Area: 3
 };
 
 const fallbackBenchmarks: Benchmark[] = [
@@ -210,6 +222,9 @@ export default function ChallengeStarterHub({
   displayName,
   mainInterest,
   region,
+  area,
+  city,
+  country,
   skillLevel,
   playMode,
   matchFormat,
@@ -221,6 +236,9 @@ export default function ChallengeStarterHub({
   displayName: string;
   mainInterest: string;
   region: string;
+  area: string;
+  city: string;
+  country: string;
   skillLevel: ChallengeSkillLevel;
   playMode: ChallengeMode;
   matchFormat: ChallengeFormat;
@@ -248,7 +266,7 @@ export default function ChallengeStarterHub({
   const [selectedSkill, setSelectedSkill] = useState<ChallengeSkillLevel>(skillLevel);
   const [selectedMode, setSelectedMode] = useState<ChallengeMode>(playMode);
   const [selectedFormat, setSelectedFormat] = useState<ChallengeFormat>(matchFormat);
-  const [queueRegion, setQueueRegion] = useState(region || "Global");
+  const [queueScope, setQueueScope] = useState<MatchDiscoveryScope>(area ? "Area" : city ? "City" : country ? "Country" : "Global");
   const [busyAction, setBusyAction] = useState("");
   const [message, setMessage] = useState("");
   const [loadWarning, setLoadWarning] = useState("");
@@ -277,7 +295,11 @@ export default function ChallengeStarterHub({
   useEffect(() => setSelectedSkill(skillLevel), [skillLevel]);
   useEffect(() => setSelectedMode(playMode), [playMode]);
   useEffect(() => setSelectedFormat(matchFormat), [matchFormat]);
-  useEffect(() => setQueueRegion(region || "Global"), [region]);
+  useEffect(() => {
+    if (queueScope === "Area" && !area) setQueueScope(city ? "City" : country ? "Country" : "Global");
+    else if (queueScope === "City" && !city) setQueueScope(country ? "Country" : "Global");
+    else if (queueScope === "Country" && !country) setQueueScope("Global");
+  }, [area, city, country, queueScope]);
 
   useEffect(() => {
     if (benchmarks.length === 0) return;
@@ -423,7 +445,11 @@ export default function ChallengeStarterHub({
   }, [personalBestAttempts]);
 
   const myRequest = queue.find((item) => item.is_mine && ["Waiting", "Matched"].includes(item.request_status));
-  const waitingRequests = queue.filter((item) => item.request_status === "Waiting" && !item.is_mine).slice(0, 8);
+  const queueLocation = queueScope === "Area" ? area : queueScope === "City" ? city : queueScope === "Country" ? country : "Global";
+  const waitingRequests = queue
+    .filter((item) => item.request_status === "Waiting" && !item.is_mine)
+    .filter((item) => matchScopeRank[item.proximity_level || "Global"] >= matchScopeRank[queueScope])
+    .slice(0, 8);
   const selectedLeaderboardBenchmark = benchmarks.find((benchmark) => benchmark.id === leaderboardBenchmarkId) || benchmarks[0];
 
   async function recordAttempt(event: FormEvent<HTMLFormElement>, benchmark: Benchmark) {
@@ -502,7 +528,7 @@ export default function ChallengeStarterHub({
         target_skill_level: selectedSkill,
         target_play_mode: selectedMode,
         target_match_format: selectedFormat,
-        target_region: queueRegion || "Global",
+        target_region: queueLocation || region || "Global",
         target_note: note || null
       });
       if (error) throw error;
@@ -1019,7 +1045,7 @@ export default function ChallengeStarterHub({
                   </button>
                 </>
               ) : (
-                <p>{myRequest.region} · {myRequest.skill_level} · {myRequest.play_mode}</p>
+                <p>{myRequest.location_label || myRequest.region} · {myRequest.skill_level} · {myRequest.play_mode}</p>
               )}
               <button
                 className="textButton"
@@ -1060,8 +1086,13 @@ export default function ChallengeStarterHub({
                   </select>
                 </label>
                 <label>
-                  Region
-                  <input maxLength={100} onChange={(event) => setQueueRegion(event.target.value)} value={queueRegion} />
+                  Discovery range
+                  <select onChange={(event) => setQueueScope(event.target.value as MatchDiscoveryScope)} value={queueScope}>
+                    <option disabled={!area} value="Area">{area ? `Area · ${area}` : "Area · add in Account"}</option>
+                    <option disabled={!city} value="City">{city ? `City · ${city}` : "City · add in Account"}</option>
+                    <option disabled={!country} value="Country">{country ? `Country · ${country}` : "Country · add in Account"}</option>
+                    <option value="Global">Global</option>
+                  </select>
                 </label>
               </div>
               <label>
@@ -1285,21 +1316,39 @@ export default function ChallengeStarterHub({
           </div>
           <small>Only challenge preferences are shown. Account and contact details remain private.</small>
         </div>
+        <div aria-label="Match discovery range" className="openMatchScopeTabs" role="group">
+          {(["Area", "City", "Country", "Global"] as const).map((scope) => {
+            const unavailable = scope === "Area" ? !area : scope === "City" ? !city : scope === "Country" ? !country : false;
+            return (
+              <button
+                aria-pressed={queueScope === scope}
+                className={queueScope === scope ? "active" : ""}
+                disabled={unavailable}
+                key={scope}
+                onClick={() => setQueueScope(scope)}
+                type="button"
+              >
+                {scope}
+              </button>
+            );
+          })}
+          <small>No GPS · locations come from Account settings</small>
+        </div>
         {waitingRequests.length > 0 ? (
           <div className="openMatchBoardGrid">
             {waitingRequests.map((request) => (
               <article key={request.request_id}>
                 <span>{request.activity}</span>
                 <h4>{request.display_name}</h4>
-                <p>{request.region} · {request.skill_level} · {request.play_mode} · {request.match_format}</p>
+                <p>{request.location_label || request.region} · {request.skill_level} · {request.play_mode} · {request.match_format}</p>
                 {request.note && <small>{request.note}</small>}
               </article>
             ))}
           </div>
         ) : (
           <div className="challengeStarterEmpty">
-            <strong>No public requests are waiting yet.</strong>
-            <p>That does not block you: complete a benchmark, publish the first open challenge, or invite a rival directly.</p>
+            <strong>No requests are waiting in this {queueScope.toLowerCase()} range.</strong>
+            <p>Try a wider range, complete a benchmark, publish the first open challenge, or invite a rival directly.</p>
           </div>
         )}
       </div>

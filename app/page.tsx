@@ -17135,6 +17135,9 @@ export default function Home() {
 
       <ChallengeStarterHub
         activities={challengeActivityOptions}
+        area={profile?.leaderboard_area || ""}
+        city={profile?.leaderboard_city || ""}
+        country={profile?.leaderboard_country || ""}
         displayName={profile?.display_name || ""}
         isAdmin={isOwnerReviewer}
         mainInterest={profile?.main_interest || "Push-up challenge"}
