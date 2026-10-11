@@ -4610,11 +4610,11 @@ export default function Home() {
     if (!activePresenceChallengeId) return;
 
     const roomIsVisible = visibleChallenges.some((challenge) => challenge.id === activePresenceChallengeId);
-    if (activeAppTab !== "challenges" || activeSection !== "rooms" || !roomIsVisible) {
+    if (activeSection !== "rooms" || !roomIsVisible) {
       setActivePresenceChallengeId(null);
       setLockedRoomPageIds(null);
     }
-  }, [activeAppTab, activePresenceChallengeId, activeSection, visibleChallenges]);
+  }, [activePresenceChallengeId, activeSection, visibleChallenges]);
 
   useEffect(() => {
     const lastPage = Math.max(1, Math.ceil(visibleProfiles.length / profilePageSize));
@@ -5268,18 +5268,16 @@ export default function Home() {
     }
   }
 
-  function handleRoomWorkspaceToggle(event: FormEvent<HTMLDetailsElement>, challenge: Challenge) {
-    if (event.currentTarget.open) {
-      setLockedRoomPageIds(pagedChallenges.map((room) => room.id));
-      setActivePresenceChallengeId(challenge.id);
-      void recordChallengeRoomView(challenge);
-      return;
-    }
-
+  function toggleRoomWorkspace(challenge: Challenge) {
     if (activePresenceChallengeId === challenge.id) {
       setActivePresenceChallengeId(null);
       setLockedRoomPageIds(null);
+      return;
     }
+
+    setLockedRoomPageIds(pagedChallenges.map((room) => room.id));
+    setActivePresenceChallengeId(challenge.id);
+    void recordChallengeRoomView(challenge);
   }
 
   function roomChatHint(challenge: Challenge) {
@@ -18437,10 +18435,14 @@ export default function Home() {
               </div>
               <details
                 className="roomWorkspace"
-                onToggle={(event) => handleRoomWorkspaceToggle(event, challenge)}
                 open={activePresenceChallengeId === challenge.id}
               >
-                <summary>
+                <summary
+                  onClick={(event) => {
+                    event.preventDefault();
+                    toggleRoomWorkspace(challenge);
+                  }}
+                >
                   <span>{isChallengeClosed(challenge) ? "View archived room" : "Open room"}</span>
                   <small>
                     {liveRoomPresenceCounts[challenge.id]
