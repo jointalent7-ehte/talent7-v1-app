@@ -167,7 +167,7 @@ const faqSections = [
       {
         question: "What do supporter badges provide?",
         answer:
-          "They are optional permanent digital badges displayed on a Talent7 profile. They do not buy competition entry, alter judging, award rank points, guarantee exposure, or provide ownership or investment rights."
+          "They are optional permanent cosmetics: a digital badge, profile frame, and verified flair in Listen voice rooms. They do not buy competition entry, alter judging, award rank points, guarantee exposure, or provide ownership or investment rights."
       },
       {
         question: "What should I do if my Google Play badge is missing?",
