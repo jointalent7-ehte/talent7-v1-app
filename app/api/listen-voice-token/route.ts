@@ -48,7 +48,12 @@ export async function POST(request: NextRequest) {
   const user = userResult.user;
   if (userError || !user) return jsonError("Your login has expired. Log in again.", 401);
 
-  const [{ data: room, error: roomError }, { data: member, error: memberError }, { data: profile }] = await Promise.all([
+  const [
+    { data: room, error: roomError },
+    { data: member, error: memberError },
+    { data: profile },
+    { data: supporterEntitlement }
+  ] = await Promise.all([
     admin
       .from("listen_rooms")
       .select("id,title,status,voice_enabled,area_slug")
@@ -60,7 +65,13 @@ export async function POST(request: NextRequest) {
       .eq("room_id", roomId)
       .eq("user_id", user.id)
       .maybeSingle(),
-    admin.from("profiles").select("display_name,username").eq("user_id", user.id).maybeSingle()
+    admin.from("profiles").select("display_name,username").eq("user_id", user.id).maybeSingle(),
+    admin
+      .from("supporter_entitlements")
+      .select("tier")
+      .eq("user_id", user.id)
+      .eq("active", true)
+      .maybeSingle()
   ]);
 
   if (roomError || memberError) return jsonError("The local voice-room migration has not been applied yet.", 503);
@@ -78,7 +89,12 @@ export async function POST(request: NextRequest) {
     identity: user.id,
     name: participantName,
     ttl: "2h",
-    metadata: JSON.stringify({ area: room.area_slug, listenRoomId: roomId, role })
+    metadata: JSON.stringify({
+      area: room.area_slug,
+      listenRoomId: roomId,
+      role,
+      supporterTier: supporterEntitlement?.tier || null
+    })
   });
   token.addGrant({
     room: `talent7-listen-${roomId}`,
