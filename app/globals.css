@@ -3658,24 +3658,35 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
 
 .challengeStarterPathGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 22px 0;
 }
 
-.challengeStarterPathGrid article {
+.challengeStarterPathGrid > button {
   display: grid;
   grid-template-columns: 34px 1fr;
   gap: 3px 10px;
   align-content: start;
+  width: 100%;
   padding: 16px;
+  color: var(--ink);
+  text-align: left;
   background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(20, 23, 25, 0.1);
   border-radius: 16px;
   box-shadow: 0 10px 28px rgba(20, 23, 25, 0.06);
 }
 
-.challengeStarterPathGrid article > span {
+.challengeStarterPathGrid > button:hover,
+.challengeStarterPathGrid > button.active {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 82%, var(--teal) 18%);
+  border-color: color-mix(in srgb, var(--teal) 68%, var(--line));
+  transform: translateY(-2px);
+}
+
+.challengeStarterPathGrid > button > span {
   display: grid;
   grid-row: 1 / 3;
   width: 34px;
@@ -3697,9 +3708,28 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   line-height: 1.35;
 }
 
+.challengeStarterExploreToggle {
+  display: flex;
+  justify-content: center;
+  margin: -4px 0 22px;
+}
+
+.challengeStarterExploreToggle button {
+  min-height: 42px;
+}
+
+.challengeStarterLayout[hidden],
+.challengeBenchmarkColumn[hidden],
+.challengeMatchmaker[hidden],
+.benchmarkLeaderboard[hidden],
+.benchmarkSpectatorFeed[hidden],
+.openMatchBoard[hidden] {
+  display: none !important;
+}
+
 .challengeStarterLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -8545,6 +8575,55 @@ textarea {
   margin-bottom: 16px;
 }
 
+.growthHubTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0 20px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--surface) 76%, var(--line));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.growthHubTabs button {
+  display: grid;
+  gap: 3px;
+  min-height: 62px;
+  padding: 10px 14px;
+  color: var(--muted);
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  box-shadow: none;
+}
+
+.growthHubTabs button:hover,
+.growthHubTabs button.active {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--teal) 48%, var(--line));
+  box-shadow: 0 8px 20px rgba(20, 23, 25, 0.08);
+  transform: none;
+}
+
+.growthHubTabs strong,
+.growthHubTabs small {
+  display: block;
+}
+
+.growthHubTabs small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.growthHub > [hidden],
+.growthHubGrid[hidden],
+.growthHubGrid > article[hidden] {
+  display: none !important;
+}
+
 .growthHubHeader h3,
 .growthHubGrid h4,
 .growthHubGrid p,
@@ -9448,6 +9527,16 @@ textarea {
   .growthHubHeader,
   .growthHubGrid {
     grid-template-columns: 1fr;
+  }
+
+  .growthHubTabs {
+    display: flex;
+    padding-bottom: 6px;
+    overflow-x: auto;
+  }
+
+  .growthHubTabs button {
+    min-width: 170px;
   }
 
   .talent7LeagueHero {

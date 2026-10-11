@@ -184,6 +184,7 @@ export default function GrowthHub({
   const [localLeaderboardActivity, setLocalLeaderboardActivity] = useState<"Overall" | "My activity">("Overall");
   const [localLeaderboardLoading, setLocalLeaderboardLoading] = useState(false);
   const [localLeaderboardError, setLocalLeaderboardError] = useState("");
+  const [progressView, setProgressView] = useState<"compete" | "missions" | "achievements">("compete");
   const [busyAction, setBusyAction] = useState<"ready" | "league" | "refresh" | null>(null);
   const [message, setMessage] = useState("");
   const [readyClock, setReadyClock] = useState(0);
@@ -404,7 +405,43 @@ export default function GrowthHub({
 
       {message && <p className="growthHubMessage" role="status">{message}</p>}
 
-      <section className="talent7LeagueHero" aria-label="Talent7 League rank">
+      <div className="growthHubTabs" aria-label="My progress sections" role="tablist">
+        <button
+          aria-controls="growth-compete"
+          aria-selected={progressView === "compete"}
+          className={progressView === "compete" ? "active" : ""}
+          onClick={() => setProgressView("compete")}
+          role="tab"
+          type="button"
+        >
+          <strong>Compete</strong>
+          <small>Rank and leaderboards</small>
+        </button>
+        <button
+          aria-controls="growth-missions"
+          aria-selected={progressView === "missions"}
+          className={progressView === "missions" ? "active" : ""}
+          onClick={() => setProgressView("missions")}
+          role="tab"
+          type="button"
+        >
+          <strong>Missions</strong>
+          <small>Weekly goals and matching</small>
+        </button>
+        <button
+          aria-controls="growth-achievements"
+          aria-selected={progressView === "achievements"}
+          className={progressView === "achievements" ? "active" : ""}
+          onClick={() => setProgressView("achievements")}
+          role="tab"
+          type="button"
+        >
+          <strong>Achievements</strong>
+          <small>Titles, trophies, and reviewer level</small>
+        </button>
+      </div>
+
+      <section className="talent7LeagueHero" aria-label="Talent7 League rank" hidden={progressView !== "compete"} id="growth-compete">
         <div className="talent7RankCrest" aria-hidden="true"><span>7</span></div>
         <div className="talent7RankProgress">
           <span>{talent7Season?.name || "Talent7 season"}</span>
@@ -486,7 +523,7 @@ export default function GrowthHub({
         )}
       </section>
 
-      <section className="localLeagueBoard" aria-labelledby="local-league-board-title">
+      <section className="localLeagueBoard" aria-labelledby="local-league-board-title" hidden={progressView !== "compete"}>
         <div className="localLeagueBoardHeader">
           <div>
             <span>Local rankings</span>
@@ -564,8 +601,8 @@ export default function GrowthHub({
         )}
       </section>
 
-      <div className="growthHubGrid">
-        <article className={`weeklyMissionCard ${weeklyMissionComplete ? "complete" : ""}`}>
+      <div className="growthHubGrid" hidden={progressView === "compete"} id={progressView === "missions" ? "growth-missions" : "growth-achievements"}>
+        <article className={`weeklyMissionCard ${weeklyMissionComplete ? "complete" : ""}`} hidden={progressView !== "missions"}>
           <span>{weeklyMissionComplete ? "30 XP claimed" : "Weekly charge · 30 XP"}</span>
           <h4>{weeklyMissionComplete ? "Mission set complete" : "Three moves this week"}</h4>
           {weeklyMissions.length > 0 ? (
@@ -587,7 +624,7 @@ export default function GrowthHub({
           <small className="weeklyMissionNote">Resets Monday · seasonal XP only · no Rank Points</small>
         </article>
 
-        <article className="reviewerProgressCard">
+        <article className="reviewerProgressCard" hidden={progressView !== "achievements"}>
           <span>{reviewerProgress?.review_xp || 0} Reviewer XP</span>
           <h4>{reviewerProgress?.tier || "Observer"}</h4>
           <p>
@@ -613,7 +650,7 @@ export default function GrowthHub({
           <small className="reviewerProgressSafety">Separate from competition XP and Rank Points</small>
         </article>
 
-        <article>
+        <article hidden={progressView !== "missions"}>
           <span className={`growthStatus ${readyNow ? "live" : ""}`}>{readyNow ? "Ready Now" : "Not active"}</span>
           <h4>Play soon</h4>
           <p>Appear first for matching challengers for one hour. You can end it at any time.</p>
@@ -622,7 +659,7 @@ export default function GrowthHub({
           </button>
         </article>
 
-        <article>
+        <article hidden={progressView !== "achievements"}>
           <span>{achievements.length} unlocked</span>
           <h4>Achievements</h4>
           {achievements.length ? (
@@ -639,7 +676,7 @@ export default function GrowthHub({
           )}
         </article>
 
-        <article>
+        <article hidden={progressView !== "missions"}>
           <span>{joinedLeague ? "Joined" : "Open this week"}</span>
           <h4>{joinedLeague?.title || `${mainInterest || "Your activity"} weekly league`}</h4>
           {joinedLeague ? (
@@ -662,7 +699,7 @@ export default function GrowthHub({
           )}
         </article>
 
-        <article className="masteryTitlesCard">
+        <article className="masteryTitlesCard" hidden={progressView !== "achievements"}>
           <span>{masteryTitles.length} unlocked</span>
           <h4>Mastery titles</h4>
           {masteryTitles.length > 0 ? (
@@ -683,7 +720,7 @@ export default function GrowthHub({
           <small className="masteryTitlesNote">Permanent and cosmetic · no effect on XP, Rank Points, prizes, or results</small>
         </article>
 
-        <article className="trophyCabinetCard">
+        <article className="trophyCabinetCard" hidden={progressView !== "achievements"}>
           <span>{trophies.length} collected</span>
           <h4>Trophy cabinet</h4>
           {trophies.length > 0 ? (

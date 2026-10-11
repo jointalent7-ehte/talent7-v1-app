@@ -271,6 +271,8 @@ export default function ChallengeStarterHub({
   const [feedEntries, setFeedEntries] = useState<BenchmarkFeedEntry[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState("");
+  const [activeStarterPath, setActiveStarterPath] = useState<"benchmark" | "match" | null>(null);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(initialActivity);
   const [selectedSkill, setSelectedSkill] = useState<ChallengeSkillLevel>(skillLevel);
   const [selectedMode, setSelectedMode] = useState<ChallengeMode>(playMode);
@@ -296,6 +298,7 @@ export default function ChallengeStarterHub({
     const sharedBenchmark = benchmarks.find((benchmark) => benchmark.slug === sharedBenchmarkSlug);
     if (!sharedBenchmark) return;
     setSharedBenchmarkId(sharedBenchmark.id);
+    setActiveStarterPath("benchmark");
     setSelectedActivity(sharedBenchmark.activity);
     window.setTimeout(() => {
       document.getElementById(`benchmark-${sharedBenchmark.slug}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -854,8 +857,8 @@ export default function ChallengeStarterHub({
       <div className="sectionHeader challengeStarterHeader">
         <div>
           <p className="eyebrow">Challenge now</p>
-          <h2>Never wait for the community to wake up</h2>
-          <p>Set a personal best, publish an open challenge, enter matchmaking, or invite someone directly. No fake opponents and no paid entry.</p>
+          <h2>Choose how you want to start</h2>
+          <p>Pick one clear next step. Rankings, verified videos, and other discovery tools stay available under Explore.</p>
         </div>
         <div className="challengeStarterPromise">
           <strong>Always available</strong>
@@ -866,15 +869,44 @@ export default function ChallengeStarterHub({
       {loadWarning && <aside className="challengeStarterWarning">{loadWarning}</aside>}
       {message && <p className="challengeStarterMessage" role="status">{message}</p>}
 
-      <div className="challengeStarterPathGrid" aria-label="Ways to start immediately">
-        <article><span>1</span><strong>Set a benchmark</strong><small>Do something immediately and build a personal best.</small></article>
-        <article><span>2</span><strong>Open the challenge</strong><small>Let an asynchronous rival answer when they are ready.</small></article>
-        <article><span>3</span><strong>Enter matchmaking</strong><small>Talent7 keeps searching while you are offline.</small></article>
-        <article><span>4</span><strong>Invite a rival</strong><small>Bring one person directly into your chosen activity.</small></article>
+      <div className="challengeStarterPathGrid" aria-label="Choose how to start">
+        <button
+          aria-pressed={activeStarterPath === "benchmark"}
+          className={activeStarterPath === "benchmark" ? "active" : ""}
+          onClick={() => setActiveStarterPath(activeStarterPath === "benchmark" ? null : "benchmark")}
+          type="button"
+        >
+          <span>1</span><strong>Set a benchmark</strong><small>Record a personal best now. No opponent needed.</small>
+        </button>
+        <button
+          aria-pressed={activeStarterPath === "match"}
+          className={activeStarterPath === "match" ? "active" : ""}
+          onClick={() => setActiveStarterPath(activeStarterPath === "match" ? null : "match")}
+          type="button"
+        >
+          <span>2</span><strong>Find a rival</strong><small>Match automatically, publish openly, or invite someone.</small>
+        </button>
+        <button
+          onClick={() => onStartChallenge({
+            activity: selectedActivity,
+            title: selectedActivity,
+            rules: `Agree the exact ${selectedActivity} rules before starting. Complete the challenge fairly and upload proof after the result.`,
+            competitionMode: "Casual"
+          })}
+          type="button"
+        >
+          <span>3</span><strong>Create a challenge</strong><small>Open the simple challenge form with your activity selected.</small>
+        </button>
       </div>
 
-      <div className="challengeStarterLayout">
-        <div className="challengeBenchmarkColumn">
+      <div className="challengeStarterExploreToggle">
+        <button aria-expanded={exploreOpen} className="secondary" onClick={() => setExploreOpen(!exploreOpen)} type="button">
+          {exploreOpen ? "Hide rankings and videos" : "Explore rankings and verified videos"}
+        </button>
+      </div>
+
+      <div className="challengeStarterLayout" hidden={!activeStarterPath}>
+        <div className="challengeBenchmarkColumn" hidden={activeStarterPath !== "benchmark"}>
           <div className="challengeStarterSubhead">
             <div>
               <span>Official starters</span>
@@ -1050,7 +1082,7 @@ export default function ChallengeStarterHub({
           </div>
         </div>
 
-        <aside className="challengeMatchmaker">
+        <aside className="challengeMatchmaker" hidden={activeStarterPath !== "match"}>
           <div className="challengeStarterSubhead">
             <div>
               <span>Opponent queue</span>
@@ -1182,7 +1214,7 @@ export default function ChallengeStarterHub({
         </aside>
       </div>
 
-      <section className="benchmarkLeaderboard" aria-labelledby="benchmark-leaderboard-title">
+      <section className="benchmarkLeaderboard" aria-labelledby="benchmark-leaderboard-title" hidden={!exploreOpen}>
         <header>
           <div>
             <span>Benchmark rankings</span>
@@ -1256,7 +1288,7 @@ export default function ChallengeStarterHub({
         )}
       </section>
 
-      <section className="benchmarkSpectatorFeed" aria-labelledby="benchmark-feed-title">
+      <section className="benchmarkSpectatorFeed" aria-labelledby="benchmark-feed-title" hidden={!exploreOpen}>
         <header>
           <div>
             <span>Watch and encourage</span>
@@ -1363,7 +1395,7 @@ export default function ChallengeStarterHub({
         </section>
       )}
 
-      <div className="openMatchBoard">
+      <div className="openMatchBoard" hidden={activeStarterPath !== "match"}>
         <div className="challengeStarterSubhead">
           <div>
             <span>Live demand</span>
