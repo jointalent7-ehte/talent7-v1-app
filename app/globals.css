@@ -4792,6 +4792,59 @@ button:disabled {
   white-space: nowrap;
 }
 
+.navActions > button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px 10px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.navActions > button:hover,
+.navActions > button.active {
+  background: rgba(24, 171, 163, 0.34);
+  border-color: rgba(72, 229, 215, 0.72);
+}
+
+.navActions > button .mobileNavIcon,
+.navActions > button > svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  stroke: currentcolor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.navActions > button em {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  min-width: 21px;
+  height: 21px;
+  place-items: center;
+  padding: 0 5px;
+  color: #fff;
+  background: #e43e54;
+  border: 2px solid #111719;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
 .hero section {
   max-width: 850px;
 }
@@ -5875,18 +5928,18 @@ main[class*="appTab-"] > section.section {
   display: none;
 }
 
-main.appTab-settings > #account,
-main.appTab-settings > #my-talent7,
-main.appTab-settings > #first-wave,
+main.appTab-home > #home,
 main.appTab-challenges > #challenge-now,
 main.appTab-challenges > #community-competition,
-main.appTab-challenges > #rooms,
 main.appTab-challenges > #opponents,
-main.appTab-challenges > #create,
 main.appTab-challenges > #tournaments,
 main.appTab-challenges > #rivalries,
 main.appTab-challenges > #leaderboard,
-main.appTab-listen > #listen-rooms,
+main.appTab-create > #create,
+main.appTab-live > #rooms,
+main.appTab-live > #listen-rooms,
+main.appTab-profile > #account,
+main.appTab-profile > #my-talent7,
 main.appTab-teams > #teams,
 main.appTab-profiles > #profiles,
 main.appTab-notifications > #notifications,
@@ -5905,6 +5958,7 @@ main[class*="appView-"] > section.section {
   display: none !important;
 }
 
+main.appView-home > #home,
 main.appView-first-wave > #first-wave,
 main.appView-notifications > #notifications,
   main.appView-account > #account,
@@ -26386,4 +26440,308 @@ html[data-talent7-theme="dark"] #community-competition .competitionHeatDesk > su
 
 @media (prefers-reduced-motion: reduce) {
   .talent7ShareSheet { animation: none; }
+}
+
+/* Simplified app shell: one clear home and five primary destinations. */
+.simplifiedHome {
+  display: grid;
+  gap: 24px;
+}
+
+.simplifiedHomeLead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+  padding: clamp(24px, 5vw, 54px);
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 214, 79, 0.4), transparent 16rem),
+    linear-gradient(130deg, #082f32 0%, #0b7775 54%, #5144bf 100%);
+  border-radius: 30px;
+  box-shadow: 0 24px 58px rgba(18, 62, 67, 0.22);
+}
+
+.simplifiedHomeLead > div {
+  max-width: 760px;
+}
+
+.simplifiedHomeLead .eyebrow,
+.simplifiedHomeLead p {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.simplifiedHomeLead h2 {
+  max-width: 720px;
+  margin: 6px 0 12px;
+  color: #fff;
+  font-size: clamp(2.3rem, 6vw, 5rem);
+  line-height: 0.98;
+}
+
+.simplifiedHomeLead p:last-child {
+  max-width: 640px;
+  margin: 0;
+  font-size: clamp(1rem, 1.8vw, 1.16rem);
+  line-height: 1.55;
+}
+
+.simplifiedHomePrimary {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 14px 22px;
+  color: #111719;
+  background: #ffd653;
+  border-radius: 17px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  font-weight: 950;
+}
+
+.simplifiedActionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.simplifiedActionGrid > a {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  min-height: 168px;
+  padding: 24px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 14px 34px rgba(28, 53, 58, 0.09);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.simplifiedActionGrid > a:hover,
+.simplifiedActionGrid > a:focus-visible {
+  border-color: rgba(12, 151, 145, 0.58);
+  box-shadow: 0 18px 42px rgba(28, 53, 58, 0.15);
+  transform: translateY(-3px);
+}
+
+.simplifiedActionGrid > a > span {
+  grid-row: 1 / span 2;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(145deg, #0b9792, #5046c3);
+  border-radius: 14px;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.simplifiedActionGrid strong {
+  align-self: end;
+  font-size: 1.17rem;
+}
+
+.simplifiedActionGrid small {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.simplifiedHomeStatus {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.simplifiedHomeStatus article {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 10px;
+  padding: 18px;
+  background: color-mix(in srgb, var(--paper) 92%, #0b9792 8%);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.simplifiedHomeStatus span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.simplifiedHomeStatus strong {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  color: var(--ink);
+  font-size: 1.35rem;
+}
+
+.simplifiedHomeStatus a {
+  width: fit-content;
+  color: #087f7c;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.simplifiedLanguageGuide {
+  padding: 18px 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.simplifiedLanguageGuide summary {
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.simplifiedLanguageGuide > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.simplifiedLanguageGuide p {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 14px;
+  background: color-mix(in srgb, var(--paper) 86%, #0b9792 14%);
+  border-radius: 14px;
+}
+
+.simplifiedLanguageGuide span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .simplifiedHomeLead {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .simplifiedActionGrid,
+  .simplifiedLanguageGuide > div {
+    grid-template-columns: 1fr;
+  }
+
+  .simplifiedActionGrid > a {
+    min-height: 126px;
+  }
+
+  .simplifiedHomeStatus {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .appTabs button[data-primary-tab="home"] { order: 1; }
+  .appTabs button[data-primary-tab="challenges"] { order: 2; }
+  .appTabs button[data-primary-tab="create"] { order: 3; }
+  .appTabs button[data-primary-tab="live"] { order: 4; }
+  .appTabs button[data-primary-tab="profile"] { order: 5; }
+
+  .appTabs button[data-primary-tab="create"] {
+    position: relative;
+    display: grid;
+    min-height: 70px;
+    margin: -22px 0 1px;
+    color: #fff;
+    background: linear-gradient(145deg, #0a918d, #4f46c5);
+    border: 4px solid #fff;
+    border-radius: 23px;
+    box-shadow: 0 14px 30px rgba(25, 70, 87, 0.32);
+  }
+
+  .appTabs button[data-primary-tab="create"].active {
+    color: #101719;
+    background: linear-gradient(145deg, #ffe172, #f5c742);
+    border-color: #fff;
+    box-shadow: 0 14px 30px rgba(193, 143, 26, 0.3);
+  }
+
+  .hero nav,
+  .hero.heroCompact nav,
+  .hero.heroRoomsBanner nav {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .hero .navActions,
+  .hero.heroCompact .navActions,
+  .hero.heroRoomsBanner .navActions {
+    align-items: center;
+    flex-direction: row;
+    margin-left: auto;
+  }
+
+  .navActions > span,
+  .navActions > button > span:not(.mobileNavIcon) {
+    display: none;
+  }
+
+  .navActions > button {
+    min-width: 42px;
+    min-height: 42px;
+    padding: 8px;
+    border-radius: 13px;
+  }
+
+  .simplifiedHome {
+    gap: 16px;
+  }
+
+  .simplifiedHomeLead {
+    gap: 20px;
+    padding: 24px 20px;
+    border-radius: 24px;
+  }
+
+  .simplifiedHomeLead h2 {
+    font-size: clamp(2.15rem, 12vw, 3.4rem);
+  }
+
+  .simplifiedHomePrimary {
+    width: 100%;
+  }
+
+  .simplifiedActionGrid > a {
+    min-height: 0;
+    padding: 18px;
+    border-radius: 19px;
+  }
+
+  .simplifiedHomeStatus {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .simplifiedHomeStatus {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-talent7-theme="dark"] .appTabs button[data-primary-tab="create"] {
+    color: #fff;
+    background: linear-gradient(145deg, #157f7c, #393592);
+    border-color: #090c16;
+    box-shadow: 0 15px 34px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(121, 151, 255, 0.24);
+  }
+
+  html[data-talent7-theme="dark"] .appTabs button[data-primary-tab="create"].active {
+    color: #071011;
+    background: linear-gradient(145deg, #ffd34d, #f2bd45);
+    border-color: #090c16;
+  }
 }

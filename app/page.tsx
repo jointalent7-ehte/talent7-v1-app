@@ -226,7 +226,7 @@ const expertHelpTypes: ExpertHelpType[] = [
   "Other urgent help"
 ];
 
-type PrimaryTabId = "settings" | "challenges" | "listen";
+type PrimaryTabId = "home" | "challenges" | "create" | "live" | "profile";
 type MoreTabId = "teams" | "profiles" | "notifications" | "feed" | "invites" | "safety" | "plans" | "feedback" | "roadmap";
 type AppTabId = PrimaryTabId | MoreTabId;
 type NoticeTone = "success" | "error" | "warning" | "info";
@@ -401,17 +401,15 @@ function AppStatePanel({
   );
 }
 
-type MobileNavIconName = "settings" | "challenges" | "notifications" | "listen" | "more";
+type MobileNavIconName = "home" | "challenges" | "create" | "live" | "profile" | "notifications" | "more";
 
 function MobileNavIcon({ name }: { name: MobileNavIconName }) {
   return (
     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-      {name === "settings" && (
+      {name === "home" && (
         <>
-          <path d="M4 7h10M20 7h-2M4 17h2M10 17h10M4 12h4M12 12h8" />
-          <circle cx="16" cy="7" r="2" />
-          <circle cx="8" cy="17" r="2" />
-          <circle cx="10" cy="12" r="2" />
+          <path d="m3 11 9-8 9 8" />
+          <path d="M5 10v10h14V10M9 20v-6h6v6" />
         </>
       )}
       {name === "challenges" && (
@@ -426,10 +424,22 @@ function MobileNavIcon({ name }: { name: MobileNavIconName }) {
           <path d="M10 21h4" />
         </>
       )}
-      {name === "listen" && (
+      {name === "create" && (
         <>
-          <path d="M4 13v-1a8 8 0 0 1 16 0v1" />
-          <path d="M4 13h3v7H5a2 2 0 0 1-2-2v-3a2 2 0 0 1 1-2ZM20 13h-3v7h2a2 2 0 0 0 2-2v-3a2 2 0 0 0-1-2Z" />
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v8M8 12h8" />
+        </>
+      )}
+      {name === "live" && (
+        <>
+          <path d="M4 7h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
+          <path d="m17 11 5-3v9l-5-3" />
+        </>
+      )}
+      {name === "profile" && (
+        <>
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21a8 8 0 0 1 16 0" />
         </>
       )}
       {name === "more" && (
@@ -450,35 +460,45 @@ const primaryTabs: {
   links: { label: string; href: string }[];
 }[] = [
   {
-    id: "settings",
-    label: "Account",
-    firstSection: "account",
-    links: [
-      { label: "Settings", href: "#account" },
-      { label: "Dashboard", href: "#my-talent7" },
-      { label: "First wave", href: "#first-wave" }
-    ]
+    id: "home",
+    label: "Home",
+    firstSection: "home",
+    links: [{ label: "Home", href: "#home" }]
   },
   {
     id: "challenges",
     label: "Challenges",
     firstSection: "challenge-now",
     links: [
-      { label: "Challenge now", href: "#challenge-now" },
-      { label: "Vote next", href: "#community-competition" },
-      { label: "Rooms", href: "#rooms" },
-      { label: "Find opponents", href: "#opponents" },
-      { label: "Create", href: "#create" },
+      { label: "Start", href: "#challenge-now" },
+      { label: "Find rivals", href: "#opponents" },
       { label: "Tournaments", href: "#tournaments" },
-      { label: "Rivalries", href: "#rivalries" },
-      { label: "Leaderboard", href: "#leaderboard" }
+      { label: "Rankings", href: "#leaderboard" }
     ]
   },
   {
-    id: "listen",
-    label: "Listen",
-    firstSection: "listen-rooms",
-    links: [{ label: "Listen rooms", href: "#listen-rooms" }]
+    id: "create",
+    label: "Create",
+    firstSection: "create",
+    links: [{ label: "Create", href: "#create" }]
+  },
+  {
+    id: "live",
+    label: "Live",
+    firstSection: "rooms",
+    links: [
+      { label: "Live & rooms", href: "#rooms" },
+      { label: "Listen", href: "#listen-rooms" }
+    ]
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    firstSection: "account",
+    links: [
+      { label: "Account", href: "#account" },
+      { label: "My progress", href: "#my-talent7" }
+    ]
   }
 ];
 
@@ -517,18 +537,19 @@ const moreTabGroups: Array<{
 ];
 
 const sectionTabMap: Record<string, AppTabId> = {
-  "first-wave": "settings",
-  account: "settings",
-  "my-talent7": "settings",
-  create: "challenges",
+  home: "home",
+  "first-wave": "home",
+  account: "profile",
+  "my-talent7": "profile",
+  create: "create",
   "challenge-now": "challenges",
   "community-competition": "challenges",
-  rooms: "challenges",
+  rooms: "live",
   opponents: "challenges",
   tournaments: "challenges",
   rivalries: "challenges",
   leaderboard: "challenges",
-  "listen-rooms": "listen",
+  "listen-rooms": "live",
   teams: "teams",
   profiles: "profiles",
   notifications: "notifications",
@@ -2269,8 +2290,8 @@ export default function Home() {
   const [roomRankingTimestamp, setRoomRankingTimestamp] = useState(0);
   const [roomSearch, setRoomSearch] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [activeAppTab, setActiveAppTab] = useState<AppTabId>("settings");
-  const [activeSection, setActiveSection] = useState("account");
+  const [activeAppTab, setActiveAppTab] = useState<AppTabId>("home");
+  const [activeSection, setActiveSection] = useState("home");
   const [notificationReturnContext, setNotificationReturnContext] = useState<NotificationReturnContext | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [colorTheme, setColorTheme] = useState<ColorTheme>("light");
@@ -2683,7 +2704,7 @@ export default function Home() {
       window.history.replaceState(null, "", "#invites");
       window.setTimeout(() => document.getElementById("invites")?.scrollIntoView({ behavior: "smooth" }), 80);
     } else {
-      setActiveAppTab("settings");
+      setActiveAppTab("profile");
       setActiveSection("account");
       window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
     }
@@ -6015,7 +6036,7 @@ export default function Home() {
 
     if (!session?.user.id) {
       setAuthMode("Log in");
-      setActiveAppTab("settings");
+      setActiveAppTab("profile");
       setActiveSection("account");
       setLoginPrompt(`Log in to ${intent === "follow" ? "follow" : "challenge"} this shared profile.`);
       window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
@@ -6024,7 +6045,7 @@ export default function Home() {
 
     if (!profileHydrated) return;
     if (!profile) {
-      setActiveAppTab("settings");
+      setActiveAppTab("profile");
       setActiveSection("account");
       setLoginPrompt("");
       setMessage("Create your Talent7 profile first. You will return to the shared profile after saving it.", "warning");
@@ -6088,7 +6109,7 @@ export default function Home() {
     if (!roomToken) return;
 
     if (!session?.user.id) {
-      setActiveAppTab("settings");
+      setActiveAppTab("profile");
       setActiveSection("account");
       setLoginPrompt("Log in to join or watch this shared challenge room.");
       window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
@@ -6141,7 +6162,7 @@ export default function Home() {
 
     if (!session?.user.id) {
       setAuthMode("Log in");
-      setActiveAppTab("settings");
+      setActiveAppTab("profile");
       setActiveSection("account");
       setLoginPrompt(`Log in to ${intent === "join" ? "request to join" : "challenge"} this shared team.`);
       window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
@@ -6150,7 +6171,7 @@ export default function Home() {
 
     if (!profileHydrated) return;
     if (!profile) {
-      setActiveAppTab("settings");
+      setActiveAppTab("profile");
       setActiveSection("account");
       setLoginPrompt("");
       setMessage("Create your Talent7 profile first. You will return to the shared team after saving it.", "warning");
@@ -6198,7 +6219,7 @@ export default function Home() {
     function showPasswordRecovery() {
       setIsPasswordRecovery(true);
       setMessage("Password recovery confirmed. Set a new password below.");
-      setActiveAppTab("settings");
+      setActiveAppTab("profile");
       setActiveSection("account");
       window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
     }
@@ -6213,7 +6234,7 @@ export default function Home() {
         setActiveSection("rooms");
       } else if (recoveryReturnRequested) {
         setAuthMode("Log in");
-        setActiveAppTab("settings");
+        setActiveAppTab("profile");
         setActiveSection("account");
         setMessage("This password-reset link is invalid or has expired. Request a new link below.", "error");
       }
@@ -6239,7 +6260,7 @@ export default function Home() {
     if (url.searchParams.get("open") !== "account-deletion") return;
 
     setAccountDeletionFormUserId(session.user.id);
-    setActiveAppTab("settings");
+    setActiveAppTab("profile");
     setActiveSection("account");
     url.searchParams.delete("open");
     window.history.replaceState(
@@ -7927,7 +7948,7 @@ export default function Home() {
         ? "Private listen room created. Share its room code and passcode only with invited people."
         : "Public listen room created."
     );
-    setActiveAppTab("listen");
+    setActiveAppTab("live");
     setActiveSection("listen-rooms");
     setTimeout(() => document.getElementById("listen-rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
@@ -9718,7 +9739,7 @@ export default function Home() {
 
     if (!profile?.role.toLowerCase().includes("coach")) {
       setMessage("Set your profile role to Coach / instructor before creating a coaching offer.");
-      setActiveAppTab("settings");
+      setActiveAppTab("profile");
       setActiveSection("account");
       setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
@@ -12517,7 +12538,7 @@ export default function Home() {
   const activePrimaryConfig = primaryTabs.find((tab) => tab.id === activeAppTab);
   const activeMoreConfig = moreTabs.find((tab) => tab.id === activeAppTab);
   const moreIsActive = isMoreOpen || Boolean(activeMoreConfig);
-  const activeSectionLinks = activeAppTab === "settings" && !session
+  const activeSectionLinks = activeAppTab === "profile" && !session
     ? [{ label: "Account", href: "#account" }]
     : activePrimaryConfig?.links ||
       (activeAppTab === "safety"
@@ -12532,11 +12553,11 @@ export default function Home() {
             ]
           : []);
   const activeSectionLink = activeSectionLinks.find((link) => link.href === `#${activeSection}`);
-  const activeWorkspaceTitle = activeAppTab === "settings" && !session
+  const activeWorkspaceTitle = activeAppTab === "profile" && !session
     ? "Account"
     : activeSectionLink?.label || activeMoreConfig?.label || activePrimaryConfig?.label || "Talent7";
-  const isRoomsWorkspace = activeAppTab === "challenges" && activeSection === "rooms";
-  const showLandingHero = isRoomsWorkspace && authHydrated && !session;
+  const isRoomsWorkspace = activeAppTab === "live" && activeSection === "rooms";
+  const showLandingHero = activeAppTab === "home" && activeSection === "home" && authHydrated && !session;
   const showRoomsHero = isRoomsWorkspace && authHydrated && Boolean(session);
   const moreTabCounts: Partial<Record<MoreTabId, number>> = {
     teams: myDashboard.pendingTeamRequests,
@@ -12636,7 +12657,28 @@ export default function Home() {
             {!showLandingHero && <span>{activeWorkspaceTitle}</span>}
           </div>
           <div className="navActions">
-            <span>{session ? profileName() : "Guest mode"}</span>
+            <button
+              aria-label={unreadNotifications.length > 0 ? `Notifications, ${unreadNotifications.length} unread` : "Notifications"}
+              className={activeAppTab === "notifications" ? "active" : ""}
+              onClick={() => switchAppTab("notifications")}
+              type="button"
+            >
+              <MobileNavIcon name="notifications" />
+              {unreadNotifications.length > 0 && <em>{unreadNotifications.length > 99 ? "99+" : unreadNotifications.length}</em>}
+            </button>
+            <button
+              aria-expanded={isMoreOpen}
+              aria-haspopup="dialog"
+              className={moreIsActive ? "active" : ""}
+              onClick={() => setIsMoreOpen((current) => !current)}
+              ref={moreTriggerRef}
+              type="button"
+            >
+              <MobileNavIcon name="more" />
+              <span>More</span>
+              {moreAttentionSections > 0 && <em>{moreAttentionSections}</em>}
+            </button>
+            <span>{session ? profileName() : "Guest"}</span>
           </div>
         </nav>
         {showLandingHero && (
@@ -12905,45 +12947,11 @@ export default function Home() {
             type="button"
           >
             <span className="mobileNavIcon">
-              <MobileNavIcon name={tab.id === "settings" ? "settings" : tab.id === "challenges" ? "challenges" : "listen"} />
+              <MobileNavIcon name={tab.id} />
             </span>
             <span className="mobileNavLabel">{tab.label}</span>
           </button>
         ))}
-        <button
-          aria-controls="notifications"
-          aria-label={unreadNotifications.length > 0 ? `Notifications, ${unreadNotifications.length} unread` : "Notifications"}
-          aria-selected={activeAppTab === "notifications"}
-          className={`mobileNotificationTab${activeAppTab === "notifications" ? " active" : ""}`}
-          onClick={() => switchAppTab("notifications")}
-          role="tab"
-          type="button"
-        >
-          <span className="mobileNavIcon mobileNotificationBell"><MobileNavIcon name="notifications" /></span>
-          <span className="mobileNavLabel mobileNotificationLabel">Notifications</span>
-          {unreadNotifications.length > 0 && (
-            <em className="appTabBadge" aria-hidden="true">
-              {unreadNotifications.length > 99 ? "99+" : unreadNotifications.length}
-            </em>
-          )}
-        </button>
-        <button
-          aria-expanded={isMoreOpen}
-          aria-haspopup="dialog"
-          className={`${moreIsActive ? "active" : ""}${activeAppTab === "notifications" ? " notificationIsActive" : ""}`}
-          onClick={() => setIsMoreOpen((current) => !current)}
-          ref={moreTriggerRef}
-          type="button"
-        >
-          <span className="desktopMoreLabel">{activeMoreConfig ? `More: ${activeMoreConfig.label}` : "More"}</span>
-          <span className="mobileMoreLabel mobileNavIcon"><MobileNavIcon name="more" /></span>
-          <span className="mobileMoreLabel mobileNavLabel">More</span>
-          {moreAttentionSections > 0 && (
-            <em className="appTabBadge" aria-label={`${moreAttentionSections} More sections need attention`}>
-              {moreAttentionSections}
-            </em>
-          )}
-        </button>
         </div>
       </nav>
 
@@ -12967,6 +12975,69 @@ export default function Home() {
           </button>
         </aside>
       )}
+
+      <section className="section simplifiedHome" id="home">
+        <div className="simplifiedHomeLead">
+          <div>
+            <p className="eyebrow">{session ? `Welcome back, ${profileName()}` : "Start in seconds"}</p>
+            <h2>{session ? "What do you want to do?" : "Watch, challenge, or prove your score."}</h2>
+            <p>Talent7 keeps the main path simple. Choose one action now; the detailed tools appear only when you need them.</p>
+          </div>
+          <a className="simplifiedHomePrimary" href={session ? "#challenge-now" : "#account"}>
+            {session ? "Start a challenge" : "Create my profile"}
+          </a>
+        </div>
+
+        <div className="simplifiedActionGrid" aria-label="Main Talent7 actions">
+          <a href="#challenge-now">
+            <span aria-hidden="true">01</span>
+            <strong>Record a benchmark</strong>
+            <small>Set a solo score now and invite someone to beat it later.</small>
+          </a>
+          <a href="#rooms">
+            <span aria-hidden="true">02</span>
+            <strong>Watch or join live</strong>
+            <small>Open active rooms, watch battles, and react.</small>
+          </a>
+          <a href="#create">
+            <span aria-hidden="true">03</span>
+            <strong>Create a challenge</strong>
+            <small>Choose the activity, opponent, rules, and proof requirements.</small>
+          </a>
+        </div>
+
+        <div className="simplifiedHomeStatus">
+          <article>
+            <span>Open rooms</span>
+            <strong>{challenges.filter((challenge) => !isChallengeClosed(challenge)).length}</strong>
+            <a href="#rooms">Browse</a>
+          </article>
+          <article>
+            <span>Live now</span>
+            <strong>{challengeLiveSessions.filter((liveSession) => liveSession.status === "Live").length}</strong>
+            <a href="#rooms">Watch</a>
+          </article>
+          <article>
+            <span>Notifications</span>
+            <strong>{unreadNotifications.length}</strong>
+            <a href="#notifications">Open</a>
+          </article>
+          <article>
+            <span>My progress</span>
+            <strong>{session ? "View" : "Join"}</strong>
+            <a href={session ? "#my-talent7" : "#account"}>{session ? "Profile" : "Sign in"}</a>
+          </article>
+        </div>
+
+        <details className="simplifiedLanguageGuide">
+          <summary>What is the difference between a benchmark, challenge, and tournament?</summary>
+          <div>
+            <p><strong>Benchmark</strong><span>A solo score, such as push-ups completed in 60 seconds.</span></p>
+            <p><strong>Challenge</strong><span>A competition between you and another person or team.</span></p>
+            <p><strong>Tournament</strong><span>A scheduled competition with multiple participants and rounds.</span></p>
+          </div>
+        </details>
+      </section>
 
       <section className="section firstWaveSection" id="first-wave">
         <div className="sectionHeader">
@@ -15874,7 +15945,7 @@ export default function Home() {
           }}
           onNotice={setMessage}
           onRequireLogin={() => {
-            setActiveAppTab("settings");
+            setActiveAppTab("profile");
             setActiveSection("account");
             setLoginPrompt("Log in or create an account before supporting Talent7.");
             window.setTimeout(() => document.getElementById("account")?.scrollIntoView({ behavior: "smooth" }), 80);
