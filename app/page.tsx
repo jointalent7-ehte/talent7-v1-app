@@ -574,7 +574,7 @@ function tabForHash(hash: string): AppTabId | null {
   const target = hash.replace(/^#/, "");
   if (isLegacyFutureRoute(hash)) return "plans";
   if (target.startsWith("profile-")) return "profiles";
-  if (target.startsWith("room-")) return "challenges";
+  if (target.startsWith("room-")) return "live";
   if (target.startsWith("team-")) return "teams";
   return sectionTabMap[target] || null;
 }
@@ -6088,7 +6088,7 @@ export default function Home() {
       const match = challenges.find((challenge) => roomHash(challenge.id) === hash);
       if (!match) return;
 
-      setActiveAppTab("challenges");
+      setActiveAppTab("live");
       setActiveSection("rooms");
       setSelectedLane("All");
       setSelectedStatus(isChallengeClosed(match) ? "Completed" : "Open");
@@ -6119,7 +6119,7 @@ export default function Home() {
     const match = challenges.find((challenge) => challenge.room_share_token === roomToken);
     if (!match) return;
 
-    setActiveAppTab("challenges");
+    setActiveAppTab("live");
     setActiveSection("rooms");
     setSelectedLane("All");
     setSelectedStatus(isChallengeClosed(match) ? "Completed" : "Open");
@@ -6230,7 +6230,7 @@ export default function Home() {
       if (data.session && recoveryReturnRequested) {
         showPasswordRecovery();
       } else if (data.session && !tabForHash(window.location.hash)) {
-        setActiveAppTab("challenges");
+        setActiveAppTab("live");
         setActiveSection("rooms");
       } else if (recoveryReturnRequested) {
         setAuthMode("Log in");
@@ -9078,7 +9078,7 @@ export default function Home() {
       setChallengeCreateStep(1);
       setChallengeCreateMaxStep(1);
       setChallengeStepError("");
-      setActiveAppTab("challenges");
+      setActiveAppTab("live");
       setActiveSection("rooms");
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
       return;
@@ -9368,7 +9368,7 @@ export default function Home() {
     }));
 
     setMessage(`Invite draft ready for ${invitedName}. Review it, then create the challenge.`);
-    setActiveAppTab("challenges");
+    setActiveAppTab("create");
     setActiveSection("create");
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
@@ -9377,7 +9377,7 @@ export default function Home() {
     setSelectedLane(challenge.lane);
     setRoomSearch(challenge.title);
     setMessage(`${challenge.title} is now shown in Challenge rooms.`);
-    setActiveAppTab("challenges");
+    setActiveAppTab("live");
     setActiveSection("rooms");
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
@@ -9425,7 +9425,7 @@ export default function Home() {
         ? `Team challenge draft ready for ${team.name}. Review it, then create the challenge.`
         : `Challenge draft ready against ${team.name}. Review it, then create the challenge.`
     );
-    setActiveAppTab("challenges");
+    setActiveAppTab("create");
     setActiveSection("create");
     setTimeout(() => document.getElementById("create")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
@@ -9437,7 +9437,7 @@ export default function Home() {
     setSelectedStatus("Open");
     setRoomDiscoveryMode("Trending");
     setMessage(`${item.display_name}'s public activity is now shown in Challenge rooms.`);
-    setActiveAppTab("challenges");
+    setActiveAppTab("live");
     setActiveSection("rooms");
     setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
@@ -10501,7 +10501,7 @@ export default function Home() {
         setSelectedStatus("Open");
         setRoomDiscoveryMode("Trending");
         setRoomSearch("");
-        setActiveAppTab("challenges");
+        setActiveAppTab("live");
         setActiveSection("rooms");
         openInviteChallenge(data as ChallengeInvite);
       } else {
