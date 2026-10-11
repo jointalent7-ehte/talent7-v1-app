@@ -472,6 +472,7 @@ const primaryTabs: {
     firstSection: "challenge-now",
     links: [
       { label: "Start", href: "#challenge-now" },
+      { label: "Rooms", href: "#rooms" },
       { label: "Find rivals", href: "#opponents" },
       { label: "Tournaments", href: "#tournaments" },
       { label: "Rankings", href: "#leaderboard" }

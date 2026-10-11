@@ -3710,12 +3710,25 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
 
 .challengeStarterExploreToggle {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: center;
   margin: -4px 0 22px;
 }
 
-.challengeStarterExploreToggle button {
+.challengeStarterExploreToggle button,
+.challengeStarterExploreToggle a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 42px;
+  padding: 10px 15px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .challengeStarterLayout[hidden],

@@ -900,6 +900,7 @@ export default function ChallengeStarterHub({
       </div>
 
       <div className="challengeStarterExploreToggle">
+        <a className="secondary" href="#rooms">Browse available rooms</a>
         <button aria-expanded={exploreOpen} className="secondary" onClick={() => setExploreOpen(!exploreOpen)} type="button">
           {exploreOpen ? "Hide rankings and videos" : "Explore rankings and verified videos"}
         </button>
