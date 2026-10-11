@@ -118,6 +118,7 @@ This is the canonical inventory for the current source tree: **87 numbered SQL f
 114. `add-weekly-retention-missions.sql`
 115. `add-protected-reviewer-xp.sql`
 116. `add-city-density-discovery-gate.sql`
+117. `add-cold-start-retention-funnel.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening. `restore-gaming-challenges.sql` reopens multiplayer gaming after the earlier retirement migration and aligns game-specific roster validation with the current UI. `add-talent7-league-rewards.sql` adds proof-gated Ranked and Casual progress, seven seasonal tiers, activity ranks, reward history, and permanent trophies. `add-talent7-passports.sql` exposes a deliberately narrow, privacy-safe public competition summary through existing profile share tokens. `add-profile-passport-studio.sql` adds public presentation fields, Passport visibility controls, and owner-managed profile images.
 
@@ -144,6 +145,8 @@ The Showcase, Coaching, and Guidance migrations remain in this history because p
 `add-protected-reviewer-xp.sql` adds a separate seasonal Reviewer XP track for accepted judges. A reward is issued once per room only after the judge submits a score, the room is completed, and proof is accepted; participants, room creators, reactions, votes, score edits, and repeated refreshes cannot earn or duplicate it. Reviewer XP never changes Rank Points, results, prizes, or participant progression.
 
 `add-city-density-discovery-gate.sql` adds the privacy-safe prerequisite for any future distance-based discovery pilot. It reports only a coarse, activity-specific density band for the signed-in member's saved city and marks a pilot ready at 25 active match requests. It collects no coordinates or device location, exposes no identities or exact small counts, and does not enable radius matching.
+
+`add-cold-start-retention-funnel.sql` adds an admin-only aggregate funnel for recently created accounts: profile completion, first useful action, benchmark, matchmaking, challenge participation, proof-backed finish, and return after the first day. It returns counts and percentages only and never exposes member identities.
 
 `add-community-competition-launchpad.sql` adds staged community voting for the next activity, day, and time; moderated member nominations; free early-interest registration; private registration codes; public-alias participation; and automatic 100-person cohort allocation as demand grows. It does not add entry fees, tokens, gifts, or automatic prize payouts.
 
