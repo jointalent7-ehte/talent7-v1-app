@@ -141,14 +141,15 @@ async function markRequest(
 }
 
 async function mediaUrlsForUser(service: SupabaseClient, userId: string) {
-  const [ownedChallenges, ownProofs, showcasePosts, profile] = await Promise.all([
+  const [ownedChallenges, ownProofs, benchmarkAttempts, showcasePosts, profile] = await Promise.all([
     service.from("challenges").select("id").eq("created_by", userId),
     service.from("proofs").select("proof_url").eq("user_id", userId),
+    service.from("talent7_benchmark_attempts").select("proof_url").eq("user_id", userId).not("proof_url", "is", null),
     service.from("showcase_posts").select("media_url").eq("user_id", userId),
     service.from("profiles").select("avatar_url").eq("user_id", userId).maybeSingle()
   ]);
 
-  const firstError = ownedChallenges.error || ownProofs.error || showcasePosts.error || profile.error;
+  const firstError = ownedChallenges.error || ownProofs.error || benchmarkAttempts.error || showcasePosts.error || profile.error;
   if (firstError) throw new Error("Account media records could not be prepared for cleanup.");
 
   const challengeIds = (ownedChallenges.data || []).map((row) => String(row.id));
@@ -160,6 +161,7 @@ async function mediaUrlsForUser(service: SupabaseClient, userId: string) {
   return Array.from(new Set([
     ...(ownProofs.data || []).map((row) => String(row.proof_url || "")),
     ...(challengeProofs.data || []).map((row) => String(row.proof_url || "")),
+    ...(benchmarkAttempts.data || []).map((row) => String(row.proof_url || "")),
     ...(showcasePosts.data || []).map((row) => String(row.media_url || "")),
     String(profile.data?.avatar_url || "")
   ].filter(Boolean)));
