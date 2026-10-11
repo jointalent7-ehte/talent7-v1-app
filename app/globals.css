@@ -4474,6 +4474,48 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   gap: 10px;
 }
 
+.cityDiscoveryReadiness {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 11px 12px;
+  color: #d8eceb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+}
+
+.cityDiscoveryReadiness > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: #102b30;
+  background: #f0bd45;
+  border-radius: 50%;
+  font-weight: 950;
+}
+
+.cityDiscoveryReadiness > div {
+  display: grid;
+  gap: 3px;
+}
+
+.cityDiscoveryReadiness small {
+  color: #a9c7c5;
+  line-height: 1.35;
+}
+
+.cityDiscoveryReadiness.ready {
+  border-color: rgba(80, 224, 180, 0.45);
+  background: rgba(80, 224, 180, 0.09);
+}
+
+.cityDiscoveryReadiness.ready > span {
+  background: #6ee0bb;
+}
+
 .challengeMatchForm > button,
 .myMatchRequest > button:not(.textButton) {
   color: #101719;

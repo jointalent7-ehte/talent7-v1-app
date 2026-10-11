@@ -119,6 +119,15 @@ type MatchQueueItem = {
 
 type MatchDiscoveryScope = "Area" | "City" | "Country" | "Global";
 
+type CityDiscoveryReadiness = {
+  city_label: string | null;
+  activity: string | null;
+  readiness_status: "Add city" | "Building" | "Growing" | "Pilot ready";
+  active_member_band: string;
+  readiness_threshold: number;
+  pilot_ready: boolean;
+};
+
 const matchScopeRank: Record<MatchDiscoveryScope, number> = {
   Global: 0,
   Country: 1,
@@ -267,6 +276,7 @@ export default function ChallengeStarterHub({
   const [selectedMode, setSelectedMode] = useState<ChallengeMode>(playMode);
   const [selectedFormat, setSelectedFormat] = useState<ChallengeFormat>(matchFormat);
   const [queueScope, setQueueScope] = useState<MatchDiscoveryScope>(area ? "Area" : city ? "City" : country ? "Country" : "Global");
+  const [cityDiscoveryReadiness, setCityDiscoveryReadiness] = useState<CityDiscoveryReadiness | null>(null);
   const [busyAction, setBusyAction] = useState("");
   const [message, setMessage] = useState("");
   const [loadWarning, setLoadWarning] = useState("");
@@ -354,6 +364,32 @@ export default function ChallengeStarterHub({
   useEffect(() => {
     void loadStarterData();
   }, [loadStarterData]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCityDiscoveryReadiness() {
+      if (!supabase || !userId) {
+        if (active) setCityDiscoveryReadiness(null);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("get_my_talent7_city_discovery_readiness", {
+        target_activity: selectedActivity || null
+      });
+
+      if (!active) return;
+      if (error) {
+        setCityDiscoveryReadiness(null);
+        return;
+      }
+
+      setCityDiscoveryReadiness(((data || [])[0] || null) as CityDiscoveryReadiness | null);
+    }
+
+    void loadCityDiscoveryReadiness();
+    return () => { active = false; };
+  }, [city, country, selectedActivity, userId]);
 
   const loadBenchmarkLeaderboard = useCallback(async () => {
     if (!supabase || !leaderboardBenchmarkId || leaderboardBenchmarkId.startsWith("preview-")) {
@@ -1095,6 +1131,25 @@ export default function ChallengeStarterHub({
                   </select>
                 </label>
               </div>
+              {cityDiscoveryReadiness && (
+                <div className={`cityDiscoveryReadiness${cityDiscoveryReadiness.pilot_ready ? " ready" : ""}`}>
+                  <span aria-hidden="true">{cityDiscoveryReadiness.pilot_ready ? "✓" : "◎"}</span>
+                  <div>
+                    <strong>
+                      {cityDiscoveryReadiness.pilot_ready
+                        ? `${cityDiscoveryReadiness.city_label} is ready for a nearby pilot`
+                        : cityDiscoveryReadiness.readiness_status === "Add city"
+                          ? "Add your city to measure local readiness"
+                          : `${cityDiscoveryReadiness.city_label} is still ${cityDiscoveryReadiness.readiness_status.toLowerCase()}`}
+                    </strong>
+                    <small>
+                      {cityDiscoveryReadiness.readiness_status === "Add city"
+                        ? "Talent7 will not request precise GPS while your city is missing."
+                        : `${cityDiscoveryReadiness.active_member_band} active ${selectedActivity} match seekers · nearby distance discovery stays off until the privacy threshold of ${cityDiscoveryReadiness.readiness_threshold} is reached.`}
+                    </small>
+                  </div>
+                </div>
+              )}
               <label>
                 Match note (optional)
                 <textarea maxLength={180} name="note" placeholder="For example: evenings, beginner-friendly, online only" rows={3} />
