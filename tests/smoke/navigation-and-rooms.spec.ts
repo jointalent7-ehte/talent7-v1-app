@@ -14,6 +14,18 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator("main")).toBeVisible();
 });
 
+test("fresh launches open Home and the installed app starts there", async ({ page, request }) => {
+  const app = page.locator("main");
+  await expect(app).toHaveClass(/appTab-home/);
+  await expect(app).toHaveClass(/appView-home/);
+  await expect(page.locator("#home")).toBeVisible();
+
+  const manifestResponse = await request.get("/manifest.webmanifest");
+  expect(manifestResponse.ok()).toBeTruthy();
+  const manifest = (await manifestResponse.json()) as { start_url?: string };
+  expect(manifest.start_url).toBe("/#home");
+});
+
 test("primary mobile navigation opens the matching workspace", async ({ page }) => {
   const app = page.locator("main");
 
