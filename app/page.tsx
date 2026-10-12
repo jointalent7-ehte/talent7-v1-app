@@ -7203,7 +7203,7 @@ export default function Home() {
         source: intentSearch ? "shared_intent" : "account"
       });
       if (authMode === "Log in" && !intentSearch) {
-        window.setTimeout(() => openSection("rooms", true), 80);
+        window.setTimeout(() => openSection("home", true), 80);
       }
     }
 
