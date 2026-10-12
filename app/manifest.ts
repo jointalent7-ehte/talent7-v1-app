@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Talent7",
     short_name: "Talent7",
     description: "Proof-based talent and sports challenge rooms.",
-    start_url: "/#rooms",
+    start_url: "/#home",
     scope: "/",
     display: "standalone",
     background_color: "#fbfcfb",

@@ -245,7 +245,12 @@ type ConfirmationRequest = {
   detail: string;
   confirmLabel: string;
   cancelLabel?: string;
-  onConfirm: () => void | Promise<void>;
+  eyebrow?: string;
+  inputLabel?: string;
+  inputPlaceholder?: string;
+  inputMinLength?: number;
+  inputMaxLength?: number;
+  onConfirm: (inputValue: string) => void | Promise<void>;
 };
 
 let noticeSequence = 0;
@@ -725,6 +730,9 @@ type Challenge = {
   completed_at: string | null;
   created_by?: string | null;
   completed_by?: string | null;
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
   venue_name?: string | null;
   booking_url?: string | null;
   sport_type?: string | null;
@@ -1425,7 +1433,7 @@ type SafetyReportItem = {
 type AppNotification = {
   id: string;
   label: string;
-  category: "Invites" | "Teams" | "Live" | "Voting" | "Proof" | "Results" | "Weekly" | "Reports" | "Feedback";
+  category: "Invites" | "Teams" | "Rooms" | "Live" | "Voting" | "Proof" | "Results" | "Weekly" | "Reports" | "Feedback";
   title: string;
   detail: string;
   createdAt: string;
@@ -1510,6 +1518,7 @@ const notificationFilterOptions: NotificationFilter[] = [
   "Unread",
   "Invites",
   "Teams",
+  "Rooms",
   "Live",
   "Voting",
   "Proof",
@@ -2302,6 +2311,8 @@ export default function Home() {
   const moreMenuRef = useRef<HTMLElement>(null);
   const [confirmationRequest, setConfirmationRequest] = useState<ConfirmationRequest | null>(null);
   const [confirmationBusy, setConfirmationBusy] = useState(false);
+  const [confirmationInput, setConfirmationInput] = useState("");
+  const [confirmationInputError, setConfirmationInputError] = useState("");
   const confirmationDialogRef = useRef<HTMLElement>(null);
   const confirmationReturnFocusRef = useRef<HTMLElement | null>(null);
   const [listenRooms, setListenRooms] = useState<ListenRoom[]>(sampleListenRooms);
@@ -2406,6 +2417,8 @@ export default function Home() {
   const closeConfirmationDialog = useCallback(() => {
     if (confirmationBusy) return;
     setConfirmationRequest(null);
+    setConfirmationInput("");
+    setConfirmationInputError("");
     window.requestAnimationFrame(() => confirmationReturnFocusRef.current?.focus());
   }, [confirmationBusy]);
 
@@ -2574,8 +2587,14 @@ export default function Home() {
 
     const dialog = confirmationDialogRef.current;
     const focusableItems = () =>
-      Array.from(dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') || []);
-    window.requestAnimationFrame(() => dialog?.querySelector<HTMLElement>("[data-confirm-cancel]")?.focus());
+      Array.from(
+        dialog?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        ) || []
+      );
+    window.requestAnimationFrame(() =>
+      dialog?.querySelector<HTMLElement>(confirmationRequest.inputLabel ? "[data-confirm-input]" : "[data-confirm-cancel]")?.focus()
+    );
 
     const handleConfirmationKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape" && !confirmationBusy) {
@@ -2823,6 +2842,7 @@ export default function Home() {
   const [deletingProofId, setDeletingProofId] = useState<string | null>(null);
   const [editingChallengeId, setEditingChallengeId] = useState<string | null>(null);
   const [deletingChallengeId, setDeletingChallengeId] = useState<string | null>(null);
+  const [cancellingChallengeId, setCancellingChallengeId] = useState<string | null>(null);
   const [editingShowcasePostId, setEditingShowcasePostId] = useState<string | null>(null);
   const [editingProofId, setEditingProofId] = useState<string | null>(null);
   const [readNotificationKeys, setReadNotificationKeys] = useState<string[]>([]);
@@ -4124,15 +4144,36 @@ export default function Home() {
     );
 
     const realtimeRoomAlerts = pushNotificationEvents
-      .filter((event) => event.category === "Live room" || event.category === "Voting" || event.category === "Weekly summary")
+      .filter(
+        (event) =>
+          event.category === "Challenge update" ||
+          event.category === "Live room" ||
+          event.category === "Voting" ||
+          event.category === "Weekly summary"
+      )
       .map((event) => {
         const challenge = event.resource_id
           ? challenges.find((item) => item.id === event.resource_id)
           : null;
         return {
           id: `notification-push-${event.id}`,
-          label: event.category === "Live room" ? "Live now" : event.category === "Voting" ? "Voting open" : "Weekly recap",
-          category: (event.category === "Live room" ? "Live" : event.category === "Voting" ? "Voting" : "Weekly") as AppNotification["category"],
+          label:
+            event.category === "Challenge update"
+              ? "Room update"
+              : event.category === "Live room"
+                ? "Live now"
+                : event.category === "Voting"
+                  ? "Voting open"
+                  : "Weekly recap",
+          category: (
+            event.category === "Challenge update"
+              ? "Rooms"
+              : event.category === "Live room"
+                ? "Live"
+                : event.category === "Voting"
+                  ? "Voting"
+                  : "Weekly"
+          ) as AppNotification["category"],
           title: challenge?.title || event.title,
           detail: event.body,
           createdAt: event.created_at,
@@ -4705,6 +4746,14 @@ export default function Home() {
 
   function canEditChallenge(challenge: Challenge) {
     return Boolean(session?.user.id && (isOwnerReviewer || challenge.created_by === session.user.id));
+  }
+
+  function canCancelChallenge(challenge: Challenge) {
+    return Boolean(
+      session?.user.id &&
+        !isChallengeClosed(challenge) &&
+        (isOwnerReviewer || challenge.created_by === session.user.id)
+    );
   }
 
   function challengeHasActivity(challengeId: string) {
@@ -6230,8 +6279,8 @@ export default function Home() {
       if (data.session && recoveryReturnRequested) {
         showPasswordRecovery();
       } else if (data.session && !tabForHash(window.location.hash)) {
-        setActiveAppTab("live");
-        setActiveSection("rooms");
+        setActiveAppTab("home");
+        setActiveSection("home");
       } else if (recoveryReturnRequested) {
         setAuthMode("Log in");
         setActiveAppTab("profile");
@@ -7718,14 +7767,24 @@ export default function Home() {
     confirmationReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setConfirmationRequest(request);
     setConfirmationBusy(false);
+    setConfirmationInput("");
+    setConfirmationInputError("");
   }
 
   async function runConfirmedAction() {
     if (!confirmationRequest || confirmationBusy) return;
+    const inputValue = confirmationInput.trim();
+    const minimumLength = confirmationRequest.inputMinLength || 0;
+    if (confirmationRequest.inputLabel && inputValue.length < minimumLength) {
+      setConfirmationInputError(`Please enter at least ${minimumLength} characters.`);
+      return;
+    }
     setConfirmationBusy(true);
     try {
-      await confirmationRequest.onConfirm();
+      await confirmationRequest.onConfirm(inputValue);
       setConfirmationRequest(null);
+      setConfirmationInput("");
+      setConfirmationInputError("");
       window.requestAnimationFrame(() => confirmationReturnFocusRef.current?.focus());
     } finally {
       setConfirmationBusy(false);
@@ -12383,6 +12442,97 @@ export default function Home() {
     setExpertProfileActionId(null);
   }
 
+  function confirmCancelChallengeRoom(challenge: Challenge) {
+    requestConfirmation({
+      eyebrow: "Room cancellation",
+      title: "Cancel this challenge room?",
+      detail:
+        "The room and its history will remain visible, but joining, chat, voting, proof uploads, and match activity will close. Participants will be notified.",
+      inputLabel: "Cancellation reason",
+      inputPlaceholder: "Briefly explain why this room cannot continue.",
+      inputMinLength: 5,
+      inputMaxLength: 280,
+      confirmLabel: "Cancel room",
+      cancelLabel: "Keep room open",
+      onConfirm: (reason) => cancelChallengeRoom(challenge, reason)
+    });
+  }
+
+  async function cancelChallengeRoom(challenge: Challenge, reason: string) {
+    if (!requireLogin("cancel a challenge room")) return;
+    if (!canCancelChallenge(challenge)) {
+      setMessage("Only the room creator or a Talent7 admin can cancel an open room.", "error");
+      return;
+    }
+
+    const cancellationReason = reason.trim().slice(0, 280);
+    if (cancellationReason.length < 5) {
+      setMessage("Add a short cancellation reason for participants.", "error");
+      return;
+    }
+
+    setCancellingChallengeId(challenge.id);
+    setMessage("");
+    const cancelledAt = new Date().toISOString();
+    const cancelledRoom: Challenge = {
+      ...challenge,
+      status: "Cancelled",
+      cancellation_reason: cancellationReason,
+      cancelled_at: cancelledAt,
+      cancelled_by: session?.user.id || null
+    };
+
+    if (!supabase || challenge.id.startsWith("sample-")) {
+      setChallenges((items) => items.map((item) => (item.id === challenge.id ? cancelledRoom : item)));
+      setChallengeSchedules((items) =>
+        items.map((item) =>
+          item.challenge_id === challenge.id && item.status !== "Cancelled"
+            ? { ...item, status: "Cancelled", confirmed_by: null, updated_at: cancelledAt }
+            : item
+        )
+      );
+      setInvites((items) =>
+        items.map((item) =>
+          item.challenge_id === challenge.id && item.status === "Pending"
+            ? { ...item, status: "Withdrawn", updated_at: cancelledAt }
+            : item
+        )
+      );
+      setMessage("Challenge room cancelled. Its history remains available.", "success");
+      setCancellingChallengeId(null);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("cancel_challenge_room", {
+      target_challenge_id: challenge.id,
+      target_reason: cancellationReason
+    });
+
+    if (error) {
+      setMessage(`Could not cancel room: ${error.message}`, "error");
+    } else {
+      const savedRoom = (data as Challenge[] | null)?.[0] || cancelledRoom;
+      setChallenges((items) => items.map((item) => (item.id === challenge.id ? savedRoom : item)));
+      setChallengeSchedules((items) =>
+        items.map((item) =>
+          item.challenge_id === challenge.id && item.status !== "Cancelled"
+            ? { ...item, status: "Cancelled", confirmed_by: null, updated_at: savedRoom.cancelled_at || cancelledAt }
+            : item
+        )
+      );
+      setInvites((items) =>
+        items.map((item) =>
+          item.challenge_id === challenge.id && item.status === "Pending"
+            ? { ...item, status: "Withdrawn", updated_at: savedRoom.cancelled_at || cancelledAt }
+            : item
+        )
+      );
+      setMessage("Challenge room cancelled. Participants were notified and its history was preserved.", "success");
+    }
+
+    setCancellingChallengeId(null);
+  }
+
   function confirmDeleteChallengeRoom(challenge: Challenge) {
     requestConfirmation({
       title: isOwnerReviewer ? "Permanently discard this room?" : "Delete mistaken room?",
@@ -12798,9 +12948,31 @@ export default function Home() {
             ref={confirmationDialogRef}
             role="alertdialog"
           >
-            <span>Permanent action</span>
+            <span>{confirmationRequest.eyebrow || "Permanent action"}</span>
             <h2 id="confirmation-dialog-title">{confirmationRequest.title}</h2>
             <p id="confirmation-dialog-detail">{confirmationRequest.detail}</p>
+            {confirmationRequest.inputLabel && (
+              <label className="appConfirmField">
+                <span>{confirmationRequest.inputLabel}</span>
+                <textarea
+                  data-confirm-input
+                  disabled={confirmationBusy}
+                  maxLength={confirmationRequest.inputMaxLength || 280}
+                  minLength={confirmationRequest.inputMinLength || 1}
+                  onChange={(event) => {
+                    setConfirmationInput(event.target.value);
+                    if (confirmationInputError) setConfirmationInputError("");
+                  }}
+                  placeholder={confirmationRequest.inputPlaceholder}
+                  rows={4}
+                  value={confirmationInput}
+                />
+                <small>
+                  {confirmationInput.length}/{confirmationRequest.inputMaxLength || 280}
+                </small>
+                {confirmationInputError && <strong role="alert">{confirmationInputError}</strong>}
+              </label>
+            )}
             <div className="appConfirmActions">
               <button data-confirm-cancel disabled={confirmationBusy} onClick={closeConfirmationDialog} type="button">
                 {confirmationRequest.cancelLabel || "Keep it"}
@@ -18467,12 +18639,24 @@ export default function Home() {
                     {deletingChallengeId === challenge.id ? "Deleting..." : isOwnerReviewer ? "Discard room" : "Delete mistaken room"}
                   </button>
                 )}
+                {canCancelChallenge(challenge) && (
+                  <button
+                    className="dangerAction roomCancelAction"
+                    disabled={cancellingChallengeId === challenge.id}
+                    onClick={() => confirmCancelChallengeRoom(challenge)}
+                    type="button"
+                  >
+                    {cancellingChallengeId === challenge.id ? "Cancelling..." : "Cancel room"}
+                  </button>
+                )}
               </div>
               {!isOwnerReviewer &&
                 challenge.created_by === session?.user.id &&
                 !isChallengeClosed(challenge) &&
                 challengeHasActivity(challenge.id) && (
-                  <small className="deleteLockNote">Deletion locked after room activity begins. You can still edit or complete it.</small>
+                  <small className="deleteLockNote">
+                    Deletion is locked because activity has begun. You can edit, complete, or cancel the room while preserving its history.
+                  </small>
                 )}
               {canEditChallenge(challenge) && (
                 <details className="editPanel roomEditPanel">
@@ -19344,9 +19528,14 @@ export default function Home() {
                   <strong>{challenge.status === "Cancelled" ? "Challenge cancelled" : "Challenge closed"}</strong>
                   <small>
                     {challenge.status === "Cancelled"
-                      ? "This invitation ended without an accepted matchup. Either person can start a new challenge."
+                      ? challenge.cancellation_reason
+                        ? `Reason: ${challenge.cancellation_reason}`
+                        : "This room ended without a completed matchup. Participants can start a new challenge."
                       : "Joins, votes, ratings, and proof uploads are locked after completion."}
                   </small>
+                  {challenge.status === "Cancelled" && challenge.cancelled_at && (
+                    <small>Cancelled {formatNotificationReceivedAt(challenge.cancelled_at)}. Room history is retained.</small>
+                  )}
                 </div>
               ) : (
                 <details className="roomActionPanel roomDisclosure">

@@ -5502,6 +5502,47 @@ form button {
   line-height: 1.55;
 }
 
+.appConfirmField {
+  display: grid;
+  gap: 7px;
+}
+
+.appConfirmField > span {
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.appConfirmField textarea {
+  width: 100%;
+  min-height: 104px;
+  padding: 12px;
+  color: var(--ink);
+  background: #f8fbfb;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font: inherit;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.appConfirmField textarea:focus-visible {
+  border-color: var(--teal);
+  outline: 3px solid rgba(18, 158, 160, 0.18);
+}
+
+.appConfirmField > small {
+  justify-self: end;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.appConfirmField > strong[role="alert"] {
+  color: #a62b1e;
+  font-size: 0.8rem;
+}
+
 .appConfirmActions {
   display: flex;
   justify-content: flex-end;
