@@ -1,6 +1,6 @@
 # Supabase migration order
 
-This is the canonical inventory for the current source tree: **87 numbered SQL files in dependency order**. For a new project, run every numbered file below from top to bottom in the Supabase SQL editor. For an existing project, back up the database and run only files that have not already been applied. GitHub and Vercel deployments do not apply SQL.
+This is the canonical inventory for the current source tree: **118 numbered SQL files in dependency order**. For a new project, run every numbered file below from top to bottom in the Supabase SQL editor. For an existing project, back up the database and run only files that have not already been applied. GitHub and Vercel deployments do not apply SQL.
 
 1. `schema.sql`
 2. `add-challenge-joins.sql`
@@ -119,6 +119,7 @@ This is the canonical inventory for the current source tree: **87 numbered SQL f
 115. `add-protected-reviewer-xp.sql`
 116. `add-city-density-discovery-gate.sql`
 117. `add-cold-start-retention-funnel.sql`
+118. `add-challenge-room-cancellation.sql`
 
 The two policy-hardening migrations are intentionally after the challenge schema they protect. `add-growth-engagement.sql` extends profiles, notifications, challenges, invites, proofs, votes, teams, and Firebase's push outbox. `add-supporter-payments.sql` extends the provider-neutral payment ledger and adds server-reconciled supporter entitlements. `add-cashfree-sandbox-payments.sql` adds Cashfree to the two provider constraints without enabling checkout, and `add-payu-payments.sql` adds the approved PayU provider. `add-open-challenge-queues.sql` adds team-owned public challenger queues and must run after teams, linked challenge teams, rosters, and production policy hardening. `restore-gaming-challenges.sql` reopens multiplayer gaming after the earlier retirement migration and aligns game-specific roster validation with the current UI. `add-talent7-league-rewards.sql` adds proof-gated Ranked and Casual progress, seven seasonal tiers, activity ranks, reward history, and permanent trophies. `add-talent7-passports.sql` exposes a deliberately narrow, privacy-safe public competition summary through existing profile share tokens. `add-profile-passport-studio.sql` adds public presentation fields, Passport visibility controls, and owner-managed profile images.
 
@@ -179,5 +180,7 @@ The Showcase, Coaching, and Guidance migrations remain in this history because p
 `remove-ranked-loss-rank-points.sql` keeps proof-backed participation XP for every completed challenger but changes a Ranked loss from +5 Rank Points to 0. Ranked winners still receive +35 Rank Points. Existing historical rewards are not rewritten.
 
 `add-benchmark-leaderboards.sql` adds opt-in Community and proof-reviewed Verified boards for every official benchmark, with daily, weekly, seasonal, and all-time views. Public board results never expose proof URLs or private attempt notes; only app administrators can open submitted evidence.
+
+`add-challenge-room-cancellation.sql` lets the room creator or a Talent7 administrator cancel an open challenge with a required public reason while retaining joins, proof, chat, votes, and moderation history. It closes schedules and pending invitations and queues participant notifications; permanent deletion remains limited to untouched rooms or administrator moderation.
 
 Never rerun the complete list against an existing production database. First compare Supabase migration history with this file, then apply only missing migrations in this order.
