@@ -5086,6 +5086,107 @@ h1 {
   font-weight: 800;
 }
 
+.heroValueGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: min(100%, 820px);
+  margin-top: 24px;
+}
+
+.heroValueGrid article {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+}
+
+.heroValueGrid span {
+  color: var(--yellow);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.heroValueGrid strong {
+  color: #fff;
+}
+
+.heroValueGrid small {
+  color: rgba(255, 255, 255, 0.76);
+  line-height: 1.45;
+}
+
+.guestStarterDemo {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  gap: 14px;
+  width: min(100%, 920px);
+  margin-top: 18px;
+  padding: 16px;
+  background: rgba(8, 25, 29, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  backdrop-filter: blur(18px);
+}
+
+.guestStarterDemo > div:first-child {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+}
+
+.guestStarterDemo > div:first-child span {
+  color: var(--yellow);
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.guestStarterDemo > div:first-child strong {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.guestStarterDemo > div:first-child small {
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.4;
+}
+
+.guestStarterChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.guestStarterChoices button {
+  display: grid;
+  gap: 5px;
+  min-height: 76px;
+  padding: 11px;
+  color: var(--ink);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.guestStarterChoices button:hover,
+.guestStarterChoices button:focus-visible {
+  background: var(--yellow);
+  transform: translateY(-1px);
+}
+
+.guestStarterChoices small {
+  color: #526065;
+  font-weight: 850;
+}
+
 .earlyAccessCallout {
   display: flex;
   flex-wrap: wrap;
@@ -6584,6 +6685,106 @@ main.appView-leaderboard > #leaderboard {
 .challengeWizard {
   grid-template-columns: 1fr;
   max-width: 1080px;
+}
+
+.quickChallengeReview {
+  display: grid;
+  gap: 15px;
+  padding: clamp(16px, 3vw, 24px);
+  background: linear-gradient(145deg, #f0fbf9, #f6f3ff 58%, #fff8dd);
+  border: 1px solid #9bd5ce;
+  border-radius: 18px;
+}
+
+.quickChallengeHeading {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.quickChallengeHeading > span {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--teal);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.quickChallengeHeading div {
+  display: grid;
+  gap: 4px;
+}
+
+.quickChallengeHeading h3,
+.quickChallengeHeading p,
+.quickChallengeRules p {
+  margin: 0;
+}
+
+.quickChallengeHeading h3 {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.quickChallengeHeading p,
+.quickChallengeRules p,
+.quickChallengePrivacy {
+  color: #5f6c72;
+  line-height: 1.5;
+}
+
+.quickChallengeFacts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quickChallengeFacts article {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(93, 122, 126, 0.18);
+  border-radius: 11px;
+}
+
+.quickChallengeFacts small {
+  color: #68777b;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.quickChallengeFacts strong {
+  overflow-wrap: anywhere;
+}
+
+.quickChallengeRules {
+  display: grid;
+  gap: 6px;
+  padding: 13px 14px;
+  background: rgba(255, 255, 255, 0.68);
+  border-left: 4px solid var(--teal);
+  border-radius: 8px;
+}
+
+.quickChallengeActions {
+  display: flex;
+  gap: 9px;
+  justify-content: flex-end;
+}
+
+.quickChallengeActions button {
+  min-height: 46px;
+}
+
+.quickChallengeActions .secondary {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
 }
 
 .challengeWizardProgress {
@@ -21789,6 +21990,53 @@ html[data-talent7-theme="dark"] .challengeWizardProgress button.active > span,
 html[data-talent7-theme="dark"] .challengeWizardProgress button.complete > span {
   color: #17120a;
   background: var(--yellow);
+}
+
+html[data-talent7-theme="dark"] .quickChallengeReview {
+  background: linear-gradient(145deg, #102b2c, #1d2445 58%, #342d18);
+  border-color: #356d69;
+}
+
+html[data-talent7-theme="dark"] .quickChallengeFacts article,
+html[data-talent7-theme="dark"] .quickChallengeRules {
+  background: rgba(12, 28, 33, 0.72);
+  border-color: #31545a;
+}
+
+html[data-talent7-theme="dark"] .quickChallengeHeading h3,
+html[data-talent7-theme="dark"] .quickChallengeFacts strong,
+html[data-talent7-theme="dark"] .quickChallengeRules strong {
+  color: #f4fbfa;
+}
+
+html[data-talent7-theme="dark"] .quickChallengeHeading p,
+html[data-talent7-theme="dark"] .quickChallengeRules p,
+html[data-talent7-theme="dark"] .quickChallengePrivacy,
+html[data-talent7-theme="dark"] .quickChallengeFacts small {
+  color: #b9cbc9;
+}
+
+@media (max-width: 760px) {
+  .heroValueGrid,
+  .guestStarterDemo,
+  .guestStarterChoices,
+  .quickChallengeFacts {
+    grid-template-columns: 1fr;
+  }
+
+  .guestStarterChoices button {
+    min-height: 62px;
+  }
+
+  .quickChallengeHeading,
+  .quickChallengeActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quickChallengeActions button {
+    width: 100%;
+  }
 }
 
 html[data-talent7-theme="dark"] main > .section :where(input, select, textarea) {

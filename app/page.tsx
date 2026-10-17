@@ -2657,6 +2657,8 @@ export default function Home() {
   const [challengeCreateStep, setChallengeCreateStep] = useState<1 | 2 | 3>(1);
   const [challengeCreateMaxStep, setChallengeCreateMaxStep] = useState<1 | 2 | 3>(1);
   const [challengeStepError, setChallengeStepError] = useState("");
+  const [quickChallengeMode, setQuickChallengeMode] = useState(false);
+  const [resumeQuickChallengeAfterLogin, setResumeQuickChallengeAfterLogin] = useState(false);
   const [challengeReview, setChallengeReview] = useState({
     activity: defaultChallengeDraft.sport_type,
     title: defaultChallengeDraft.title,
@@ -7202,7 +7204,10 @@ export default function Home() {
       void trackGrowthEvent(authMode === "Sign up" ? "signup" : "login", {
         source: intentSearch ? "shared_intent" : "account"
       });
-      if (authMode === "Log in" && !intentSearch) {
+      if (resumeQuickChallengeAfterLogin) {
+        setResumeQuickChallengeAfterLogin(false);
+        window.setTimeout(() => openSection("create", true), 80);
+      } else if (authMode === "Log in" && !intentSearch) {
         window.setTimeout(() => openSection("home", true), 80);
       }
     }
@@ -7670,6 +7675,7 @@ export default function Home() {
     setChallengeCreateStep(1);
     setChallengeCreateMaxStep(1);
     setChallengeStepError("");
+    setQuickChallengeMode(true);
     setChallengeDraft((current) => ({
       ...current,
       title: activity,
@@ -7700,6 +7706,7 @@ export default function Home() {
     setChallengeCreateStep(1);
     setChallengeCreateMaxStep(1);
     setChallengeStepError("");
+    setQuickChallengeMode(true);
     setChallengeTeamAEditVersion(null);
     setChallengeDraft((current) => ({
       ...current,
@@ -9039,13 +9046,17 @@ export default function Home() {
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
+    if (!session) {
+      setResumeQuickChallengeAfterLogin(quickChallengeMode);
+      requireLogin("publish this challenge");
+      return;
+    }
     for (const step of [1, 2, 3] as const) {
       if (!validateChallengeCreateStep(step, formElement)) {
         setChallengeCreateStep(step);
         return;
       }
     }
-    if (!requireLogin("create a challenge")) return;
     const selectedInviteProfile = publicProfiles.find((item) => item.user_id === challengeDraft.invitedUserId);
     const existingActiveInvite = selectedInviteProfile ? activeChallengeInvite(selectedInviteProfile) : null;
     if (existingActiveInvite) {
@@ -9137,6 +9148,7 @@ export default function Home() {
       setChallengeCreateStep(1);
       setChallengeCreateMaxStep(1);
       setChallengeStepError("");
+      setQuickChallengeMode(false);
       setActiveAppTab("live");
       setActiveSection("rooms");
       setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
@@ -9183,6 +9195,7 @@ export default function Home() {
         setChallengeCreateStep(1);
         setChallengeCreateMaxStep(1);
         setChallengeStepError("");
+        setQuickChallengeMode(false);
         setTimeout(() => document.getElementById("rooms")?.scrollIntoView({ behavior: "smooth" }), 80);
       }
     } catch (error) {
@@ -12709,6 +12722,13 @@ export default function Home() {
   const isRoomsWorkspace = activeAppTab === "live" && activeSection === "rooms";
   const showLandingHero = activeAppTab === "home" && activeSection === "home" && authHydrated && !session;
   const showRoomsHero = isRoomsWorkspace && authHydrated && Boolean(session);
+  const landingCommunityMetrics = [
+    { value: challenges.length, label: "Challenge rooms" },
+    { value: publicProfiles.length, label: "Talent profiles" },
+    { value: proofs.length, label: "Proof uploads" },
+    { value: leaderboard.length, label: "Ranked rooms" }
+  ].filter((metric) => metric.value > 0);
+  const showLandingCommunityMetrics = landingCommunityMetrics.length >= 3;
   const moreTabCounts: Partial<Record<MoreTabId, number>> = {
     teams: myDashboard.pendingTeamRequests,
     notifications: unreadNotifications.length,
@@ -12840,27 +12860,25 @@ export default function Home() {
           <p>
             Talent7 brings fair, proof-based challenge rooms to talent battles, athletics, and sports matchups.
           </p>
-          <div className="heroMetrics">
-            <article>
-              <span>{challenges.length}</span>
-              <small>Challenge rooms</small>
-            </article>
-            <article>
-              <span>{publicProfiles.length}</span>
-              <small>Talent profiles</small>
-            </article>
-            <article>
-              <span>{proofs.length}</span>
-              <small>Proof uploads</small>
-            </article>
-            <article>
-              <span>{leaderboard.length}</span>
-              <small>Top rooms</small>
-            </article>
-          </div>
+          {showLandingCommunityMetrics ? (
+            <div className="heroMetrics" aria-label="Talent7 community activity">
+              {landingCommunityMetrics.map((metric) => (
+                <article key={metric.label}>
+                  <span>{metric.value}</span>
+                  <small>{metric.label}</small>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="heroValueGrid" aria-label="What you can do on Talent7">
+              <article><span>01</span><strong>Start immediately</strong><small>Set a personal benchmark without waiting for an opponent.</small></article>
+              <article><span>02</span><strong>Prove the result</strong><small>Upload evidence and build a record people can trust.</small></article>
+              <article><span>03</span><strong>Find a rival</strong><small>Publish an open room or browse challenges before signing up.</small></article>
+            </div>
+          )}
           <div className="heroActions">
-            <a href="#rooms" className="primary">Browse challenge rooms</a>
-            <a href="#create" className="secondary">Create a challenge</a>
+            <a href="#challenge-now" className="primary">Try a starter challenge</a>
+            <a href="#rooms" className="secondary">Browse challenge rooms</a>
             <a
               className="googlePlayLink"
               href={googlePlayListingUrl}
@@ -12871,6 +12889,34 @@ export default function Home() {
               Get Talent7 on Google Play ↗
             </a>
           </div>
+          <aside className="guestStarterDemo" aria-labelledby="guest-starter-title">
+            <div>
+              <span>Official starters · not community scores</span>
+              <strong id="guest-starter-title">Choose one. Talent7 fills the setup.</strong>
+              <small>Review the ready-to-publish room, then log in only when you publish.</small>
+            </div>
+            <div className="guestStarterChoices">
+              {[
+                { activity: "Push-up challenge", label: "60-second push-ups" },
+                { activity: "Bodyweight squat challenge", label: "60-second squats" },
+                { activity: "Plank hold", label: "Plank hold" }
+              ].map((starter) => (
+                <button
+                  key={starter.activity}
+                  onClick={() => startFromChallengeStarter({
+                    activity: starter.activity,
+                    title: starter.label,
+                    rules: rulesForActivity(starter.activity),
+                    competitionMode: "Casual"
+                  })}
+                  type="button"
+                >
+                  <strong>{starter.label}</strong>
+                  <small>Quick create →</small>
+                </button>
+              ))}
+            </div>
+          </aside>
           <details className="heroTools">
             <summary>Share and launch tools</summary>
             <div className="heroToolsGrid">
@@ -17629,13 +17675,13 @@ export default function Home() {
             </button>
           </div>
         )}
-        {!challengeDraft.invitedProfile && (
+        {!challengeDraft.invitedProfile && !quickChallengeMode && (
           <div className="inviteNotice mutedInviteNotice">
             No invite selected. To send an invite, go to Profiles, click Invite to challenge, then create the challenge.
           </div>
         )}
         <form className="createForm challengeWizard" id="challenge-wizard" key={challengeDraft.version} noValidate onSubmit={createChallenge}>
-          <nav className="challengeWizardProgress" aria-label="Challenge creation progress">
+          {!quickChallengeMode && <nav className="challengeWizardProgress" aria-label="Challenge creation progress">
             {[
               { step: 1 as const, label: "Challenge", detail: "Type and title" },
               { step: 2 as const, label: "Competitors", detail: "People or teams" },
@@ -17654,10 +17700,40 @@ export default function Home() {
                 <small>{item.detail}</small>
               </button>
             ))}
-          </nav>
+          </nav>}
           {challengeStepError && <div className="challengeStepError" role="alert">{challengeStepError}</div>}
 
-          <fieldset className="challengeWizardPanel" hidden={challengeCreateStep !== 1}>
+          {quickChallengeMode && (
+            <section className="quickChallengeReview" aria-labelledby="quick-challenge-title">
+              <div className="quickChallengeHeading">
+                <span>Quick challenge</span>
+                <div>
+                  <h3 id="quick-challenge-title">{challengeDraft.title}</h3>
+                  <p>Your safe defaults are ready. Publish now or open the full editor.</p>
+                </div>
+              </div>
+              <div className="quickChallengeFacts">
+                <article><small>Activity</small><strong>{challengeDraft.sport_type}</strong></article>
+                <article><small>Format</small><strong>{matchFormatLabel(challengeDraft.match_format, challengeDraft.sport_type)}</strong></article>
+                <article><small>Opponent</small><strong>{challengeDraft.openOpponent ? "Open · direct join" : challengeDraft.team_b || "Selected rival"}</strong></article>
+                <article><small>League</small><strong>{challengeDraft.competitionMode}</strong></article>
+                <article><small>Region</small><strong>{challengeDraft.booking_region || "Global"}</strong></article>
+              </div>
+              <div className="quickChallengeRules">
+                <strong>Default rules</strong>
+                <p>{challengeDraft.rules}</p>
+              </div>
+              <div className="quickChallengeActions">
+                <button className="secondary" onClick={() => setQuickChallengeMode(false)} type="button">Advanced options</button>
+                <button disabled={isSaving} type="submit">
+                  {isSaving ? "Publishing…" : session ? "Publish open challenge" : "Log in to publish"}
+                </button>
+              </div>
+              <small className="quickChallengePrivacy">Nothing is published until you press the publish button. Venue details remain empty unless you add them in Advanced options.</small>
+            </section>
+          )}
+
+          <fieldset className="challengeWizardPanel" hidden={quickChallengeMode || challengeCreateStep !== 1}>
             <legend>Challenge</legend>
             <div className="challengeTypeStep wide">
               <div className="challengeTypeIntro">
@@ -17768,7 +17844,7 @@ export default function Home() {
             </div>
           </fieldset>
 
-          <fieldset className="challengeWizardPanel" hidden={challengeCreateStep !== 2}>
+          <fieldset className="challengeWizardPanel" hidden={quickChallengeMode || challengeCreateStep !== 2}>
             <legend>Competitors</legend>
             <div className="challengeStageIntro wide">
               <span>Step 2</span>
@@ -17978,7 +18054,7 @@ export default function Home() {
             </div>
           </fieldset>
 
-          <fieldset className="challengeWizardPanel" hidden={challengeCreateStep !== 3}>
+          <fieldset className="challengeWizardPanel" hidden={quickChallengeMode || challengeCreateStep !== 3}>
             <legend>Rules and venue</legend>
             <aside className="challengeReview wide" aria-label="Challenge review">
               <div>

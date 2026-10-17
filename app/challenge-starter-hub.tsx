@@ -895,7 +895,7 @@ export default function ChallengeStarterHub({
           })}
           type="button"
         >
-          <span>3</span><strong>Create a challenge</strong><small>Open the simple challenge form with your activity selected.</small>
+          <span>3</span><strong>Quick create</strong><small>Open a ready-to-publish room with safe defaults already selected.</small>
         </button>
       </div>
 
