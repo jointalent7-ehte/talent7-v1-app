@@ -252,6 +252,10 @@ export default function BrandedBenchmarkVideo({
 
   return (
     <section className="brandedBenchmarkVideo" aria-label="Talent7 branded benchmark video">
+      <header>
+        <span>Talent7 share video</span>
+        <strong>Your logo and {scoreLabel} count are ready to burn into a shareable copy.</strong>
+      </header>
       <div className="brandedBenchmarkPreview">
         <video controls crossOrigin="anonymous" playsInline preload="metadata" ref={videoRef} src={videoUrl} />
         <div className="brandedBenchmarkOverlay" aria-hidden="true">

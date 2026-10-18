@@ -4043,6 +4043,26 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   color: #fff;
 }
 
+.brandedBenchmarkVideo > header {
+  display: grid;
+  gap: 3px;
+}
+
+.brandedBenchmarkVideo > header span {
+  color: #48ddcf;
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brandedBenchmarkVideo > header strong {
+  max-width: 540px;
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .brandedBenchmarkPreview {
   position: relative;
   width: min(100%, 310px);
@@ -4458,6 +4478,25 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   gap: 12px;
 }
 
+.benchmarkVideoRequirement {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  color: #eafffc;
+  background: linear-gradient(135deg, #0c716b, #3935a6);
+  border-radius: 12px;
+}
+
+.benchmarkVideoRequirement strong {
+  font-size: 0.84rem;
+}
+
+.benchmarkVideoRequirement small {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .benchmarkAttemptForm label,
 .challengeMatchForm label {
   display: grid;
@@ -4477,6 +4516,55 @@ html[data-talent7-theme="dark"] #community-competition .organizerHeatEntry .orga
   background: #fff;
   border: 1px solid #cdd8da;
   border-radius: 11px;
+}
+
+.benchmarkAttemptForm .benchmarkVideoField {
+  padding: 11px 12px;
+  border: 1px dashed #73bdb7;
+  border-radius: 12px;
+  background: #effbf9;
+}
+
+.benchmarkVideoField input[type="file"] {
+  min-height: 48px;
+  padding: 8px;
+  background: #fff;
+}
+
+.benchmarkVideoField small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.benchmarkChallengeConversion {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 10px 11px;
+  border: 1px solid #dbe4e5;
+  border-radius: 12px;
+  background: #f5f8f8;
+}
+
+.benchmarkChallengeConversion span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.benchmarkChallengeConversion button {
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid #cbd7d8;
+  border-radius: 9px;
+  color: #172124;
+  background: #fff;
+  font-weight: 900;
 }
 
 .benchmarkScoreField {

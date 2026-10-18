@@ -18,6 +18,11 @@ export type ChallengeStarterSeed = {
   opponentName?: string;
 };
 
+export type BenchmarkStarterRequest = {
+  requestId: number;
+  slug: string;
+};
+
 type Benchmark = {
   id: string;
   slug: string;
@@ -141,7 +146,7 @@ const fallbackBenchmarks: Benchmark[] = [
     slug: "push-ups-60",
     title: "60-second push-up benchmark",
     activity: "Push-up challenge",
-    summary: "Set a personal best now, then leave the challenge open for a future rival.",
+    summary: "Record a solo personal best with video proof. No room or opponent is created.",
     rules: "Use a stable side view. Keep a straight body line, lower with control, and reach full arm extension. Count only strict repetitions completed inside 60 seconds.",
     metric_label: "Strict repetitions",
     unit: "reps",
@@ -169,7 +174,7 @@ const fallbackBenchmarks: Benchmark[] = [
     slug: "plank-hold",
     title: "Strict plank hold",
     activity: "Plank hold",
-    summary: "Build a personal record that another challenger can answer asynchronously.",
+    summary: "Record a solo timed hold with video proof and build your personal history.",
     rules: "Keep shoulders, hips, and heels aligned. Stop the timer when the legal position is lost. Enter the completed hold time in seconds.",
     metric_label: "Hold time",
     unit: "seconds",
@@ -183,7 +188,7 @@ const fallbackBenchmarks: Benchmark[] = [
     slug: "burpees-60",
     title: "60-second burpee benchmark",
     activity: "Burpee challenge",
-    summary: "Complete an official Talent7 starter test and invite someone to beat it later.",
+    summary: "Complete an official solo Talent7 starter test with video proof.",
     rules: "Keep the full body visible. Use the same agreed movement standard for every repetition and count only complete repetitions inside 60 seconds.",
     metric_label: "Complete repetitions",
     unit: "reps",
@@ -238,6 +243,7 @@ export default function ChallengeStarterHub({
   playMode,
   matchFormat,
   isAdmin,
+  benchmarkStartRequest,
   onStartChallenge
 }: {
   activities: string[];
@@ -252,6 +258,7 @@ export default function ChallengeStarterHub({
   playMode: ChallengeMode;
   matchFormat: ChallengeFormat;
   isAdmin: boolean;
+  benchmarkStartRequest?: BenchmarkStarterRequest | null;
   onStartChallenge: (seed: ChallengeStarterSeed) => void;
 }) {
   const initialActivity = activities.includes(mainInterest) ? mainInterest : activities[0] || "Push-up challenge";
@@ -304,6 +311,19 @@ export default function ChallengeStarterHub({
       document.getElementById(`benchmark-${sharedBenchmark.slug}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 120);
   }, [benchmarks]);
+
+  useEffect(() => {
+    if (!benchmarkStartRequest) return;
+    const requestedBenchmark = benchmarks.find((benchmark) => benchmark.slug === benchmarkStartRequest.slug);
+    if (!requestedBenchmark) return;
+    setSharedBenchmarkId(requestedBenchmark.id);
+    setActiveStarterPath("benchmark");
+    setSelectedBenchmarkId(requestedBenchmark.id);
+    setSelectedActivity(requestedBenchmark.activity);
+    window.setTimeout(() => {
+      document.getElementById(`benchmark-${requestedBenchmark.slug}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+  }, [benchmarkStartRequest, benchmarks]);
 
   useEffect(() => setSelectedSkill(skillLevel), [skillLevel]);
   useEffect(() => setSelectedMode(playMode), [playMode]);
@@ -502,8 +522,13 @@ export default function ChallengeStarterHub({
     const form = new FormData(formElement);
     const score = Number(form.get("score"));
     const note = String(form.get("note") || "").trim();
+    const proofFile = form.get("proof_file");
     if (!Number.isFinite(score) || score <= 0) {
       setMessage("Enter a positive result before saving this attempt.");
+      return;
+    }
+    if (!(proofFile instanceof File) || proofFile.size <= 0) {
+      setMessage("Record or upload your benchmark video before submitting the result.");
       return;
     }
 
@@ -535,8 +560,30 @@ export default function ChallengeStarterHub({
           target_note: note || null
         });
         if (error) throw error;
-        if (data) setAttempts((items) => [data as BenchmarkAttempt, ...items]);
-        setMessage(`Personal best attempt saved: ${formatResult(score, benchmark.unit)}. It is self-reported and does not change Rise Points.`);
+        if (!data) throw new Error("The benchmark attempt was saved without a usable response.");
+        const savedAttempt = data as BenchmarkAttempt;
+        setAttempts((items) => [savedAttempt, ...items]);
+        setMessage("Personal best saved. Uploading your benchmark video…");
+
+        const proofUrl = await uploadBenchmarkProofVideo(proofFile, savedAttempt.id);
+        const proofResult = await supabase.rpc("submit_talent7_benchmark_proof", {
+          target_attempt_id: savedAttempt.id,
+          target_proof_type: "Video",
+          target_proof_url: proofUrl
+        });
+        if (proofResult.error) throw proofResult.error;
+        if (!proofResult.data) throw new Error("The video uploaded, but Talent7 could not attach it to the benchmark.");
+        const submittedAttempt = proofResult.data as BenchmarkAttempt;
+        setAttempts((items) => items.map((item) => (
+          item.benchmark_id === savedAttempt.benchmark_id
+            ? item.id === submittedAttempt.id
+              ? submittedAttempt
+              : { ...item, leaderboard_visible: false }
+            : item
+        )));
+        setMessage(`Benchmark recorded: ${formatResult(score, benchmark.unit)}. Your video is awaiting private verification, and the Talent7 share-video tool is ready below.`);
+        void loadBenchmarkLeaderboard();
+        void loadBenchmarkProofQueue();
       }
       setSelectedBenchmarkId("");
       formElement.reset();
@@ -940,8 +987,17 @@ export default function ChallengeStarterHub({
                   </details>
                   {recording ? (
                     <form className="benchmarkAttemptForm" onSubmit={(event) => recordAttempt(event, benchmark)}>
+                      <div className="benchmarkVideoRequirement">
+                        <strong>1. Record or upload your performance</strong>
+                        <small>Keep your full movement visible. This creates a solo benchmark—not a challenge room.</small>
+                      </div>
+                      <label className="benchmarkVideoField">
+                        Benchmark video
+                        <input accept="video/mp4,video/quicktime" name="proof_file" required type="file" />
+                        <small>On a phone, choose the camera to record now or select an existing MP4/MOV. Maximum 50 MB.</small>
+                      </label>
                       <label>
-                        {benchmark.metric_label}
+                        2. {benchmark.metric_label}
                         <div className="benchmarkScoreField">
                           <input min="0.01" name="score" required step="0.01" type="number" />
                           <span>{benchmark.unit}</span>
@@ -953,26 +1009,14 @@ export default function ChallengeStarterHub({
                       </label>
                       <div>
                         <button disabled={busyAction === `attempt-${benchmark.id}`} type="submit">
-                          {busyAction === `attempt-${benchmark.id}` ? "Saving…" : "Save personal best"}
+                          {busyAction === `attempt-${benchmark.id}` ? "Saving and uploading…" : "Submit video benchmark"}
                         </button>
                         <button className="secondary" onClick={() => setSelectedBenchmarkId("")} type="button">Cancel</button>
                       </div>
                     </form>
                   ) : (
                     <div className="challengeBenchmarkActions">
-                      <button onClick={() => setSelectedBenchmarkId(benchmark.id)} type="button">Try now</button>
-                      <button
-                        className="secondary"
-                        onClick={() => onStartChallenge({
-                          activity: benchmark.activity,
-                          title: benchmark.title,
-                          rules: benchmark.rules,
-                          competitionMode: "Casual"
-                        })}
-                        type="button"
-                      >
-                        Open to a rival
-                      </button>
+                      <button onClick={() => setSelectedBenchmarkId(benchmark.id)} type="button">Record benchmark</button>
                       <button className="benchmarkShareButton" onClick={() => shareBenchmark(benchmark, personalBest)} type="button">
                         {personalBest === undefined ? "Share benchmark" : "Share my best"}
                       </button>
@@ -1075,6 +1119,21 @@ export default function ChallengeStarterHub({
                           videoUrl={personalBestAttempt.proof_url || ""}
                         />
                       )}
+                      <div className="benchmarkChallengeConversion">
+                        <span>This benchmark remains a solo performance.</span>
+                        <button
+                          className="secondary"
+                          onClick={() => onStartChallenge({
+                            activity: benchmark.activity,
+                            title: `${benchmark.title}: beat ${formatResult(Number(personalBestAttempt.score), benchmark.unit)}`,
+                            rules: benchmark.rules,
+                            competitionMode: "Casual"
+                          })}
+                          type="button"
+                        >
+                          Create challenge room from this result
+                        </button>
+                      </div>
                     </div>
                   )}
                 </article>

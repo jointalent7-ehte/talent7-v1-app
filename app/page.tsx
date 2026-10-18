@@ -15,7 +15,7 @@ import { hasSupabaseConfig, supabase } from "../lib/supabase";
 import { trackGrowthEvent } from "../lib/growth-analytics";
 import { supporterTierLabel, type SupporterTier } from "../lib/supporter-products";
 import ChallengeLiveRoom from "./challenge-live-room";
-import ChallengeStarterHub, { type ChallengeStarterSeed } from "./challenge-starter-hub";
+import ChallengeStarterHub, { type BenchmarkStarterRequest, type ChallengeStarterSeed } from "./challenge-starter-hub";
 import CommunityCompetitionLaunchpad from "./community-competition-launchpad";
 import ClubsScouting from "./clubs-scouting";
 import GrowthHub from "./growth-hub";
@@ -2303,6 +2303,7 @@ export default function Home() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [activeAppTab, setActiveAppTab] = useState<AppTabId>("home");
   const [activeSection, setActiveSection] = useState("home");
+  const [benchmarkStartRequest, setBenchmarkStartRequest] = useState<BenchmarkStarterRequest | null>(null);
   const [notificationReturnContext, setNotificationReturnContext] = useState<NotificationReturnContext | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [colorTheme, setColorTheme] = useState<ColorTheme>("light");
@@ -7739,6 +7740,11 @@ export default function Home() {
     openSection("create", true);
   }
 
+  function startBenchmarkFromHome(slug: string) {
+    setBenchmarkStartRequest({ requestId: Date.now(), slug });
+    openSection("challenge-now", true);
+  }
+
   function switchAppTab(tabId: AppTabId) {
     const primaryTab = primaryTabs.find((item) => item.id === tabId);
     const moreTab = moreTabs.find((item) => item.id === tabId);
@@ -12877,7 +12883,7 @@ export default function Home() {
             </div>
           )}
           <div className="heroActions">
-            <a href="#challenge-now" className="primary">Try a starter challenge</a>
+            <a href="#challenge-now" className="primary">Record a benchmark</a>
             <a href="#rooms" className="secondary">Browse challenge rooms</a>
             <a
               className="googlePlayLink"
@@ -12891,28 +12897,23 @@ export default function Home() {
           </div>
           <aside className="guestStarterDemo" aria-labelledby="guest-starter-title">
             <div>
-              <span>Official starters · not community scores</span>
-              <strong id="guest-starter-title">Choose one. Talent7 fills the setup.</strong>
-              <small>Review the ready-to-publish room, then log in only when you publish.</small>
+              <span>Official solo benchmarks</span>
+              <strong id="guest-starter-title">Record a performance without creating a room.</strong>
+              <small>Choose an activity, upload the video, add your count or time, and submit it for verification.</small>
             </div>
             <div className="guestStarterChoices">
               {[
-                { activity: "Push-up challenge", label: "60-second push-ups" },
-                { activity: "Bodyweight squat challenge", label: "60-second squats" },
-                { activity: "Plank hold", label: "Plank hold" }
+                { slug: "push-ups-60", label: "60-second push-ups" },
+                { slug: "bodyweight-squats-60", label: "60-second squats" },
+                { slug: "plank-hold", label: "Plank hold" }
               ].map((starter) => (
                 <button
-                  key={starter.activity}
-                  onClick={() => startFromChallengeStarter({
-                    activity: starter.activity,
-                    title: starter.label,
-                    rules: rulesForActivity(starter.activity),
-                    competitionMode: "Casual"
-                  })}
+                  key={starter.slug}
+                  onClick={() => startBenchmarkFromHome(starter.slug)}
                   type="button"
                 >
                   <strong>{starter.label}</strong>
-                  <small>Quick create →</small>
+                  <small>Record benchmark →</small>
                 </button>
               ))}
             </div>
@@ -17363,6 +17364,7 @@ export default function Home() {
       <ChallengeStarterHub
         activities={challengeActivityOptions}
         area={profile?.leaderboard_area || ""}
+        benchmarkStartRequest={benchmarkStartRequest}
         city={profile?.leaderboard_city || ""}
         country={profile?.leaderboard_country || ""}
         displayName={profile?.display_name || ""}
