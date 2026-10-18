@@ -26,7 +26,7 @@ test("fresh launches open Home and the installed app starts there", async ({ pag
   expect(manifest.start_url).toBe("/#home");
 });
 
-test("guest Home avoids empty social proof and offers a two-step starter path", async ({ page }) => {
+test("guest Home opens a solo video benchmark instead of a challenge room", async ({ page }) => {
   const metricValues = page.locator(".heroMetrics article > span");
   for (let index = 0; index < await metricValues.count(); index += 1) {
     await expect(metricValues.nth(index)).not.toHaveText("0");
@@ -36,13 +36,12 @@ test("guest Home avoids empty social proof and offers a two-step starter path", 
   await expect(starter).toBeVisible();
   await starter.click();
 
-  await expect(page.locator("main")).toHaveClass(/appView-create/);
-  await expect(page.getByRole("heading", { name: "60-second push-ups" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Log in to publish" })).toBeVisible();
-  await expect(page.locator(".challengeWizardProgress")).toHaveCount(0);
-
-  await page.getByRole("button", { name: "Advanced options" }).click();
-  await expect(page.locator(".challengeWizardProgress")).toBeVisible();
+  await expect(page.locator("main")).toHaveClass(/appView-challenge-now/);
+  await expect(page.getByRole("heading", { name: "Talent7 benchmarks" })).toBeVisible();
+  await expect(page.getByText("This creates a solo benchmark—not a challenge room.")).toBeVisible();
+  await expect(page.getByLabel("Benchmark video")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Submit video benchmark" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log in to publish" })).toHaveCount(0);
 });
 
 test("primary mobile navigation opens the matching workspace", async ({ page }) => {
